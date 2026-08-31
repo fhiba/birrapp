@@ -2,7 +2,10 @@
 .env
 local.properties
 *.keystore
+*.jks
 !debug.keystore
+# Backups de archivos de secretos (.env.bak, local.properties.bak, ...)
+*.bak
 
 # Gradle / build
 .gradle/

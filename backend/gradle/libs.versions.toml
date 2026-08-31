@@ -20,6 +20,7 @@ ktor-server-calllogging   = { module = "io.ktor:ktor-server-call-logging-jvm",  
 ktor-server-cors          = { module = "io.ktor:ktor-server-cors-jvm",              version.ref = "ktor" }
 ktor-server-ratelimit     = { module = "io.ktor:ktor-server-rate-limit-jvm",        version.ref = "ktor" }
 ktor-server-defaultheaders= { module = "io.ktor:ktor-server-default-headers-jvm",   version.ref = "ktor" }
+ktor-server-fwdheaders     = { module = "io.ktor:ktor-server-forwarded-header-jvm",   version.ref = "ktor" }
 ktor-client-cio           = { module = "io.ktor:ktor-client-cio-jvm",               version.ref = "ktor" }
 ktor-client-contentneg    = { module = "io.ktor:ktor-client-content-negotiation",   version.ref = "ktor" }
 ktor-server-testhost      = { module = "io.ktor:ktor-server-test-host-jvm",         version.ref = "ktor" }

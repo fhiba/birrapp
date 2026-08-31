@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.ratelimit)
     implementation(libs.ktor.server.defaultheaders)
+    implementation(libs.ktor.server.fwdheaders)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.contentneg)
 

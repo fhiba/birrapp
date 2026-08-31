@@ -2,6 +2,9 @@ services:
   db:
     image: postgis/postgis:16-3.4
     container_name: birrapp-db
+    # El backend arranca solo al bootear (systemd), así que la base también
+    # tiene que volver sola o queda reintentando contra un puerto muerto.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: birrapp
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-birrapp_dev}

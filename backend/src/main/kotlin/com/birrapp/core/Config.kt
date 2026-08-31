@@ -11,6 +11,7 @@ import java.io.File
  */
 data class Config(
     val port: Int,
+    val bindHost: String,
     val dbUrl: String,
     val dbUser: String,
     val dbPassword: String,
@@ -59,6 +60,10 @@ data class Config(
 
             val cfg = Config(
                 port       = raw("PORT")?.toIntOrNull() ?: 8080,
+                // En producción conviene 127.0.0.1: así el único camino de
+                // entrada es el proxy (Funnel/Cloudflare) y nadie en la LAN
+                // puede pegarle directo ni falsear X-Forwarded-For.
+                bindHost   = raw("BIND_HOST") ?: "0.0.0.0",
                 dbUrl      = raw("DATABASE_URL") ?: "jdbc:postgresql://localhost:5433/birrapp",
                 dbUser     = raw("DATABASE_USER") ?: "birrapp",
                 dbPassword = raw("DATABASE_PASSWORD") ?: "birrapp_dev",

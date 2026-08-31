@@ -18,6 +18,10 @@ val localProps = Properties().apply {
 fun localProp(key: String, fallback: String = "REPLACE_ME"): String =
     (localProps.getProperty(key) ?: fallback).ifBlank { fallback }
 
+/** Keystore de release. Si no está, el APK de release sale sin firmar en vez
+ *  de romper el build — mismo criterio que con el resto de los secretos. */
+val releaseKeystore = rootProject.file(localProp("RELEASE_STORE_FILE", "birrapp-release.jks"))
+
 android {
     namespace = "com.birrapp"
     compileSdk = 37
@@ -38,6 +42,17 @@ android {
         buildConfigField("boolean", "MAPS_KEY_MISSING", "${localProp("MAPS_API_KEY") == "REPLACE_ME"}")
     }
 
+    signingConfigs {
+        if (releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = localProp("RELEASE_STORE_PASSWORD", "")
+                keyAlias = localProp("RELEASE_KEY_ALIAS", "birrapp")
+                keyPassword = localProp("RELEASE_KEY_PASSWORD", "")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -45,6 +60,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

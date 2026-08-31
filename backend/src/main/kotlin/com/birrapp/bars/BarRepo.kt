@@ -1,12 +1,20 @@
 package com.birrapp.bars
 
 import com.birrapp.core.Db
+import com.birrapp.core.badRequest
 import com.birrapp.core.conflict
+import com.birrapp.core.tooManyRequests
 import com.birrapp.core.query
 import com.birrapp.core.queryOne
 import java.sql.ResultSet
 
 class BarRepo(private val db: Db) {
+
+    private companion object {
+        const val MAX_NAME = 120
+        const val MAX_ADDRESS = 200
+        const val MAX_BARS_PER_DAY = 10
+    }
 
     /**
      * Bares aprobados dentro de un radio.
@@ -136,6 +144,33 @@ class BarRepo(private val db: Db) {
      * de pines repetidos y los precios se parten entre ellos.
      */
     fun create(req: NewBarRequest, createdBy: Long): Long = db.conn { c ->
+        // PostGIS NO rechaza coordenadas fuera de rango: las mete a la fuerza
+        // adentro del rango con un simple NOTICE. ST_MakePoint(-58.4, 999)
+        // termina siendo POINT(-58.4 -81), o sea un bar en la Antártida creado
+        // en silencio. Por eso se valida acá, igual que en GET /bars.
+        if (req.lat !in -90.0..90.0 || req.lng !in -180.0..180.0) {
+            badRequest("coordenadas fuera de rango")
+        }
+        val name = req.name.trim()
+        if (name.isBlank()) badRequest("el bar necesita un nombre")
+        if (name.length > MAX_NAME) badRequest("el nombre es demasiado largo (máx $MAX_NAME)")
+        if ((req.address?.length ?: 0) > MAX_ADDRESS) badRequest("la dirección es demasiado larga")
+        if ((req.neighbourhood?.length ?: 0) > MAX_ADDRESS) badRequest("el barrio es demasiado largo")
+
+        // Sin esto, una cuenta sola puede inundar la cola de moderación con
+        // bares inventados: alcanza con variar el nombre para esquivar el
+        // chequeo de duplicados de abajo.
+        val recent = c.queryOne(
+            """
+            SELECT count(*) AS n FROM bars
+            WHERE created_by = ? AND created_at > now() - make_interval(hours => 24)
+            """.trimIndent(),
+            createdBy,
+        ) { it.getInt("n") } ?: 0
+        if (recent >= MAX_BARS_PER_DAY) {
+            tooManyRequests("ya cargaste $MAX_BARS_PER_DAY bares hoy, probá mañana")
+        }
+
         val dup = c.queryOne(
             """
             SELECT id FROM bars
@@ -144,7 +179,7 @@ class BarRepo(private val db: Db) {
               AND status <> 'rejected'
             LIMIT 1
             """.trimIndent(),
-            req.name, req.lng, req.lat,
+            name, req.lng, req.lat,
         ) { it.getLong("id") }
         if (dup != null) conflict("ya existe un bar con ese nombre a menos de 100 m (id $dup)")
 
@@ -154,7 +189,7 @@ class BarRepo(private val db: Db) {
             VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, 'pending', ?)
             RETURNING id
             """.trimIndent(),
-            req.name, req.address, req.neighbourhood, req.lng, req.lat, createdBy,
+            name, req.address, req.neighbourhood, req.lng, req.lat, createdBy,
         ) { it.getLong("id") }!!
     }
 

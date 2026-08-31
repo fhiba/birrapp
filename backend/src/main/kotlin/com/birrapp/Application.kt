@@ -11,6 +11,10 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
+import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
@@ -23,6 +27,7 @@ import com.birrapp.moderation.ModerationRepo
 import com.birrapp.prices.PriceRepo
 import com.birrapp.reviews.ReviewRepo
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration.Companion.minutes
 
 fun main() {
     val log = LoggerFactory.getLogger("birrapp")
@@ -32,7 +37,8 @@ fun main() {
     db.migrate()
     log.info("base migrada: {}", cfg.dbUrl)
 
-    embeddedServer(Netty, port = cfg.port) { module(cfg, db) }
+    log.info("escuchando en {}:{}", cfg.bindHost, cfg.port)
+    embeddedServer(Netty, port = cfg.port, host = cfg.bindHost) { module(cfg, db) }
         .start(wait = true)
 }
 
@@ -48,6 +54,30 @@ fun Application.module(cfg: Config, db: Db) {
 
     install(DefaultHeaders)
     install(CallLogging)
+
+    // Detrás de Tailscale Funnel / Cloudflare todo llega desde localhost. Sin
+    // esto `origin.remoteHost` sería siempre 127.0.0.1 y el rate limit de abajo
+    // metería a todo el mundo en el mismo balde: un auto-DoS en cuanto entren
+    // dos personas a la vez. OJO: confiar en X-Forwarded-For sólo es seguro si
+    // el puerto no es alcanzable de forma directa — ver BIND_HOST en .env.
+    install(XForwardedHeaders)
+
+    install(RateLimit) {
+        // Límite general por IP. Generoso: el mapa hace varias llamadas por
+        // pantalla y no queremos romperle la app a un usuario normal.
+        global {
+            rateLimiter(limit = 120, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+        // Login aparte y mucho más estricto: es el único endpoint sin
+        // autenticar que además dispara una llamada saliente a Google por
+        // request, así que es el más barato de abusar y el que puede quemarte
+        // la cuota de la cuenta.
+        register(RateLimitName("auth")) {
+            rateLimiter(limit = 10, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+    }
 
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; encodeDefaults = true })
