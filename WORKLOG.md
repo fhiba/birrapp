@@ -56,3 +56,23 @@ que se habían usado para validar la lógica de frescura — eran inventados sob
 bares reales.
 
 Pendiente de Fase B: credenciales de Google Cloud y un teléfono por USB.
+
+## 2026-08-31 (cont.) — Rename de package: se saca todo rastro de "inkan"
+
+El package original era `news.inkan.birrapp`, deducido del dominio del mail del
+usuario. Mala inferencia: inkan no tiene nada que ver con este proyecto y el
+package brandeaba la app como producto de esa organización.
+
+Cambiado a **`com.birrapp`** — neutral, sin reclamar ninguna organización. La
+marca definitiva está sin decidir; cuando se decida, este es el momento barato
+para volver a cambiarlo (antes de publicar en Play, después es caro).
+
+- Árboles de fuentes movidos: `news/inkan/birrapp` → `com/birrapp` (app, backend, tests).
+- 44 archivos actualizados (imports, namespace, applicationId, group, mainClass, proguard, docs).
+- `.env.example` tenía el mail del usuario hardcodeado → ahora es `REPLACE_ME`.
+- `backend/bin/` (basura de build de un IDE) agregado a .gitignore.
+- Verificado: 18 tests verdes, APK reconstruido como `com.birrapp`, sin la cadena
+  "inkan" dentro del dex.
+
+Ojo: el package registrado en Google Cloud tiene que ser `com.birrapp`
+(docs/SETUP.md ya actualizado).

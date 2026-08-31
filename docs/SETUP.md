@@ -5,7 +5,7 @@ que entres a una consola web, porque no se puede automatizar.
 
 ## 0. Datos que ya te dejo calculados
 
-**Package name:** `news.inkan.birrapp`
+**Package name:** `com.birrapp`
 
 **SHA-1 del debug keystore** (`~/.android/debug.keystore`, ya generado):
 
@@ -44,7 +44,7 @@ APIs & Services → Credentials → Create credentials → **API key**.
 
 Restringirla, si no queda abierta a cualquiera:
 - *Application restrictions* → **Android apps** → agregar
-  package `news.inkan.birrapp` + el SHA-1 de arriba.
+  package `com.birrapp` + el SHA-1 de arriba.
 - *API restrictions* → sólo **Maps SDK for Android**.
 
 Pegar en `app/local.properties` (gitignoreado):
@@ -59,7 +59,7 @@ de la app y mail de soporte). Después Credentials → Create credentials →
 **OAuth client ID**, dos veces:
 
 **a) Android**
-- Package name: `news.inkan.birrapp`
+- Package name: `com.birrapp`
 - SHA-1: el de arriba
 - No hay que copiar su client ID a ningún lado. Sólo tiene que existir:
   es lo que autoriza a *este* APK a pedir tokens.

@@ -19,11 +19,11 @@ fun localProp(key: String, fallback: String = "REPLACE_ME"): String =
     (localProps.getProperty(key) ?: fallback).ifBlank { fallback }
 
 android {
-    namespace = "news.inkan.birrapp"
+    namespace = "com.birrapp"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "news.inkan.birrapp"
+        applicationId = "com.birrapp"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

@@ -1,10 +1,10 @@
 # kotlinx.serialization: conservar los serializers generados.
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
--keepclassmembers class news.inkan.birrapp.data.model.** {
+-keepclassmembers class com.birrapp.data.model.** {
     *** Companion;
 }
--keepclasseswithmembers class news.inkan.birrapp.data.model.** {
+-keepclasseswithmembers class com.birrapp.data.model.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 # Ktor

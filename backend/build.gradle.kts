@@ -4,11 +4,11 @@ plugins {
     alias(libs.plugins.ktor)
 }
 
-group = "news.inkan.birrapp"
+group = "com.birrapp"
 version = "0.1.0"
 
 application {
-    mainClass.set("news.inkan.birrapp.ApplicationKt")
+    mainClass.set("com.birrapp.ApplicationKt")
 }
 
 kotlin { jvmToolchain(21) }
