@@ -1,0 +1,101 @@
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+/**
+ * Los secretos viven en local.properties (gitignoreado), nunca en el repo.
+ * Si falta alguno el build sigue: la app compila y arranca igual, y avisa en
+ * pantalla qué falta. Preferimos eso a un build roto — así se puede trabajar
+ * en todo lo demás antes de tener las credenciales de Google.
+ */
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun localProp(key: String, fallback: String = "REPLACE_ME"): String =
+    (localProps.getProperty(key) ?: fallback).ifBlank { fallback }
+
+android {
+    namespace = "news.inkan.birrapp"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "news.inkan.birrapp"
+        minSdk = 26
+        targetSdk = 37
+        versionCode = 1
+        versionName = "0.1.0"
+
+        // La API key del mapa se inyecta al manifest como placeholder.
+        manifestPlaceholders["MAPS_API_KEY"] = localProp("MAPS_API_KEY")
+
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${localProp("API_BASE_URL", "http://10.0.2.2:8090")}\"")
+        // Permite avisar en pantalla en vez de dejar un mapa gris sin explicación.
+        buildConfigField("boolean", "MAPS_KEY_MISSING", "${localProp("MAPS_API_KEY") == "REPLACE_ME"}")
+    }
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+        }
+        release {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "META-INF/INDEX.LIST")
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime)
+    implementation(libs.lifecycle.vm.compose)
+    implementation(libs.activity.compose)
+    implementation(libs.nav.compose)
+
+    implementation(libs.compose.ui)
+    implementation(libs.compose.graphics)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.icons.core)
+    implementation(libs.compose.tooling.prev)
+    debugImplementation(libs.compose.tooling)
+
+    implementation(libs.credentials)
+    implementation(libs.credentials.play)
+    implementation(libs.googleid)
+
+    implementation(libs.maps.compose)
+    implementation(libs.play.location)
+    implementation(libs.coroutines.play)
+
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.contentneg)
+    implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.auth)
+    implementation(libs.ktor.client.logging)
+
+    implementation(libs.datastore.prefs)
+}

@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+local.properties
+*.keystore
+!debug.keystore
+
+# Gradle / build
+.gradle/
+build/
+captures/
+.cxx/
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Scratch
+*.log
+scripts/out/

@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: birrapp-db
+    environment:
+      POSTGRES_USER: birrapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-birrapp_dev}
+      POSTGRES_DB: birrapp
+    ports:
+      - "5433:5432"          # 5433 — el 5432 local ya tiene un Postgres 15
+    volumes:
+      - birrapp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U birrapp -d birrapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db_test:
+    image: postgis/postgis:16-3.4
+    container_name: birrapp-db-test
+    environment:
+      POSTGRES_USER: birrapp
+      POSTGRES_PASSWORD: birrapp_test
+      POSTGRES_DB: birrapp_test
+    ports:
+      - "5434:5432"
+    tmpfs:
+      - /var/lib/postgresql/data   # efímero: los tests arrancan siempre limpios
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U birrapp -d birrapp_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  birrapp_pgdata:

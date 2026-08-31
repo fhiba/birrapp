@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Castellano rioplatense. La app es para Buenos Aires; no hay versión
+     en inglés y no se traduce desde inglés. -->
+<resources>
+    <string name="app_name">birrapp</string>
+
+    <!-- Navegación -->
+    <string name="tab_map">Mapa</string>
+    <string name="tab_list">Lista</string>
+    <string name="tab_profile">Perfil</string>
+    <string name="tab_moderation">Moderación</string>
+
+    <!-- Mapa y lista -->
+    <string name="sort_distance">Más cerca</string>
+    <string name="sort_cheapest">Más barata</string>
+    <string name="from_price">desde %1$s</string>
+    <string name="no_price_yet">Sin precio</string>
+    <string name="recenter">Centrar en mi ubicación</string>
+    <string name="empty_nearby">No hay bares cargados por acá todavía.</string>
+    <string name="add_this_bar">Agregar un bar</string>
+
+    <!-- Frescura: lo más importante de la interfaz -->
+    <string name="age_today">hoy</string>
+    <string name="age_yesterday">ayer</string>
+    <string name="age_days">hace %1$d días</string>
+    <string name="age_stale">hace %1$d días · puede estar desactualizado</string>
+    <string name="stale_warning">Este precio tiene más de 45 días. Con la inflación, tomalo como referencia nomás.</string>
+
+    <!-- Detalle -->
+    <string name="prices_title">Precios</string>
+    <string name="reviews_title">Reseñas</string>
+    <string name="no_prices">Todavía nadie cargó precios acá. ¿Los sabés?</string>
+    <string name="still_the_same">Sigue igual</string>
+    <string name="update_price">Actualizar</string>
+    <string name="report_price">Cargar precio</string>
+    <string name="report_first_price">Cargar el primer precio</string>
+    <string name="distance_m">a %1$d m</string>
+    <string name="distance_km">a %1$s km</string>
+    <string name="flag_content">Reportar</string>
+
+    <!-- Carga de precio -->
+    <string name="which_style">¿Qué estilo?</string>
+    <string name="how_much">¿Cuánto sale?</string>
+    <string name="size_ml">Tamaño (ml)</string>
+    <string name="send">Enviar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="price_thanks">¡Gracias! Ya está en el mapa.</string>
+    <string name="price_held">Lo mandamos a revisión porque está lejos del resto de los precios.</string>
+
+    <!-- Alta de bar -->
+    <string name="new_bar">Bar nuevo</string>
+    <string name="bar_name">Nombre</string>
+    <string name="bar_address">Dirección (opcional)</string>
+    <string name="drop_pin">Movés el mapa para ubicar el bar</string>
+    <string name="bar_submitted">Listo. Un moderador lo revisa y aparece en el mapa.</string>
+
+    <!-- Sesión -->
+    <string name="sign_in">Continuar con Google</string>
+    <string name="sign_out">Cerrar sesión</string>
+    <string name="sign_in_why">Para cargar precios hace falta una cuenta. Mirar el mapa no.</string>
+    <string name="my_reports">Mis aportes</string>
+    <string name="role_user">Usuario</string>
+    <string name="role_moderator">Moderador</string>
+    <string name="role_admin">Admin</string>
+
+    <!-- Moderación -->
+    <string name="pending_bars">Bares pendientes</string>
+    <string name="open_flags">Denuncias abiertas</string>
+    <string name="approve">Aprobar</string>
+    <string name="reject">Rechazar</string>
+    <string name="resolve">Resolver</string>
+    <string name="nothing_pending">Nada pendiente. Todo en orden.</string>
+
+    <!-- Errores -->
+    <string name="error_network">No se pudo conectar. ¿Está andando el backend?</string>
+    <string name="error_generic">Algo salió mal.</string>
+    <string name="retry">Reintentar</string>
+    <string name="location_needed">Necesitamos tu ubicación para mostrarte los bares cerca.</string>
+    <string name="grant_location">Dar permiso</string>
+
+    <!-- Configuración faltante (Fase B) -->
+    <string name="setup_missing_title">Falta configurar</string>
+    <string name="setup_missing_maps">Falta MAPS_API_KEY en local.properties: el mapa se ve gris. Ver docs/SETUP.md paso 3.</string>
+    <string name="setup_missing_oauth">Falta GOOGLE_WEB_CLIENT_ID en local.properties: no se puede iniciar sesión. Ver docs/SETUP.md paso 4b.</string>
+</resources>

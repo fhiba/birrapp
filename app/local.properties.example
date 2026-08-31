@@ -1,0 +1,4 @@
+sdk.dir=/home/jaiba/Android/Sdk
+MAPS_API_KEY=REPLACE_ME
+GOOGLE_WEB_CLIENT_ID=REPLACE_ME
+API_BASE_URL=http://10.0.2.2:8090

@@ -1,0 +1,53 @@
+[versions]
+agp             = "9.3.2"
+kotlin          = "2.4.10"
+composeUi       = "1.12.0"
+material3       = "1.4.0"
+activityCompose = "1.13.0"
+navCompose      = "2.10.0"
+lifecycle       = "2.11.0"
+coreKtx         = "1.19.0"
+credentials     = "1.6.0"
+googleid        = "1.2.0"
+mapsCompose     = "8.4.0"
+iconsCore       = "1.7.8"   # congelada por Google; es sólo un set de vectores
+playLocation    = "21.4.0"
+ktor            = "3.5.2"
+datastore       = "1.2.1"
+coroutines      = "1.10.2"
+
+[libraries]
+core-ktx            = { module = "androidx.core:core-ktx",                       version.ref = "coreKtx" }
+lifecycle-runtime   = { module = "androidx.lifecycle:lifecycle-runtime-ktx",     version.ref = "lifecycle" }
+lifecycle-vm-compose= { module = "androidx.lifecycle:lifecycle-viewmodel-compose",version.ref = "lifecycle" }
+activity-compose    = { module = "androidx.activity:activity-compose",           version.ref = "activityCompose" }
+nav-compose         = { module = "androidx.navigation:navigation-compose",       version.ref = "navCompose" }
+
+compose-ui          = { module = "androidx.compose.ui:ui",                       version.ref = "composeUi" }
+compose-graphics    = { module = "androidx.compose.ui:ui-graphics",              version.ref = "composeUi" }
+compose-tooling     = { module = "androidx.compose.ui:ui-tooling",               version.ref = "composeUi" }
+compose-tooling-prev= { module = "androidx.compose.ui:ui-tooling-preview",       version.ref = "composeUi" }
+compose-material3   = { module = "androidx.compose.material3:material3",         version.ref = "material3" }
+compose-icons-core  = { module = "androidx.compose.material:material-icons-core", version.ref = "iconsCore" }
+
+credentials         = { module = "androidx.credentials:credentials",             version.ref = "credentials" }
+credentials-play    = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid            = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+maps-compose        = { module = "com.google.maps.android:maps-compose",         version.ref = "mapsCompose" }
+play-location       = { module = "com.google.android.gms:play-services-location",version.ref = "playLocation" }
+
+ktor-client-android = { module = "io.ktor:ktor-client-android",                  version.ref = "ktor" }
+ktor-client-contentneg = { module = "io.ktor:ktor-client-content-negotiation",   version.ref = "ktor" }
+ktor-serialization-json= { module = "io.ktor:ktor-serialization-kotlinx-json",   version.ref = "ktor" }
+ktor-client-auth    = { module = "io.ktor:ktor-client-auth",                     version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging",                  version.ref = "ktor" }
+
+datastore-prefs     = { module = "androidx.datastore:datastore-preferences",     version.ref = "datastore" }
+coroutines-play     = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+
+[plugins]
+android-application  = { id = "com.android.application",                 version.ref = "agp" }
+kotlin-android       = { id = "org.jetbrains.kotlin.android",            version.ref = "kotlin" }
+kotlin-compose       = { id = "org.jetbrains.kotlin.plugin.compose",     version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

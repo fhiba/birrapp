@@ -1,0 +1,39 @@
+[versions]
+kotlin     = "2.4.10"
+ktor       = "3.5.2"
+logback    = "1.6.3"
+hikari     = "7.1.0"
+postgres   = "42.7.13"
+flyway     = "13.4.0"
+jjwt       = "0.12.6"
+nimbus     = "10.0.2"
+
+[libraries]
+ktor-server-core          = { module = "io.ktor:ktor-server-core-jvm",              version.ref = "ktor" }
+ktor-server-netty         = { module = "io.ktor:ktor-server-netty-jvm",             version.ref = "ktor" }
+ktor-server-contentneg    = { module = "io.ktor:ktor-server-content-negotiation-jvm",version.ref = "ktor" }
+ktor-serialization-json   = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm",version.ref = "ktor" }
+ktor-server-auth          = { module = "io.ktor:ktor-server-auth-jvm",              version.ref = "ktor" }
+ktor-server-auth-jwt      = { module = "io.ktor:ktor-server-auth-jwt-jvm",          version.ref = "ktor" }
+ktor-server-statuspages   = { module = "io.ktor:ktor-server-status-pages-jvm",      version.ref = "ktor" }
+ktor-server-calllogging   = { module = "io.ktor:ktor-server-call-logging-jvm",      version.ref = "ktor" }
+ktor-server-cors          = { module = "io.ktor:ktor-server-cors-jvm",              version.ref = "ktor" }
+ktor-server-ratelimit     = { module = "io.ktor:ktor-server-rate-limit-jvm",        version.ref = "ktor" }
+ktor-server-defaultheaders= { module = "io.ktor:ktor-server-default-headers-jvm",   version.ref = "ktor" }
+ktor-client-cio           = { module = "io.ktor:ktor-client-cio-jvm",               version.ref = "ktor" }
+ktor-client-contentneg    = { module = "io.ktor:ktor-client-content-negotiation",   version.ref = "ktor" }
+ktor-server-testhost      = { module = "io.ktor:ktor-server-test-host-jvm",         version.ref = "ktor" }
+
+logback     = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+hikari      = { module = "com.zaxxer:HikariCP",            version.ref = "hikari" }
+postgres    = { module = "org.postgresql:postgresql",      version.ref = "postgres" }
+flyway-core = { module = "org.flywaydb:flyway-core",       version.ref = "flyway" }
+flyway-pg   = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+nimbus-jose = { module = "com.nimbusds:nimbus-jose-jwt",   version.ref = "nimbus" }
+
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+
+[plugins]
+kotlin-jvm        = { id = "org.jetbrains.kotlin.jvm",           version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor              = { id = "io.ktor.plugin",                     version.ref = "ktor" }
