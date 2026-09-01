@@ -84,6 +84,57 @@ a { color: var(--amber); }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
 
+/* ---------- Slider de rango ----------
+ *
+ * El `input[type=range]` nativo trae una pista gruesa y un pulgar distinto en
+ * cada navegador; en iOS además queda notablemente más alto. Se reemplaza por
+ * la misma forma que usa el Slider de Material en Android: pista de 4px,
+ * pulgar redondo ámbar de 18px.
+ *
+ * El relleno de la parte activa va como degradado y no como pseudo-elemento
+ * porque WebKit no expone uno: se le pasa el porcentaje desde React en la
+ * variable --fill.
+ */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  /* La altura la fija el pulgar; sin esto WebKit recorta la mitad de abajo. */
+  height: 18px;
+  margin: 0;
+  background: transparent;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--amber), var(--amber)) 0 / var(--fill, 0%) 100% no-repeat,
+    var(--hairline);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border: 0; border-radius: 50%;
+  background: var(--amber);
+  /* Centra el pulgar sobre una pista de 4px: (4 - 18) / 2. */
+  margin-top: -7px;
+}
+
+/* Firefox sí tiene pseudo-elemento para la parte activa. */
+.range::-moz-range-track {
+  height: 4px; border-radius: 2px; background: var(--hairline);
+}
+.range::-moz-range-progress {
+  height: 4px; border-radius: 2px; background: var(--amber);
+}
+.range::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border: 0; border-radius: 50%;
+  background: var(--amber);
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner {
   width: 16px; height: 16px; border-radius: 50%;

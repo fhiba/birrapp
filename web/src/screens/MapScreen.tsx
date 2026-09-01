@@ -7,6 +7,11 @@ import { PintLoader } from '../ui/PintLoader'
 import type { Sort } from '../data/useBars'
 import { MAP_STYLE } from '../mapStyle'
 
+/** Los extremos del slider, en metros. Compartidos con las etiquetas de abajo
+ *  para que no se puedan desincronizar del `min`/`max` reales. */
+const RADIUS_MIN = 300
+const RADIUS_MAX = 15_000
+
 interface Props {
   bars: BarPin[]; styles: BeerStyle[]; loading: boolean
   center: google.maps.LatLngLiteral | null
@@ -29,6 +34,15 @@ export function MapScreen(p: Props) {
   const nav = useNavigate()
   const [radiusOpen, setRadiusOpen] = useState(false)
 
+  // Al soltar el dedo después de un long-press, el mapa emite igual un
+  // 'click'. Sin este sello, ese click borraba el punto en el mismo gesto que
+  // lo acababa de poner — y el long-press parecía no hacer nada.
+  const longPressAt = useRef(0)
+  const onLongPress = useCallback((pt: google.maps.LatLngLiteral) => {
+    longPressAt.current = Date.now()
+    p.onSimulate(pt)
+  }, [p.onSimulate])
+
   if (!p.center) return <PintLoader message="Buscando dónde estás…" />
 
   return (
@@ -40,6 +54,7 @@ export function MapScreen(p: Props) {
         gestureHandling="greedy"
         styles={MAP_STYLE}
         onClick={() => {
+          if (Date.now() - longPressAt.current < 600) return
           // Un toque cierra primero el slider abierto; recién si no hay nada
           // abierto borra el punto elegido. Si no, cerrar el radio te costaba
           // el punto que estabas por ajustar.
@@ -49,7 +64,7 @@ export function MapScreen(p: Props) {
         style={{ width: '100%', height: '100%' }}
       >
         <CameraWatcher onCamera={p.onCamera} />
-        <LongPress onLongPress={p.onSimulate} />
+        <LongPress onLongPress={onLongPress} />
         <PanTo target={p.panTo} />
 
         {/* El SDK web no dibuja la ubicación del usuario por su cuenta, a
@@ -69,16 +84,25 @@ export function MapScreen(p: Props) {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', gap: 8, padding: '0 14px', alignItems: 'flex-start' }}>
+        {/* `wrap` y `flexShrink: 0`: sin esto, en un teléfono angosto los tres
+            controles no entran, flex los encoge y las etiquetas se parten en
+            dos renglones dentro de píldoras pensadas para uno solo. Es
+            preferible que el radio baje a una segunda fila. */}
+        <div style={{
+          display: 'flex', gap: 8, padding: '0 14px',
+          alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center',
+          maxWidth: '100%',
+        }}>
           {/* La fila de chips scrolleaba mal: el gesto competía con el paneo
               del mapa, así que a veces se movía el mapa en vez de la lista, y
               encima ocupaba una franja permanente de pantalla. */}
           <StyleFilter styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle} />
 
-          <div className="glass pill" style={{ display: 'flex', padding: 4 }}>
+          <div className="glass pill" style={{ display: 'flex', padding: 4, flexShrink: 0 }}>
             {(['distance', 'cheapest'] as Sort[]).map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl" style={{
                 padding: '9px 18px', borderRadius: 999, fontSize: 13,
+                whiteSpace: 'nowrap',
                 background: p.sort === s ? 'var(--amber)' : 'transparent',
                 color: p.sort === s ? 'var(--base)' : 'rgba(251,246,238,.75)',
               }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
@@ -91,6 +115,7 @@ export function MapScreen(p: Props) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6, height: 44,
               padding: '0 14px', fontSize: 13,
+              flexShrink: 0, whiteSpace: 'nowrap',
               background: radiusOpen ? 'var(--amber)' : undefined,
               color: radiusOpen ? 'var(--base)' : undefined,
             }}
@@ -122,27 +147,33 @@ export function MapScreen(p: Props) {
           style={{
             position: 'absolute', left: 12, right: 12,
             bottom: `calc(144px + var(--nav-gap))`, zIndex: 12,
-            borderRadius: 18, padding: '14px 18px 10px',
+            borderRadius: 18, padding: '10px 18px 8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
-            <span style={{ color: 'var(--muted)', fontSize: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ color: 'var(--muted)', fontSize: 12, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
             </span>
             <span className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--amber)', fontSize: 14,
+              marginLeft: 'auto', paddingLeft: 10, color: 'var(--amber)', fontSize: 14,
+              whiteSpace: 'nowrap',
             }}>{formatRadius(p.radius)}</span>
           </div>
           <input
-            type="range" min={300} max={15000} step={100} value={p.radius}
+            className="range"
+            type="range" min={RADIUS_MIN} max={RADIUS_MAX} step={100} value={p.radius}
             onChange={e => p.onRadius(Number(e.target.value))}
-            style={{ width: '100%', accentColor: 'var(--amber)', display: 'block' }}
+            style={{
+              ['--fill' as string]:
+                `${((p.radius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN)) * 100}%`,
+            }}
           />
           <div style={{
             display: 'flex', justifyContent: 'space-between',
-            color: 'var(--faint)', fontSize: 10.5, marginTop: -2,
+            color: 'var(--faint)', fontSize: 10.5, marginTop: 2,
           }}>
-            <span>300 m</span><span>15 km</span>
+            <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
           </div>
         </div>
       )}
@@ -189,7 +220,7 @@ function StyleFilter({
   if (styles.length === 0) return null
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
         onClick={() => setOpen(o => !o)}
         className={active ? 'lbl pill' : 'lbl pill glass'}
@@ -197,7 +228,7 @@ function StyleFilter({
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           height: 44, padding: active ? '0 14px' : 0, width: active ? undefined : 44,
-          justifyContent: 'center',
+          justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
           background: active ? 'var(--amber)' : undefined,
           color: active ? 'var(--base)' : 'var(--muted)',
           fontSize: 12,
@@ -412,20 +443,94 @@ function CameraWatcher(
   return null
 }
 
-/** Mantener apretado deja un punto para explorar otra zona. */
+/**
+ * Mantener apretado deja un punto para explorar otra zona.
+ *
+ * 'contextmenu' alcanza en escritorio (clic derecho) y en Chrome de Android,
+ * que sintetiza el evento al mantener apretado. Safari de iOS no lo emite
+ * nunca: ahí el long-press abre el menú del sistema y el mapa no se entera.
+ * Por eso el gesto táctil se detecta a mano sobre el div del mapa y el píxel
+ * se traduce a coordenadas con la proyección de un OverlayView, que es la
+ * única forma pública de hacer pantalla → LatLng.
+ */
 function LongPress(
   { onLongPress }: { onLongPress: (p: google.maps.LatLngLiteral) => void },
 ) {
   const map = useMap()
-  const cb = useCallback((e: google.maps.MapMouseEvent) => {
-    if (e.latLng) onLongPress({ lat: e.latLng.lat(), lng: e.latLng.lng() })
+  // Los dos caminos pueden dispararse por el mismo gesto en Android. El sello
+  // de tiempo deja pasar sólo al primero.
+  const firedAt = useRef(0)
+
+  const fire = useCallback((pt: google.maps.LatLngLiteral) => {
+    if (Date.now() - firedAt.current < 700) return
+    firedAt.current = Date.now()
+    onLongPress(pt)
   }, [onLongPress])
 
   useEffect(() => {
     if (!map) return
-    // 'contextmenu' cubre el long-press táctil y el clic derecho de escritorio.
-    const l = map.addListener('contextmenu', cb)
+    const l = map.addListener('contextmenu', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) fire({ lat: e.latLng.lat(), lng: e.latLng.lng() })
+    })
     return () => l.remove()
-  }, [map, cb])
+  }, [map, fire])
+
+  useEffect(() => {
+    if (!map) return
+    const div = map.getDiv()
+
+    // Un overlay vacío, sólo para que `getProjection()` exista.
+    const overlay = new google.maps.OverlayView()
+    overlay.onAdd = () => {}
+    overlay.draw = () => {}
+    overlay.onRemove = () => {}
+    overlay.setMap(map)
+
+    let timer = 0
+    let start: { x: number; y: number } | null = null
+    const cancel = () => { window.clearTimeout(timer); start = null }
+
+    const onStart = (e: TouchEvent) => {
+      // Dos dedos es zoom, no long-press.
+      if (e.touches.length !== 1) return cancel()
+      const t = e.touches[0]
+      start = { x: t.clientX, y: t.clientY }
+      timer = window.setTimeout(() => {
+        const proj = overlay.getProjection()
+        if (!proj || !start) return cancel()
+        const r = div.getBoundingClientRect()
+        const at = proj.fromContainerPixelToLatLng(
+          new google.maps.Point(start.x - r.left, start.y - r.top),
+        )
+        if (at) {
+          fire({ lat: at.lat(), lng: at.lng() })
+          navigator.vibrate?.(12)
+        }
+        cancel()
+      }, 450)
+    }
+
+    // Si el dedo se corrió, era un paneo: se cancela.
+    const onMove = (e: TouchEvent) => {
+      if (!start) return
+      const t = e.touches[0]
+      if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > 12) cancel()
+    }
+
+    div.addEventListener('touchstart', onStart, { passive: true })
+    div.addEventListener('touchmove', onMove, { passive: true })
+    div.addEventListener('touchend', cancel, { passive: true })
+    div.addEventListener('touchcancel', cancel, { passive: true })
+
+    return () => {
+      cancel()
+      overlay.setMap(null)
+      div.removeEventListener('touchstart', onStart)
+      div.removeEventListener('touchmove', onMove)
+      div.removeEventListener('touchend', cancel)
+      div.removeEventListener('touchcancel', cancel)
+    }
+  }, [map, fire])
+
   return null
 }
