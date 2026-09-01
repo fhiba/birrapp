@@ -51,6 +51,9 @@ data class MapUiState(
     val queryPoint: Pair<Double, Double> get() = simulated ?: center
 }
 
+/** Posición de cámara persistida fuera de la composición. */
+data class CameraSnapshot(val lat: Double, val lng: Double, val zoom: Float)
+
 class MapViewModel(
     private val bars: BarRepository,
     private val location: LocationProvider,
@@ -123,6 +126,22 @@ class MapViewModel(
             }
             load()
         }
+    }
+
+    /**
+     * Última posición de la cámara.
+     *
+     * Vive en el ViewModel y no en la composición porque al navegar a otra
+     * pestaña la pantalla del mapa se destruye: al volver, la cámara se
+     * recreaba en su posición por defecto —el mundo entero— y recién después
+     * saltaba a destino. Guardarla acá, que sobrevive a la navegación, hace
+     * que volver sea instantáneo y sin salto.
+     */
+    var camera: CameraSnapshot? = null
+        private set
+
+    fun rememberCamera(lat: Double, lng: Double, zoom: Float) {
+        camera = CameraSnapshot(lat, lng, zoom)
     }
 
     private var loadJob: Job? = null

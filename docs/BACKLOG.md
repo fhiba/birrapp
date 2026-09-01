@@ -38,6 +38,12 @@ moderación. **Ojo que Apple y Google exigen un medio de contacto publicado**
 para apps con contenido de usuarios, así que esto no es opcional si se quiere
 publicar.
 
+### 5. Frontend web / PWA
+Replicar el frontend como web app para llegar a iOS sin App Store.
+El backend sirve tal cual y el login por navegador ya está hecho.
+A definir con el usuario: alcance y stack (quedó una frase cortada en la
+conversación del 2026-09-01).
+
 ## Deuda técnica detectada
 
 ### Vincular los bares de OSM con su place_id de Google

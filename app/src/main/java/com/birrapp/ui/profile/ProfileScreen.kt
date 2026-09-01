@@ -132,9 +132,32 @@ fun ProfileScreen(
                 Text(it, color = Ink.Danger, fontSize = 13.sp, lineHeight = 18.sp)
             }
         } else {
-            Text(user.displayName, style = MaterialTheme.typography.displaySmall, color = Ink.Cream)
-            Spacer(Modifier.height(4.dp))
-            Text(user.email, fontSize = 13.sp, color = Ink.Faint)
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        user.displayName,
+                        style = MaterialTheme.typography.displaySmall, color = Ink.Cream,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(user.email, fontSize = 13.sp, color = Ink.Faint)
+                }
+                // Salir arriba a la derecha, con su propio color: es una
+                // acción de sesión, no una opción más de la lista.
+                Box(
+                    Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Ink.Danger.copy(alpha = 0.13f))
+                        .clickable(onClick = onSignOut),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ExitToApp,
+                        stringResource(R.string.sign_out),
+                        Modifier.align(Alignment.Center).size(19.dp),
+                        tint = Ink.Danger,
+                    )
+                }
+            }
 
             Spacer(Modifier.height(14.dp))
             Box(
@@ -177,8 +200,6 @@ fun ProfileScreen(
                 Spacer(Modifier.height(10.dp))
             }
             RowAction("Cómo funcionan los precios", onOpenAbout)
-            Spacer(Modifier.height(10.dp))
-            RowAction(stringResource(R.string.sign_out), onSignOut)
 
             Spacer(Modifier.height(28.dp))
             Text(

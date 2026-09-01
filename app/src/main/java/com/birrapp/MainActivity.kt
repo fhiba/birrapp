@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.birrapp.ui.theme.Ink
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -155,6 +157,10 @@ fun BirrappApp(
     }
 
     var showDeleteAccount by remember { mutableStateOf(false) }
+    var showSignOut by remember { mutableStateOf(false) }
+    // Segundo paso del borrado: escribir la palabra. Un diálogo sólo se
+    // acepta por reflejo; escribir obliga a leer.
+    var deleteConfirmText by remember { mutableStateOf("") }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -211,7 +217,7 @@ fun BirrappApp(
                     onDeleteAccount = { showDeleteAccount = true },
                     onSignIn = { activity?.let(authViewModel::signIn) },
                     onSignInBrowser = authViewModel::signInWithBrowser,
-                    onSignOut = authViewModel::signOut,
+                    onSignOut = { showSignOut = true },
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
                 )
             }
@@ -277,30 +283,89 @@ fun BirrappApp(
             }
         }
 
+        if (showSignOut) {
+            AlertDialog(
+                onDismissRequest = { showSignOut = false },
+                containerColor = Ink.Raised,
+                title = { Text("¿Cerrar sesión?", color = Ink.Cream) },
+                text = {
+                    Text(
+                        "Vas a poder seguir mirando el mapa, pero no cargar " +
+                            "precios hasta que vuelvas a entrar.",
+                        color = Ink.Muted,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showSignOut = false
+                        authViewModel.signOut()
+                    }) { Text("Cerrar sesión", color = Ink.Danger) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSignOut = false }) {
+                        Text("Cancelar", color = Ink.Muted)
+                    }
+                },
+            )
+        }
+
         if (showDeleteAccount) {
             AlertDialog(
                 onDismissRequest = { showDeleteAccount = false },
                 containerColor = Ink.Raised,
                 title = { Text("¿Borrar tu cuenta?", color = Ink.Cream) },
                 text = {
-                    Text(
-                        "Se borra tu cuenta, tus reseñas y tu sesión. No se puede deshacer.\n\n" +
-                            "Los precios que cargaste quedan en el mapa, pero sin tu nombre: " +
-                            "son datos sobre bares, no sobre vos, y borrarlos dejaría peor " +
-                            "informado a todo el mundo.",
-                        color = Ink.Muted,
-                    )
+                    Column {
+                        Text(
+                            "Se borra tu cuenta, tus reseñas y tu sesión. No se puede " +
+                            "deshacer.\n\n" +
+                                "Los precios que cargaste quedan en el mapa, pero sin tu " +
+                            "nombre: son datos sobre bares, no sobre vos, y borrarlos " +
+                            "dejaría peor informado a todo el mundo.",
+                            color = Ink.Muted,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "Escribí BORRAR para confirmar",
+                            color = Ink.Faint, fontSize = 12.sp,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = deleteConfirmText,
+                            onValueChange = { deleteConfirmText = it },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Ink.Danger,
+                                unfocusedBorderColor = Ink.Hairline,
+                                focusedTextColor = Ink.Cream,
+                                unfocusedTextColor = Ink.Cream,
+                                cursorColor = Ink.Danger,
+                            ),
+                        )
+                    }
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        showDeleteAccount = false
-                        authViewModel.deleteAccount { navController.navigate(Routes.MAP) }
-                    }) { Text("Borrar cuenta", color = Ink.Danger) }
+                    val armed = deleteConfirmText.trim().uppercase() == "BORRAR"
+                    TextButton(
+                        enabled = armed,
+                        onClick = {
+                            showDeleteAccount = false
+                            deleteConfirmText = ""
+                            authViewModel.deleteAccount { navController.navigate(Routes.MAP) }
+                        },
+                    ) {
+                        Text(
+                            "Borrar cuenta",
+                            color = if (armed) Ink.Danger else Ink.Faint,
+                        )
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteAccount = false }) {
-                        Text("Cancelar", color = Ink.Muted)
-                    }
+                    TextButton(onClick = {
+                        showDeleteAccount = false
+                        deleteConfirmText = ""
+                    }) { Text("Cancelar", color = Ink.Muted) }
                 },
             )
         }

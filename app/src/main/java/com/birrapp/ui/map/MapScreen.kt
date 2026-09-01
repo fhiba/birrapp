@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -62,11 +63,27 @@ fun MapScreen(
 
     // El mapa es la fuente del blur: todo el vidrio de arriba lo refracta.
     val hazeState = remember { HazeState() }
+    var radiusOpen by remember { mutableStateOf(false) }
 
+    // Se restaura la posición guardada si existe: al volver de otra pestaña
+    // la cámara arrancaba mostrando medio continente antes de saltar.
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(
-            LatLng(state.center.first, state.center.second), 15f,
-        )
+        val saved = viewModel.camera
+        position = if (saved != null) {
+            CameraPosition.fromLatLngZoom(LatLng(saved.lat, saved.lng), saved.zoom)
+        } else {
+            CameraPosition.fromLatLngZoom(
+                LatLng(state.center.first, state.center.second), 15f,
+            )
+        }
+    }
+
+    // Se recuerda en cada quietud, para tenerla al volver.
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (!cameraPositionState.isMoving) {
+            val p = cameraPositionState.position
+            viewModel.rememberCamera(p.target.latitude, p.target.longitude, p.zoom)
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -77,7 +94,9 @@ fun MapScreen(
     // actualizaba el estado y recargaba la lista, pero la cámara no se movía:
     // el botón parecía no hacer nada.
     LaunchedEffect(state.recenterToken) {
-        if (state.recenterToken > 0) {
+        // Con cámara guardada no se salta al abrir: el usuario ya estaba
+        // mirando otra zona y moverlo sería arrebatarle el control.
+        if (state.recenterToken > 0 && (state.recenterAnimated || viewModel.camera == null)) {
             val update = CameraUpdateFactory.newLatLngZoom(
                 LatLng(state.center.first, state.center.second), 15f,
             )
@@ -132,7 +151,12 @@ fun MapScreen(
             // toque simple lo saca. Es el gesto que ya usa Google Maps, así
             // que no hay nada nuevo que aprender.
             onMapLongClick = { viewModel.setSimulated(it.latitude, it.longitude) },
-            onMapClick = { viewModel.clearSimulated() },
+            // Un toque cierra primero el slider abierto; recién si no hay
+            // nada abierto borra el punto elegido. Si no, querer cerrar el
+            // radio te costaba el punto que estabas por ajustar.
+            onMapClick = {
+                if (radiusOpen) radiusOpen = false else viewModel.clearSimulated()
+            },
         ) {
             // Alejado, las etiquetas de precio se amontonan y no se lee ninguna.
             // Por debajo de este zoom todo pasa a ser punto: el mapa muestra
@@ -218,6 +242,17 @@ fun MapScreen(
             Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
+                // Los toques que caen en la franja de controles NO llegan al
+                // mapa. Sin esto, errarle por unos píxeles al botón de radio
+                // contaba como toque en el mapa y borraba el punto elegido,
+                // que es justo lo que uno estaba por ajustar.
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent().changes.forEach { it.consume() }
+                        }
+                    }
+                }
                 .padding(vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -229,7 +264,11 @@ fun MapScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SortSelector(hazeState, state.sort, viewModel::setSort)
-                RadiusControl(hazeState, state.radiusMeters, viewModel::setRadius)
+                RadiusControl(
+                    hazeState, state.radiusMeters, radiusOpen,
+                    onToggle = { radiusOpen = !radiusOpen },
+                    onChange = viewModel::setRadius,
+                )
             }
 
             if (state.styles.isNotEmpty()) {
@@ -336,9 +375,10 @@ fun MapScreen(
 private fun RadiusControl(
     hazeState: HazeState,
     radiusMeters: Int,
+    open: Boolean,
+    onToggle: () -> Unit,
     onChange: (Int) -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
     val label = if (radiusMeters >= 1000) "%.1f km".format(radiusMeters / 1000f).replace(".0", "")
                 else "$radiusMeters m"
 
@@ -350,7 +390,12 @@ private fun RadiusControl(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
-                Modifier.clickable { open = !open },
+                // Padding generoso dentro del área tocable: el objetivo pasa
+                // de ~28dp de alto a ~46dp, por encima del mínimo recomendado.
+                Modifier
+                    .clip(RoundedCornerShape(22.dp))
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 6.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
