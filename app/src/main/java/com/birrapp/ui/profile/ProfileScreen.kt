@@ -30,6 +30,7 @@ fun ProfileScreen(
     stats: com.birrapp.data.model.UserStats?,
     onSignIn: () -> Unit,
     onOpenAbout: () -> Unit,
+    onCheckUpdate: () -> Unit,
     onDeleteAccount: () -> Unit,
     onSignInBrowser: () -> Unit,
     onSignOut: () -> Unit,
@@ -181,6 +182,10 @@ fun ProfileScreen(
                 Spacer(Modifier.height(10.dp))
             }
             RowAction("Cómo funcionan los precios", onOpenAbout)
+            Spacer(Modifier.height(10.dp))
+            // Un APK instalado a mano no se actualiza solo: hace falta poder
+            // ir a buscar la versión nueva.
+            RowAction("Buscar actualización", onCheckUpdate)
 
             Spacer(Modifier.height(28.dp))
             Text(

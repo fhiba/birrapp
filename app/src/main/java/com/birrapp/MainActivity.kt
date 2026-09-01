@@ -213,6 +213,16 @@ fun BirrappApp(
                     authError = authState.error,
                     stats = authState.stats,
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onCheckUpdate = {
+                        activity?.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(
+                                    BuildConfig.API_BASE_URL.trimEnd('/') + "/descargar"
+                                ),
+                            )
+                        )
+                    },
                     onDeleteAccount = { showDeleteAccount = true },
                     onSignIn = { activity?.let(authViewModel::signIn) },
                     onSignInBrowser = authViewModel::signInWithBrowser,

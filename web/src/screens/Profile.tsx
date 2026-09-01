@@ -4,6 +4,7 @@ import * as api from '../data/api'
 import type { User, UserStats } from '../data/types'
 import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
+import { forceUpdate } from '../data/update'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -83,6 +84,7 @@ export function ProfileScreen({ user, onSession }: {
       <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
         {isModerator(user) && <Row label="Moderación" onClick={() => nav('/moderacion')} />}
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
+        <Row label="Buscar actualización" onClick={forceUpdate} />
       </div>
 
       <SectionLabel>Cuenta</SectionLabel>
@@ -157,10 +159,18 @@ const Row = ({ label, onClick, danger }: {
 )
 
 const Footer = () => (
-  <p style={{ color: 'var(--faint)', fontSize: 11, lineHeight: 1.5, marginTop: 34 }}>
-    birrapp {__APP_VERSION__}<br />
-    datos de bares © colaboradores de OpenStreetMap
-  </p>
+  <div style={{ marginTop: 34 }}>
+    <p style={{ color: 'var(--faint)', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+      birrapp {__APP_VERSION__}<br />
+      datos de bares © colaboradores de OpenStreetMap
+    </p>
+    {/* Sin cuenta el enlace no aparece en la lista de acciones, pero la
+        actualización tiene que estar igual: alguien puede quedar trabado en
+        una versión vieja antes de siquiera loguearse. */}
+    <button onClick={forceUpdate} style={{
+      color: 'var(--muted)', fontSize: 11, marginTop: 10, textDecoration: 'underline',
+    }}>Buscar actualización</button>
+  </div>
 )
 
 function GoogleG() {
