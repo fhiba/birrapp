@@ -119,6 +119,7 @@ export function MapScreen(p: Props) {
 
           <button
             onClick={() => setRadiusOpen(o => !o)}
+            data-tour="map-radius"
             className="lbl pill glass"
             style={{
               display: 'flex', alignItems: 'center', gap: 6, height: 44,
@@ -192,7 +193,7 @@ export function MapScreen(p: Props) {
           El toggle resuelve las dos mitades del problema: deja elegir qué
           mirar, y al nombrar el modo activo dice qué significan los colores.
         */}
-        <div className="glass pill" style={{
+        <div className="glass pill" data-tour="map-color" style={{
           display: 'flex', padding: 3, pointerEvents: 'auto',
         }}>
           {([
@@ -286,7 +287,7 @@ function StyleFilter({
   if (styles.length === 0) return null
 
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flexShrink: 0 }} data-tour="map-style">
       <button
         onClick={() => setOpen(o => !o)}
         className={active ? 'lbl pill' : 'lbl pill glass'}

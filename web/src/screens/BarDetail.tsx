@@ -225,7 +225,7 @@ export function BarDetailScreen({
           {/* La fila se muestra incluso con una sola birra: es donde vive el
               "+", y un control que aparece y desaparece según cuántas haya es
               un control que no se encuentra cuando se lo necesita. */}
-          <div style={{
+          <div data-tour="bar-tabs" style={{
             display: 'flex', gap: 6, padding: '4px 18px 0',
             overflowX: 'auto', scrollSnapType: 'x proximity',
           }}>
@@ -535,7 +535,7 @@ function PriceRow({
       )}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-        <button disabled={busy} onClick={onConfirm} className="lbl" style={{
+        <button disabled={busy} onClick={onConfirm} className="lbl" data-tour="bar-confirm" style={{
           flex: 1, padding: 11, borderRadius: 12,
           background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
         }}>{busy ? '…' : 'Sigue igual'}</button>
@@ -728,7 +728,7 @@ function BeerRating({
 }) {
   const mine = myRating != null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} data-tour="bar-rating">
       {/* Tocar una estrella abre el modal con ese valor ya elegido. Antes
           eran decorativas y puntuar obligaba a encontrar el ícono de
           comentarios, que es lo último donde alguien lo busca. */}

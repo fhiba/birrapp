@@ -99,7 +99,7 @@ export function ListScreen(p: Props) {
         borderBottom: '1px solid rgba(255,255,255,.06)',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} data-tour="list-search">
           <input
             value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Buscar un bar" type="search"
@@ -132,7 +132,7 @@ export function ListScreen(p: Props) {
             }}>Volver a la lista</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-tour="list-sort">
             {(['distance', 'cheapest'] as Sort[]).map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
                 padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',

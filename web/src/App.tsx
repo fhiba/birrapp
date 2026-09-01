@@ -8,6 +8,7 @@ import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
 import { AndroidPrompt } from './ui/AndroidPrompt'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
+import { Tour, type TourView } from './ui/Tour'
 import { MapScreen, type ColorBy } from './screens/MapScreen'
 import { ListScreen } from './screens/ListScreen'
 import { BarDetailScreen } from './screens/BarDetail'
@@ -110,6 +111,16 @@ function Shell() {
 
   const showNav = ['/', '/lista', '/perfil'].includes(route.pathname)
 
+  // El tutorial es por pantalla, así que la ruta decide qué se enseña. Las
+  // pantallas que no están acá —agregar bar, moderación, info— no tienen
+  // tutorial: o son de un solo uso o ya se explican solas.
+  const tourView: TourView | null =
+    route.pathname === '/' ? 'map'
+      : route.pathname === '/lista' ? 'list'
+      : route.pathname === '/perfil' ? 'profile'
+      : route.pathname.startsWith('/bar/') ? 'bar'
+      : null
+
   if (!coords && !camera) return <PintLoader message="Buscando dónde estás…" />
 
   return (
@@ -157,6 +168,12 @@ function Shell() {
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Sólo con sesión: el tutorial habla de aportar —confirmar precios,
+          puntuar, subir fotos— y nada de eso se puede hacer sin cuenta.
+          Mostrárselo a quien sólo mira precios sería enseñarle botones que le
+          van a pedir que se loguee. */}
+      {tourView && user && <Tour view={tourView} userId={user.id} />}
 
       {showNav && <AndroidPrompt />}
       {showNav && <BottomNav />}

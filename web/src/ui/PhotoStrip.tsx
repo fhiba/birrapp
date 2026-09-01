@@ -42,7 +42,7 @@ export function PhotoStrip({
 
   return (
     <div style={{ marginTop: 14 }}>
-      <div style={{
+      <div data-tour="bar-photos" style={{
         display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
         scrollSnapType: 'x mandatory',
       }}>

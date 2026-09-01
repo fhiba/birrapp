@@ -144,33 +144,13 @@ Detalle a decidir: el ban tarda hasta una expiración de token en surtir efecto
 viaja en el JWT y no se va a la base en cada request—. Para un abuso sostenido
 puede no alcanzar.
 
-### 6. Onboarding la primera vez
-Idea del usuario (2026-09-01). Tres o cuatro pantallas la primera vez que
-alguien entra, explicando de qué va esto.
-
-Lo que más falta explicar, por orden de cuánto costó descubrirlo:
-
-- **Qué codifica el color de los pines.** Se resolvió con el toggle de
-  frescura/precio, que al nombrar el modo activo dice qué significan los
-  colores. Un onboarding lo reforzaría, pero ya no es un agujero.
-- **Que la antigüedad es parte del precio.** Es la regla que no se negocia y
-  hoy sólo se explica en una pantalla a dos toques dentro de Perfil.
-- **Que "Sigue igual" cuesta un tap y por qué importa.** Sin esa idea nadie
-  confirma y el dataset envejece solo.
-
-A decidir: ¿la primera vez que se abre la app o la primera vez que se inicia
-sesión? Lo primero llega a todos, incluido quien nunca se loguea —que va a ser
-la mayoría del tráfico—; lo segundo sólo a quien va a aportar, que es justo
-quien necesita entender "Sigue igual". Probablemente convenga partirlo: lo del
-color y la antigüedad al abrir, lo de aportar al loguearse.
-
-### 7. Canal de soporte
+### 6. Canal de soporte
 A resolver. Lo más barato es un mail o un formulario que caiga en la cola de
 moderación. **Ojo que Apple y Google exigen un medio de contacto publicado**
 para apps con contenido de usuarios, así que esto no es opcional si se quiere
 publicar.
 
-### 8. Precio por consenso, no por último reporte
+### 7. Precio por consenso, no por último reporte
 Hoy `v_current_prices` hace `DISTINCT ON` ordenado por fecha: **el último que
 reporta gana**, aunque sea uno solo contra veinte. Alcanza con que alguien
 cargue un valor falso para que ese sea *el* precio del bar.
@@ -218,6 +198,10 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 
 ## Hecho
 
+- **Onboarding progresivo** (2026-09-01) — por pantalla y anclado a controles
+  reales, no un carrusel de bienvenida. Se muestra sólo con sesión iniciada
+  porque todo lo que enseña son cosas de aportar. Se puede volver a ver desde
+  Perfil.
 - **Frontend web / PWA** — React + Vite, desplegada en Vercel (2026-09-01).
   Llega a iOS sin App Store: sin los US$99/año ni el requisito de una Mac. El
   backend se reusó tal cual y el login por navegador ya estaba hecho.
@@ -233,6 +217,6 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 - [x] Borrado de cuenta dentro de la app — hecho en 0.2.0
 - [ ] Política de privacidad publicada
 - [ ] Declaración de datos (Data Safety en Play, nutrition labels en Apple)
-- [ ] Medio de contacto publicado (ver punto 7)
+- [ ] Medio de contacto publicado (ver punto 6)
 - [ ] Bloqueo entre usuarios
 - [ ] En iOS: Sign in with Apple, obligatorio si se ofrece login de Google

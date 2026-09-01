@@ -556,3 +556,42 @@ pantalla.
 
 Reproducido y verificado contra la base local con el caso del usuario —dos
 birras, una con un 5 y la otra sin votos—: antes 3,8, ahora 5,0.
+
+## 2026-09-01 (cont.) — Onboarding progresivo
+
+No es un carrusel de bienvenida: cada pantalla enseña lo suyo la primera vez que
+se abre. Contar el mapa mientras alguien mira el perfil no sirve — para cuando
+llega al mapa ya se olvidó.
+
+**Anclado a controles reales**, marcados con `data-tour`, con recorte de luz
+alrededor. Un cartel centrado que dice "el botón de arriba a la izquierda"
+obliga a traducir palabras a píxeles, que es justo el trabajo que el tutorial
+tendría que ahorrar. Los pasos que explican un gesto y no un botón —mantener
+apretado el mapa— van sin ancla, centrados.
+
+Once pasos repartidos en cuatro pantallas. Los que más importan son los dos que
+nadie descubre solo: el long-press para dejar un punto, y "Sigue igual", que es
+el gesto del que depende que el dataset no envejezca.
+
+Decisiones:
+
+- **Sólo con sesión iniciada.** Todo lo que enseña son cosas de aportar. A quien
+  sólo mira precios se le estarían mostrando botones que le van a pedir que se
+  loguee.
+- **En `localStorage`, por usuario, no en la base.** Un tutorial visto no es
+  dato del negocio, y guardarlo en el servidor cuesta una migración, dos
+  endpoints y una escritura por paso. Se paga con que en otro teléfono se ve de
+  nuevo, que para un tutorial está bien. La clave lleva el id de usuario para
+  que dos cuentas en el mismo teléfono no se pisen.
+- **Un paso sin ancla en pantalla se saltea solo.** Un bar sin precios no tiene
+  botón de "Sigue igual", y hablar de un botón que no está es peor que callarse.
+- **El fondo avanza al tocarlo** y el control se trae a la vista con
+  `scrollIntoView` si está más abajo del pliegue: sin eso, el recorte de luz
+  queda fuera de pantalla y el cartel señala la nada.
+- **Se puede volver a ver desde Perfil.** Un tutorial que se saltea de un toque
+  y no se recupera castiga el toque apurado.
+- Los textos van en porteño, a pedido del usuario. "Dale" para seguir.
+
+Verificado con once comprobaciones de la máquina de estados fuera del navegador:
+que una pantalla vista no se repita, que saltear corte todas, que dos cuentas en
+el mismo teléfono no se pisen y que el reset desde Perfil devuelva todo.

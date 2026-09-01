@@ -5,6 +5,7 @@ import type { User, UserStats } from '../data/types'
 import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
+import { resetTour, tourPending } from '../ui/Tour'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -87,7 +88,7 @@ export function ProfileScreen({ user, onSession }: {
           formas de entrar a la misma. "Confirmados" se cambió por "Fotos"
           porque nadie reconocía qué contaba —eran los toques de "Sigue
           igual"— y un número que no se entiende no sirve de nada. */}
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10 }} data-tour="profile-stats">
         <Stat label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes')} />
         <Stat label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes')} />
         <Stat label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes')} />
@@ -100,6 +101,14 @@ export function ProfileScreen({ user, onSession }: {
           <Row label="Moderación" badge={pendingWork} onClick={() => nav('/moderacion')} />
         )}
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
+        {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
+            se puede recuperar castiga el toque apurado. */}
+        {user && (
+          <Row
+            label={tourPending(user.id) ? 'Ver el tutorial' : 'Ver el tutorial de nuevo'}
+            onClick={() => { resetTour(user.id); nav('/') }}
+          />
+        )}
       </div>
 
       <SectionLabel>Cuenta</SectionLabel>
