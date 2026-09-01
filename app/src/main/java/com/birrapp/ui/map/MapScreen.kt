@@ -7,6 +7,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -341,6 +345,7 @@ fun MapScreen(
             )
         }
 
+        val addLabel = stringResource(R.string.add_this_bar)
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
@@ -354,12 +359,27 @@ fun MapScreen(
                     onAddBar(t.latitude, t.longitude)
                 },
         ) {
-            Icon(
-                Icons.Default.Add,
-                stringResource(R.string.add_this_bar),
-                Modifier.align(Alignment.Center).size(25.dp),
-                tint = Ink.Base,
-            )
+            // Dibujado en vez del ícono de Material: el glifo de Add trae su
+            // propio padding óptico y queda apenas corrido dentro del círculo.
+            // Dos trazos centrados no dejan lugar a dudas.
+            Canvas(
+                Modifier
+                    .align(Alignment.Center)
+                    .size(24.dp)
+                    .semantics { contentDescription = addLabel },
+            ) {
+                val arm = size.minDimension * 0.34f
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                drawLine(
+                    Ink.Base, Offset(cx, cy - arm), Offset(cx, cy + arm),
+                    strokeWidth = size.minDimension * 0.11f, cap = StrokeCap.Round,
+                )
+                drawLine(
+                    Ink.Base, Offset(cx - arm, cy), Offset(cx + arm, cy),
+                    strokeWidth = size.minDimension * 0.11f, cap = StrokeCap.Round,
+                )
+            }
         }
     }
 }

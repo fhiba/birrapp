@@ -133,12 +133,20 @@ export function MapScreen(p: Props) {
         </svg>
       </button>
 
+      {/* El "+" va dibujado, no como texto: un glifo se posiciona por
+          baseline y nunca queda centrado en un círculo, además de depender
+          de la fuente que tenga cada quien. */}
       <button onClick={() => nav('/agregar')} style={{
         position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
         width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
-        color: 'var(--base)', fontSize: 27, zIndex: 10, lineHeight: 1,
-        boxShadow: '0 6px 22px rgba(0,0,0,.4)',
-      }} aria-label="Agregar un bar">+</button>
+        zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
+      }} aria-label="Agregar un bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
+          <path d="M12 4.5v15M4.5 12h15" stroke="var(--base)"
+            strokeWidth="2.6" strokeLinecap="round" />
+        </svg>
+      </button>
     </div>
   )
 }
