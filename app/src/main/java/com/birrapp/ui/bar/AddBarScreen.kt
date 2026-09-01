@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,23 +25,25 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.birrapp.R
 import com.birrapp.data.api.ApiClient
+import com.birrapp.data.model.BarPin
 import com.birrapp.data.model.NewBarRequest
 import com.birrapp.data.places.PlaceSearch
 import com.birrapp.data.places.PlaceSuggestion
 import com.birrapp.data.places.ResolvedPlace
+import com.birrapp.ui.common.formatDistance
 import com.birrapp.ui.theme.Ink
 
 /**
- * Alta de bar, con el buscador de Google.
+ * Alta de bar, en tres capas y en este orden:
  *
- * Elegir el bar del buscador resuelve dos cosas de una: completa los datos
- * sin tipear, y **prueba que el lugar existe**. Por eso un bar elegido de ahí
- * entra aprobado, y sólo el cargado enteramente a mano pasa por moderación —
- * el riesgo que la moderación cubre es que alguien invente un lugar.
- *
- * De Google se guarda únicamente el `place_id`: sus términos prohíben
- * almacenar el resto del contenido de un lugar. El nombre y la ubicación que
- * terminan en nuestra base son los que el usuario confirmó.
+ *  1. **Lo que ya está cargado.** Si el bar existe, el usuario lo ve y sigue
+ *     de largo. Es la defensa más barata contra el mismo bar cargado cinco
+ *     veces con cinco grafías distintas.
+ *  2. **Google.** Completa los datos y prueba que el lugar existe, así que
+ *     esos entran aprobados.
+ *  3. **A mano, siempre disponible.** Google no tiene todo, y quedarse sin
+ *     salida es peor que un bar pendiente de revisión. Estos piden dirección
+ *     —sin ella un moderador no puede verificar nada— y pasan por la cola.
  */
 @Composable
 fun AddBarScreen(
@@ -48,6 +52,7 @@ fun AddBarScreen(
     lng: Double,
     onBack: () -> Unit,
     onDone: () -> Unit,
+    onOpenBar: (Long) -> Unit,
 ) {
     val context = LocalContext.current
     val search = remember { PlaceSearch(context) }
@@ -55,21 +60,26 @@ fun AddBarScreen(
     val snackbar = remember { SnackbarHostState() }
 
     var query by remember { mutableStateOf("") }
+    var existing by remember { mutableStateOf<List<BarPin>>(emptyList()) }
     var suggestions by remember { mutableStateOf<List<PlaceSuggestion>>(emptyList()) }
     var chosen by remember { mutableStateOf<ResolvedPlace?>(null) }
-    var manualName by remember { mutableStateOf("") }
+    var manual by remember { mutableStateOf(false) }
+    var manualAddress by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var searching by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { search.startSession() }
 
-    // Se espera a que deje de tipear: cada búsqueda es una llamada facturada,
-    // y disparar por tecla multiplica el costo sin mejorar el resultado.
     LaunchedEffect(query) {
-        if (chosen != null || query.length < 3) { suggestions = emptyList(); return@LaunchedEffect }
+        if (chosen != null || query.length < 2) {
+            existing = emptyList(); suggestions = emptyList(); return@LaunchedEffect
+        }
         searching = true
         delay(350)
+        // Primero la base propia: es gratis, instantánea y evita duplicados.
+        existing = runCatching { api.searchBars(query, lat, lng) }.getOrDefault(emptyList())
+        // Después Google, para lo que falta.
         suggestions = search.suggest(query, lat, lng)
         searching = false
     }
@@ -100,45 +110,55 @@ fun AddBarScreen(
                 )
             }
 
-            Column(Modifier.padding(horizontal = 18.dp)) {
-
-                if (chosen == null) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        label = { Text("Buscá el bar", color = Ink.Faint) },
-                        placeholder = { Text("Nombre del bar…", color = Ink.Faint) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Ink.Amber,
-                            unfocusedBorderColor = Ink.Hairline,
-                            focusedTextColor = Ink.Cream,
-                            unfocusedTextColor = Ink.Cream,
-                            cursorColor = Ink.Amber,
-                        ),
-                        trailingIcon = {
-                            if (searching) {
-                                CircularProgressIndicator(
-                                    Modifier.size(16.dp), strokeWidth = 2.dp, color = Ink.Amber,
-                                )
-                            }
-                        },
-                    )
-
-                    if (!search.isAvailable) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "El buscador no está disponible. Podés cargar el bar a mano.",
-                            fontSize = 12.sp, color = Ink.Faint,
+            if (chosen != null) {
+                ConfirmedPlace(chosen!!) { chosen = null; query = "" }
+            } else {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it; manual = false },
+                    label = { Text("¿Cómo se llama?", color = Ink.Faint) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                    colors = fieldColors(),
+                    trailingIcon = {
+                        if (searching) CircularProgressIndicator(
+                            Modifier.size(16.dp), strokeWidth = 2.dp, color = Ink.Amber,
                         )
+                    },
+                )
+
+                LazyColumn(Modifier.weight(1f).padding(horizontal = 18.dp)) {
+
+                    if (existing.isNotEmpty()) {
+                        item { SectionLabel("Ya está en birrapp") }
+                        items(existing, key = { "e${it.id}" }) { bar ->
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .clickable { onOpenBar(bar.id) }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null,
+                                    Modifier.size(18.dp), tint = Ink.Fresh)
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(bar.name, color = Ink.Cream,
+                                        style = MaterialTheme.typography.titleMedium)
+                                    formatDistance(bar.distanceMeters)?.let {
+                                        Text(it, color = Ink.Faint, fontSize = 12.sp)
+                                    }
+                                }
+                                Text("Ver", color = Ink.Amber, fontSize = 13.sp)
+                            }
+                            HorizontalDivider(color = Ink.Hairline)
+                        }
                     }
 
-                    LazyColumn(Modifier.weight(1f, fill = false).padding(top = 8.dp)) {
+                    if (suggestions.isNotEmpty()) {
+                        item { SectionLabel("Encontrados en Google") }
                         items(suggestions, key = { it.placeId }) { s ->
                             Row(
-                                Modifier
-                                    .fillMaxWidth()
+                                Modifier.fillMaxWidth()
                                     .clickable {
                                         scope.launch {
                                             chosen = search.resolve(s.placeId)
@@ -148,7 +168,11 @@ fun AddBarScreen(
                                         }
                                     }
                                     .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                Icon(Icons.Default.Place, null,
+                                    Modifier.size(18.dp), tint = Ink.Amber)
+                                Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(s.primary, color = Ink.Cream,
                                         style = MaterialTheme.typography.titleMedium)
@@ -159,73 +183,68 @@ fun AddBarScreen(
                         }
                     }
 
-                    if (query.length >= 3 && suggestions.isEmpty() && !searching) {
-                        Spacer(Modifier.height(16.dp))
-                        Text("¿No aparece?", color = Ink.Muted, fontSize = 13.sp)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = manualName,
-                            onValueChange = { manualName = it.take(200) },
-                            label = { Text(stringResource(R.string.bar_name), color = Ink.Faint) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Ink.Amber,
-                                unfocusedBorderColor = Ink.Hairline,
-                                focusedTextColor = Ink.Cream,
-                                unfocusedTextColor = Ink.Cream,
-                                cursorColor = Ink.Amber,
-                            ),
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Los bares cargados a mano los revisa un moderador antes " +
-                                "de aparecer en el mapa.",
-                            fontSize = 11.sp, color = Ink.Faint, lineHeight = 15.sp,
-                        )
-                    }
-                } else {
-                    // Confirmación
-                    val place = chosen!!
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Ink.Fresh.copy(alpha = 0.10f))
-                            .padding(14.dp),
-                    ) {
-                        Icon(Icons.Default.CheckCircle, null, Modifier.size(20.dp), tint = Ink.Fresh)
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text(place.name, color = Ink.Cream,
-                                style = MaterialTheme.typography.titleMedium)
-                            place.address?.let {
-                                Text(it, color = Ink.Muted, fontSize = 12.sp)
+                    // La salida a mano está SIEMPRE, no sólo cuando no hay
+                    // resultados: Google no tiene todo y quedarse trabado es
+                    // peor que un bar esperando revisión.
+                    if (query.length >= 2 && !searching) {
+                        item {
+                            Spacer(Modifier.height(16.dp))
+                            if (!manual) {
+                                Row(
+                                    Modifier.fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Ink.Elevated)
+                                        .clickable { manual = true }
+                                        .padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(Icons.Default.Add, null,
+                                        Modifier.size(18.dp), tint = Ink.Amber)
+                                    Spacer(Modifier.width(10.dp))
+                                    Column {
+                                        Text("Agregar \"$query\"", color = Ink.Cream,
+                                            style = MaterialTheme.typography.titleMedium)
+                                        Text("Lo revisa un moderador antes de publicarse",
+                                            color = Ink.Faint, fontSize = 11.sp)
+                                    }
+                                }
+                            } else {
+                                Text("Agregar \"$query\"", color = Ink.Cream,
+                                    style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(10.dp))
+                                OutlinedTextField(
+                                    value = manualAddress,
+                                    onValueChange = { manualAddress = it.take(300) },
+                                    label = { Text("Dirección", color = Ink.Faint) },
+                                    placeholder = {
+                                        Text("Calle y altura, o esquina", color = Ink.Faint)
+                                    },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = fieldColors(),
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    // La dirección no es opcional acá: sin ella
+                                    // el moderador no tiene con qué verificar.
+                                    "Hace falta la dirección para que un moderador pueda " +
+                                        "verificar que el bar existe.",
+                                    color = Ink.Faint, fontSize = 11.sp, lineHeight = 15.sp,
+                                )
                             }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "Verificado en Google Maps · se publica al instante",
-                                color = Ink.Fresh, fontSize = 11.sp,
-                            )
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "¿No es este?",
-                        Modifier.clickable { chosen = null; query = "" },
-                        color = Ink.Amber, fontSize = 13.sp,
-                    )
-                }
 
-                error?.let {
-                    Spacer(Modifier.height(12.dp))
-                    Text(it, color = Ink.Danger, fontSize = 13.sp)
+                    item { Spacer(Modifier.height(20.dp)) }
                 }
             }
 
-            Spacer(Modifier.weight(1f))
+            error?.let {
+                Text(it, Modifier.padding(horizontal = 18.dp),
+                    color = Ink.Danger, fontSize = 13.sp)
+            }
 
-            val canSend = chosen != null || manualName.isNotBlank()
+            val canSend = chosen != null || (manual && manualAddress.isNotBlank())
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -242,7 +261,8 @@ fun AddBarScreen(
                                     address = it.address, googlePlaceId = it.placeId,
                                 )
                             } ?: NewBarRequest(
-                                name = manualName.trim(), lat = lat, lng = lng,
+                                name = query.trim(), lat = lat, lng = lng,
+                                address = manualAddress.trim(),
                             )
                             runCatching { api.addBar(body) }
                                 .onSuccess {
@@ -273,3 +293,46 @@ fun AddBarScreen(
         }
     }
 }
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text.uppercase(),
+        Modifier.padding(top = 18.dp, bottom = 6.dp),
+        color = Ink.Faint, fontSize = 10.sp, letterSpacing = 1.2.sp,
+        style = MaterialTheme.typography.labelLarge,
+    )
+}
+
+@Composable
+private fun ConfirmedPlace(place: ResolvedPlace, onClear: () -> Unit) {
+    Column(Modifier.padding(horizontal = 18.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                .background(Ink.Fresh.copy(alpha = 0.10f)).padding(14.dp),
+        ) {
+            Icon(Icons.Default.CheckCircle, null, Modifier.size(20.dp), tint = Ink.Fresh)
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(place.name, color = Ink.Cream,
+                    style = MaterialTheme.typography.titleMedium)
+                place.address?.let { Text(it, color = Ink.Muted, fontSize = 12.sp) }
+                Spacer(Modifier.height(6.dp))
+                Text("Verificado en Google Maps · se publica al instante",
+                    color = Ink.Fresh, fontSize = 11.sp)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Text("¿No es este?", Modifier.clickable(onClick = onClear),
+            color = Ink.Amber, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = Ink.Amber,
+    unfocusedBorderColor = Ink.Hairline,
+    focusedTextColor = Ink.Cream,
+    unfocusedTextColor = Ink.Cream,
+    cursorColor = Ink.Amber,
+)

@@ -48,6 +48,14 @@ fun Route.apiRoutes(
         call.respond(bars.nearby(lat, lng, radius, sort, limit, q["style"]))
     }
 
+    /** Búsqueda por nombre entre los bares ya cargados. */
+    get("/bars/search") {
+        val q = call.request.queryParameters["q"] ?: badRequest("falta q")
+        val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
+        val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
+        call.respond(bars.search(q, lat, lng))
+    }
+
     get("/bars/{id}") {
         val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
         val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()

@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -89,7 +90,7 @@ fun MapScreen(
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             val t = cameraPositionState.position.target
-            viewModel.onMapMoved(t.latitude, t.longitude)
+            viewModel.onMapMoved(t.latitude, t.longitude, cameraPositionState.position.zoom)
         }
     }
 
@@ -100,6 +101,21 @@ fun MapScreen(
     }
 
     Box(Modifier.fillMaxSize().background(Ink.Base)) {
+
+        // Hasta resolver la ubicación no se dibuja nada. Antes se mostraba el
+        // Obelisco por un segundo y después saltaba: prefiero una espera
+        // honesta a un lugar equivocado, aunque sea por un instante.
+        if (!state.locationResolved) {
+            Column(
+                Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator(Modifier.size(28.dp), color = Ink.Amber, strokeWidth = 2.dp)
+                Spacer(Modifier.height(14.dp))
+                Text("Buscando dónde estás…", color = Ink.Muted, fontSize = 13.sp)
+            }
+            return@Box
+        }
 
         GoogleMap(
             modifier = Modifier.fillMaxSize().hazeSource(hazeState),
@@ -114,6 +130,11 @@ fun MapScreen(
                 mapToolbarEnabled = false,
                 compassEnabled = false,
             ),
+            // Mantener apretado deja un punto para explorar otra zona; un
+            // toque simple lo saca. Es el gesto que ya usa Google Maps, así
+            // que no hay nada nuevo que aprender.
+            onMapLongClick = { viewModel.setSimulated(it.latitude, it.longitude) },
+            onMapClick = { viewModel.clearSimulated() },
         ) {
             // Alejado, las etiquetas de precio se amontonan y no se lee ninguna.
             // Por debajo de este zoom todo pasa a ser punto: el mapa muestra
@@ -154,6 +175,26 @@ fun MapScreen(
             // Entre los que sí llevan etiqueta, el más barato va arriba.
             val maxPrice = state.bars.mapNotNull { it.fromPrice }.maxOrNull() ?: 1.0
 
+            state.simulated?.let { (sLat, sLng) ->
+                MarkerComposable(
+                    keys = arrayOf<Any>("simulated", sLat, sLng),
+                    state = rememberUpdatedMarkerState(position = LatLng(sLat, sLng)),
+                    anchor = Offset(0.5f, 0.5f),
+                    zIndex = 100f,
+                ) {
+                    Box(
+                        Modifier.size(26.dp).clip(RoundedCornerShape(50))
+                            .background(Ink.Cream.copy(alpha = 0.28f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            Modifier.size(13.dp).clip(RoundedCornerShape(50))
+                                .background(Ink.Cream)
+                        )
+                    }
+                }
+            }
+
             state.bars.forEach { bar ->
                 val z = when {
                     bar.fromPrice == null -> 0f
@@ -189,7 +230,39 @@ fun MapScreen(
                 StyleFilterRow(hazeState, state.styles, state.styleFilter, viewModel::setStyleFilter)
             }
 
-            AnimatedVisibility(state.loading, enter = fadeIn(), exit = fadeOut()) {
+            Spacer(Modifier.height(10.dp))
+            RadiusControl(hazeState, state.radiusMeters, viewModel::setRadius)
+
+            AnimatedVisibility(state.simulated != null, enter = fadeIn(), exit = fadeOut()) {
+                Box(Modifier.padding(top = 10.dp)) {
+                    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
+                        Row(
+                            Modifier
+                                .clickable { viewModel.clearSimulated() }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Buscando en este punto", color = Ink.Cream, fontSize = 12.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("✕", color = Ink.Amber, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(state.tooZoomedOut, enter = fadeIn(), exit = fadeOut()) {
+                Box(Modifier.padding(top = 10.dp)) {
+                    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
+                        Text(
+                            "Acercá el mapa para ver bares",
+                            Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            color = Ink.Muted, fontSize = 12.sp,
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(state.loading && !state.tooZoomedOut, enter = fadeIn(), exit = fadeOut()) {
                 Box(Modifier.padding(top = 12.dp)) {
                     GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
                         Text(
@@ -270,6 +343,59 @@ fun MapScreen(
                 Modifier.align(Alignment.Center).size(25.dp),
                 tint = Ink.Base,
             )
+        }
+    }
+}
+
+/**
+ * Radio de búsqueda.
+ *
+ * Colapsado muestra sólo la distancia; se despliega al tocarlo. Un slider
+ * siempre visible se come el ancho de la pantalla para algo que se ajusta una
+ * vez y no se toca más.
+ */
+@Composable
+private fun RadiusControl(
+    hazeState: HazeState,
+    radiusMeters: Int,
+    onChange: (Int) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    val label = if (radiusMeters >= 1000) "%.1f km".format(radiusMeters / 1000f).replace(".0", "")
+                else "$radiusMeters m"
+
+    GlassPanel(hazeState, shape = RoundedCornerShape(22.dp)) {
+        Column(
+            Modifier
+                .animateContentSize()
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                Modifier.clickable { open = !open },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Radio", color = Ink.Muted, fontSize = 12.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(label, color = Ink.Amber, style = MaterialTheme.typography.labelLarge)
+            }
+            if (open) {
+                Spacer(Modifier.height(4.dp))
+                Slider(
+                    value = radiusMeters.toFloat(),
+                    onValueChange = { onChange(it.toInt()) },
+                    // Hasta 15 km: más que eso deja de ser "cerca" y la
+                    // consulta empieza a traer media ciudad.
+                    valueRange = 300f..15_000f,
+                    steps = 28,
+                    modifier = Modifier.width(230.dp),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Ink.Amber,
+                        activeTrackColor = Ink.Amber,
+                        inactiveTrackColor = Ink.Hairline,
+                    ),
+                )
+            }
         }
     }
 }

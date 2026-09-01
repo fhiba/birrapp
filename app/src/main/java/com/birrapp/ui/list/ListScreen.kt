@@ -79,6 +79,37 @@ fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
             }
         }
 
+        // Radio de búsqueda. Estaba fijo en 2 km, que en zona norte deja
+        // afuera casi todo. Cuando hay un punto simulado, el radio se mide
+        // desde ahí, no desde el usuario.
+        Column(Modifier.padding(horizontal = 18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (state.simulated != null) "Desde el punto elegido"
+                    else "Desde tu ubicación",
+                    color = Ink.Faint, fontSize = 12.sp,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (state.radiusMeters >= 1000)
+                        "%.1f km".format(state.radiusMeters / 1000f).replace(".0", "")
+                    else "${state.radiusMeters} m",
+                    color = Ink.Amber, style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Slider(
+                value = state.radiusMeters.toFloat(),
+                onValueChange = { viewModel.setRadius(it.toInt()) },
+                valueRange = 300f..15_000f,
+                steps = 28,
+                colors = SliderDefaults.colors(
+                    thumbColor = Ink.Amber,
+                    activeTrackColor = Ink.Amber,
+                    inactiveTrackColor = Ink.Hairline,
+                ),
+            )
+        }
+
         if (state.loading) {
             LinearProgressIndicator(
                 Modifier.fillMaxWidth().height(1.dp),

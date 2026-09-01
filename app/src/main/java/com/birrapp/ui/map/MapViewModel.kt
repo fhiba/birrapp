@@ -37,7 +37,19 @@ data class MapUiState(
     val recenterAnimated: Boolean = true,
     /** true mientras se muestran datos guardados y todavía no llegó lo fresco. */
     val fromCache: Boolean = false,
-)
+    /**
+     * Punto simulado: el usuario mantuvo apretado el mapa para ver qué hay
+     * cerca de OTRO lugar. Mientras existe, manda sobre su ubicación real.
+     */
+    val simulated: Pair<Double, Double>? = null,
+    /** false hasta resolver la ubicación: evita mostrar un lugar equivocado. */
+    val locationResolved: Boolean = false,
+    /** Muy lejos, no se consulta: la consulta sería enorme y sin utilidad. */
+    val tooZoomedOut: Boolean = false,
+) {
+    /** Desde dónde se busca: el punto simulado si hay, si no la ubicación. */
+    val queryPoint: Pair<Double, Double> get() = simulated ?: center
+}
 
 class MapViewModel(
     private val bars: BarRepository,
@@ -67,6 +79,7 @@ class MapViewModel(
                 it.copy(
                     center = here,
                     hasLocationPermission = granted,
+                    locationResolved = true,
                     recenterToken = it.recenterToken + 1,
                     recenterAnimated = false,
                 )
@@ -103,6 +116,7 @@ class MapViewModel(
                 it.copy(
                     center = center,
                     hasLocationPermission = granted,
+                    locationResolved = true,
                     recenterToken = if (recenter) it.recenterToken + 1 else it.recenterToken,
                     recenterAnimated = true,
                 )
@@ -123,9 +137,14 @@ class MapViewModel(
             if (!force && !immediate) delay(280)
             _state.update { it.copy(loading = true, error = null) }
             val s = _state.value
+            if (s.tooZoomedOut) {
+                _state.update { it.copy(loading = false) }
+                return@launch
+            }
+            val point = s.queryPoint
             runCatching {
                 bars.nearby(
-                    lat = s.center.first, lng = s.center.second,
+                    lat = point.first, lng = point.second,
                     radiusMeters = s.radiusMeters, sort = s.sort.apiValue,
                     style = s.styleFilter, force = force,
                 )
@@ -159,14 +178,46 @@ class MapViewModel(
         load(force = true)
     }
 
-    /** Al mover el mapa: recentrar y volver a consultar esa zona. */
-    fun onMapMoved(lat: Double, lng: Double) {
-        _state.update { it.copy(center = lat to lng) }
-        load()
+    /**
+     * Al mover el mapa: recentrar y volver a consultar.
+     *
+     * Con un punto simulado activo NO se recentra la consulta: el usuario
+     * está mirando alrededor de ese punto y mover el mapa no debería
+     * cambiarlo.
+     */
+    fun onMapMoved(lat: Double, lng: Double, zoom: Float) {
+        // Muy alejado, el radio necesario sería de decenas de kilómetros y la
+        // consulta devolvería miles de bares que no se pueden ni dibujar.
+        val tooFar = zoom < MIN_QUERY_ZOOM
+        _state.update {
+            it.copy(
+                center = if (it.simulated == null) lat to lng else it.center,
+                tooZoomedOut = tooFar,
+            )
+        }
+        if (!tooFar) load()
     }
 
     fun setRadius(meters: Int) {
         _state.update { it.copy(radiusMeters = meters) }
         load(force = true)
+    }
+
+    /** Mantener apretado el mapa: buscar alrededor de ese punto. */
+    fun setSimulated(lat: Double, lng: Double) {
+        _state.update { it.copy(simulated = lat to lng) }
+        load(force = true)
+    }
+
+    /** Un toque en cualquier otro lado lo saca, como en Google Maps. */
+    fun clearSimulated() {
+        if (_state.value.simulated == null) return
+        _state.update { it.copy(simulated = null) }
+        load(force = true)
+    }
+
+    private companion object {
+        /** Debajo de este zoom no se consulta. */
+        const val MIN_QUERY_ZOOM = 12f
     }
 }

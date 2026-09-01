@@ -127,24 +127,43 @@ fun ReportPriceSheet(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
+                // Cada campo se toca y se edita. El activo se subraya en
+                // ámbar: no hace falta explicar en qué modo estás si se ve.
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (!editingSize) Ink.AmberSoft else Color.Transparent)
+                        .clickable { editingSize = false }
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        if (digits.isEmpty()) "$ 0" else "$ " + groupThousands(digits),
+                        style = PriceLarge.copy(fontSize = 48.sp, letterSpacing = (-2).sp),
+                        color = when {
+                            digits.isEmpty() -> Ink.Faint
+                            editingSize -> Ink.Muted
+                            else -> Ink.Cream
+                        },
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    if (digits.isEmpty()) "$ 0" else "$ " + groupThousands(digits),
-                    style = PriceLarge.copy(fontSize = 52.sp, letterSpacing = (-2).sp),
-                    color = if (digits.isEmpty()) Ink.Faint else Ink.Cream,
+                    if (editingSize) "editando el tamaño" else "editando el precio",
+                    color = Ink.Faint, fontSize = 11.sp,
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(18.dp))
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(50))
                         .background(if (editingSize) Ink.AmberSoft else Color.Transparent)
-                        .clickable { editingSize = !editingSize }
-                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                        .clickable { editingSize = true }
+                        .padding(horizontal = 16.dp, vertical = 9.dp),
                 ) {
                     Text(
-                        if (editingSize) "$sizeText ml · tocá para volver al precio"
-                        else "$sizeText ml · cambiar",
-                        color = if (editingSize) Ink.Amber else Ink.Faint,
-                        fontSize = 13.sp,
+                        "$sizeText ml",
+                        color = if (editingSize) Ink.Amber else Ink.Muted,
+                        style = if (editingSize) PriceLarge.copy(fontSize = 22.sp)
+                                else PriceLarge.copy(fontSize = 18.sp),
                     )
                 }
             }

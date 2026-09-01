@@ -247,6 +247,10 @@ fun BirrappApp(
                     api = container.api,
                     lat = lat, lng = lng,
                     onBack = { navController.popBackStack() },
+                    onOpenBar = { id ->
+                        navController.popBackStack()
+                        navController.navigate(Routes.bar(id))
+                    },
                     onDone = {
                         mapViewModel.load(force = true)
                         navController.popBackStack()

@@ -140,6 +140,17 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun styles(): List<BeerStyle> = request(HttpMethod.Get, "styles")
 
+    /** Busca entre los bares ya cargados, para no crear duplicados. */
+    suspend fun searchBars(query: String, lat: Double?, lng: Double?): List<BarPin> =
+        request(
+            HttpMethod.Get, "bars/search",
+            params = buildMap {
+                put("q", query)
+                lat?.let { put("lat", it.toString()) }
+                lng?.let { put("lng", it.toString()) }
+            },
+        )
+
     suspend fun reviews(barId: Long): List<Review> = request(HttpMethod.Get, "bars/$barId/reviews")
 
     // ---------- aportes ----------

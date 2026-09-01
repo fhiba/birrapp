@@ -84,6 +84,47 @@ class BarRepo(private val db: Db) {
         distanceMeters = rs.getDouble("distance_meters").takeUnless { rs.wasNull() },
     )
 
+    /**
+     * Busca bares ya cargados por nombre.
+     *
+     * Va antes que Google al dar de alta: si el bar ya está, el usuario lo ve
+     * y sigue de largo en vez de crear un duplicado. Es la defensa más barata
+     * contra el mismo bar cargado cinco veces con cinco grafías distintas.
+     *
+     * Ordena por cercanía cuando hay un punto de referencia: "Venice" en
+     * Martínez casi seguro es el de Martínez, no uno homónimo en Palermo.
+     */
+    fun search(query: String, lat: Double?, lng: Double?, limit: Int = 8): List<BarPinDto> {
+        val q = query.trim()
+        if (q.length < 2) return emptyList()
+        val hasPoint = lat != null && lng != null
+
+        val sql = """
+            SELECT b.id, b.name,
+                   ST_Y(b.location::geometry) AS lat,
+                   ST_X(b.location::geometry) AS lng,
+                   h.from_price, h.freshest_age_days,
+                   CASE WHEN ?::float8 IS NULL THEN NULL
+                        ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
+                        AS distance_meters
+            FROM bars b
+            LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            WHERE b.status = 'approved'
+              AND bar_search_key(b.name) LIKE '%' || bar_search_key(?) || '%'
+            ORDER BY ${if (hasPoint) "distance_meters ASC NULLS LAST," else ""}
+                     length(b.name) ASC
+            LIMIT ?
+        """.trimIndent()
+
+        return db.conn {
+            it.query(
+                sql,
+                lat, if (hasPoint) lng else null, if (hasPoint) lat else null, q, limit,
+                map = ::mapPin,
+            )
+        }
+    }
+
     fun detail(id: Long, fromLat: Double?, fromLng: Double?): BarDetailDto? = db.conn { c ->
         val bar = c.queryOne(
             """
