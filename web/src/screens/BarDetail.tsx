@@ -145,10 +145,35 @@ export function BarDetailScreen({
         {/* El enlace va acá y no abajo: pegado a las pestañas quedaba
             separando el nombre del bar de sus birras, que es lo que se viene
             a mirar. Al lado del nombre es donde se lo busca. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '20px 0 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '20px 0 6px' }}>
           <h1 className="ttl" style={{ fontSize: 28, margin: 0, flex: 1, minWidth: 0 }}>
             {bar.name}
           </h1>
+
+          {/* La nota del bar, a la altura del nombre.
+              Va con una sola estrella y no con las cinco: acá compite por
+              ancho con el nombre y con el enlace al mapa, y cinco estrellas
+              de 16px se comen media línea. El desglose de cinco estrellas
+              vive en cada birra, que es donde se puntúa. */}
+          {barAvg != null && (
+            <div style={{ flexShrink: 0, textAlign: 'right', marginTop: 4 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24"
+                  fill="var(--amber)" aria-hidden>
+                  <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
+                </svg>
+                <span className="num" style={{ fontSize: 17, color: 'var(--cream)' }}>
+                  {barAvg.toFixed(1)}
+                </span>
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 1 }}>
+                {votes === 1 ? '1 voto' : `${votes} votos`}
+              </div>
+            </div>
+          )}
+
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`
               + (bar.googlePlaceId ? `&query_place_id=${bar.googlePlaceId}` : '')}
@@ -165,19 +190,6 @@ export function BarDetailScreen({
           </a>
         </div>
         {meta && <p style={{ color: 'var(--faint)', fontSize: 13, margin: 0 }}>{meta}</p>}
-        {barAvg != null && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 0',
-          }}>
-            <Stars value={barAvg} mine={false} size={16} />
-            <span className="num" style={{ fontSize: 15, color: 'var(--cream)' }}>
-              {barAvg.toFixed(1)}
-            </span>
-            <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>
-              {votes === 1 ? '1 voto' : `${votes} votos`}
-            </span>
-          </div>
-        )}
 
       </div>
 

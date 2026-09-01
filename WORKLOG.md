@@ -522,3 +522,14 @@ Una trampa encontrada al escribirlo: en `MapScreen`, `Map` es el componente de
 Google Maps, así que `new Map()` no compila. `priceRanks` recibe pares por eso.
 
 El onboarding queda anotado como punto 6 del backlog.
+
+## 2026-09-01 (cont.) — La nota del bar sube al lado del nombre
+
+Estaba debajo de la dirección, o sea a tres renglones del título. Ahora va a la
+altura del nombre, alineada a la derecha.
+
+Cambia de forma al mudarse: una sola estrella con el número, no las cinco.
+Arriba compite por ancho con el nombre del bar y con el enlace al mapa, y cinco
+estrellas de 16px se comen media línea en un teléfono. El desglose de cinco
+estrellas sigue estando en cada birra, que es donde se puntúa y donde hace
+falta ver cuánto falta para el próximo escalón.
