@@ -19,7 +19,7 @@ const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
 export default function App() {
   return (
-    <BrowserRouter basename="/app">
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <APIProvider apiKey={MAPS_KEY} libraries={['places']}>
         <Shell />
       </APIProvider>

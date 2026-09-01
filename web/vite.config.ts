@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const BASE = process.env.VITE_BASE_PATH ?? '/app/'
 const VERSION = '0.3.4'
 
 export default defineConfig({
@@ -21,8 +22,9 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#1A1410',
         theme_color: '#1A1410',
-        start_url: '/app/',
-        scope: '/app/',
+        start_url: BASE,
+        scope: BASE,
+        id: BASE,
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -46,7 +48,7 @@ export default defineConfig({
   ],
   // Se sirve bajo /app para convivir con la API en el mismo dominio.
   define: { __APP_VERSION__: JSON.stringify(VERSION) },
-  base: '/app/',
+  base: BASE,
   build: { outDir: 'dist', sourcemap: false },
   server: {
     proxy: {

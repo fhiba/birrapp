@@ -15,6 +15,15 @@ import type {
  */
 const KEY = 'birrapp.session'
 
+/**
+ * Base de la API.
+ *
+ * Vacío = mismo origen, que es como funciona servido desde el propio backend.
+ * Con el frontend en otro dominio (Vercel) acá va la URL del backend, y ahí
+ * hace falta CORS del otro lado.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message) }
 }
@@ -71,7 +80,7 @@ async function req<T>(
   method: string, path: string,
   opts: { body?: unknown; auth?: boolean; params?: Record<string, string | number | undefined> } = {},
 ): Promise<T> {
-  const url = new URL(path, location.origin)
+  const url = new URL(API_BASE + path, API_BASE || location.origin)
   Object.entries(opts.params ?? {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
   })

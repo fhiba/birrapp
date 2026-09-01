@@ -74,9 +74,14 @@ fun Route.authRoutes(
         // la web terminaría en un deep link que su navegador no sabe abrir.
         val fromWeb = state != null && browserOAuth.isWebFlow(state)
 
-        fun target(query: String) =
-            if (fromWeb) "${cfg.publicBaseUrl}/app/perfil?$query"
-            else "${cfg.appRedirectScheme}://auth?$query"
+        fun target(query: String) = when {
+            // El frontend puede estar en otro dominio (Vercel). Si se
+            // configuró, el login vuelve ahí; si no, a la copia servida
+            // desde este mismo backend.
+            fromWeb && cfg.webAppUrl.isNotBlank() -> "${cfg.webAppUrl}/perfil?$query"
+            fromWeb -> "${cfg.publicBaseUrl}/app/perfil?$query"
+            else -> "${cfg.appRedirectScheme}://auth?$query"
+        }
 
         suspend fun fail(reason: String) {
             authLog.warn("login por navegador falló: {}", reason)

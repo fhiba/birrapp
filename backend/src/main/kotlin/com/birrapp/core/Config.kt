@@ -21,6 +21,10 @@ data class Config(
     val appRedirectScheme: String,
     val apkDir: String,
     val webDir: String,
+    /** Origen del frontend cuando NO se sirve desde acá (Vercel, etc.). */
+    val webAppUrl: String,
+    /** Orígenes permitidos por CORS. Vacío = sólo mismo origen. */
+    val allowedOrigins: List<String>,
     val jwtSecret: String,
     val jwtIssuer: String,
     val jwtAudience: String,
@@ -86,6 +90,11 @@ data class Config(
                 appRedirectScheme = raw("APP_REDIRECT_SCHEME") ?: "birrapp",
                 apkDir = raw("APK_DIR") ?: "/home/jaiba/birrapp-deploy/apk",
                 webDir = raw("WEB_DIR") ?: "/home/jaiba/birrapp-deploy/web",
+                // Si el frontend vive en otro dominio, acá va su URL: es a
+                // donde vuelve el login por navegador.
+                webAppUrl = (raw("WEB_APP_URL") ?: "").trimEnd('/'),
+                allowedOrigins = (raw("ALLOWED_ORIGINS") ?: "")
+                    .split(",").map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() },
                 jwtSecret = required(
                     "JWT_SECRET",
                     "secreto propio de birrapp, NO de Google. Generar: openssl rand -base64 48",

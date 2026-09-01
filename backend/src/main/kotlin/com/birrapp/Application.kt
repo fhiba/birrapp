@@ -64,6 +64,25 @@ fun Application.module(cfg: Config, db: Db) {
     val reviews = ReviewRepo(db)
     val moderation = ModerationRepo(db)
 
+    // CORS sólo si el frontend está en otro dominio. Con el frontend servido
+    // desde acá no hace falta y no se instala: una política CORS de más es
+    // superficie de ataque sin beneficio.
+    if (cfg.allowedOrigins.isNotEmpty()) {
+        install(io.ktor.server.plugins.cors.routing.CORS) {
+            cfg.allowedOrigins.forEach { origin ->
+                val withoutScheme = origin.substringAfter("://")
+                val scheme = origin.substringBefore("://", "https")
+                allowHost(withoutScheme, schemes = listOf(scheme))
+            }
+            allowHeader(io.ktor.http.HttpHeaders.Authorization)
+            allowHeader(io.ktor.http.HttpHeaders.ContentType)
+            allowMethod(io.ktor.http.HttpMethod.Delete)
+            // Sin credenciales: la sesión viaja en el header Authorization,
+            // no en cookies, así que no hace falta y evita el requisito de
+            // origen exacto.
+        }
+    }
+
     install(DefaultHeaders)
     install(CallLogging)
 
