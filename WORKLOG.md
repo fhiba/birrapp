@@ -300,5 +300,12 @@ porque un control que aparece y desaparece según cuántas haya es un control qu
 no se encuentra cuando hace falta. Se descartó llamarlo "producto": en toda la
 app son birras y estilos, nunca productos.
 
+**Corrección sobre la marcha (0.3.10).** El botón de agregar foto abría un menú
+propio con "sacar una foto" y "elegir de la galería". Probado en el teléfono
+resultó redundante: el selector del sistema ya ofrece esas dos opciones, así que
+eran dos pasos para llegar al mismo lugar. Queda un único `input file` sin
+`capture` —que forzaría la cámara y sacaría la galería del menú nativo—. El
+componente bajó de 130 a 91 líneas.
+
 NO verificado: nada de esto se probó en un teléfono. La cámara (`capture`), el
 carrusel y el modal quedan pendientes de prueba en dispositivo.

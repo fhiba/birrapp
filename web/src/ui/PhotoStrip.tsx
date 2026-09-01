@@ -8,9 +8,11 @@ import { compressImage } from '../data/image'
  * Scroll horizontal con `scroll-snap`, no un carrusel con flechas: en un
  * teléfono el gesto natural es arrastrar, y en escritorio la barra alcanza.
  *
- * El botón abre dos caminos porque en un teléfono son gestos distintos: sacar
- * la foto ahí mismo (`capture`) o elegir una de la galería. En escritorio el
- * primero cae solo al selector de archivos.
+ * El botón dispara un único `input file` y nada más. Había un menú propio con
+ * "sacar una foto" y "elegir de la galería", pero el selector del sistema ya
+ * ofrece exactamente esas dos opciones: eran dos pasos para llegar al mismo
+ * lugar. Sin `capture`, que forzaría la cámara y sacaría la galería del menú
+ * nativo.
  */
 export function PhotoStrip({
   photos, canAdd, onAdd, onOpen,
@@ -20,9 +22,7 @@ export function PhotoStrip({
   onAdd: (file: Blob) => Promise<void>
   onOpen: (p: Photo) => void
 }) {
-  const camera = useRef<HTMLInputElement>(null)
-  const gallery = useRef<HTMLInputElement>(null)
-  const [menu, setMenu] = useState(false)
+  const picker = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,7 +31,7 @@ export function PhotoStrip({
     // Se limpia el input o elegir la misma foto dos veces no dispara `change`.
     e.target.value = ''
     if (!file) return
-    setMenu(false); setError(null); setBusy(true)
+    setError(null); setBusy(true)
     try { await onAdd(await compressImage(file)) }
     catch (err) { setError((err as Error).message) }
     finally { setBusy(false) }
@@ -60,7 +60,7 @@ export function PhotoStrip({
 
         {canAdd && (
           <button
-            onClick={() => setMenu(m => !m)} disabled={busy}
+            onClick={() => picker.current?.click()} disabled={busy}
             aria-label="Agregar una foto"
             style={{
               flex: '0 0 auto', width: 108, height: 108, borderRadius: 14,
@@ -80,38 +80,12 @@ export function PhotoStrip({
         )}
       </div>
 
-      {menu && (
-        <>
-          <div onClick={() => setMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
-          <div style={{
-            position: 'relative', zIndex: 61, marginTop: 8, padding: 6,
-            background: 'var(--elevated)', borderRadius: 12, maxWidth: 240,
-            border: '.8px solid rgba(255,255,255,.12)',
-          }}>
-            <MenuButton onClick={() => camera.current?.click()}>Sacar una foto</MenuButton>
-            <MenuButton onClick={() => gallery.current?.click()}>Elegir de la galería</MenuButton>
-          </div>
-        </>
-      )}
-
       {error && (
         <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--danger)' }}>{error}</p>
       )}
 
-      {/* `capture` sólo lo respetan los móviles; en escritorio cae al selector. */}
-      <input ref={camera} type="file" accept="image/*" capture="environment"
-        onChange={take} className="sr" tabIndex={-1} />
-      <input ref={gallery} type="file" accept="image/*"
+      <input ref={picker} type="file" accept="image/*"
         onChange={take} className="sr" tabIndex={-1} />
     </div>
-  )
-}
-
-function MenuButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className="lbl row-hover" style={{
-      display: 'block', width: '100%', textAlign: 'left',
-      padding: '10px 12px', borderRadius: 9, fontSize: 13.5,
-    }}>{children}</button>
   )
 }
