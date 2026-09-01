@@ -45,21 +45,21 @@ export function ListScreen(p: Props) {
     }}>
       <div className="desk-narrow">
       <header style={{ padding: '0 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline' }}>
-          <h1 className="ttl" style={{ fontSize: 28, margin: 0, flex: 1 }}>
-            {p.sort === 'cheapest' ? 'Más baratas' : 'Cerca tuyo'}
-          </h1>
-          <span className="ttl" style={{ fontSize: 28, color: 'var(--faint)' }}>{p.bars.length}</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, margin: '14px 0 4px' }}>
+        {/* Había un <h1> que decía "Más baratas" justo encima de una píldora
+            que decía "Más barata": el título no agregaba nada que el selector
+            no dijera ya, y se comía un renglón entero de pantalla. El conteo
+            se queda, que sí es dato, al lado del selector. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
           {(['distance', 'cheapest'] as Sort[]).map(s => (
             <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
-              padding: '8px 15px', fontSize: 13,
+              padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
               background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
               color: p.sort === s ? 'var(--base)' : 'var(--muted)',
             }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
           ))}
+          <span className="num" style={{
+            marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
+          }}>{p.bars.length}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', marginTop: 14 }}>

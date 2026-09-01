@@ -353,3 +353,8 @@ El resto:
 Verificado contra la base local: votar, borrar el precio, comprobar que la
 birra sigue listada con su nota y ordenada después de las que sí tienen precio,
 y restaurar. 22 tests verdes.
+
+**Y una más (0.3.12).** La lista tenía un `<h1>` que decía "Más baratas" justo
+encima de una píldora que decía "Más barata". El título no agregaba nada que el
+selector no dijera ya y se comía un renglón entero. Queda el selector, con el
+conteo —que sí es dato— corrido a la derecha.
