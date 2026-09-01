@@ -25,6 +25,8 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     catch (e) { setError((e as Error).message) }
   }
 
+  const total = pending.length + flags.length
+
   return (
     <div style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
@@ -35,7 +37,16 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         <button onClick={() => nav(-1)} style={{
           width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
         }} aria-label="Volver">←</button>
-        <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>Moderación</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 26, margin: 0 }}>Moderación</h1>
+          {!loading && total > 0 && (
+            <span className="num" style={{
+              minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
+              display: 'grid', placeItems: 'center', fontSize: 12.5,
+              background: 'var(--amber)', color: 'var(--base)',
+            }}>{total}</span>
+          )}
+        </div>
         {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
       </div>
 
@@ -47,7 +58,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         </p>
       )}
 
-      {pending.length > 0 && <H>Bares pendientes</H>}
+      {pending.length > 0 && <H>Bares pendientes · {pending.length}</H>}
       {pending.map(b => (
         <div key={b.id} style={{ padding: '10px 18px', borderBottom: '1px solid var(--hairline)' }}>
           <div className="lbl">{b.name}</div>
@@ -62,7 +73,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         </div>
       ))}
 
-      {flags.length > 0 && <H>Denuncias abiertas</H>}
+      {flags.length > 0 && <H>Denuncias abiertas · {flags.length}</H>}
       {flags.map(f => (
         <div key={f.id} style={{ padding: '10px 18px', borderBottom: '1px solid var(--hairline)' }}>
           <div className="lbl" style={{ fontSize: 14 }}>{f.targetType} #{f.targetId}</div>

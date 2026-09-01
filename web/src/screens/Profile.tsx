@@ -15,9 +15,17 @@ export function ProfileScreen({ user, onSession }: {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<'out' | 'delete' | null>(null)
+  const [pendingWork, setPendingWork] = useState(0)
 
   useEffect(() => {
     if (user) api.myStats().then(setStats).catch(() => {})
+    // Sólo los números, no las listas: es un endpoint aparte para no bajarse
+    // los bares pendientes y sus reportes enteros para dibujar un número.
+    if (isModerator(user)) {
+      api.moderationSummary()
+        .then(s => setPendingWork(s.pendingBars + s.openFlags))
+        .catch(() => {})
+    }
   }, [user])
 
   const login = async () => {
@@ -82,7 +90,11 @@ export function ProfileScreen({ user, onSession }: {
       </div>
 
       <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
-        {isModerator(user) && <Row label="Moderación" onClick={() => nav('/moderacion')} />}
+        {/* El contador va acá y no sólo adentro de Moderación: si hay que
+            entrar para enterarse de que hay algo que hacer, nadie entra. */}
+        {isModerator(user) && (
+          <Row label="Moderación" badge={pendingWork} onClick={() => nav('/moderacion')} />
+        )}
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
       </div>
 
@@ -148,13 +160,23 @@ const Stat = ({ label, value }: { label: string; value?: number }) => (
   </div>
 )
 
-const Row = ({ label, onClick, danger }: {
-  label: string; onClick: () => void; danger?: boolean
+const Row = ({ label, onClick, danger, badge }: {
+  label: string; onClick: () => void; danger?: boolean; badge?: number
 }) => (
   <button onClick={onClick} className="lbl" style={{
+    display: 'flex', alignItems: 'center', gap: 10,
     width: '100%', padding: '15px 18px', borderRadius: 14, textAlign: 'left',
     background: 'rgba(255,255,255,.06)', color: danger ? 'var(--danger)' : 'var(--cream)',
-  }}>{label}</button>
+  }}>
+    <span style={{ flex: 1 }}>{label}</span>
+    {badge != null && badge > 0 && (
+      <span className="num" style={{
+        minWidth: 22, height: 22, padding: '0 7px', borderRadius: 999,
+        display: 'grid', placeItems: 'center', fontSize: 12,
+        background: 'var(--amber)', color: 'var(--base)',
+      }}>{badge}</span>
+    )}
+  </button>
 )
 
 const Footer = () => (

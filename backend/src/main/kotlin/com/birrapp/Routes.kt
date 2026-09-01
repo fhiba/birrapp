@@ -220,6 +220,12 @@ fun Route.apiRoutes(
                 call.respond(OkResponse())
             }
 
+            /** Sólo los números, para el contador de Perfil. */
+            get("/summary") {
+                call.requireRole(Role.moderator)
+                call.respond(moderation.summary())
+            }
+
             get("/flags") {
                 call.requireRole(Role.moderator)
                 call.respond(moderation.openFlags())

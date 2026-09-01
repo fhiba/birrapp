@@ -412,3 +412,32 @@ cualquiera, que cambiaba según el orden elegido en la pantalla de lista. Pasa a
 tomar la latitud del centro del mapa. En Buenos Aires la diferencia numérica es
 de milésimas; lo que se corrige es que una pantalla dejara de influir en otra
 por un camino que no estaba a la vista.
+
+## 2026-09-01 (cont.) — Analytics, encabezado fijo y contador de moderación
+
+**Vercel Analytics.** `<Analytics />` va adentro del router: si fuera afuera
+registraría sólo la primera carga, y acá casi toda la navegación es
+client-side. Se sirve desde `/_vercel/insights` en el mismo origen, así que no
+suma un dominio de terceros; fuera de Vercel el script no existe y el
+componente no hace nada.
+
+Nota para cuando toque la declaración de datos: esto es medición de visitantes
+y aunque no use cookies, cuenta como recolección. Va en la lista de requisitos
+para publicar, que ya tiene pendiente la política de privacidad.
+
+**Encabezado fijo en la lista.** Scrolleando cien bares se perdía de vista con
+cuál de los dos órdenes se estaba mirando. El `paddingTop` se mudó del
+contenedor que scrollea al propio encabezado: si viviera en el contenedor,
+`top: 0` pegaría el selector contra el borde de la pantalla, debajo del notch.
+Y el margen negativo con el padding compensado hace que el fondo tape de borde
+a borde, o las filas se ven pasar por los costados.
+
+**Contador de moderación.** El número va en Perfil y no sólo dentro de la
+pantalla de Moderación: si hay que entrar para enterarse de que hay algo que
+hacer, nadie entra. Se agregó `GET /moderation/summary`, que devuelve sólo los
+dos números, en vez de reusar las listas: bajarse los bares pendientes y sus
+denuncias enteras para dibujar un "3" sería absurdo. Adentro de la pantalla,
+cada sección lleva su cuenta en el título.
+
+Verificado contra la base local: el endpoint devuelve `{"pendingBars":1,
+"openFlags":0}`, que coincide con lo que hay, y sin token da 401.

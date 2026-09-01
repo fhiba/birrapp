@@ -40,7 +40,9 @@ export function ListScreen(p: Props) {
   return (
     <div ref={scroller} style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
-      paddingTop: `calc(14px + var(--safe-top))`,
+      // Sin padding arriba: lo lleva el propio encabezado pegajoso. Si el
+      // padding viviera acá, `top: 0` pegaría el selector contra el borde de
+      // la pantalla, debajo del notch.
       paddingBottom: `calc(108px + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
@@ -48,8 +50,19 @@ export function ListScreen(p: Props) {
         {/* Había un <h1> que decía "Más baratas" justo encima de una píldora
             que decía "Más barata": el título no agregaba nada que el selector
             no dijera ya, y se comía un renglón entero de pantalla. El conteo
-            se queda, que sí es dato, al lado del selector. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
+            se queda, que sí es dato, al lado del selector.
+
+            Y queda pegajoso: scrolleando cien bares, sin esto se pierde de
+            vista con cuál de los dos órdenes se está mirando la lista. El
+            margen negativo con el padding compensado hace que el fondo tape
+            de borde a borde; si no, las filas se ven pasar por los costados. */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 5,
+          margin: '0 -18px', padding: `calc(14px + var(--safe-top)) 18px 10px`,
+          background: 'var(--base)',
+          borderBottom: '1px solid rgba(255,255,255,.06)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
           {(['distance', 'cheapest'] as Sort[]).map(s => (
             <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
               padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
@@ -62,7 +75,7 @@ export function ListScreen(p: Props) {
           }}>{p.bars.length}</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: 12 }}>
           {p.simulated ? (
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
             // sin esto no hay forma de saber desde dónde se mide.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation as useRoute } from 'react-router-dom'
 import { APIProvider } from '@vis.gl/react-google-maps'
+import { Analytics } from '@vercel/analytics/react'
 import * as api from './data/api'
 import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
@@ -22,6 +23,17 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <APIProvider apiKey={MAPS_KEY} libraries={['places']}>
         <Shell />
+        {/*
+          Analytics de Vercel. Va adentro del router para que registre cada
+          cambio de ruta y no sólo la primera carga: el 90% de la navegación
+          acá es client-side y sin esto se vería una sola vista por sesión.
+
+          Se sirve desde `/_vercel/insights` en el mismo origen, así que no
+          agrega un dominio de terceros ni depende de que el service worker lo
+          cachee bien. Fuera de Vercel —el backend sirviendo la PWA— el script
+          no existe y el componente no hace nada.
+        */}
+        <Analytics />
       </APIProvider>
     </BrowserRouter>
   )

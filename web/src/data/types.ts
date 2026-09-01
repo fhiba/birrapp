@@ -91,3 +91,5 @@ export interface Flag {
 
 export const isModerator = (u: User | null) =>
   u?.role === 'moderator' || u?.role === 'admin'
+
+export interface ModerationSummary { pendingBars: number; openFlags: number }

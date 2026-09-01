@@ -1,6 +1,6 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Flag, MyRating, Photo, PriceAccepted, PricePoint,
-  RatingComment, Review, Session, User, UserStats,
+  BarDetail, BarPin, BeerStyle, Flag, ModerationSummary, MyRating, Photo,
+  PriceAccepted, PricePoint, RatingComment, Review, Session, User, UserStats,
 } from './types'
 
 /**
@@ -209,6 +209,8 @@ export async function deleteAccount() {
 // ---------- moderación ----------
 export const pendingBars = () => req<BarPin[]>('GET', '/moderation/bars/pending', { auth: true })
 export const openFlags = () => req<Flag[]>('GET', '/moderation/flags', { auth: true })
+export const moderationSummary = () =>
+  req<ModerationSummary>('GET', '/moderation/summary', { auth: true })
 export const approveBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/approve`, { auth: true })
 export const rejectBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/reject`, { auth: true })
 export const deleteBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/delete`, { auth: true })

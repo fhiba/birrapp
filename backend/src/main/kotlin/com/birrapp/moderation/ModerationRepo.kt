@@ -27,6 +27,9 @@ data class FlagDto(
 private val VALID_TARGETS = setOf("bar", "price", "review")
 private const val MAX_FLAGS_PER_DAY = 20
 
+@Serializable
+data class ModerationSummaryDto(val pendingBars: Int, val openFlags: Int)
+
 class ModerationRepo(private val db: Db) {
 
     fun flag(req: NewFlagRequest, userId: Long) {
@@ -64,6 +67,24 @@ class ModerationRepo(private val db: Db) {
                 req.targetType, req.targetId, userId, req.reason.take(500),
             )
         }
+    }
+
+    /**
+     * Sólo los números, para el contador.
+     *
+     * Existe aparte de las listas porque el contador se pide desde Perfil, que
+     * no muestra nada del contenido: bajarse doscientos bares y sus reportes
+     * para dibujar un "3" sería absurdo.
+     */
+    fun summary(): ModerationSummaryDto = db.conn { c ->
+        ModerationSummaryDto(
+            pendingBars = c.queryOne(
+                "SELECT count(*) AS n FROM bars WHERE status = 'pending'",
+            ) { it.getInt("n") } ?: 0,
+            openFlags = c.queryOne(
+                "SELECT count(*) AS n FROM flags WHERE resolved_at IS NULL",
+            ) { it.getInt("n") } ?: 0,
+        )
     }
 
     fun openFlags(limit: Int = 100): List<FlagDto> = db.conn {
