@@ -68,20 +68,27 @@ fun AddBarScreen(
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var searching by remember { mutableStateOf(false) }
+    var searchingGoogle by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { search.startSession() }
 
     LaunchedEffect(query) {
         if (chosen != null || query.length < 2) {
-            existing = emptyList(); suggestions = emptyList(); return@LaunchedEffect
+            existing = emptyList(); suggestions = emptyList()
+            searching = false; searchingGoogle = false
+            return@LaunchedEffect
         }
         searching = true
         delay(350)
-        // Primero la base propia: es gratis, instantánea y evita duplicados.
+        // La base propia se pinta apenas llega: es gratis e instantánea, y no
+        // tiene por qué esperar a que Google conteste (o no conteste).
         existing = runCatching { api.searchBars(query, lat, lng) }.getOrDefault(emptyList())
-        // Después Google, para lo que falta.
-        suggestions = search.suggest(query, lat, lng)
         searching = false
+        // Google llega después y se suma. Si falla o tarda, la pantalla ya
+        // es útil con lo de arriba.
+        searchingGoogle = true
+        suggestions = runCatching { search.suggest(query, lat, lng) }.getOrDefault(emptyList())
+        searchingGoogle = false
     }
 
     Scaffold(
@@ -121,7 +128,7 @@ fun AddBarScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                     colors = fieldColors(),
                     trailingIcon = {
-                        if (searching) CircularProgressIndicator(
+                        if (searching || searchingGoogle) CircularProgressIndicator(
                             Modifier.size(16.dp), strokeWidth = 2.dp, color = Ink.Amber,
                         )
                     },
@@ -151,6 +158,16 @@ fun AddBarScreen(
                                 Text("Ver", color = Ink.Amber, fontSize = 13.sp)
                             }
                             HorizontalDivider(color = Ink.Hairline)
+                        }
+                    }
+
+                    if (searchingGoogle && suggestions.isEmpty()) {
+                        item {
+                            Text(
+                                "Buscando en Google…",
+                                Modifier.padding(top = 18.dp),
+                                color = Ink.Faint, fontSize = 12.sp,
+                            )
                         }
                     }
 

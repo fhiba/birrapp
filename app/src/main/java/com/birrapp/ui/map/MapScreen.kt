@@ -41,6 +41,7 @@ import com.birrapp.data.model.BarPin
 import com.birrapp.data.model.BeerStyle
 import com.birrapp.ui.common.FreshnessColors
 import com.birrapp.ui.common.GlassPanel
+import com.birrapp.ui.common.PintLoader
 import com.birrapp.ui.common.GlassPill
 import com.birrapp.ui.common.formatPrice
 import com.birrapp.ui.theme.Ink
@@ -106,14 +107,10 @@ fun MapScreen(
         // Obelisco por un segundo y después saltaba: prefiero una espera
         // honesta a un lugar equivocado, aunque sea por un instante.
         if (!state.locationResolved) {
-            Column(
-                Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CircularProgressIndicator(Modifier.size(28.dp), color = Ink.Amber, strokeWidth = 2.dp)
-                Spacer(Modifier.height(14.dp))
-                Text("Buscando dónde estás…", color = Ink.Muted, fontSize = 13.sp)
-            }
+            PintLoader(
+                message = "Buscando dónde estás…",
+                modifier = Modifier.align(Alignment.Center),
+            )
             return@Box
         }
 

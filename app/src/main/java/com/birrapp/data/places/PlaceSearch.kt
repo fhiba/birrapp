@@ -8,7 +8,13 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.birrapp.BuildConfig
+import com.google.android.libraries.places.api.net.PlacesClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 data class PlaceSuggestion(
     val placeId: String,
@@ -43,11 +49,24 @@ class PlaceSearch(private val context: Context) {
     val isAvailable: Boolean
         get() = BuildConfig.MAPS_API_KEY_PRESENT
 
-    private val client by lazy {
-        if (!Places.isInitialized()) {
-            Places.initializeWithNewPlacesApiEnabled(context, BuildConfig.MAPS_API_KEY)
-        }
-        Places.createClient(context)
+    /**
+     * Inicialización perezosa, pero SIEMPRE fuera del hilo principal.
+     *
+     * `Places.createClient` y la primera llamada hacen trabajo real —
+     * handshake, carga de config— y en el hilo principal congelan la UI
+     * entera: la pantalla queda con el spinner girando y ni siquiera se
+     * dibujan los resultados que ya tenemos de nuestra propia base.
+     */
+    private val clientMutex = Mutex()
+    private var cachedClient: PlacesClient? = null
+
+    private suspend fun client(): PlacesClient = clientMutex.withLock {
+        cachedClient ?: withContext(Dispatchers.IO) {
+            if (!Places.isInitialized()) {
+                Places.initializeWithNewPlacesApiEnabled(context, BuildConfig.MAPS_API_KEY)
+            }
+            Places.createClient(context)
+        }.also { cachedClient = it }
     }
 
     /** Un token por sesión de búsqueda: Google factura por sesión, no por tecla. */
@@ -77,7 +96,11 @@ class PlaceSearch(private val context: Context) {
                 }
                 .setCountries("AR")
                 .build()
-            client.findAutocompletePredictions(request).await().autocompletePredictions
+            // Timeout propio: si Google no responde, la búsqueda de Google se
+            // pierde pero la de nuestra base ya está en pantalla.
+            withTimeout(6_000) {
+                client().findAutocompletePredictions(request).await()
+            }.autocompletePredictions
                 .take(6)
                 .map {
                     PlaceSuggestion(
@@ -101,7 +124,7 @@ class PlaceSearch(private val context: Context) {
             val request = FetchPlaceRequest.builder(placeId, fields)
                 .setSessionToken(sessionToken)
                 .build()
-            val place = client.fetchPlace(request).await().place
+            val place = withTimeout(8_000) { client().fetchPlace(request).await() }.place
             sessionToken = null   // la sesión termina con el fetch
             val loc = place.location ?: return null
             ResolvedPlace(
