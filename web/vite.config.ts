@@ -9,6 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'birrapp',
@@ -29,6 +30,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Sin esto el service worker nuevo queda "en espera" hasta que se
+        // cierran todas las pestañas: el usuario ve la versión anterior
+        // después de cada deploy, que fue exactamente lo que pasó dos veces.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // El shell se cachea; los datos NO. Servir precios viejos desde el
         // service worker sería exactamente lo que la app existe para evitar.
         globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
