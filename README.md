@@ -77,6 +77,22 @@ node scripts/seed_osm.mjs
 El vocabulario de estilos (14 cargados) se edita en
 `backend/src/main/resources/db/migration/` o vía API como admin.
 
+## Distribuir el APK
+
+El backend sirve el APK más reciente de `APK_DIR` en `/descargar`, con una
+página de instalación. Para publicar una versión nueva alcanza con dejar el
+archivo ahí:
+
+```bash
+cd app && ./gradlew assembleDebug
+cp build/outputs/apk/debug/birrapp-debug.apk \
+   "$APK_DIR/birrapp-0.1.0-$(date +%Y%m%d).apk"
+```
+
+El link es siempre el mismo, así que se comparte una vez. No reemplaza a
+Play —no hay actualizaciones automáticas— pero para un grupo de prueba
+alcanza.
+
 ## Estructura
 
 ```

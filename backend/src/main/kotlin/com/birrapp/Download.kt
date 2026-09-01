@@ -1,0 +1,132 @@
+package com.birrapp
+
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.header
+import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+
+/**
+ * Descarga directa del APK.
+ *
+ * Se sirve desde el propio dominio en vez de subirlo a WeTransfer o similar:
+ * el link no vence, no depende de un tercero y es el mismo siempre, así que
+ * se puede compartir una vez y después sólo reemplazar el archivo.
+ *
+ * No reemplaza a Play para distribuir en serio —Play maneja actualizaciones
+ * automáticas y firma— pero para pasarle el APK a un grupo de gente que lo
+ * va a probar, alcanza y sobra.
+ */
+fun Route.downloadRoutes(apkDir: File) {
+
+    route("/descargar") {
+
+        get {
+            val apk = latestApk(apkDir)
+            call.respondText(ContentType.Text.Html, HttpStatusCode.OK) {
+                landingPage(apk)
+            }
+        }
+
+        get("/birrapp.apk") {
+            val apk = latestApk(apkDir)
+                ?: return@get call.respondText(
+                    "No hay ninguna versión disponible por ahora.",
+                    status = HttpStatusCode.NotFound,
+                )
+            // Sin este tipo MIME Android no ofrece instalar: lo trata como
+            // un archivo cualquiera y lo deja tirado en Descargas.
+            call.response.header(
+                HttpHeaders.ContentDisposition,
+                ContentDisposition.Attachment
+                    .withParameter(ContentDisposition.Parameters.FileName, "birrapp.apk")
+                    .toString(),
+            )
+            call.respondFile(apk)
+        }
+    }
+}
+
+private fun latestApk(dir: File): File? =
+    dir.listFiles { f -> f.isFile && f.extension == "apk" }
+        ?.maxByOrNull { it.lastModified() }
+
+private fun landingPage(apk: File?): String {
+    val size = apk?.let { "%.1f MB".format(it.length() / 1_048_576.0) } ?: "—"
+    val date = apk?.let {
+        SimpleDateFormat("d/M/yyyy HH:mm").format(Date(it.lastModified()))
+    } ?: "—"
+    val available = apk != null
+
+    return """
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>birrapp</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: #1A1410; color: #FBF6EE; padding: 24px;
+    font: 15px/1.5 system-ui, -apple-system, sans-serif;
+  }
+  .card { width: 100%; max-width: 420px; }
+  h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -1px; }
+  .sub { color: #B6A899; margin: 0 0 28px; }
+  .btn {
+    display: block; text-align: center; text-decoration: none;
+    background: #FFB627; color: #1A1410; font-weight: 600;
+    padding: 16px; border-radius: 14px; margin-bottom: 10px;
+  }
+  .btn.off { background: #332822; color: #8A7B6D; pointer-events: none; }
+  .meta { color: #8A7B6D; font-size: 12px; text-align: center; margin-bottom: 30px; }
+  ol { color: #B6A899; font-size: 14px; padding-left: 20px; margin: 0; }
+  li { margin-bottom: 10px; }
+  .note {
+    margin-top: 26px; padding: 13px; border-radius: 12px;
+    background: rgba(255,182,39,.10); color: #B6A899; font-size: 12.5px;
+  }
+  code { color: #FFB627; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>birrapp</h1>
+    <p class="sub">El precio de la pinta, en el mapa.</p>
+
+    <a class="btn ${if (available) "" else "off"}" href="/descargar/birrapp.apk">
+      ${if (available) "Descargar para Android" else "No disponible por ahora"}
+    </a>
+    <p class="meta">$size · actualizado el $date</p>
+
+    <ol>
+      <li>Tocá <strong>Descargar</strong>. Android va a avisarte que este tipo
+          de archivo puede ser dañino: es el aviso normal para cualquier app
+          que no venga de Play.</li>
+      <li>Abrí el archivo descargado. Si te pide permiso para
+          <strong>instalar apps desconocidas</strong>, activalo para el
+          navegador y volvé.</li>
+      <li>Instalar. Listo.</li>
+    </ol>
+
+    <div class="note">
+      Para que el mapa te muestre bares cerca hace falta darle permiso de
+      <code>ubicación</code>. Podés mirar el mapa sin cuenta; para cargar
+      precios sí hace falta iniciar sesión.
+    </div>
+  </div>
+</body>
+</html>
+    """.trimIndent()
+}

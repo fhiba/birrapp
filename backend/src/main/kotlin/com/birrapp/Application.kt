@@ -137,5 +137,6 @@ fun Application.module(cfg: Config, db: Db) {
     }
 
     routing { apiRoutes(bars, prices, reviews, moderation, users) }
+    routing { downloadRoutes(java.io.File(cfg.apkDir)) }
     routing { authRoutes(cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs) }
 }
