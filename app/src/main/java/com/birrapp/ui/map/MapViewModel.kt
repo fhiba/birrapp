@@ -198,6 +198,12 @@ class MapViewModel(
         if (!tooFar) load()
     }
 
+    /** Tras crear o borrar algo: descartar el caché y volver a pedir. */
+    fun reloadAfterChange() {
+        bars.invalidate()
+        load(force = true, immediate = true)
+    }
+
     fun setRadius(meters: Int) {
         _state.update { it.copy(radiusMeters = meters) }
         load(force = true)

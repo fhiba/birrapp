@@ -23,6 +23,8 @@ data class AuthUiState(
     val browserUrl: String? = null,
     /** true cuando Credential Manager no encontró ninguna cuenta en el equipo. */
     val suggestBrowser: Boolean = false,
+    val stats: com.birrapp.data.model.UserStats? = null,
+    val deleting: Boolean = false,
 )
 
 class AuthViewModel(
@@ -43,7 +45,10 @@ class AuthViewModel(
                 // Revalidar contra el backend: el rol pudo haber cambiado, o
                 // la cuenta pudo haber sido suspendida desde el último uso.
                 runCatching { api.me() }
-                    .onSuccess { fresh -> _state.update { it.copy(user = fresh) } }
+                    .onSuccess { fresh ->
+                        _state.update { it.copy(user = fresh) }
+                        loadStats()
+                    }
                     .onFailure { session.clear(); _state.update { it.copy(user = null) } }
             }
         }
@@ -77,6 +82,7 @@ class AuthViewModel(
                             _state.update {
                                 it.copy(signingIn = false, user = sessionResponse.user)
                             }
+                            loadStats()
                         }
                         .onFailure { e ->
                             Log.w("AuthViewModel", "canje de token falló", e)
@@ -140,6 +146,40 @@ class AuthViewModel(
     }
 
     fun onBrowserCancelled() = _state.update { it.copy(signingIn = false) }
+
+    fun loadStats() {
+        viewModelScope.launch {
+            runCatching { api.myStats() }
+                .onSuccess { s -> _state.update { it.copy(stats = s) } }
+        }
+    }
+
+    /**
+     * Borrado de cuenta. Obligatorio para publicar en App Store y Play.
+     *
+     * Los precios que reportó la persona no se borran, se desvinculan: son
+     * observaciones sobre bares, no datos personales, y borrarlos degradaría
+     * el mapa para todos los demás.
+     */
+    fun deleteAccount(onDone: () -> Unit) {
+        viewModelScope.launch {
+            _state.update { it.copy(deleting = true) }
+            runCatching { api.deleteAccount() }
+                .onSuccess {
+                    _state.update { AuthUiState() }
+                    onDone()
+                }
+                .onFailure { e ->
+                    Log.w("AuthViewModel", "no se pudo borrar la cuenta", e)
+                    _state.update {
+                        it.copy(
+                            deleting = false,
+                            error = "No pudimos borrar la cuenta. Probá de nuevo.",
+                        )
+                    }
+                }
+        }
+    }
 
     fun signOut() {
         viewModelScope.launch {

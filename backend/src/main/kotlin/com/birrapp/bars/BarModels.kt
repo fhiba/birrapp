@@ -4,6 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class StylePriceDto(
+    /** Id del reporte vigente. Lo necesita la moderación para borrarlo. */
+    val id: Long,
     val styleSlug: String,
     val styleName: String,
     val price: Double,

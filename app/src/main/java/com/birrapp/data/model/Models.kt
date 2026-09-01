@@ -14,6 +14,7 @@ enum class Freshness { fresh, aging, stale;
 
 @Serializable
 data class StylePrice(
+    val id: Long,
     val styleSlug: String,
     val styleName: String,
     val price: Double,
@@ -54,6 +55,10 @@ data class BarDetail(
 )
 
 @Serializable data class BeerStyle(val slug: String, val name: String)
+
+@Serializable data class UserStats(
+    val prices: Int, val confirmations: Int, val bars: Int, val reviews: Int,
+)
 
 @Serializable data class Review(
     val id: Long, val authorName: String, val rating: Int,

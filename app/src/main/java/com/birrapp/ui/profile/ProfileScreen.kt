@@ -28,7 +28,10 @@ fun ProfileScreen(
     signingIn: Boolean,
     authError: String?,
     suggestBrowser: Boolean,
+    stats: com.birrapp.data.model.UserStats?,
     onSignIn: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onSignInBrowser: () -> Unit,
     onSignOut: () -> Unit,
     onOpenModeration: () -> Unit,
@@ -129,11 +132,7 @@ fun ProfileScreen(
                 Text(it, color = Ink.Danger, fontSize = 13.sp, lineHeight = 18.sp)
             }
         } else {
-            Text(
-                user.displayName,
-                style = MaterialTheme.typography.displaySmall,
-                color = Ink.Cream,
-            )
+            Text(user.displayName, style = MaterialTheme.typography.displaySmall, color = Ink.Cream)
             Spacer(Modifier.height(4.dp))
             Text(user.email, fontSize = 13.sp, color = Ink.Faint)
 
@@ -142,8 +141,7 @@ fun ProfileScreen(
                 Modifier
                     .clip(RoundedCornerShape(50))
                     .background(
-                        if (user.isModerator) Ink.Amber.copy(alpha = 0.18f)
-                        else Color.White.copy(alpha = 0.07f)
+                        if (user.isModerator) Ink.AmberSoft else Color.White.copy(alpha = 0.07f)
                     )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
@@ -154,9 +152,23 @@ fun ProfileScreen(
                         else -> stringResource(R.string.role_user)
                     },
                     color = if (user.isModerator) Ink.Amber else Ink.Muted,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelLarge, fontSize = 12.sp,
                 )
+            }
+
+            // Aporte de la persona. Es lo único que la app puede devolverle a
+            // quien carga datos: ver que lo que hizo cuenta.
+            Spacer(Modifier.height(26.dp))
+            Text(
+                "TU APORTE",
+                style = MaterialTheme.typography.labelLarge,
+                color = Ink.Faint, fontSize = 10.sp, letterSpacing = 1.2.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatTile("Precios", stats?.prices, Modifier.weight(1f))
+                StatTile("Confirmados", stats?.confirmations, Modifier.weight(1f))
+                StatTile("Bares", stats?.bars, Modifier.weight(1f))
             }
 
             Spacer(Modifier.height(28.dp))
@@ -164,7 +176,18 @@ fun ProfileScreen(
                 RowAction(stringResource(R.string.tab_moderation), onOpenModeration)
                 Spacer(Modifier.height(10.dp))
             }
-            RowAction(stringResource(R.string.sign_out), onSignOut, danger = true)
+            RowAction("Cómo funcionan los precios", onOpenAbout)
+            Spacer(Modifier.height(10.dp))
+            RowAction(stringResource(R.string.sign_out), onSignOut)
+
+            Spacer(Modifier.height(28.dp))
+            Text(
+                "CUENTA",
+                style = MaterialTheme.typography.labelLarge,
+                color = Ink.Faint, fontSize = 10.sp, letterSpacing = 1.2.sp,
+            )
+            Spacer(Modifier.height(10.dp))
+            RowAction("Borrar mi cuenta", { onDeleteAccount() }, danger = true)
         }
 
         Spacer(Modifier.weight(1f))
@@ -178,6 +201,25 @@ fun ProfileScreen(
             fontSize = 11.sp, color = Ink.Faint, lineHeight = 15.sp,
         )
         Spacer(Modifier.height(110.dp))
+    }
+}
+
+@Composable
+private fun StatTile(label: String, value: Int?, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            value?.toString() ?: "—",
+            style = com.birrapp.ui.theme.PriceMedium,
+            color = if ((value ?: 0) > 0) Ink.Amber else Ink.Faint,
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(label, color = Ink.Faint, fontSize = 11.sp)
     }
 }
 

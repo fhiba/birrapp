@@ -56,6 +56,7 @@ import com.birrapp.ui.map.MapScreen
 import com.birrapp.ui.map.MapViewModel
 import com.birrapp.ui.moderation.ModerationScreen
 import com.birrapp.ui.moderation.ModerationViewModel
+import com.birrapp.ui.profile.AboutScreen
 import com.birrapp.ui.profile.ProfileScreen
 import com.birrapp.ui.theme.BirrappTheme
 
@@ -112,6 +113,7 @@ private object Routes {
     const val LIST = "list"
     const val PROFILE = "profile"
     const val MODERATION = "moderation"
+    const val ABOUT = "about"
     const val BAR = "bar/{barId}"
     const val ADD_BAR = "addBar/{lat}/{lng}"
     fun bar(id: Long) = "bar/$id"
@@ -152,6 +154,8 @@ fun BirrappApp(
         }
     }
 
+    var showDeleteAccount by remember { mutableStateOf(false) }
+
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -189,6 +193,10 @@ fun BirrappApp(
                 ListScreen(mapViewModel) { navController.navigate(Routes.bar(it)) }
             }
 
+            composable(Routes.ABOUT) {
+                AboutScreen { navController.popBackStack() }
+            }
+
             composable(Routes.PROFILE) {
                 // Credential Manager necesita una Activity para anclar su
                 // diálogo; con el context de la app falla al abrir el selector.
@@ -198,6 +206,9 @@ fun BirrappApp(
                     signingIn = authState.signingIn,
                     authError = authState.error,
                     suggestBrowser = authState.suggestBrowser,
+                    stats = authState.stats,
+                    onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onDeleteAccount = { showDeleteAccount = true },
                     onSignIn = { activity?.let(authViewModel::signIn) },
                     onSignInBrowser = authViewModel::signInWithBrowser,
                     onSignOut = authViewModel::signOut,
@@ -229,8 +240,13 @@ fun BirrappApp(
                 BarDetailScreen(
                     viewModel = vm,
                     isSignedIn = authState.user != null,
+                    isModerator = authState.user?.isModerator == true,
                     onBack = { navController.popBackStack() },
                     onNeedSignIn = { navController.navigate(Routes.PROFILE) },
+                    onBarDeleted = {
+                        mapViewModel.reloadAfterChange()
+                        navController.popBackStack()
+                    },
                 )
             }
 
@@ -252,11 +268,41 @@ fun BirrappApp(
                         navController.navigate(Routes.bar(id))
                     },
                     onDone = {
-                        mapViewModel.load(force = true)
+                        // Se invalida la región cacheada: el bar nuevo puede
+                        // estar fuera de lo que ya se había traído.
+                        mapViewModel.reloadAfterChange()
                         navController.popBackStack()
                     },
                 )
             }
+        }
+
+        if (showDeleteAccount) {
+            AlertDialog(
+                onDismissRequest = { showDeleteAccount = false },
+                containerColor = Ink.Raised,
+                title = { Text("¿Borrar tu cuenta?", color = Ink.Cream) },
+                text = {
+                    Text(
+                        "Se borra tu cuenta, tus reseñas y tu sesión. No se puede deshacer.\n\n" +
+                            "Los precios que cargaste quedan en el mapa, pero sin tu nombre: " +
+                            "son datos sobre bares, no sobre vos, y borrarlos dejaría peor " +
+                            "informado a todo el mundo.",
+                        color = Ink.Muted,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteAccount = false
+                        authViewModel.deleteAccount { navController.navigate(Routes.MAP) }
+                    }) { Text("Borrar cuenta", color = Ink.Danger) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteAccount = false }) {
+                        Text("Cancelar", color = Ink.Muted)
+                    }
+                },
+            )
         }
 
         if (showBottomBar) {

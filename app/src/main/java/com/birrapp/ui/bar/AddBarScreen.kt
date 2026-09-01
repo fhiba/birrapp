@@ -284,10 +284,12 @@ fun AddBarScreen(
                             runCatching { api.addBar(body) }
                                 .onSuccess {
                                     sending = false
-                                    snackbar.showSnackbar(
-                                        if (chosen != null) "¡Listo! Ya está en el mapa."
-                                        else "Listo. Un moderador lo revisa."
-                                    )
+                                    // onDone() PRIMERO: showSnackbar suspende
+                                    // hasta que el snackbar se cierra, y al
+                                    // volver atrás este scope se cancela, así
+                                    // que la recarga del mapa nunca llegaba a
+                                    // ejecutarse. El bar recién aparecía en la
+                                    // siguiente consulta.
                                     onDone()
                                 }
                                 .onFailure { e -> sending = false; error = e.message }

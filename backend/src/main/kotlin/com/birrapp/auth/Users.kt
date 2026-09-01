@@ -28,6 +28,14 @@ data class User(
 }
 
 @Serializable
+data class UserStats(
+    val prices: Int,
+    val confirmations: Int,
+    val bars: Int,
+    val reviews: Int,
+)
+
+@Serializable
 data class UserDto(
     val id: Long,
     val email: String,
@@ -81,6 +89,47 @@ class UserRepo(private val db: Db) {
 
     fun setRole(userId: Long, role: Role): Boolean = db.conn {
         it.update("UPDATE users SET role = ?::user_role WHERE id = ?", role.name, userId) > 0
+    }
+
+    /**
+     * Borra la cuenta y sus datos personales.
+     *
+     * Obligatorio por las políticas de Apple y de Google Play si la app
+     * permite crear cuenta.
+     *
+     * Los reportes de precio NO se borran: son observaciones sobre bares, no
+     * datos personales, y borrarlos degradaría el mapa para todos. Se
+     * desvinculan del usuario (`reported_by` queda NULL), que es lo que pide
+     * la regulación: que la persona deje de ser identificable.
+     */
+    fun deleteAccount(userId: Long): Boolean = db.tx { c ->
+        c.update("UPDATE price_reports SET reported_by = NULL WHERE reported_by = ?", userId)
+        c.update("DELETE FROM reviews WHERE user_id = ?", userId)
+        c.update("UPDATE flags SET reporter_id = NULL WHERE reporter_id = ?", userId)
+        c.update("DELETE FROM refresh_tokens WHERE user_id = ?", userId)
+        c.update("DELETE FROM users WHERE id = ?", userId) > 0
+    }
+
+    fun stats(userId: Long): UserStats = db.conn { c ->
+        c.queryOne(
+            """
+            SELECT
+              (SELECT count(*) FROM price_reports
+                WHERE reported_by = ? AND status = 'active') AS precios,
+              (SELECT count(*) FROM price_reports
+                WHERE reported_by = ? AND is_confirmation) AS confirmaciones,
+              (SELECT count(*) FROM bars WHERE created_by = ?) AS bares,
+              (SELECT count(*) FROM reviews WHERE user_id = ?) AS resenas
+            """.trimIndent(),
+            userId, userId, userId, userId,
+        ) { rs ->
+            UserStats(
+                prices = rs.getInt("precios"),
+                confirmations = rs.getInt("confirmaciones"),
+                bars = rs.getInt("bares"),
+                reviews = rs.getInt("resenas"),
+            )
+        } ?: UserStats(0, 0, 0, 0)
     }
 
     fun setBanned(userId: Long, banned: Boolean): Boolean = db.conn {

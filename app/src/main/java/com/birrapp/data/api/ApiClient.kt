@@ -212,4 +212,14 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun removePrice(id: Long): Map<String, Boolean> =
         request(HttpMethod.Post, "moderation/prices/$id/remove", auth = true)
+
+    suspend fun deleteBar(id: Long): Map<String, Boolean> =
+        request(HttpMethod.Post, "moderation/bars/$id/delete", auth = true)
+
+    suspend fun myStats(): UserStats = request(HttpMethod.Get, "auth/me/stats", auth = true)
+
+    suspend fun deleteAccount() {
+        request<Unit>(HttpMethod.Delete, "auth/me", auth = true)
+        session.clear()
+    }
 }

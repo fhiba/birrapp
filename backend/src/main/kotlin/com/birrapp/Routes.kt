@@ -127,6 +127,14 @@ fun Route.apiRoutes(
                 call.respond(OkResponse())
             }
 
+            /** Borra el bar y sus precios. Para lugares inventados. */
+            post("/bars/{id}/delete") {
+                call.requireRole(Role.moderator)
+                val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+                if (!bars.delete(id)) notFound("no existe ese bar")
+                call.respond(OkResponse())
+            }
+
             post("/bars/{id}/reject") {
                 call.requireRole(Role.moderator)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -37,9 +38,12 @@ import com.birrapp.ui.theme.PriceLarge
 fun BarDetailScreen(
     viewModel: BarDetailViewModel,
     isSignedIn: Boolean,
+    isModerator: Boolean,
     onBack: () -> Unit,
     onNeedSignIn: () -> Unit,
+    onBarDeleted: () -> Unit,
 ) {
+    var confirmDelete by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -174,6 +178,8 @@ fun BarDetailScreen(
                         PriceRow(
                             price = price,
                             busy = state.busyStyle == price.styleSlug,
+                            isModerator = isModerator,
+                            onRemove = { viewModel.removePrice(price.id) },
                             onConfirm = {
                                 if (isSignedIn) viewModel.confirmPrice(price.styleSlug)
                                 else onNeedSignIn()
@@ -241,6 +247,35 @@ fun BarDetailScreen(
         }
     }
 
+    if (confirmDelete) {
+        val name = state.bar?.name ?: "este bar"
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            containerColor = Ink.Raised,
+            title = { Text("¿Eliminar $name?", color = Ink.Cream) },
+            text = {
+                Text(
+                    "Se borran el bar y todos sus precios. No se puede deshacer.\n\n" +
+                        "Si el bar existe pero está mal cargado, conviene corregirlo " +
+                        "en vez de borrarlo: los precios son reportes de gente que " +
+                        "estuvo ahí.",
+                    color = Ink.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    viewModel.deleteBar(onBarDeleted)
+                }) { Text("Eliminar", color = Ink.Danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.cancel), color = Ink.Muted)
+                }
+            },
+        )
+    }
+
     if (showReportSheet) {
         ReportPriceSheet(
             styles = state.styles,
@@ -266,6 +301,8 @@ fun BarDetailScreen(
 private fun PriceRow(
     price: StylePrice,
     busy: Boolean,
+    isModerator: Boolean,
+    onRemove: () -> Unit,
     onConfirm: () -> Unit,
     onUpdate: () -> Unit,
 ) {
@@ -358,6 +395,22 @@ private fun PriceRow(
                     color = Ink.Cream,
                     style = MaterialTheme.typography.labelLarge,
                 )
+            }
+            // Sólo moderación. El botón vive acá, sobre el precio concreto,
+            // en vez de en una pantalla aparte: cuando ves un precio absurdo
+            // querés sacarlo en ese momento, no anotarlo para después.
+            if (isModerator) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Ink.Danger.copy(alpha = 0.14f))
+                        .clickable(enabled = !busy, onClick = onRemove)
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Default.Delete, "Eliminar precio",
+                        Modifier.size(17.dp), tint = Ink.Danger)
+                }
             }
         }
     }

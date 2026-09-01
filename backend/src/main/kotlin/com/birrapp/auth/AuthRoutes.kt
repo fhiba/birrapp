@@ -8,6 +8,7 @@ import io.ktor.server.response.respondRedirect
 import com.birrapp.core.ApiException
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -15,6 +16,7 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import kotlinx.serialization.Serializable
 import com.birrapp.core.Config
 import com.birrapp.core.forbidden
+import com.birrapp.core.notFound
 import com.birrapp.core.unauthorized
 
 private val authLog = org.slf4j.LoggerFactory.getLogger("birrapp.auth")
@@ -167,6 +169,25 @@ fun Route.authRoutes(
             val caller = call.caller()
             val user = users.findById(caller.userId) ?: unauthorized("usuario inexistente")
             call.respond(user.toDto())
+        }
+
+        get("/me/stats") {
+            val caller = call.caller()
+            call.respond(users.stats(caller.userId))
+        }
+
+        /**
+         * Borrado de cuenta. Exigido por Apple y por Google Play.
+         *
+         * Se revocan los refresh tokens primero: si el borrado fallara a
+         * mitad, la sesión ya no sirve y nadie queda con acceso a una cuenta
+         * a medio borrar.
+         */
+        delete("/me") {
+            val caller = call.caller()
+            refreshTokens.revokeAllFor(caller.userId)
+            if (!users.deleteAccount(caller.userId)) notFound("no existe esa cuenta")
+            call.respond(HttpStatusCode.NoContent)
         }
 
         post("/logout") {

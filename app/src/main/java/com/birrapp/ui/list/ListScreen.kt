@@ -84,11 +84,25 @@ fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
         // desde ahí, no desde el usuario.
         Column(Modifier.padding(horizontal = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (state.simulated != null) "Desde el punto elegido"
-                    else "Desde tu ubicación",
-                    color = Ink.Faint, fontSize = 12.sp,
-                )
+                if (state.simulated != null) {
+                    // Acá sí conviene el aviso: en la lista no se ve el mapa,
+                    // así que sin esto no hay forma de saber desde dónde se
+                    // están midiendo las distancias.
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(Ink.AmberSoft)
+                            .clickable { viewModel.clearSimulated() }
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Desde el punto elegido", color = Ink.Amber, fontSize = 12.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("✕", color = Ink.Amber, fontSize = 12.sp)
+                    }
+                } else {
+                    Text("Desde tu ubicación", color = Ink.Faint, fontSize = 12.sp)
+                }
                 Spacer(Modifier.weight(1f))
                 Text(
                     if (state.radiusMeters >= 1000)

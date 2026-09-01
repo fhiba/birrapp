@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -220,51 +221,31 @@ fun MapScreen(
                 .padding(vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SortSelector(hazeState, state.sort, viewModel::setSort)
+            // Orden y radio en la misma fila: son dos controles chicos y el
+            // mapa es el contenido, no los controles.
+            Row(
+                Modifier.padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SortSelector(hazeState, state.sort, viewModel::setSort)
+                RadiusControl(hazeState, state.radiusMeters, viewModel::setRadius)
+            }
 
             if (state.styles.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
                 StyleFilterRow(hazeState, state.styles, state.styleFilter, viewModel::setStyleFilter)
             }
 
-            Spacer(Modifier.height(10.dp))
-            RadiusControl(hazeState, state.radiusMeters, viewModel::setRadius)
-
-            AnimatedVisibility(state.simulated != null, enter = fadeIn(), exit = fadeOut()) {
-                Box(Modifier.padding(top = 10.dp)) {
-                    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
-                        Row(
-                            Modifier
-                                .clickable { viewModel.clearSimulated() }
-                                .padding(horizontal = 14.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text("Buscando en este punto", color = Ink.Cream, fontSize = 12.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("✕", color = Ink.Amber, fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-
+            // El aviso de zoom se queda: sin él la pantalla queda vacía sin
+            // explicación. Los de "buscando" se fueron: el usuario ya ve que
+            // los pines cambian, y tres carteles simultáneos tapaban el mapa.
             AnimatedVisibility(state.tooZoomedOut, enter = fadeIn(), exit = fadeOut()) {
-                Box(Modifier.padding(top = 10.dp)) {
+                Box(Modifier.padding(top = 8.dp)) {
                     GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
                         Text(
                             "Acercá el mapa para ver bares",
                             Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                            color = Ink.Muted, fontSize = 12.sp,
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(state.loading && !state.tooZoomedOut, enter = fadeIn(), exit = fadeOut()) {
-                Box(Modifier.padding(top = 12.dp)) {
-                    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
-                        Text(
-                            "buscando…",
-                            Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                             color = Ink.Muted, fontSize = 12.sp,
                         )
                     }
@@ -365,15 +346,18 @@ private fun RadiusControl(
         Column(
             Modifier
                 .animateContentSize()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(horizontal = 13.dp, vertical = 9.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
                 Modifier.clickable { open = !open },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Radio", color = Ink.Muted, fontSize = 12.sp)
-                Spacer(Modifier.width(8.dp))
+                Icon(
+                    Icons.Default.Search, null,
+                    Modifier.size(14.dp), tint = Ink.Muted,
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(label, color = Ink.Amber, style = MaterialTheme.typography.labelLarge)
             }
             if (open) {

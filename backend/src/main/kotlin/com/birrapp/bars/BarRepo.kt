@@ -5,6 +5,7 @@ import com.birrapp.core.badRequest
 import com.birrapp.core.conflict
 import com.birrapp.core.tooManyRequests
 import com.birrapp.core.query
+import com.birrapp.core.update
 import com.birrapp.core.queryOne
 import java.sql.ResultSet
 
@@ -160,13 +161,14 @@ class BarRepo(private val db: Db) {
 
         val prices = c.query(
             """
-            SELECT style_slug, style_name, price, size_ml, age_days, freshness
+            SELECT id, style_slug, style_name, price, size_ml, age_days, freshness
             FROM v_current_prices WHERE bar_id = ?
             ORDER BY freshness = 'stale', price ASC
             """.trimIndent(),
             id,
         ) { rs ->
             StylePriceDto(
+                id = rs.getLong("id"),
                 styleSlug = rs.getString("style_slug"),
                 styleName = rs.getString("style_name"),
                 price = rs.getBigDecimal("price").toDouble(),
@@ -233,6 +235,18 @@ class BarRepo(private val db: Db) {
                 "WHERE id = ? RETURNING id",
             status, barId,
         ) { rs -> rs.getLong("id") }.isNotEmpty()
+    }
+
+    /**
+     * Borra un bar. Sólo moderación.
+     *
+     * Los precios se van en cascada porque un precio sin bar no significa
+     * nada. Para sacar un bar de circulación sin perder su historial está
+     * `setStatus(rejected)`, que es lo que conviene salvo que el bar sea
+     * inventado.
+     */
+    fun delete(barId: Long): Boolean = db.conn {
+        it.update("DELETE FROM bars WHERE id = ?", barId) > 0
     }
 
     fun pending(limit: Int): List<BarPinDto> = db.conn {

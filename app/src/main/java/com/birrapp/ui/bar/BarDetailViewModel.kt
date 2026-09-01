@@ -101,5 +101,23 @@ class BarDetailViewModel(
         }
     }
 
+    /** Moderación: saca un precio del mapa sin borrar el histórico. */
+    fun removePrice(priceId: Long) {
+        viewModelScope.launch {
+            runCatching { api.removePrice(priceId) }
+                .onSuccess { _state.update { it.copy(toast = "Precio eliminado") }; load() }
+                .onFailure { e -> _state.update { it.copy(toast = e.message) } }
+        }
+    }
+
+    /** Moderación: borra el bar entero. Para lugares inventados. */
+    fun deleteBar(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            runCatching { api.deleteBar(barId) }
+                .onSuccess { onDeleted() }
+                .onFailure { e -> _state.update { it.copy(toast = e.message) } }
+        }
+    }
+
     fun clearToast() = _state.update { it.copy(toast = null) }
 }
