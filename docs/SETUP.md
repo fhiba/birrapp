@@ -60,6 +60,24 @@ Pegar en `app/local.properties` (gitignoreado):
 MAPS_API_KEY=AIza...
 ```
 
+## 3b. API key aparte para la web
+
+**Una key sólo admite UN tipo de restricción de aplicación.** La del paso 3
+está restringida a *Android apps*, así que no puede funcionar en un sitio web:
+no es cuestión de agregarle algo, son excluyentes. Hace falta una segunda.
+
+Credentials → Create credentials → **API key**:
+- *Application restrictions* → **Websites** → agregar `TU_DOMINIO/*`
+- *API restrictions* → **Maps JavaScript API** y **Places API (New)**
+
+Habilitá también **Maps JavaScript API** en el proyecto: es un producto
+distinto del Maps SDK for Android.
+
+Va en `web/.env.local` (gitignoreado):
+```
+VITE_MAPS_API_KEY=AIza...
+```
+
 ## 4. Clientes OAuth
 
 APIs & Services → OAuth consent screen primero (External, completar nombre

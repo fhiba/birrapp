@@ -48,7 +48,7 @@ export function MapScreen(p: Props) {
         <CameraWatcher onCamera={p.onCamera} />
         <LongPress onLongPress={p.onSimulate} />
 
-        {p.simulated && <Marker position={p.simulated} icon={simulatedIcon()} />}
+        {p.simulated && <SimulatedPin position={p.simulated} />}
 
         <Pins bars={p.bars} onOpen={id => nav(`/bar/${id}`)} />
       </Map>
@@ -161,6 +161,11 @@ function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }
     return () => l.remove()
   }, [map])
 
+  // Hasta que el SDK esté cargado no se dibuja nada: los íconos construyen
+  // google.maps.Point, y tocar `google` antes de tiempo es un ReferenceError
+  // que tumba la app entera en blanco, no sólo el mapa.
+  if (!map) return null
+
   const showLabels = zoom >= 14.5
   const labelled = new Set<number>()
   if (showLabels) {
@@ -238,6 +243,12 @@ function simulatedIcon(): google.maps.Icon {
     <circle cx="13" cy="13" r="6.5" fill="#FBF6EE"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(13, 13) }
+}
+
+function SimulatedPin({ position }: { position: google.maps.LatLngLiteral }) {
+  const map = useMap()
+  if (!map) return null
+  return <Marker position={position} icon={simulatedIcon()} />
 }
 
 function CameraWatcher(
