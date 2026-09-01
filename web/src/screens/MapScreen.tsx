@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
+import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import type { BarPin, BeerStyle } from '../data/types'
 import { ageColor, formatPrice, formatRadius } from '../data/format'
@@ -31,7 +31,6 @@ export function MapScreen(p: Props) {
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <Map
-        mapId="birrapp"
         defaultCenter={p.camera?.center ?? p.center}
         defaultZoom={p.camera?.zoom ?? 15}
         disableDefaultUI
@@ -49,16 +48,7 @@ export function MapScreen(p: Props) {
         <CameraWatcher onCamera={p.onCamera} />
         <LongPress onLongPress={p.onSimulate} />
 
-        {p.simulated && (
-          <AdvancedMarker position={p.simulated}>
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(251,246,238,.28)', display: 'grid', placeItems: 'center',
-            }}>
-              <div style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--cream)' }} />
-            </div>
-          </AdvancedMarker>
-        )}
+        {p.simulated && <Marker position={p.simulated} icon={simulatedIcon()} />}
 
         <Pins bars={p.bars} onOpen={id => nav(`/bar/${id}`)} />
       </Map>
@@ -193,28 +183,61 @@ function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }
       {bars.map(b => {
         const withLabel = b.fromPrice != null && labelled.has(b.id)
         return (
-          <AdvancedMarker key={b.id} position={{ lat: b.lat, lng: b.lng }}
-            onClick={() => onOpen(b.id)} zIndex={withLabel ? 10 : 1}>
-            {withLabel ? (
-              <div className="num" style={{
-                background: ageColor(b.freshestAgeDays), color: 'var(--base)',
-                padding: '5px 11px', borderRadius: 999, fontSize: 13,
-                border: '.8px solid rgba(255,255,255,.5)', whiteSpace: 'nowrap',
-                boxShadow: '0 3px 10px rgba(0,0,0,.4)',
-              }}>{formatPrice(b.fromPrice!)}</div>
-            ) : (
-              <div style={{
-                width: b.fromPrice != null ? 13 : 9,
-                height: b.fromPrice != null ? 13 : 9, borderRadius: '50%',
-                background: b.fromPrice != null
-                  ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.2)',
-              }} />
-            )}
-          </AdvancedMarker>
+          <Marker
+            key={b.id}
+            position={{ lat: b.lat, lng: b.lng }}
+            onClick={() => onOpen(b.id)}
+            zIndex={withLabel ? 10 : 1}
+            icon={withLabel
+              ? priceIcon(formatPrice(b.fromPrice!), ageColor(b.freshestAgeDays))
+              : dotIcon(b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)',
+                        b.fromPrice != null ? 13 : 9)}
+          />
         )
       })}
     </>
   )
+}
+
+/** Los colores llegan como var(--x): en un SVG hay que resolverlos. */
+function resolve(color: string) {
+  if (!color.startsWith('var(')) return color
+  const name = color.slice(4, -1).trim()
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#FFB627'
+}
+
+const svgUrl = (svg: string) =>
+  'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
+
+/** Cápsula con el precio, como marcador. */
+function priceIcon(label: string, color: string): google.maps.Icon {
+  const fill = resolve(color)
+  const w = 20 + label.length * 8.6
+  const h = 26
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <rect x="0.5" y="0.5" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
+      fill="${fill}" stroke="rgba(255,255,255,.55)"/>
+    <text x="${w / 2}" y="${h / 2 + 4.5}" text-anchor="middle"
+      font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="13"
+      font-weight="700" fill="#1A1410">${label}</text>
+  </svg>`
+  return { url: svgUrl(svg), anchor: new google.maps.Point(w / 2, h / 2) }
+}
+
+function dotIcon(color: string, size: number): google.maps.Icon {
+  const fill = resolve(color)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
+  </svg>`
+  return { url: svgUrl(svg), anchor: new google.maps.Point(size / 2, size / 2) }
+}
+
+function simulatedIcon(): google.maps.Icon {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+    <circle cx="13" cy="13" r="13" fill="rgba(251,246,238,.28)"/>
+    <circle cx="13" cy="13" r="6.5" fill="#FBF6EE"/>
+  </svg>`
+  return { url: svgUrl(svg), anchor: new google.maps.Point(13, 13) }
 }
 
 function CameraWatcher(

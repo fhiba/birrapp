@@ -33,19 +33,30 @@ class LocationProvider(private val context: Context) {
     @SuppressLint("MissingPermission")
     suspend fun current(): Pair<Double, Double> {
         if (!hasPermission()) return BUENOS_AIRES_CENTER
-        return try {
-            val client = LocationServices.getFusedLocationProviderClient(context)
-            // Con permiso fino se pide alta precisión: el círculo de
-            // precisión en pantalla es el margen de error real, y con
-            // BALANCED queda un globo de kilómetros tapando el mapa.
-            val priority =
-                if (hasFine()) Priority.PRIORITY_HIGH_ACCURACY
-                else Priority.PRIORITY_BALANCED_POWER_ACCURACY
-            val location = client.getCurrentLocation(priority, null).await()
-                ?: client.lastLocation.await()
-            location?.let { it.latitude to it.longitude } ?: BUENOS_AIRES_CENTER
-        } catch (e: Exception) {
-            BUENOS_AIRES_CENTER
+        val client = LocationServices.getFusedLocationProviderClient(context)
+
+        // Orden deliberado, de lo más rápido a lo más preciso.
+        //
+        // Antes se pedía PRIORITY_HIGH_ACCURACY primero, y eso intenta GPS:
+        // adentro de un bar puede tardar o directamente fallar, y se caía al
+        // Obelisco aunque el teléfono supiera perfectamente dónde estaba.
+        // La última posición conocida es instantánea y casi siempre está.
+        runCatching { client.lastLocation.await() }.getOrNull()
+            ?.let { return it.latitude to it.longitude }
+
+        // Sin posición previa: BALANCED usa wifi y antenas, responde en
+        // segundos y adentro de un edificio funciona; GPS no.
+        runCatching {
+            client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).await()
+        }.getOrNull()?.let { return it.latitude to it.longitude }
+
+        // Último intento antes de rendirse.
+        if (hasFine()) {
+            runCatching {
+                client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
+            }.getOrNull()?.let { return it.latitude to it.longitude }
         }
+
+        return BUENOS_AIRES_CENTER
     }
 }

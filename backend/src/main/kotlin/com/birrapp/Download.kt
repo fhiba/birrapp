@@ -1,7 +1,8 @@
 package com.birrapp
 
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.request.path
 import io.ktor.http.ContentDisposition
-import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -10,7 +11,6 @@ import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import io.ktor.server.http.content.staticFiles
 import io.ktor.server.routing.route
 import java.io.File
 import java.text.SimpleDateFormat
@@ -30,27 +30,44 @@ import java.util.Date
 /**
  * Sirve la PWA en /app.
  *
- * Va en el mismo dominio que la API a propósito: así el navegador manda la
- * sesión sin líos de CORS ni cookies cross-site, y el redirect del login
- * vuelve al mismo origen.
+ * Un solo handler resuelve todo, en vez de `staticFiles` + una ruta comodín:
+ * con las dos, el comodín ganaba también para los assets y devolvía el HTML
+ * del shell con `Content-Type: text/html` en lugar del JS. El navegador lo
+ * recibía con 200, no sabía ejecutarlo, y la app quedaba en blanco.
+ *
+ * Regla: si la ruta corresponde a un archivo real, se sirve; si no, se
+ * devuelve el shell, porque es una ruta del router (/app/perfil, /app/bar/12)
+ * que el servidor no conoce.
  */
 fun Route.webAppRoutes(webDir: File) {
     if (!webDir.isDirectory) return
+    val shell = File(webDir, "index.html")
+    val canonicalRoot = webDir.canonicalFile
 
-    staticFiles("/app", webDir) {
-        default("index.html")
-        // El shell cambia en cada deploy; los assets llevan hash en el nombre
-        // y son inmutables.
-        cacheControl { file ->
-            if (file.name == "index.html") listOf(CacheControl.NoCache(null))
-            else listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000))
-        }
+    suspend fun ApplicationCall.serveShell() {
+        // El shell cambia en cada deploy y no puede cachearse.
+        response.header(HttpHeaders.CacheControl, "no-cache")
+        respondFile(shell)
     }
 
-    // Rutas del router (/app/perfil, /app/bar/12) devuelven el shell: es una
-    // SPA, el servidor no las conoce.
+    get("/app") { call.serveShell() }
+
     get("/app/{...}") {
-        call.respondFile(File(webDir, "index.html"))
+        val rel = call.request.path().removePrefix("/app/").substringBefore('?')
+        val target = File(webDir, rel)
+
+        // Sin esto, "/app/../../etc/passwd" saldría del directorio servido.
+        val inside = target.canonicalFile.path.startsWith(canonicalRoot.path)
+
+        if (rel.isNotBlank() && inside && target.isFile) {
+            // Los assets llevan hash en el nombre: son inmutables.
+            if (rel.startsWith("assets/")) {
+                call.response.header(HttpHeaders.CacheControl, "public, max-age=31536000, immutable")
+            }
+            call.respondFile(target)
+        } else {
+            call.serveShell()
+        }
     }
 }
 
