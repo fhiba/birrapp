@@ -54,6 +54,9 @@ Si se olvida `vite.config.ts`, la app sigue reportando la versión vieja en
 pantalla aunque el código sea nuevo, y deja de haber forma de saber qué está
 corriendo cada quien.
 
+Única excepción: un commit que **sólo** toca documentación no sube versión,
+porque no se publica nada. Si toca una línea de código, sube.
+
 ## Estado
 Fase A completa: backend andando, APK compilando, 592 bares cargados, 18 tests verdes.
 Fase B pendiente (necesita al usuario): credenciales de Google Cloud → docs/SETUP.md.
