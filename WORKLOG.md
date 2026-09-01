@@ -533,3 +533,26 @@ Arriba compite por ancho con el nombre del bar y con el enlace al mapa, y cinco
 estrellas de 16px se comen media línea en un teléfono. El desglose de cinco
 estrellas sigue estando en cada birra, que es donde se puntúa y donde hace
 falta ver cuánto falta para el próximo escalón.
+
+## 2026-09-01 (cont.) — El promedio del bar usaba el número equivocado
+
+Preguntado por el usuario: por qué un único voto de 5 daba 3,8 de promedio del
+bar. Dos cosas distintas, y sólo una era un problema.
+
+**Las birras sin nota ya estaban bien excluidas.** El filtro las saca antes de
+promediar, así que una birra sin votos no cuenta como cero. Es la distinción
+que importa: ausencia de dato no es un cero, y tratarla como tal hundiría el
+promedio de un bar por tener una birra que nadie probó todavía.
+
+**El 3,8 sí era un bug.** El agregado usaba `ratingAvg` —el promedio con
+shrinkage bayesiano— en vez de `ratingRaw`. La cuenta era
+`(1×5 + 5×3,5) / 6 = 3,75`: el voto no se estaba promediando contra un cero
+fantasma sino contra el prior de 3,5 de la fórmula.
+
+Es exactamente el mismo error que se corrigió en 0.3.11 para la nota de cada
+birra, en un lugar que quedó sin tocar. El valor con shrinkage sigue viajando
+en la respuesta para cuando haga falta ordenar, pero ya no lo muestra ninguna
+pantalla.
+
+Reproducido y verificado contra la base local con el caso del usuario —dos
+birras, una con un 5 y la otra sin votos—: antes 3,8, ahora 5,0.

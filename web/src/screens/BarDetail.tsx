@@ -76,13 +76,28 @@ export function BarDetailScreen({
   const meta = [formatDistance(bar.distanceMeters), bar.neighbourhood, bar.address]
     .filter(Boolean).join(' · ')
 
-  // El promedio del bar no se guarda: sale de sus birras, ponderado por
-  // cuántos votó cada una. Guardarlo aparte daría dos números que se pueden
-  // contradecir, y con el tiempo se contradicen.
-  const voted = bar.prices.filter(p => p.ratingAvg != null && p.ratingCount > 0)
+  // El promedio del bar no se guarda: sale de sus birras. Guardarlo aparte
+  // daría dos números que se pueden contradecir, y con el tiempo se
+  // contradicen.
+  //
+  // Dos cosas que lo definen:
+  //
+  // 1. Sólo entran las birras votadas. Una birra sin nota NO es un cero: es
+  //    ausencia de dato, y meterla como cero hundiría el promedio de un bar
+  //    por tener una birra que nadie probó todavía.
+  //
+  // 2. Va `ratingRaw`, el promedio real, y no `ratingAvg`. El segundo lleva
+  //    shrinkage hacia un prior de 3,5 y sirve para ordenar; usado acá hacía
+  //    que un único voto de 5 mostrara 3,8 —el 5 promediado contra el prior,
+  //    no contra un cero—. Es el mismo error que ya se había corregido en la
+  //    nota de cada birra y que acá quedó sin corregir.
+  //
+  // La ponderación por cantidad de votos sí se queda: una birra con treinta
+  // votos tiene que pesar más que una con uno.
+  const voted = bar.prices.filter(p => p.ratingRaw != null && p.ratingCount > 0)
   const votes = voted.reduce((n, p) => n + p.ratingCount, 0)
   const barAvg = votes > 0
-    ? voted.reduce((n, p) => n + p.ratingAvg! * p.ratingCount, 0) / votes
+    ? voted.reduce((n, p) => n + p.ratingRaw! * p.ratingCount, 0) / votes
     : null
 
   const myRatingOf = (slug: string) =>
