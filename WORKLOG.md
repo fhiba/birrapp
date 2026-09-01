@@ -388,3 +388,27 @@ punto 5 del backlog.
 
 Verificado contra la base local: votar, moderar el voto, comprobar que el
 comentario desaparece y la nota vuelve a cero votos.
+
+## 2026-09-01 (cont.) — Sacar el selector de orden del mapa
+
+Preguntado por el usuario: qué ordena ese selector en el mapa. La respuesta es
+que nada visible. Los pines se dibujan todos, y el descarte de etiquetas
+superpuestas se reordena por precio por su cuenta dentro de `Pins`, así que el
+orden con el que llega la lista es irrelevante.
+
+Lo único que hacía era decidir **cuáles 400 bares** sobreviven al
+`out.slice(0, 400)` de `project()` cuando hay más que eso en el radio: con "más
+cerca" los 400 más cercanos, con "más barata" otros 400. Cambiaba el contenido
+del mapa sin ninguna señal de que lo estaba haciendo. Peor que inútil.
+
+El orden queda sólo en la lista, que es la pantalla donde el orden ES el
+contenido. Efecto lateral: la fila de controles del mapa pierde su elemento más
+ancho (~200px), que era el que provocaba el amontonamiento en teléfonos
+angostos de 0.3.7.
+
+Y apareció una dependencia escondida entre pantallas: el umbral de separación
+de etiquetas se calculaba con `bars[0].lat`, o sea la latitud de un bar
+cualquiera, que cambiaba según el orden elegido en la pantalla de lista. Pasa a
+tomar la latitud del centro del mapa. En Buenos Aires la diferencia numérica es
+de milésimas; lo que se corrige es que una pantalla dejara de influir en otra
+por un camino que no estaba a la vista.

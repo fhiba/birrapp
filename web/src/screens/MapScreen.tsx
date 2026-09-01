@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import type { BarPin, BeerStyle } from '../data/types'
 import { ageColor, formatPrice, formatRadius } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
-import type { Sort } from '../data/useBars'
 import { MAP_STYLE } from '../mapStyle'
 
 /** Los extremos del slider, en metros. Compartidos con las etiquetas de abajo
@@ -16,9 +15,8 @@ interface Props {
   bars: BarPin[]; styles: BeerStyle[]; loading: boolean
   center: google.maps.LatLngLiteral | null
   simulated: google.maps.LatLngLiteral | null
-  radius: number; sort: Sort; styleFilter?: string
+  radius: number; styleFilter?: string
   tooZoomedOut: boolean
-  onSort: (s: Sort) => void
   onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onSimulate: (p: google.maps.LatLngLiteral | null) => void
@@ -76,7 +74,17 @@ export function MapScreen(p: Props) {
         <Pins bars={p.bars} onOpen={id => nav(`/bar/${id}`)} />
       </Map>
 
-      {/* Controles. Dos filas, no cinco: el mapa es el contenido. */}
+      {/*
+        Controles. Dos filas, no cinco: el mapa es el contenido.
+
+        Acá había también un selector de "más cerca / más barata". Se sacó
+        porque en el mapa no ordena nada visible: los pines se dibujan todos, y
+        el descarte de etiquetas se reordena por precio por su cuenta. Lo único
+        que hacía era decidir cuáles 400 bares sobreviven al recorte de
+        `project()` cuando hay más que eso en el radio — o sea, cambiaba el
+        mapa sin explicar por qué. El orden vive en la lista, que es donde
+        significa algo.
+      */}
       <div
         onPointerDown={e => e.stopPropagation()}
         className="map-controls"
@@ -103,17 +111,6 @@ export function MapScreen(p: Props) {
               del mapa, así que a veces se movía el mapa en vez de la lista, y
               encima ocupaba una franja permanente de pantalla. */}
           <StyleFilter styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle} />
-
-          <div className="glass pill" style={{ display: 'flex', padding: 4, flexShrink: 0 }}>
-            {(['distance', 'cheapest'] as Sort[]).map(s => (
-              <button key={s} onClick={() => p.onSort(s)} className="lbl" style={{
-                padding: '9px var(--sort-pad)', borderRadius: 999, fontSize: 13,
-                whiteSpace: 'nowrap',
-                background: p.sort === s ? 'var(--amber)' : 'transparent',
-                color: p.sort === s ? 'var(--base)' : 'rgba(251,246,238,.75)',
-              }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
-            ))}
-          </div>
 
           <button
             onClick={() => setRadiusOpen(o => !o)}
@@ -315,7 +312,13 @@ function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }
   const showLabels = zoom >= 14.5
   const labelled = new Set<number>()
   if (showLabels) {
-    const metersPerPx = 156543.03392 * Math.cos((bars[0]?.lat ?? -34.6) * Math.PI / 180) / 2 ** zoom
+    // La escala se toma de la latitud del centro del mapa, no de `bars[0]`.
+    // Con el primer bar del array, el umbral de separación dependía de en qué
+    // orden venía la lista —y ese orden lo elegía el selector de la pantalla
+    // de lista, desde otra pantalla—. En Buenos Aires la diferencia es de
+    // milésimas, pero era una dependencia escondida entre dos pantallas.
+    const lat = map.getCenter()?.lat() ?? -34.6
+    const metersPerPx = 156543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** zoom
     const minSep = 132 * metersPerPx
     const kept: BarPin[] = []
     for (const b of bars.filter(b => b.fromPrice != null)

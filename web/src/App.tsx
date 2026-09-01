@@ -101,9 +101,9 @@ function Shell() {
           <MapScreen
             bars={bars} styles={styles} loading={loading}
             center={coords ?? BA_CENTER} simulated={simulated}
-            radius={radius} sort={sort} styleFilter={styleFilter}
+            radius={radius} styleFilter={styleFilter}
             tooZoomedOut={tooFar} camera={camera}
-            onSort={setSort} onStyle={setStyleFilter} onRadius={setRadius}
+            onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
             myLocation={coords} panTo={panTo}
             onRecenter={() => {
