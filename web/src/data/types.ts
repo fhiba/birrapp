@@ -77,7 +77,30 @@ export interface User {
   avatarUrl: string | null; role: string
 }
 export interface UserStats {
-  prices: number; confirmations: number; bars: number; reviews: number
+  prices: number
+  /** Toques de "Sigue igual". Se cuenta pero ya no se muestra. */
+  confirmations: number
+  bars: number
+  reviews: number
+  photos: number
+}
+
+export interface MyBar {
+  id: number; name: string; status: string; ageDays: number
+}
+export interface MyPrice {
+  id: number; barId: number; barName: string; styleName: string
+  price: number; sizeMl: number; ageDays: number
+  isConfirmation: boolean
+  /** Es el precio que la app muestra hoy para ese bar y estilo. */
+  isCurrent: boolean
+}
+export interface MyPhoto {
+  id: number; barId: number; barName: string; styleName: string
+  url: string; ageDays: number
+}
+export interface MyContributions {
+  bars: MyBar[]; prices: MyPrice[]; photos: MyPhoto[]
 }
 export interface Session {
   accessToken: string; refreshToken: string

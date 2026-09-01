@@ -83,10 +83,14 @@ export function ProfileScreen({ user, onSession }: {
       </span>
 
       <SectionLabel>Tu aporte</SectionLabel>
+      {/* Los tres llevan al mismo lugar: no son tres pantallas, son tres
+          formas de entrar a la misma. "Confirmados" se cambió por "Fotos"
+          porque nadie reconocía qué contaba —eran los toques de "Sigue
+          igual"— y un número que no se entiende no sirve de nada. */}
       <div style={{ display: 'flex', gap: 10 }}>
-        <Stat label="Precios" value={stats?.prices} />
-        <Stat label="Confirmados" value={stats?.confirmations} />
-        <Stat label="Bares" value={stats?.bars} />
+        <Stat label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes')} />
+        <Stat label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes')} />
+        <Stat label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes')} />
       </div>
 
       <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
@@ -148,8 +152,10 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   }}>{String(children).toUpperCase()}</h2>
 )
 
-const Stat = ({ label, value }: { label: string; value?: number }) => (
-  <div style={{
+const Stat = ({ label, value, onClick }: {
+  label: string; value?: number; onClick: () => void
+}) => (
+  <button onClick={onClick} style={{
     flex: 1, padding: '14px 0', borderRadius: 14, textAlign: 'center',
     background: 'rgba(255,255,255,.05)',
   }}>
@@ -157,7 +163,7 @@ const Stat = ({ label, value }: { label: string; value?: number }) => (
       fontSize: 19, color: (value ?? 0) > 0 ? 'var(--amber)' : 'var(--faint)',
     }}>{value ?? '—'}</div>
     <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{label}</div>
-  </div>
+  </button>
 )
 
 const Row = ({ label, onClick, danger, badge }: {

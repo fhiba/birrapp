@@ -30,9 +30,12 @@ data class User(
 @Serializable
 data class UserStats(
     val prices: Int,
+    /** Toques de "Sigue igual". Se cuenta pero ya no se muestra: nadie
+     *  reconocía qué era "Confirmados" mirando la pantalla. */
     val confirmations: Int,
     val bars: Int,
     val reviews: Int,
+    val photos: Int,
 )
 
 @Serializable
@@ -119,17 +122,20 @@ class UserRepo(private val db: Db) {
               (SELECT count(*) FROM price_reports
                 WHERE reported_by = ? AND is_confirmation) AS confirmaciones,
               (SELECT count(*) FROM bars WHERE created_by = ?) AS bares,
-              (SELECT count(*) FROM reviews WHERE user_id = ?) AS resenas
+              (SELECT count(*) FROM reviews WHERE user_id = ?) AS resenas,
+              (SELECT count(*) FROM bar_photos
+                WHERE user_id = ? AND status = 'active') AS fotos
             """.trimIndent(),
-            userId, userId, userId, userId,
+            userId, userId, userId, userId, userId,
         ) { rs ->
             UserStats(
                 prices = rs.getInt("precios"),
                 confirmations = rs.getInt("confirmaciones"),
                 bars = rs.getInt("bares"),
                 reviews = rs.getInt("resenas"),
+                photos = rs.getInt("fotos"),
             )
-        } ?: UserStats(0, 0, 0, 0)
+        } ?: UserStats(0, 0, 0, 0, 0)
     }
 
     fun setBanned(userId: Long, banned: Boolean): Boolean = db.conn {

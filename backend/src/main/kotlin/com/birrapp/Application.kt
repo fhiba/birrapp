@@ -72,6 +72,16 @@ fun Application.module(cfg: Config, db: Db) {
         publicBase = cfg.r2PublicBase,
     )
     val photos = com.birrapp.photos.PhotoRepo(db, r2)
+    val contributions = com.birrapp.auth.ContributionRepo(db, r2)
+
+    // Una sola definición del borrado en el bucket, compartida por la
+    // moderación y por el borrado propio: son la misma operación.
+    val deletePhotoObject: suspend (String) -> Unit = { key ->
+        if (r2.isConfigured) {
+            runCatching { oauthHttp.delete(r2.presignDelete(key)) }
+                .onFailure { log.warn("no se pudo borrar {} del bucket", key, it) }
+        }
+    }
     val moderation = ModerationRepo(db)
 
     // CORS sólo si el frontend está en otro dominio. Con el frontend servido
@@ -170,15 +180,15 @@ fun Application.module(cfg: Config, db: Db) {
             bars, prices, reviews, ratings, photos, moderation, users,
             // El borrado del objeto se hace acá y no en el repo: el repo habla
             // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
-            deletePhotoObject = { key ->
-                if (r2.isConfigured) {
-                    runCatching { oauthHttp.delete(r2.presignDelete(key)) }
-                        .onFailure { log.warn("no se pudo borrar {} del bucket", key, it) }
-                }
-            },
+            deletePhotoObject = deletePhotoObject,
         )
     }
     routing { downloadRoutes(java.io.File(cfg.apkDir)) }
     routing { webAppRoutes(java.io.File(cfg.webDir)) }
-    routing { authRoutes(cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs) }
+    routing {
+        authRoutes(
+            cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs,
+            contributions, deletePhotoObject,
+        )
+    }
 }

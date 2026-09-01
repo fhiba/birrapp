@@ -441,3 +441,33 @@ cada sección lleva su cuenta en el título.
 
 Verificado contra la base local: el endpoint devuelve `{"pendingBars":1,
 "openFlags":0}`, que coincide con lo que hay, y sin token da 401.
+
+## 2026-09-01 (cont.) — Mis aportes, y "Confirmados" pasa a ser "Fotos"
+
+Los tres contadores de Perfil ahora llevan a **Mis aportes**: precios, fotos y
+bares propios en una sola pantalla, con el borrado ahí mismo. Hasta ahora, para
+encontrar algo propio mal cargado había que acordarse en qué bar fue y navegar
+hasta ahí; con veinte aportes eso deja de funcionar.
+
+**"Confirmados" se cambió por "Fotos".** Eran los toques de "Sigue igual", y el
+propio autor de la app no reconoció qué contaba. Un número que no se entiende no
+sirve de nada. El dato se sigue guardando y viaja en `UserStats`, sólo dejó de
+mostrarse.
+
+Decisiones que quedaron en el código:
+
+- **Los bares no se borran desde ahí.** Un bar que creaste puede tener precios y
+  fotos de otra gente: borrarlo no deshace tu aporte, borra el de terceros. Se
+  explica en la pantalla y se deja la denuncia como camino.
+- **La pertenencia se chequea en el `WHERE` del `UPDATE`, no antes.** Si se
+  comprobara primero y se actualizara después, entre las dos consultas hay una
+  carrera. Un id ajeno simplemente no afecta ninguna fila.
+- **`isCurrent` viaja en la respuesta** cruzando con `v_current_prices`: sirve
+  para que la confirmación diga si borrar ese reporte cambia lo que ve todo el
+  mundo o sólo saca una fila del historial. No es lo mismo y el texto lo dice.
+- Borrar un precio propio sigue siendo `UPDATE` de `status`, nunca de `price`:
+  la regla de append-only sigue en pie.
+
+Verificado contra la base local: borrar un precio ajeno da 404 **y la fila queda
+intacta**; un id inexistente, 404; sin sesión, 401; el propio, 200 y pasa a
+`removed`. 22 tests verdes.

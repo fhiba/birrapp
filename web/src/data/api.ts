@@ -1,6 +1,7 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Flag, ModerationSummary, MyRating, Photo,
-  PriceAccepted, PricePoint, RatingComment, Review, Session, User, UserStats,
+  BarDetail, BarPin, BeerStyle, Flag, ModerationSummary, MyContributions,
+  MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
+  User, UserStats,
 } from './types'
 
 /**
@@ -196,6 +197,12 @@ export const redeemHandoff = (code: string) =>
 
 export const me = () => req<User>('GET', '/auth/me', { auth: true })
 export const myStats = () => req<UserStats>('GET', '/auth/me/stats', { auth: true })
+export const myContributions = () =>
+  req<MyContributions>('GET', '/auth/me/contributions', { auth: true })
+export const removeMyPrice = (id: number) =>
+  req<unknown>('POST', `/auth/me/prices/${id}/remove`, { auth: true })
+export const removeMyPhoto = (id: number) =>
+  req<unknown>('POST', `/auth/me/photos/${id}/remove`, { auth: true })
 
 export async function signOut() {
   try { await req<unknown>('POST', '/auth/logout', { auth: true }) } catch { /* da igual */ }

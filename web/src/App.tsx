@@ -15,6 +15,7 @@ import { AddBarScreen } from './screens/AddBar'
 import { ProfileScreen } from './screens/Profile'
 import { InfoScreen } from './screens/Info'
 import { ModerationScreen } from './screens/Moderation'
+import { MyContributionsScreen } from './screens/MyContributions'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
@@ -145,6 +146,7 @@ function Shell() {
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
         <Route path="/info" element={<InfoScreen />} />
+        <Route path="/mis-aportes" element={<MyContributionsScreen />} />
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -17,6 +17,8 @@ import kotlinx.serialization.Serializable
 import com.birrapp.core.Config
 import com.birrapp.core.forbidden
 import com.birrapp.core.notFound
+import com.birrapp.OkResponse
+import com.birrapp.core.badRequest
 import com.birrapp.core.unauthorized
 
 private val authLog = org.slf4j.LoggerFactory.getLogger("birrapp.auth")
@@ -41,6 +43,9 @@ fun Route.authRoutes(
     jwt: JwtService,
     browserOAuth: BrowserOAuth,
     handoffs: HandoffStore,
+    contributions: ContributionRepo,
+    /** Borra el objeto del bucket. Ver PhotoRepo.remove. */
+    deletePhotoObject: suspend (String) -> Unit,
 ) = route("/auth") {
 
     // ---------- login por navegador ----------
@@ -191,6 +196,37 @@ fun Route.authRoutes(
         get("/me/stats") {
             val caller = call.caller()
             call.respond(users.stats(caller.userId))
+        }
+
+        /** Todo lo que cargó quien pregunta, para poder revisarlo de un lugar. */
+        get("/me/contributions") {
+            val caller = call.caller()
+            call.respond(contributions.forUser(caller.userId))
+        }
+
+        /**
+         * Bajar un aporte propio.
+         *
+         * La pertenencia se chequea en el WHERE del UPDATE, no acá: si se
+         * comprobara antes y se actualizara después, entre las dos consultas
+         * hay una carrera. Un id ajeno simplemente no afecta ninguna fila.
+         */
+        post("/me/prices/{id}/remove") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            if (!contributions.removeOwnPrice(id, caller.userId)) {
+                notFound("no existe ese precio tuyo")
+            }
+            call.respond(OkResponse())
+        }
+
+        post("/me/photos/{id}/remove") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            val key = contributions.removeOwnPhoto(id, caller.userId)
+                ?: notFound("no existe esa foto tuya")
+            deletePhotoObject(key)
+            call.respond(OkResponse())
         }
 
         /**
