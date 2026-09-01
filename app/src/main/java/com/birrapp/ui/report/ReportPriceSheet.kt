@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.birrapp.R
 import com.birrapp.data.model.BeerStyle
+import com.birrapp.ui.theme.Ink
+import com.birrapp.ui.theme.PriceLarge
+import androidx.compose.ui.graphics.Color
 
 /**
  * Carga de precio. Objetivo: dos taps y listo.
@@ -39,10 +42,16 @@ fun ReportPriceSheet(
     val sizeMl = sizeText.toIntOrNull() ?: 473
     val valid = selectedStyle != null && price != null && price > 0 && sizeMl in 100..2000
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Ink.Raised,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Ink.Faint) },
+    ) {
         Column(Modifier.padding(20.dp, 0.dp, 20.dp, 32.dp)) {
 
-            Text(stringResource(R.string.which_style), fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.which_style).uppercase(), color = Ink.Faint,
+                fontSize = 11.sp, letterSpacing = 1.2.sp,
+                style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(styles, key = { it.slug }) { style ->
@@ -58,8 +67,14 @@ fun ReportPriceSheet(
             OutlinedTextField(
                 value = priceText,
                 onValueChange = { priceText = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
-                label = { Text(stringResource(R.string.how_much)) },
-                prefix = { Text("$") },
+                label = { Text(stringResource(R.string.how_much), color = Ink.Faint) },
+                prefix = { Text("$", style = PriceLarge, color = Ink.Faint) },
+                textStyle = PriceLarge.copy(color = Ink.Cream),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Ink.Amber,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
+                    cursorColor = Ink.Amber,
+                ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -90,7 +105,13 @@ fun ReportPriceSheet(
                     onClick = { onSubmit(selectedStyle!!, price!!, sizeMl) },
                     enabled = valid,
                     modifier = Modifier.weight(1f),
-                ) { Text(stringResource(R.string.send)) }
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Ink.Amber, contentColor = Ink.Base,
+                        disabledContainerColor = Color.White.copy(alpha = 0.08f),
+                        disabledContentColor = Ink.Faint,
+                    ),
+                ) { Text(stringResource(R.string.send),
+                         style = MaterialTheme.typography.labelLarge) }
             }
         }
     }

@@ -76,3 +76,48 @@ para volver a cambiarlo (antes de publicar en Play, después es caro).
 
 Ojo: el package registrado en Google Cloud tiene que ser `com.birrapp`
 (docs/SETUP.md ya actualizado).
+
+## 2026-09-01 — Rediseño de UI + primera corrida real en dispositivo
+
+El usuario reportó que la UI se veía anticuada y pidió algo moderno, con
+estética de vidrio tipo iOS y evitando los clichés visuales de siempre.
+
+Dirección tomada:
+- Paleta oscura cálida fija (no sigue el tema del sistema). Acento ámbar,
+  sin violetas ni gradientes de moda. La app se usa de noche en un bar.
+- Bricolage Grotesque para números y títulos; el sistema para texto corrido.
+  Los precios son el contenido, no texto de formulario.
+- Vidrio real con Haze: blur de lo que está DETRÁS + reflejo especular en el
+  borde + tinte. `Modifier.blur()` no sirve, difumina el propio composable.
+  Debajo de API 31 no hay RenderEffect: cae a superficie opaca.
+- Estilo de mapa oscuro y desaturado (res/raw/map_style_night.json). El mapa
+  es contexto; los pines son el contenido.
+- NavigationBar de Material reemplazada por píldora flotante.
+
+Bugs encontrados corriendo en el teléfono, no en teoría:
+1. Mapa en blanco. Causa: la API key tenía cargado sólo el SHA-1 del keystore
+   de release del usuario, y el APK es debug. Resuelto cargando ambos.
+2. La barra flotante tapaba los botones de acción. Los botones ahora despejan
+   la barra y "Agregar un bar" pasó a ser circular.
+3. La fila de estilos se cortaba contra el borde → ancho completo con
+   contentPadding.
+4. Los pines de precio se pisaban y quedaban ilegibles. zIndex sólo decide
+   quién gana, no evita la colisión. Se agregó descarte de etiquetas: se
+   recorren del más barato al más caro y sólo recibe etiqueta el que no cae
+   sobre una ya colocada; el resto queda como punto de color. Además, por
+   debajo de zoom 14.5 todo colapsa a punto.
+5. Direcciones de OSM con altura pero sin calle mostraban "1417, Ciudad
+   Autónoma...". Corregido en el seed y limpiado en la base (6 filas).
+
+Estado: corriendo en un Huawei P30 Pro (VOG-L29, Android 10, GMS presente).
+Mapa con tiles, 592 bares, 8 precios de prueba cargados por SQL.
+
+Sobre publicar (consultado por el usuario):
+- Play: US$25 únicos, pero cuentas personales creadas después del 13/11/2023
+  necesitan 12 testers reales con opt-in continuo por 14 días.
+- App Store: US$99/año y **requiere una Mac** (o build en la nube).
+- Faltantes de compliance en ambas: borrado de cuenta in-app (rechazo seguro),
+  política de privacidad, declaración de datos. En iOS además Sign in with Apple.
+- Port: el backend se reusa entero; con Compose Multiplatform porta ~60% de la
+  app, pero mapa, auth y ubicación necesitan implementación nativa.
+  Recomendación: no portear hasta validar que la gente carga precios.

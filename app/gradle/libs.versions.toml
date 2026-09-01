@@ -15,6 +15,7 @@ playLocation    = "21.4.0"
 ktor            = "3.5.2"
 datastore       = "1.2.1"
 coroutines      = "1.10.2"
+haze            = "1.7.3"
 
 [libraries]
 core-ktx            = { module = "androidx.core:core-ktx",                       version.ref = "coreKtx" }
@@ -44,6 +45,10 @@ ktor-client-auth    = { module = "io.ktor:ktor-client-auth",                    
 ktor-client-logging = { module = "io.ktor:ktor-client-logging",                  version.ref = "ktor" }
 
 datastore-prefs     = { module = "androidx.datastore:datastore-preferences",     version.ref = "datastore" }
+# Blur real de lo que hay DETRAS del panel. Modifier.blur() difumina el propio
+# composable, no el fondo, asi que no sirve para vidrio.
+haze                = { module = "dev.chrisbanes.haze:haze",           version.ref = "haze" }
+haze-materials      = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 coroutines-play     = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
 
 [plugins]

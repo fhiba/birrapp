@@ -114,4 +114,6 @@ dependencies {
     implementation(libs.ktor.client.logging)
 
     implementation(libs.datastore.prefs)
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
 }

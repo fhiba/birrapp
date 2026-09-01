@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Sólo en debug se permite HTTP en claro, para poder apuntar el celular
+         al backend de la LAN (http://192.168.x.x:8090) mientras se desarrolla.
+         El APK de release va siempre por HTTPS: si alguna vez la URL se
+         degradara a http://, la app falla en vez de mandar los tokens en claro. -->
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+</manifest>

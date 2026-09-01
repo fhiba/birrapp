@@ -2,6 +2,7 @@ package com.birrapp.ui.common
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.birrapp.ui.theme.Ink
 import androidx.compose.ui.platform.LocalContext
 import com.birrapp.R
 import com.birrapp.data.model.Freshness
@@ -49,9 +50,9 @@ fun formatDistance(meters: Double?): String? {
  * confiable", no como un precio más.
  */
 object FreshnessColors {
-    val fresh = Color(0xFF2E7D32)
-    val aging = Color(0xFFB26A00)
-    val stale = Color(0xFF9E9E9E)
+    val fresh = Ink.Fresh
+    val aging = Ink.Aging
+    val stale = Ink.Stale
 
     fun of(f: Freshness): Color = when (f) {
         Freshness.fresh -> fresh

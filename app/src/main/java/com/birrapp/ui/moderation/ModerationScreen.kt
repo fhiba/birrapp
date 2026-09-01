@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.birrapp.R
+import com.birrapp.ui.theme.Ink
 import com.birrapp.data.api.ApiClient
 import com.birrapp.data.model.BarPin
 import com.birrapp.data.model.Flag
@@ -71,8 +73,14 @@ fun ModerationScreen(viewModel: ModerationViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
 
     Scaffold(
+        containerColor = Ink.Base,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Ink.Cream,
+                    navigationIconContentColor = Ink.Cream,
+                ),
                 title = { Text(stringResource(R.string.tab_moderation)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

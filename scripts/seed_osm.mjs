@@ -60,8 +60,12 @@ async function fetchOverpass() {
 }
 
 function addressOf(t) {
-  const street = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
-  return [street, t['addr:city']].filter(Boolean).join(', ') || null;
+  // Sin calle, la altura sola no dice nada ("1417, Ciudad Autonoma...").
+  // En OSM es comun que este el housenumber y falte el street.
+  const street = t['addr:street'];
+  if (!street) return null;
+  const line = [street, t['addr:housenumber']].filter(Boolean).join(' ');
+  return [line, t['addr:city']].filter(Boolean).join(', ');
 }
 
 const data = await fetchOverpass();
@@ -111,7 +115,7 @@ VALUES
   ${values}
 ON CONFLICT (osm_id) DO UPDATE
   SET name          = EXCLUDED.name,
-      address       = COALESCE(EXCLUDED.address, bars.address),
+      address       = EXCLUDED.address,
       neighbourhood = COALESCE(EXCLUDED.neighbourhood, bars.neighbourhood),
       location      = EXCLUDED.location,
       updated_at    = now();

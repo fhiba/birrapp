@@ -17,7 +17,7 @@
         android:label="@string/app_name"
         android:supportsRtl="false"
         android:theme="@style/Theme.Birrapp"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
 
         <!-- La key viene de local.properties vía manifestPlaceholders.
              Con REPLACE_ME el mapa carga gris: es esperado hasta el paso 3

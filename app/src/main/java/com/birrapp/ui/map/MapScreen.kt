@@ -3,29 +3,48 @@ package com.birrapp.ui.map
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.*
 import com.birrapp.R
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sqrt
 import com.birrapp.data.model.BarPin
+import com.birrapp.data.model.BeerStyle
 import com.birrapp.ui.common.FreshnessColors
+import com.birrapp.ui.common.GlassPanel
+import com.birrapp.ui.common.GlassPill
 import com.birrapp.ui.common.formatPrice
+import com.birrapp.ui.theme.Ink
+import com.birrapp.ui.theme.PricePin
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
@@ -35,10 +54,14 @@ fun MapScreen(
     onAddBar: (Double, Double) -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    // El mapa es la fuente del blur: todo el vidrio de arriba lo refracta.
+    val hazeState = remember { HazeState() }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            LatLng(state.center.first, state.center.second), 14f,
+            LatLng(state.center.first, state.center.second), 15f,
         )
     }
 
@@ -46,132 +69,238 @@ fun MapScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) viewModel.refreshLocationThenLoad() }
 
-    // Al terminar de mover el mapa, recargar la zona visible.
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
-            val target = cameraPositionState.position.target
-            viewModel.onMapMoved(target.latitude, target.longitude)
+            val t = cameraPositionState.position.target
+            viewModel.onMapMoved(t.latitude, t.longitude)
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    val zoom = cameraPositionState.position.zoom
+
+    val mapStyle = remember {
+        MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_night)
+    }
+
+    Box(Modifier.fillMaxSize().background(Ink.Base)) {
+
         GoogleMap(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().hazeSource(hazeState),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = state.hasLocationPermission),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+            properties = MapProperties(
+                isMyLocationEnabled = state.hasLocationPermission,
+                mapStyleOptions = mapStyle,
+            ),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = false,
+                myLocationButtonEnabled = false,
+                mapToolbarEnabled = false,
+                compassEnabled = false,
+            ),
         ) {
+            // Alejado, las etiquetas de precio se amontonan y no se lee ninguna.
+            // Por debajo de este zoom todo pasa a ser punto: el mapa muestra
+            // dónde hay datos, y el precio aparece al acercarse.
+            val showLabels = zoom >= 14.5f
+
+            // Descarte de etiquetas superpuestas.
+            //
+            // El zIndex decide quién queda arriba, pero no evita que dos
+            // cápsulas se pisen: la de abajo queda cortada y no se lee. Acá
+            // se recorren los bares del más barato al más caro y se le da
+            // etiqueta sólo al que no cae encima de una ya puesta; el resto
+            // queda como punto. Es lo que hacen los mapas con sus propias
+            // etiquetas de POI, y es la razón por la que se leen.
+            val labelled = remember(state.bars, zoom) {
+                // Metros por dp al zoom actual (proyección Web Mercator).
+                val metersPerDp =
+                    156543.03392 * cos(Math.toRadians(state.center.first)) / 2.0.pow(zoom.toDouble())
+                val minSep = 132.0 * metersPerDp   // ~ancho de una cápsula de precio
+                val kept = mutableListOf<BarPin>()
+                state.bars.asSequence()
+                    .filter { it.fromPrice != null }
+                    .sortedBy { it.fromPrice }
+                    .forEach { candidate ->
+                        val collides = kept.any { k ->
+                            // Equirectangular: a estas distancias el error es
+                            // despreciable y evita trigonometría por par.
+                            val dLat = (k.lat - candidate.lat) * 111_320.0
+                            val dLng = (k.lng - candidate.lng) * 111_320.0 *
+                                cos(Math.toRadians(candidate.lat))
+                            sqrt(dLat * dLat + dLng * dLng) < minSep
+                        }
+                        if (!collides) kept += candidate
+                    }
+                kept.mapTo(HashSet()) { it.id }
+            }
+
+            // Entre los que sí llevan etiqueta, el más barato va arriba.
+            val maxPrice = state.bars.mapNotNull { it.fromPrice }.maxOrNull() ?: 1.0
+
             state.bars.forEach { bar ->
+                val z = when {
+                    bar.fromPrice == null -> 0f
+                    else -> 1f + (1f - (bar.fromPrice / maxPrice).toFloat())
+                }
                 MarkerComposable(
-                    keys = arrayOf<Any>(bar.id, bar.fromPrice ?: -1.0, bar.freshestAgeDays ?: -1),
+                    keys = arrayOf<Any>(
+                        bar.id, bar.fromPrice ?: -1.0, bar.freshestAgeDays ?: -1,
+                        showLabels && bar.id in labelled,
+                    ),
                     state = rememberUpdatedMarkerState(position = LatLng(bar.lat, bar.lng)),
                     onClick = { onBarClick(bar.id); true },
+                    zIndex = z,
+                    anchor = Offset(0.5f, 0.5f),
                 ) {
-                    PricePin(bar)
+                    PricePin(bar, showLabels && bar.id in labelled)
                 }
             }
         }
 
-        // Controles superpuestos
+        // ---- capa flotante de vidrio ----
         Column(
-            Modifier.align(Alignment.TopCenter).padding(12.dp),
+            Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SortToggle(
-                sort = state.sort,
-                onSort = viewModel::setSort,
-            )
+            SortSelector(hazeState, state.sort, viewModel::setSort)
+
             if (state.styles.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                StyleFilterRow(
-                    styles = state.styles,
-                    selected = state.styleFilter,
-                    onSelect = viewModel::setStyleFilter,
-                )
+                Spacer(Modifier.height(10.dp))
+                StyleFilterRow(hazeState, state.styles, state.styleFilter, viewModel::setStyleFilter)
+            }
+
+            AnimatedVisibility(state.loading, enter = fadeIn(), exit = fadeOut()) {
+                Box(Modifier.padding(top = 12.dp)) {
+                    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
+                        Text(
+                            "buscando…",
+                            Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            color = Ink.Muted, fontSize = 12.sp,
+                        )
+                    }
+                }
             }
         }
 
-        if (state.loading) {
-            LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
-        }
-
         state.error?.let { message ->
-            Surface(
-                Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.errorContainer,
+            GlassPanel(
+                hazeState,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 84.dp),
+                shape = RoundedCornerShape(20.dp),
+                tint = Ink.Danger,
             ) {
                 Row(
-                    Modifier.padding(12.dp),
+                    Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(message, Modifier.weight(1f), fontSize = 13.sp)
+                    Text(message, Modifier.weight(1f), color = Ink.Cream, fontSize = 13.sp)
                     TextButton(onClick = { viewModel.load(force = true) }) {
-                        Text(stringResource(R.string.retry))
+                        Text(stringResource(R.string.retry), color = Ink.Amber)
                     }
                 }
             }
         }
 
         Column(
-            Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 14.dp, bottom = 84.dp),
             horizontalAlignment = Alignment.End,
         ) {
-            SmallFloatingActionButton(onClick = {
-                if (state.hasLocationPermission) {
-                    viewModel.refreshLocationThenLoad()
-                } else {
-                    permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                }
-            }) {
-                Icon(Icons.Default.LocationOn, stringResource(R.string.recenter))
+            GlassPanel(
+                hazeState,
+                Modifier
+                    .size(48.dp)
+                    .clickable {
+                        if (state.hasLocationPermission) viewModel.refreshLocationThenLoad()
+                        else permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                    },
+                shape = RoundedCornerShape(50),
+            ) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    stringResource(R.string.recenter),
+                    Modifier.align(Alignment.Center).size(21.dp),
+                    tint = if (state.hasLocationPermission) Ink.Amber else Ink.Muted,
+                )
             }
-            Spacer(Modifier.height(12.dp))
-            ExtendedFloatingActionButton(
-                onClick = {
-                    val t = cameraPositionState.position.target
-                    onAddBar(t.latitude, t.longitude)
-                },
-                text = { Text(stringResource(R.string.add_this_bar)) },
-                icon = { Text("+", fontSize = 20.sp) },
-            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Ink.Amber)
+                    .clickable {
+                        val t = cameraPositionState.position.target
+                        onAddBar(t.latitude, t.longitude)
+                    },
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    stringResource(R.string.add_this_bar),
+                    Modifier.align(Alignment.Center).size(23.dp),
+                    tint = Ink.Base,
+                )
+            }
         }
     }
 }
 
 /**
- * El pin. Muestra el precio directamente sobre el mapa — esa es la app
- * entera: no hay que tocar nada para ver cuánto sale.
+ * El pin: cápsula de vidrio con el precio.
  *
- * El color codifica frescura, así que un mapa lleno de pines grises se lee
- * de un vistazo como "estos datos están viejos".
+ * El color viene de la frescura, así que un mapa lleno de pines grises se lee
+ * de un vistazo como "estos datos están viejos" sin tener que abrir nada. Un
+ * bar sin precio queda como punto tenue: presente pero sin reclamar atención.
  */
 @Composable
-private fun PricePin(bar: BarPin) {
-    val color = FreshnessColors.ofAge(bar.freshestAgeDays)
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = if (bar.fromPrice != null) color else Color(0xFFBDBDBD),
-        shadowElevation = 3.dp,
-    ) {
+private fun PricePin(bar: BarPin, showLabel: Boolean) {
+    if (bar.fromPrice == null || !showLabel) {
+        val hasPrice = bar.fromPrice != null
+        Box(
+            Modifier
+                .size(if (hasPrice) 13.dp else 9.dp)
+                .clip(RoundedCornerShape(50))
+                .background(
+                    if (hasPrice) FreshnessColors.ofAge(bar.freshestAgeDays)
+                    else Color.White.copy(alpha = 0.20f)
+                )
+        )
+        return
+    }
+    GlassPill(accent = FreshnessColors.ofAge(bar.freshestAgeDays)) {
         Text(
-            text = bar.fromPrice?.let { formatPrice(it) } ?: "?",
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            formatPrice(bar.fromPrice),
+            Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
+            color = Ink.Base,
+            style = PricePin,
         )
     }
 }
 
+/** Segmentado flotante. Reemplaza al TabRow de Material, que se ve genérico. */
 @Composable
-private fun SortToggle(sort: SortMode, onSort: (SortMode) -> Unit) {
-    Surface(shape = RoundedCornerShape(20.dp), shadowElevation = 2.dp) {
-        Row(Modifier.padding(3.dp)) {
-            SortChip(stringResource(R.string.sort_distance), sort == SortMode.DISTANCE) {
+private fun SortSelector(
+    hazeState: HazeState,
+    sort: SortMode,
+    onSort: (SortMode) -> Unit,
+) {
+    GlassPanel(hazeState, shape = RoundedCornerShape(50)) {
+        Row(Modifier.padding(4.dp)) {
+            SegmentChip(stringResource(R.string.sort_distance), sort == SortMode.DISTANCE) {
                 onSort(SortMode.DISTANCE)
             }
-            SortChip(stringResource(R.string.sort_cheapest), sort == SortMode.CHEAPEST) {
+            SegmentChip(stringResource(R.string.sort_cheapest), sort == SortMode.CHEAPEST) {
                 onSort(SortMode.CHEAPEST)
             }
         }
@@ -179,42 +308,74 @@ private fun SortToggle(sort: SortMode, onSort: (SortMode) -> Unit) {
 }
 
 @Composable
-private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+private fun SegmentChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(bg)
+            .clip(RoundedCornerShape(50))
+            .background(if (selected) Ink.Amber else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 18.dp, vertical = 9.dp),
     ) {
-        Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(
+            label,
+            color = if (selected) Ink.Base else Ink.Cream.copy(alpha = 0.75f),
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 @Composable
 private fun StyleFilterRow(
-    styles: List<com.birrapp.data.model.BeerStyle>,
+    hazeState: HazeState,
+    styles: List<BeerStyle>,
     selected: String?,
     onSelect: (String?) -> Unit,
 ) {
-    androidx.compose.foundation.lazy.LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp),
     ) {
-        item {
-            FilterChip(
-                selected = selected == null,
-                onClick = { onSelect(null) },
-                label = { Text("Todos", fontSize = 12.sp) },
-            )
+        item { StyleChip(hazeState, "Todos", selected == null) { onSelect(null) } }
+        items(styles, key = { it.slug }) { style ->
+            StyleChip(hazeState, style.name, selected == style.slug) {
+                onSelect(if (selected == style.slug) null else style.slug)
+            }
         }
-        items(styles.size) { i ->
-            val style = styles[i]
-            FilterChip(
-                selected = selected == style.slug,
-                onClick = { onSelect(if (selected == style.slug) null else style.slug) },
-                label = { Text(style.name, fontSize = 12.sp) },
+    }
+}
+
+@Composable
+private fun StyleChip(
+    hazeState: HazeState,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Ink.Cream)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 7.dp),
+        ) {
+            Text(label, color = Ink.Base, fontSize = 12.sp,
+                style = MaterialTheme.typography.labelLarge)
+        }
+    } else {
+        GlassPanel(
+            hazeState,
+            Modifier.clickable(onClick = onClick),
+            shape = RoundedCornerShape(50),
+            intensity = 0.8f,
+        ) {
+            Text(
+                label,
+                Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                color = Ink.Cream.copy(alpha = 0.8f),
+                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }

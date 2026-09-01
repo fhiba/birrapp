@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Birrapp" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- Oscuro y fijo: la app no sigue el tema del sistema, así que el tema
+         de arranque tampoco puede. Si no, hay un flash blanco al abrir. -->
+    <style name="Theme.Birrapp" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/ink_base</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
