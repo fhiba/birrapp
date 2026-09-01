@@ -26,6 +26,7 @@ export function BarDetailScreen({
   const [busy, setBusy] = useState<string | null>(null)
   const [reporting, setReporting] = useState<{ style?: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -63,9 +64,42 @@ export function BarDetailScreen({
       paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 40,
     }}>
       <div style={{ padding: '0 18px' }}>
-        <button onClick={() => nav(-1)} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.07)',
-        }} aria-label="Volver">←</button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => nav(-1)} style={{
+            width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.07)',
+          }} aria-label="Volver">←</button>
+          <span style={{ flex: 1 }} />
+          {isModerator(user) && (
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setMenuOpen(o => !o)} aria-label="Opciones de moderación"
+                style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  background: menuOpen ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
+                  color: menuOpen ? 'var(--amber)' : 'var(--muted)', fontSize: 18, lineHeight: 1,
+                }}>⋯</button>
+              {menuOpen && (
+                <>
+                  {/* Capa invisible: un toque afuera cierra el menú. */}
+                  <div onClick={() => setMenuOpen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
+                  <div style={{
+                    position: 'absolute', right: 0, top: 44, zIndex: 31, minWidth: 190,
+                    background: 'var(--elevated)', borderRadius: 14, padding: 6,
+                    boxShadow: '0 10px 34px rgba(0,0,0,.5)',
+                    border: '.8px solid rgba(255,255,255,.12)',
+                  }}>
+                    <button onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
+                      className="lbl" style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '10px 12px', borderRadius: 10,
+                        color: 'var(--danger)', fontSize: 13.5,
+                      }}>Eliminar bar</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         <h1 className="ttl" style={{ fontSize: 28, margin: '20px 0 6px' }}>{bar.name}</h1>
         {meta && <p style={{ color: 'var(--faint)', fontSize: 13, margin: 0 }}>{meta}</p>}
@@ -131,28 +165,6 @@ export function BarDetailScreen({
               {r.body && <p style={{ margin: '4px 0 0', fontSize: 14 }}>{r.body}</p>}
             </div>
           ))}
-        </section>
-      )}
-
-      {isModerator(user) && (
-        <section style={{ padding: '28px 18px 0' }}>
-          <h2 className="lbl" style={{
-            fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
-          }}>MODERACIÓN</h2>
-          <button onClick={() => setConfirmDelete(true)} style={{
-            display: 'flex', gap: 10, width: '100%', padding: 14, borderRadius: 12,
-            background: 'rgba(255,122,102,.12)', textAlign: 'left',
-          }}>
-            <span style={{ color: 'var(--danger)' }}>🗑</span>
-            <span>
-              <span className="lbl" style={{ display: 'block', color: 'var(--danger)' }}>
-                Eliminar este bar
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--faint)' }}>
-                Se borran también sus precios
-              </span>
-            </span>
-          </button>
         </section>
       )}
 

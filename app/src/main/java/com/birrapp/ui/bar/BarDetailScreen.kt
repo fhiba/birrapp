@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -44,6 +45,7 @@ fun BarDetailScreen(
     onBarDeleted: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -95,18 +97,66 @@ fun BarDetailScreen(
                             .padding(horizontal = 18.dp)
                             .padding(top = 8.dp, bottom = 18.dp),
                     ) {
-                        Box(
-                            Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.07f))
-                                .clickable(onClick = onBack),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack, "Volver",
-                                Modifier.align(Alignment.Center).size(19.dp),
-                                tint = Ink.Cream,
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Color.White.copy(alpha = 0.07f))
+                                    .clickable(onClick = onBack),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack, "Volver",
+                                    Modifier.align(Alignment.Center).size(19.dp),
+                                    tint = Ink.Cream,
+                                )
+                            }
+
+                            Spacer(Modifier.weight(1f))
+
+                            // Moderación en un menú secundario: son acciones
+                            // destructivas y poco frecuentes, no merecen un
+                            // bloque permanente al final de cada bar.
+                            if (isModerator) {
+                                Box {
+                                    Box(
+                                        Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(
+                                                if (menuOpen) Ink.AmberSoft
+                                                else Color.White.copy(alpha = 0.07f)
+                                            )
+                                            .clickable { menuOpen = true },
+                                    ) {
+                                        Icon(
+                                            Icons.Default.MoreVert,
+                                            "Opciones de moderación",
+                                            Modifier.align(Alignment.Center).size(19.dp),
+                                            tint = if (menuOpen) Ink.Amber else Ink.Muted,
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuOpen,
+                                        onDismissRequest = { menuOpen = false },
+                                        containerColor = Ink.Elevated,
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    "Eliminar bar",
+                                                    color = Ink.Danger,
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                )
+                                            },
+                                            onClick = {
+                                                menuOpen = false
+                                                confirmDelete = true
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         Spacer(Modifier.height(20.dp))

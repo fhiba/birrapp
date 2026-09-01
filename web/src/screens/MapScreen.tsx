@@ -20,6 +20,9 @@ interface Props {
   onCamera: (c: google.maps.LatLngLiteral, zoom: number) => void
   onRecenter: () => void
   camera: { center: google.maps.LatLngLiteral; zoom: number } | null
+  myLocation: google.maps.LatLngLiteral | null
+  /** Cambia cuando se pide centrar: la cámara es imperativa, no reactiva. */
+  panTo: { target: google.maps.LatLngLiteral; token: number } | null
 }
 
 export function MapScreen(p: Props) {
@@ -47,6 +50,11 @@ export function MapScreen(p: Props) {
       >
         <CameraWatcher onCamera={p.onCamera} />
         <LongPress onLongPress={p.onSimulate} />
+        <PanTo target={p.panTo} />
+
+        {/* El SDK web no dibuja la ubicación del usuario por su cuenta, a
+            diferencia del de Android: hay que ponerla a mano. */}
+        {p.myLocation && <MyLocationDot position={p.myLocation} />}
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
@@ -72,9 +80,12 @@ export function MapScreen(p: Props) {
             ))}
           </div>
 
-          <div className="glass" style={{ borderRadius: 22, padding: '0 13px' }}>
+          <div className="glass" style={{
+            borderRadius: 22, padding: radiusOpen ? '0 13px 10px' : '0 13px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+          }}>
             <button onClick={() => setRadiusOpen(o => !o)} className="lbl" style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '10px 6px', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 6, padding: '13px 6px', fontSize: 13,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--muted)" aria-hidden>
                 <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
@@ -84,7 +95,7 @@ export function MapScreen(p: Props) {
             {radiusOpen && (
               <input type="range" min={300} max={15000} step={100} value={p.radius}
                 onChange={e => p.onRadius(Number(e.target.value))}
-                style={{ width: 210, display: 'block', margin: '0 0 10px', accentColor: 'var(--amber)' }} />
+                style={{ width: 210, display: 'block', margin: 0, accentColor: 'var(--amber)' }} />
             )}
           </div>
         </div>
@@ -243,6 +254,44 @@ function simulatedIcon(): google.maps.Icon {
     <circle cx="13" cy="13" r="6.5" fill="#FBF6EE"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(13, 13) }
+}
+
+/** Punto azul con halo, como el de Google Maps. */
+function MyLocationDot({ position }: { position: google.maps.LatLngLiteral }) {
+  const map = useMap()
+  if (!map) return null
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+    <circle cx="13" cy="13" r="12" fill="rgba(66,133,244,.22)"/>
+    <circle cx="13" cy="13" r="6.5" fill="#4285F4" stroke="#fff" stroke-width="2.5"/>
+  </svg>`
+  return (
+    <Marker
+      position={position}
+      clickable={false}
+      zIndex={50}
+      icon={{
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        anchor: new google.maps.Point(13, 13),
+      }}
+    />
+  )
+}
+
+/**
+ * Mueve la cámara cuando cambia el token.
+ *
+ * El mapa es no-controlado (defaultCenter/defaultZoom), así que cambiar el
+ * estado no lo mueve: por eso el botón de ubicación no hacía nada. Hay que
+ * pedírselo a la instancia.
+ */
+function PanTo({ target }: { target: { target: google.maps.LatLngLiteral; token: number } | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!map || !target) return
+    map.panTo(target.target)
+    if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+  }, [map, target?.token])
+  return null
 }
 
 function SimulatedPin({ position }: { position: google.maps.LatLngLiteral }) {

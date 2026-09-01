@@ -4,6 +4,7 @@ import { APIProvider } from '@vis.gl/react-google-maps'
 import * as api from './data/api'
 import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
+import { AndroidPrompt } from './ui/AndroidPrompt'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
 import { MapScreen } from './screens/MapScreen'
@@ -43,6 +44,10 @@ function Shell() {
   // continente antes de saltar a destino.
   const [camera, setCamera] = useState<{ center: google.maps.LatLngLiteral; zoom: number } | null>(null)
   const [tooFar, setTooFar] = useState(false)
+  // Token que se incrementa en cada pedido de centrar. Un booleano no sirve:
+  // dos toques seguidos en el mismo lugar no cambiarían el estado y el
+  // segundo se perdería.
+  const [panTo, setPanTo] = useState<{ target: google.maps.LatLngLiteral; token: number } | null>(null)
 
   useEffect(() => api.onSessionChange(setUser), [])
 
@@ -100,9 +105,13 @@ function Shell() {
             tooZoomedOut={tooFar} camera={camera}
             onSort={setSort} onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
+            myLocation={coords} panTo={panTo}
             onRecenter={() => {
               request()
-              if (coords) setCamera({ center: coords, zoom: 15 })
+              if (coords) {
+                setSimulated(null)
+                setPanTo(t => ({ target: coords, token: (t?.token ?? 0) + 1 }))
+              }
             }}
           />
         } />
@@ -128,6 +137,7 @@ function Shell() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {showNav && <AndroidPrompt />}
       {showNav && <BottomNav />}
       {error && bars.length === 0 && (
         <Toast text={error} onDone={() => {}} />

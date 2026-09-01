@@ -33,8 +33,16 @@ body {
   color: var(--cream);
   font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
   overscroll-behavior: none;
-  /* Sin esto iOS deja "rebotar" toda la página sobre el mapa. */
-  position: fixed; inset: 0;
+  /* 100dvh y no `inset: 0`: en Safari la barra de herramientas se colapsa al
+     scrollear y con posición fija el layout se dimensiona al viewport grande,
+     dejando una franja muerta abajo. `dvh` sigue el viewport real. */
+  height: 100dvh;
+  overflow: hidden;
+}
+#root { height: 100dvh; position: relative; }
+
+@supports not (height: 100dvh) {
+  body, #root { height: 100vh; }
 }
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }

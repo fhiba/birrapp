@@ -47,13 +47,13 @@ export function BottomNav() {
   return (
     <>
       <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, height: 130, zIndex: 40,
+        position: 'fixed', left: 0, right: 0, bottom: 0, height: 96, zIndex: 40,
         pointerEvents: 'none',
-        background: 'linear-gradient(transparent, rgba(26,20,16,.85) 55%, var(--base))',
+        background: 'linear-gradient(transparent, rgba(26,20,16,.9) 60%, var(--base))',
       }} />
       <nav style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)',
-        bottom: `calc(14px + var(--safe-bottom))`, zIndex: 50,
+        bottom: `calc(12px + var(--safe-bottom))`, zIndex: 50,
         display: 'flex', gap: 2, padding: 5, borderRadius: 999,
         background: 'rgba(38,30,24,.94)',
         border: '.8px solid rgba(255,255,255,.16)',
