@@ -159,11 +159,19 @@ class BarRepo(private val db: Db) {
             )
         } ?: return@conn null
 
+        // La nota viaja pegada al precio: son la misma birra, y el frontend
+        // arma una pestaña por cada fila de esto.
         val prices = c.query(
             """
-            SELECT id, style_slug, style_name, price, size_ml, age_days, freshness
-            FROM v_current_prices WHERE bar_id = ?
-            ORDER BY freshness = 'stale', price ASC
+            SELECT cp.id, cp.style_slug, cp.style_name, cp.price, cp.size_ml,
+                   cp.age_days, cp.freshness,
+                   sr.rating_avg, sr.rating_count,
+                   EXTRACT(DAY FROM (now() - sr.last_rated_at))::int AS rating_age_days
+            FROM v_current_prices cp
+            LEFT JOIN v_style_ratings sr
+                   ON sr.bar_id = cp.bar_id AND sr.style_id = cp.style_id
+            WHERE cp.bar_id = ?
+            ORDER BY cp.freshness = 'stale', cp.price ASC
             """.trimIndent(),
             id,
         ) { rs ->
@@ -175,6 +183,9 @@ class BarRepo(private val db: Db) {
                 sizeMl = rs.getInt("size_ml"),
                 ageDays = rs.getInt("age_days"),
                 freshness = rs.getString("freshness"),
+                ratingAvg = rs.getBigDecimal("rating_avg")?.toDouble(),
+                ratingCount = rs.getInt("rating_count"),
+                ratingAgeDays = rs.getInt("rating_age_days").takeUnless { rs.wasNull() },
             )
         }
         bar.copy(prices = prices)

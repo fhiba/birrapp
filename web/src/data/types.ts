@@ -18,7 +18,32 @@ export interface StylePrice {
   sizeMl: number
   ageDays: number
   freshness: Freshness
+  /** Nota con shrinkage bayesiano. Null mientras nadie votó. */
+  ratingAvg: number | null
+  ratingCount: number
+  /** Días desde el último voto: una nota sin su edad miente igual que un precio. */
+  ratingAgeDays: number | null
 }
+
+export interface Photo {
+  id: number
+  styleSlug: string
+  url: string
+  authorName: string | null
+  ageDays: number
+  mine: boolean
+}
+
+export interface RatingComment {
+  id: number
+  authorName: string
+  rating: number
+  body: string | null
+  ageDays: number
+  mine: boolean
+}
+
+export interface MyRating { styleSlug: string; rating: number }
 
 export interface BarDetail {
   id: number

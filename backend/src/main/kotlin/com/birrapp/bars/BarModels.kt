@@ -13,6 +13,18 @@ data class StylePriceDto(
     val ageDays: Int,
     /** fresh <14d · aging 14-45d · stale >45d */
     val freshness: String,
+    /**
+     * Nota de esta birra en este bar, con shrinkage bayesiano — ver
+     * `v_style_ratings`. Null mientras nadie votó.
+     */
+    //  Sin valor por defecto a propósito: kotlinx no serializa un campo que
+    //  vale su default, y el frontend recibiría `undefined` donde el tipo
+    //  promete `number | null`. Con el campo siempre presente, las dos puntas
+    //  dicen lo mismo.
+    val ratingAvg: Double?,
+    val ratingCount: Int,
+    /** Días desde el último voto. La nota tampoco se muestra sin su edad. */
+    val ratingAgeDays: Int?,
 )
 
 /** Lo mínimo que necesita un pin del mapa. Se manda esto y nada más. */

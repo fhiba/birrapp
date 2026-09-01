@@ -227,3 +227,68 @@ mano y hay que confirmarlos en el teléfono.
 Pendiente: `/descargar` quedó vacío en Railway — los APK viven en
 `/home/jaiba/birrapp-deploy/apk`, que no existe en el contenedor. Y la
 contraseña de Neon conviene rotarla, se pegó en un chat.
+
+## 2026-09-01 (cont.) — Nota por birra y fotos en R2
+
+Se implementa lo decidido en el backlog: la nota va por `(bar, estilo)` —la
+misma clave que el precio— y las fotos a Cloudflare R2.
+
+**Base (V5).** `beer_ratings` con `UNIQUE (bar_id, style_id, user_id)`: a
+diferencia de los precios esto NO es append-only, el voto se pisa. `bar_photos`
+guarda sólo la llave del objeto; los bytes nunca tocan el backend. Y
+`v_style_ratings` agrega por birra.
+
+El promedio bayesiano tenía un bug que sólo apareció con datos cargados: con un
+solo voto de 5 devolvía 5,00. La media global se calculaba sobre `beer_ratings`,
+que en ese momento era esa única fila — el voto se encogía hacia sí mismo. Se
+usa un prior fijo de 3,5 hasta los 50 votos; ahora un único 5 muestra 3,75 y un
+único 4 muestra 3,58.
+
+**Firmado S3 a mano, sin el SDK de AWS.** Son ~15 MB de dependencias
+transitivas en el fat jar para dos operaciones. SigV4 son 80 líneas con
+`HmacSHA256`; mismo criterio que con el ORM. El algoritmo se validó contra R2
+real —PUT 200, lectura pública 200, DELETE 204— antes de escribir el Kotlin, y
+después se congeló con un test contra vector de oro. Sin ese test, un cambio en
+el escapado rompe las subidas sin que falle nada visible en el build.
+
+Detalles que importan: R2 usa la región literal `auto` y estilo de ruta; el
+escapado de AWS no es el de `URLEncoder` (espacio a `%20`, `~` sin tocar).
+
+**Fotos.** Tres pasos: pedir URL firmada, subir del navegador al bucket,
+confirmar. La fila se escribe recién al confirmar — al revés, cada subida
+abandonada dejaría una foto rota en la galería. La llave la genera el servidor
+con un UUID y se valida el prefijo al confirmar: aceptar una llave arbitraria
+dejaría apuntar una fila a cualquier objeto del bucket.
+
+**Moderar una foto borra el objeto, no sólo la fila.** Precios y reseñas se
+sirven desde el backend, así que cambiarles el estado los saca de circulación;
+las fotos se sirven desde una URL pública del bucket y mientras el objeto exista
+cualquiera con el link las ve. Verificado: tras moderar, la URL pública da 404.
+
+**Compresión en el cliente.** 1280px y WebP q80 dejan una foto de teléfono en
+~200 KB. El efecto que más importa no es el tamaño: volver a codificar en un
+canvas **borra el EXIF**, o sea las coordenadas GPS de dónde se sacó. Subir el
+original publicaría la ubicación de quien la sacó.
+
+**Pantalla.** Una pestaña por birra: con cinco estilos, precio + nota + fotos de
+cada uno era una pantalla interminable. El promedio del bar no se guarda, sale
+de sus birras ponderado por votos — guardarlo aparte daría dos números que con
+el tiempo se contradicen. Estrellas en ámbar si votaste vos, grises si no.
+Comentarios detrás de un ícono, nunca a la vista por defecto.
+
+Dos defectos que sólo aparecieron corriéndolo contra el servidor:
+
+1. `mine` venía siempre en `false`: las rutas de fotos y comentarios eran
+   públicas y pasaban `viewerId = null`. Pasaron a sesión opcional.
+2. `ratingAvg` no aparecía en el JSON cuando era null. kotlinx no serializa un
+   campo que vale su default, así que el frontend recibía `undefined` donde el
+   tipo promete `number | null`. Se les sacó el default.
+
+Verificado de punta a punta contra R2 real y la base local: votar, comentar,
+subir, listar, servir por URL pública, moderar y confirmar que el objeto
+desapareció. Más el rechazo de una llave forjada con `../`.
+
+22 tests verdes, `FreshnessTest` y `PriceReportTest` incluidos.
+
+NO verificado: nada de esto se probó en un teléfono. La cámara (`capture`), el
+carrusel y el modal quedan pendientes de prueba en dispositivo.

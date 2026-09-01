@@ -11,7 +11,9 @@ import com.birrapp.bars.*
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
 import com.birrapp.moderation.*
+import com.birrapp.photos.*
 import com.birrapp.prices.*
+import com.birrapp.ratings.*
 import com.birrapp.reviews.*
 
 @Serializable data class RoleChangeRequest(val role: String)
@@ -21,8 +23,13 @@ fun Route.apiRoutes(
     bars: BarRepo,
     prices: PriceRepo,
     reviews: ReviewRepo,
+    ratings: RatingRepo,
+    photos: PhotoRepo,
     moderation: ModerationRepo,
     users: UserRepo,
+    /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
+     *  alcanza con cambiarle el estado. */
+    deletePhotoObject: suspend (String) -> Unit,
 ) {
     get("/health") { call.respond(OkResponse()) }
 
@@ -61,6 +68,27 @@ fun Route.apiRoutes(
         val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
         val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
         call.respond(bars.detail(id, lat, lng) ?: notFound("no existe ese bar"))
+    }
+
+    /**
+     * Comentarios de una birra. Van detrás de un ícono, no en la vista
+     * principal.
+     *
+     * Sesión opcional: se lee sin cuenta, pero con token el propio comentario
+     * viene marcado y la UI lo muestra como "Vos" en vez de repetirte tu
+     * nombre.
+     */
+    authenticate("jwt", optional = true) {
+        get("/bars/{id}/ratings/{style}/comments") {
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            val style = call.parameters["style"] ?: badRequest("falta style")
+            call.respond(ratings.comments(id, style, viewerId = call.callerOrNull()?.userId))
+        }
+
+        get("/bars/{id}/photos") {
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            call.respond(photos.forBar(id, viewerId = call.callerOrNull()?.userId))
+        }
     }
 
     get("/bars/{id}/reviews") {
@@ -107,6 +135,35 @@ fun Route.apiRoutes(
             moderation.flag(call.receive<NewFlagRequest>(), caller.userId)
             call.respond(OkResponse())
         }
+
+        /** Votar una birra. Pisa el voto anterior del mismo usuario. */
+        post("/ratings") {
+            val caller = call.caller()
+            ratings.upsert(call.receive<NewRatingRequest>(), caller.userId)
+            call.respond(OkResponse())
+        }
+
+        /** Lo que votó quien mira, para pintar sus estrellas distinto. */
+        get("/bars/{id}/my-ratings") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            call.respond(ratings.mine(id, caller.userId))
+        }
+
+        /**
+         * Permiso para subir una foto. Devuelve una URL firmada contra R2 y la
+         * llave; los bytes van del navegador al bucket sin pasar por acá.
+         */
+        post("/photos/upload-url") {
+            call.caller()
+            call.respond(photos.uploadUrl(call.receive<UploadUrlRequest>()))
+        }
+
+        /** El navegador avisa que la subida terminó. Recién ahí se guarda la fila. */
+        post("/photos") {
+            val caller = call.caller()
+            call.respond(photos.confirm(call.receive<ConfirmPhotoRequest>(), caller.userId))
+        }
     }
 
     // ---------- moderación ----------
@@ -139,6 +196,27 @@ fun Route.apiRoutes(
                 call.requireRole(Role.moderator)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
                 if (!bars.setStatus(id, "rejected")) notFound("no existe ese bar")
+                call.respond(OkResponse())
+            }
+
+            /**
+             * Bajar una foto borra el objeto del bucket, no sólo la fila.
+             * Mientras el objeto exista, cualquiera con el link la sigue
+             * viendo: se sirve desde una URL pública, no desde acá. Por eso
+             * esto no se puede deshacer.
+             */
+            post("/photos/{id}/remove") {
+                call.requireRole(Role.moderator)
+                val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+                val key = photos.remove(id) ?: notFound("no existe esa foto")
+                deletePhotoObject(key)
+                call.respond(OkResponse())
+            }
+
+            post("/ratings/{id}/remove") {
+                val mod = call.requireRole(Role.moderator)
+                val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+                if (!ratings.setStatus(id, "removed", mod.userId)) notFound("no existe ese voto")
                 call.respond(OkResponse())
             }
 

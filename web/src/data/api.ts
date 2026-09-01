@@ -1,5 +1,6 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Flag, PriceAccepted, PricePoint, Review, Session, User, UserStats,
+  BarDetail, BarPin, BeerStyle, Flag, MyRating, Photo, PriceAccepted, PricePoint,
+  RatingComment, Review, Session, User, UserStats,
 } from './types'
 
 /**
@@ -118,6 +119,47 @@ export const searchBars = (q: string, lat?: number, lng?: number) =>
 
 export const styles = () => req<BeerStyle[]>('GET', '/styles')
 export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/reviews`)
+
+// ---------- notas y fotos por birra ----------
+// `auth: true` con sesión opcional del lado del servidor: sin cuenta se leen
+// igual, y con token vienen marcados los propios para mostrarlos como "Vos".
+export const barPhotos = (barId: number) =>
+  req<Photo[]>('GET', `/bars/${barId}/photos`, { auth: true })
+
+export const beerComments = (barId: number, styleSlug: string) =>
+  req<RatingComment[]>('GET', `/bars/${barId}/ratings/${styleSlug}/comments`, { auth: true })
+
+export const myRatings = (barId: number) =>
+  req<MyRating[]>('GET', `/bars/${barId}/my-ratings`, { auth: true })
+
+export const rateBeer = (b: {
+  barId: number; styleSlug: string; rating: number; body?: string | null
+}) => req<unknown>('POST', '/ratings', { body: b, auth: true })
+
+/**
+ * Sube una foto en tres pasos: pedir permiso, subir al bucket, confirmar.
+ *
+ * Los bytes van del navegador a Cloudflare sin pasar por el backend. El PUT
+ * es a un dominio distinto y con una URL ya firmada, así que va con `fetch`
+ * pelado: meterle el header de Authorization rompería la firma.
+ */
+export async function uploadPhoto(barId: number, styleSlug: string, file: Blob) {
+  const { uploadUrl, key } = await req<{ uploadUrl: string; key: string }>(
+    'POST', '/photos/upload-url', { body: { barId, styleSlug }, auth: true },
+  )
+  const put = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': 'image/webp' },
+  })
+  if (!put.ok) throw new ApiError(put.status, 'No se pudo subir la foto')
+  // La fila se escribe recién ahora: si se escribiera antes, una subida
+  // abandonada dejaría una foto rota en la galería.
+  return req<Photo>('POST', '/photos', { body: { barId, styleSlug, key }, auth: true })
+}
+
+export const removePhoto = (id: number) =>
+  req<unknown>('POST', `/moderation/photos/${id}/remove`, { auth: true })
 
 /** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
 export const priceHistory = (barId: number, style: string) =>

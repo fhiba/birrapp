@@ -129,6 +129,36 @@ moderación. **Ojo que Apple y Google exigen un medio de contacto publicado**
 para apps con contenido de usuarios, así que esto no es opcional si se quiere
 publicar.
 
+### 6. Precio por consenso, no por último reporte
+Hoy `v_current_prices` hace `DISTINCT ON` ordenado por fecha: **el último que
+reporta gana**, aunque sea uno solo contra veinte. Alcanza con que alguien
+cargue un valor falso para que ese sea *el* precio del bar.
+
+Idea del usuario (2026-09-01): usar los reportes como votos. Sale casi gratis
+en la base — `PriceRepo.confirm` ya inserta una fila completa con el valor
+actual y `is_confirmation = true`, así que cada "Sigue igual" **ya es un voto
+por un número**. Sólo cambia cómo se lee, no cómo se guarda.
+
+Cómo hacerlo, si se hace:
+
+- **Mediana, no promedio.** Un valor absurdo entre cinco honestos no mueve la
+  mediana; al promedio lo arrastra.
+- **Deduplicar por usuario ANTES de la mediana.** Es lo que decide si esto
+  sirve: sin ese paso, el atacante reporta diez veces y *es* el consenso, y el
+  modelo queda más manipulable que el actual, no menos. Se toma el reporte más
+  reciente de cada usuario dentro de la ventana y sobre eso va la mediana.
+- **Ventana corta, ~21 días.** Una mediana sobre 45 días en Argentina mezcla
+  dos niveles de precio y devuelve un número que no existió nunca. Con menos de
+  3 usuarios distintos, caer al reporte más reciente como hoy.
+- **Mostrar el desacuerdo.** Si los reportes están muy dispersos, eso *es*
+  información; un número solo es precisión falsa.
+
+Efecto lateral bueno: las confirmaciones pasan a valer más, no menos. Hoy sólo
+rejuvenecen la fecha; con consenso son peso detrás de un valor.
+
+Ojo con `AGENTS.md`: tocar `v_current_prices` obliga a correr `FreshnessTest` y
+`PriceReportTest`. Y hay que revisar `v_bar_headline`, que se construye encima.
+
 ## Deuda técnica detectada
 
 ### `/bars` no tiene límite de tasa

@@ -26,6 +26,7 @@ import com.birrapp.core.*
 import com.birrapp.moderation.ModerationRepo
 import com.birrapp.prices.PriceRepo
 import com.birrapp.reviews.ReviewRepo
+import io.ktor.client.request.delete
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.minutes
 
@@ -62,6 +63,15 @@ fun Application.module(cfg: Config, db: Db) {
     val bars = BarRepo(db)
     val prices = PriceRepo(db)
     val reviews = ReviewRepo(db)
+    val ratings = com.birrapp.ratings.RatingRepo(db)
+    val r2 = com.birrapp.photos.R2(
+        accountId = cfg.r2AccountId,
+        bucket = cfg.r2Bucket,
+        accessKeyId = cfg.r2AccessKeyId,
+        secretAccessKey = cfg.r2SecretAccessKey,
+        publicBase = cfg.r2PublicBase,
+    )
+    val photos = com.birrapp.photos.PhotoRepo(db, r2)
     val moderation = ModerationRepo(db)
 
     // CORS sólo si el frontend está en otro dominio. Con el frontend servido
@@ -155,7 +165,19 @@ fun Application.module(cfg: Config, db: Db) {
         }
     }
 
-    routing { apiRoutes(bars, prices, reviews, moderation, users) }
+    routing {
+        apiRoutes(
+            bars, prices, reviews, ratings, photos, moderation, users,
+            // El borrado del objeto se hace acá y no en el repo: el repo habla
+            // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
+            deletePhotoObject = { key ->
+                if (r2.isConfigured) {
+                    runCatching { oauthHttp.delete(r2.presignDelete(key)) }
+                        .onFailure { log.warn("no se pudo borrar {} del bucket", key, it) }
+                }
+            },
+        )
+    }
     routing { downloadRoutes(java.io.File(cfg.apkDir)) }
     routing { webAppRoutes(java.io.File(cfg.webDir)) }
     routing { authRoutes(cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs) }

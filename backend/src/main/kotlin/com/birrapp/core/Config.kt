@@ -31,6 +31,12 @@ data class Config(
     val accessMinutes: Long,
     val refreshDays: Long,
     val bootstrapAdminEmails: Set<String>,
+    /** Bucket de fotos en R2. Vacío = subir fotos queda deshabilitado. */
+    val r2AccountId: String,
+    val r2Bucket: String,
+    val r2AccessKeyId: String,
+    val r2SecretAccessKey: String,
+    val r2PublicBase: String,
 ) {
     companion object {
         private const val PLACEHOLDER = "REPLACE_ME"
@@ -105,6 +111,18 @@ data class Config(
                 refreshDays   = raw("JWT_REFRESH_DAYS")?.toLongOrNull() ?: 60,
                 bootstrapAdminEmails = (raw("BOOTSTRAP_ADMIN_EMAILS") ?: "")
                     .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet(),
+                // Mismo criterio que Google: sin esto el resto de la app anda
+                // igual y sólo se cae la subida de fotos. Frenar el servidor
+                // por un bucket obligaría a tener Cloudflare configurado para
+                // poder trabajar en cualquier otra cosa.
+                r2AccountId = optional(
+                    "R2_ACCOUNT_ID",
+                    "id de cuenta de Cloudflare. Sin esto no se pueden subir fotos.",
+                ),
+                r2Bucket = raw("R2_BUCKET") ?: "",
+                r2AccessKeyId = raw("R2_ACCESS_KEY_ID") ?: "",
+                r2SecretAccessKey = raw("R2_SECRET_ACCESS_KEY") ?: "",
+                r2PublicBase = (raw("R2_PUBLIC_BASE") ?: "").trimEnd('/'),
             )
 
             if (pending.isNotEmpty()) {
