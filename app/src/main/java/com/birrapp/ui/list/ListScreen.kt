@@ -21,6 +21,7 @@ import com.birrapp.data.model.BarPin
 import com.birrapp.ui.common.FreshnessColors
 import com.birrapp.ui.common.formatDistance
 import com.birrapp.ui.common.formatPrice
+import com.birrapp.ui.common.formatRadius
 import com.birrapp.ui.map.MapViewModel
 import com.birrapp.ui.map.SortMode
 import com.birrapp.ui.theme.Ink
@@ -115,9 +116,7 @@ fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (state.radiusMeters >= 1000)
-                        "%.1f km".format(state.radiusMeters / 1000f).replace(".0", "")
-                    else "${state.radiusMeters} m",
+                    formatRadius(state.radiusMeters),
                     color = Ink.Amber, style = MaterialTheme.typography.labelLarge,
                 )
             }

@@ -68,3 +68,8 @@ object FreshnessColors {
         else -> stale
     }
 }
+
+/** 2000 -> "2 km", 800 -> "800 m". Mismo formato en el mapa y en la lista. */
+fun formatRadius(meters: Int): String =
+    if (meters >= 1000) "%.1f km".format(meters / 1000f).replace(".0", "")
+    else "$meters m"

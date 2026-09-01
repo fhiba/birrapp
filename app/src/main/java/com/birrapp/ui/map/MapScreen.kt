@@ -51,6 +51,7 @@ import com.birrapp.ui.common.GlassPanel
 import com.birrapp.ui.common.PintLoader
 import com.birrapp.ui.common.GlassPill
 import com.birrapp.ui.common.formatPrice
+import com.birrapp.ui.common.formatRadius
 import com.birrapp.ui.theme.Ink
 import com.birrapp.ui.theme.PricePin
 import dev.chrisbanes.haze.HazeState
@@ -390,11 +391,11 @@ fun MapScreen(
 }
 
 /**
- * Radio de búsqueda.
+ * Interruptor del radio. El slider vive abajo, no acá.
  *
- * Colapsado muestra sólo la distancia; se despliega al tocarlo. Un slider
- * siempre visible se come el ancho de la pantalla para algo que se ajusta una
- * vez y no se toca más.
+ * Antes se desplegaba dentro de la propia píldora: en un ancho de 230dp el
+ * recorrido útil quedaba en unos pocos píxeles, imposible de ajustar con el
+ * dedo. Arriba no hay ancho; abajo sobra.
  */
 @Composable
 private fun RadiusControl(
@@ -404,48 +405,81 @@ private fun RadiusControl(
     onToggle: () -> Unit,
     onChange: (Int) -> Unit,
 ) {
-    val label = if (radiusMeters >= 1000) "%.1f km".format(radiusMeters / 1000f).replace(".0", "")
-                else "$radiusMeters m"
+    val label = formatRadius(radiusMeters)
 
-    GlassPanel(hazeState, shape = RoundedCornerShape(22.dp)) {
-        Column(
+    if (open) {
+        Row(
             Modifier
-                .animateContentSize()
-                .padding(horizontal = 13.dp, vertical = 9.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .clip(RoundedCornerShape(50))
+                .background(Ink.Amber)
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 14.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = Ink.Base)
+            Spacer(Modifier.width(6.dp))
+            Text(label, color = Ink.Base, style = MaterialTheme.typography.labelLarge)
+        }
+    } else {
+        GlassPanel(hazeState, shape = RoundedCornerShape(22.dp)) {
             Row(
-                // Padding generoso dentro del área tocable: el objetivo pasa
-                // de ~28dp de alto a ~46dp, por encima del mínimo recomendado.
                 Modifier
                     .clip(RoundedCornerShape(22.dp))
                     .clickable(onClick = onToggle)
-                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Default.Search, null,
-                    Modifier.size(14.dp), tint = Ink.Muted,
-                )
+                Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = Ink.Muted)
                 Spacer(Modifier.width(6.dp))
                 Text(label, color = Ink.Amber, style = MaterialTheme.typography.labelLarge)
             }
-            if (open) {
-                Spacer(Modifier.height(4.dp))
-                Slider(
-                    value = radiusMeters.toFloat(),
-                    onValueChange = { onChange(it.toInt()) },
-                    // Hasta 15 km: más que eso deja de ser "cerca" y la
-                    // consulta empieza a traer media ciudad.
-                    valueRange = 300f..15_000f,
-                    steps = 28,
-                    modifier = Modifier.width(230.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Ink.Amber,
-                        activeTrackColor = Ink.Amber,
-                        inactiveTrackColor = Ink.Hairline,
-                    ),
+        }
+    }
+    // onChange no se usa acá: el slider está en el panel de abajo.
+    @Suppress("UNUSED_EXPRESSION") onChange
+}
+
+/**
+ * Panel del radio, abajo. Mismo slider a ancho completo que en la lista.
+ */
+@Composable
+private fun RadiusPanel(
+    hazeState: HazeState,
+    radiusMeters: Int,
+    fromSimulated: Boolean,
+    onChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GlassPanel(hazeState, modifier, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (fromSimulated) "Desde el punto elegido" else "Desde tu ubicación",
+                    color = Ink.Muted, fontSize = 12.sp,
                 )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    formatRadius(radiusMeters),
+                    color = Ink.Amber,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontSize = 14.sp,
+                )
+            }
+            Slider(
+                value = radiusMeters.toFloat(),
+                onValueChange = { onChange(it.toInt()) },
+                valueRange = 300f..15_000f,
+                steps = 28,
+                colors = SliderDefaults.colors(
+                    thumbColor = Ink.Amber,
+                    activeTrackColor = Ink.Amber,
+                    inactiveTrackColor = Ink.Hairline,
+                ),
+            )
+            Row(Modifier.fillMaxWidth()) {
+                Text("300 m", color = Ink.Faint, fontSize = 10.5.sp)
+                Spacer(Modifier.weight(1f))
+                Text("15 km", color = Ink.Faint, fontSize = 10.5.sp)
             }
         }
     }

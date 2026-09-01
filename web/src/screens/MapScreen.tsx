@@ -85,24 +85,24 @@ export function MapScreen(p: Props) {
             ))}
           </div>
 
-          <div className="glass" style={{
-            borderRadius: 22, padding: radiusOpen ? '0 13px 10px' : '0 13px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-          }}>
-            <button onClick={() => setRadiusOpen(o => !o)} className="lbl" style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '13px 6px', fontSize: 13,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--muted)" aria-hidden>
-                <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
-              </svg>
-              <span style={{ color: 'var(--amber)' }}>{formatRadius(p.radius)}</span>
-            </button>
-            {radiusOpen && (
-              <input type="range" min={300} max={15000} step={100} value={p.radius}
-                onChange={e => p.onRadius(Number(e.target.value))}
-                style={{ width: 210, display: 'block', margin: 0, accentColor: 'var(--amber)' }} />
-            )}
-          </div>
+          <button
+            onClick={() => setRadiusOpen(o => !o)}
+            className="lbl pill glass"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, height: 44,
+              padding: '0 14px', fontSize: 13,
+              background: radiusOpen ? 'var(--amber)' : undefined,
+              color: radiusOpen ? 'var(--base)' : undefined,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24"
+              fill={radiusOpen ? 'var(--base)' : 'var(--muted)'} aria-hidden>
+              <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
+            </svg>
+            <span style={{ color: radiusOpen ? 'var(--base)' : 'var(--amber)' }}>
+              {formatRadius(p.radius)}
+            </span>
+          </button>
         </div>
 
         {p.tooZoomedOut && (
@@ -111,6 +111,41 @@ export function MapScreen(p: Props) {
           }}>Acercá el mapa para ver bares</div>
         )}
       </div>
+
+      {/* El slider va abajo, no dentro de la píldora: ahí hay ancho real.
+          Metido arriba se desbordaba en web y quedaba impracticable en
+          Android, donde apenas entraban unos pocos píxeles de recorrido. */}
+      {radiusOpen && (
+        <div
+          onPointerDown={e => e.stopPropagation()}
+          className="glass"
+          style={{
+            position: 'absolute', left: 12, right: 12,
+            bottom: `calc(144px + var(--nav-gap))`, zIndex: 12,
+            borderRadius: 18, padding: '14px 18px 10px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>
+              {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
+            </span>
+            <span className="lbl" style={{
+              marginLeft: 'auto', color: 'var(--amber)', fontSize: 14,
+            }}>{formatRadius(p.radius)}</span>
+          </div>
+          <input
+            type="range" min={300} max={15000} step={100} value={p.radius}
+            onChange={e => p.onRadius(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--amber)', display: 'block' }}
+          />
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            color: 'var(--faint)', fontSize: 10.5, marginTop: -2,
+          }}>
+            <span>300 m</span><span>15 km</span>
+          </div>
+        </div>
+      )}
 
       {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
       <button onClick={p.onRecenter} className="glass" style={{
