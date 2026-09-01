@@ -471,3 +471,18 @@ Decisiones que quedaron en el código:
 Verificado contra la base local: borrar un precio ajeno da 404 **y la fila queda
 intacta**; un id inexistente, 404; sin sesión, 401; el propio, 200 y pasa a
 `removed`. 22 tests verdes.
+
+## 2026-09-01 (cont.) — El encabezado fijo, ahora sí
+
+El de 0.3.15 no funcionaba y el error es el clásico de `position: sticky`: un
+elemento pegajoso sólo se pega **dentro de la caja de su padre**. Estaba adentro
+del `<header>`, que mide unos 90px, así que se despegaba apenas el header salía
+de pantalla — o sea, exactamente cuando empezaba a hacer falta. Con pocos bares
+no se notaba; con la lista filtrada y larga, sí.
+
+Ahora cuelga de `.desk-narrow`, hermano del `<ul>`, así que su padre abarca toda
+la lista y se mantiene mientras haya algo que scrollear.
+
+De paso, el slider del radio de la lista era el único `range` que quedaba con la
+pista gruesa por defecto del navegador: pasa a usar la clase `.range`, la misma
+del mapa.

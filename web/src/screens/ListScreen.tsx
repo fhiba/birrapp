@@ -46,36 +46,39 @@ export function ListScreen(p: Props) {
       paddingBottom: `calc(108px + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
-      <header style={{ padding: '0 18px' }}>
-        {/* Había un <h1> que decía "Más baratas" justo encima de una píldora
-            que decía "Más barata": el título no agregaba nada que el selector
-            no dijera ya, y se comía un renglón entero de pantalla. El conteo
-            se queda, que sí es dato, al lado del selector.
+      {/*
+        La barra pegajosa va acá, hermana de la lista, y NO adentro del
+        <header>. Un elemento `sticky` sólo se pega dentro de la caja de su
+        padre: metido en el header —que mide unos 90px— se despegaba apenas
+        el header salía de pantalla, que es exactamente lo que se quería
+        evitar. Colgada de `.desk-narrow`, que contiene también el <ul>, se
+        mantiene mientras haya lista.
 
-            Y queda pegajoso: scrolleando cien bares, sin esto se pierde de
-            vista con cuál de los dos órdenes se está mirando la lista. El
-            margen negativo con el padding compensado hace que el fondo tape
-            de borde a borde; si no, las filas se ven pasar por los costados. */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 5,
-          margin: '0 -18px', padding: `calc(14px + var(--safe-top)) 18px 10px`,
-          background: 'var(--base)',
-          borderBottom: '1px solid rgba(255,255,255,.06)',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          {(['distance', 'cheapest'] as Sort[]).map(s => (
-            <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
-              padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
-              background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
-              color: p.sort === s ? 'var(--base)' : 'var(--muted)',
-            }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
-          ))}
-          <span className="num" style={{
-            marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
-          }}>{p.bars.length}</span>
-        </div>
+        Había además un <h1> que decía "Más baratas" justo encima de una
+        píldora que decía "Más barata": el título no agregaba nada y se comía
+        un renglón. El conteo, que sí es dato, queda al lado del selector.
+      */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 5,
+        padding: `calc(14px + var(--safe-top)) 18px 10px`,
+        background: 'var(--base)',
+        borderBottom: '1px solid rgba(255,255,255,.06)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        {(['distance', 'cheapest'] as Sort[]).map(s => (
+          <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
+            padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
+            background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
+            color: p.sort === s ? 'var(--base)' : 'var(--muted)',
+          }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
+        ))}
+        <span className="num" style={{
+          marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
+        }}>{p.bars.length}</span>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: 12 }}>
+      <header style={{ padding: '12px 18px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           {p.simulated ? (
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
             // sin esto no hay forma de saber desde dónde se mide.
@@ -90,9 +93,16 @@ export function ListScreen(p: Props) {
             {formatRadius(p.radius)}
           </span>
         </div>
-        <input type="range" min={300} max={15000} step={100} value={p.radius}
-          onChange={e => p.onRadius(Number(e.target.value))}
-          style={{ width: '100%', accentColor: 'var(--amber)', marginTop: 4 }} />
+        {/* Mismo aspecto que el del mapa: era el único `range` que quedaba
+            con la pista gruesa por defecto del navegador. */}
+        <input
+          className="range" type="range" min={300} max={15000} step={100}
+          value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
+          style={{
+            marginTop: 6,
+            ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,
+          }}
+        />
       </header>
 
       {p.loading && <div style={{ height: 1, background: 'var(--amber)', margin: '8px 0' }} />}
