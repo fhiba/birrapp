@@ -211,7 +211,6 @@ fun BirrappApp(
                     user = authState.user,
                     signingIn = authState.signingIn,
                     authError = authState.error,
-                    suggestBrowser = authState.suggestBrowser,
                     stats = authState.stats,
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onDeleteAccount = { showDeleteAccount = true },

@@ -22,7 +22,6 @@ data class AuthUiState(
     /** URL a abrir en el navegador; la pantalla la consume y la limpia. */
     val browserUrl: String? = null,
     /** true cuando Credential Manager no encontró ninguna cuenta en el equipo. */
-    val suggestBrowser: Boolean = false,
     val stats: com.birrapp.data.model.UserStats? = null,
     val deleting: Boolean = false,
 )
@@ -64,14 +63,17 @@ class AuthViewModel(
                 is SignInResult.Failure -> {
                     // El detalle técnico va al log, no a la pantalla.
                     result.technical?.let { Log.w("AuthViewModel", "login falló: $it") }
-                    _state.update {
-                        it.copy(
-                            signingIn = false,
-                            error = result.message,
-                            // Si el problema es que no hay cuenta en el equipo,
-                            // el navegador es exactamente la salida.
-                            suggestBrowser = result.noAccountOnDevice,
-                        )
+
+                    if (result.noAccountOnDevice) {
+                        // Sin cuenta en el equipo, el navegador no es "otra
+                        // opción": es el único camino. Mostrar un error y
+                        // pedirle al usuario que elija el otro botón es
+                        // hacerle resolver un problema nuestro. Se sigue solo.
+                        signInWithBrowser()
+                    } else {
+                        _state.update {
+                            it.copy(signingIn = false, error = result.message)
+                        }
                     }
                 }
 
@@ -130,7 +132,7 @@ class AuthViewModel(
                 .onSuccess { session ->
                     this@AuthViewModel.session.save(session)
                     _state.update {
-                        it.copy(signingIn = false, user = session.user, suggestBrowser = false)
+                        it.copy(signingIn = false, user = session.user)
                     }
                 }
                 .onFailure { e ->

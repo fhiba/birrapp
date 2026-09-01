@@ -27,7 +27,6 @@ fun ProfileScreen(
     user: UserDto?,
     signingIn: Boolean,
     authError: String?,
-    suggestBrowser: Boolean,
     stats: com.birrapp.data.model.UserStats?,
     onSignIn: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -88,39 +87,21 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // Alternativa por navegador. Va como secundaria porque Credential
-            // Manager es más rápido cuando hay cuenta en el equipo; pero es
-            // la única salida cuando no la hay.
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (suggestBrowser) Ink.AmberSoft else Color.White.copy(alpha = 0.06f)
-                    )
-                    .clickable(enabled = !signingIn, onClick = onSignInBrowser)
-                    .padding(vertical = 15.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ExitToApp, null, Modifier.size(17.dp),
-                    tint = if (suggestBrowser) Ink.Amber else Ink.Muted,
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    stringResource(R.string.sign_in_browser),
-                    color = if (suggestBrowser) Ink.Amber else Ink.Muted,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
+            // Enlace discreto, no un segundo botón: el camino por navegador ya
+            // se toma solo cuando hace falta. Esto queda sólo para el caso de
+            // querer entrar con una cuenta distinta a la del teléfono, que es
+            // una intención diferente y poco frecuente.
             Text(
-                stringResource(R.string.sign_in_browser_hint),
-                fontSize = 11.sp, color = Ink.Faint, lineHeight = 16.sp,
+                "Entrar con otra cuenta",
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = !signingIn, onClick = onSignInBrowser)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                color = Ink.Muted,
+                fontSize = 13.sp,
             )
 
             if (BuildConfig.GOOGLE_WEB_CLIENT_ID == "REPLACE_ME") {
