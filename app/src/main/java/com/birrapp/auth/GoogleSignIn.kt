@@ -15,7 +15,12 @@ sealed interface SignInResult {
     data class Success(val idToken: String) : SignInResult
     data object Cancelled : SignInResult
     /** [message] es para mostrar; [technical] va sólo al log. */
-    data class Failure(val message: String, val technical: String? = null) : SignInResult
+    data class Failure(
+        val message: String,
+        val technical: String? = null,
+        /** true = el equipo no tiene cuentas; el navegador es la salida. */
+        val noAccountOnDevice: Boolean = false,
+    ) : SignInResult
 }
 
 /**
@@ -73,9 +78,9 @@ class GoogleSignInClient {
             SignInResult.Cancelled
         } catch (e: NoCredentialException) {
             SignInResult.Failure(
-                "No hay ninguna cuenta de Google en este teléfono. " +
-                    "Agregá una desde Ajustes y volvé a intentar.",
+                "No hay ninguna cuenta de Google en este teléfono.",
                 technical = e.message,
+                noAccountOnDevice = true,
             )
         } catch (e: GetCredentialException) {
             Log.w("GoogleSignIn", "fallo de Credential Manager", e)

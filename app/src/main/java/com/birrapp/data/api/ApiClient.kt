@@ -166,6 +166,14 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun me(): UserDto = request(HttpMethod.Get, "auth/me", auth = true)
 
+    /** Pide la URL de autorización de Google para abrir en el navegador. */
+    suspend fun startBrowserLogin(): BrowserStartResponse =
+        request(HttpMethod.Post, "auth/browser/start")
+
+    /** Canjea el código de un solo uso que llega por el deep link. */
+    suspend fun redeemHandoff(code: String): SessionResponse =
+        request(HttpMethod.Post, "auth/handoff", body = HandoffRequest(code))
+
     suspend fun logout() {
         runCatching { request<Unit>(HttpMethod.Post, "auth/logout", auth = true) }
         session.clear()

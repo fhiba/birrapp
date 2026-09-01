@@ -5,12 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,7 +27,9 @@ fun ProfileScreen(
     user: UserDto?,
     signingIn: Boolean,
     authError: String?,
+    suggestBrowser: Boolean,
     onSignIn: () -> Unit,
+    onSignInBrowser: () -> Unit,
     onSignOut: () -> Unit,
     onOpenModeration: () -> Unit,
 ) {
@@ -45,29 +50,75 @@ fun ProfileScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Ink.Muted,
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(28.dp))
 
-            Box(
+            // Botón principal, con el logo oficial de Google sobre fondo
+            // claro: es el tratamiento que pide su guía de marca.
+            Row(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Ink.Cream)
                     .clickable(enabled = !signingIn, onClick = onSignIn)
                     .padding(vertical = 15.dp),
-                contentAlignment = Alignment.Center,
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (signingIn) {
                     CircularProgressIndicator(
-                        Modifier.size(16.dp), strokeWidth = 2.dp, color = Ink.Base,
+                        Modifier.size(17.dp), strokeWidth = 2.dp, color = Ink.Base,
                     )
                 } else {
+                    Icon(
+                        painterResource(R.drawable.ic_google),
+                        contentDescription = null,
+                        Modifier.size(18.dp),
+                        tint = Color.Unspecified,   // el logo lleva sus 4 colores
+                    )
+                    Spacer(Modifier.width(11.dp))
                     Text(
                         stringResource(R.string.sign_in),
                         color = Ink.Base,
                         style = MaterialTheme.typography.labelLarge,
+                        fontSize = 15.sp,
                     )
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Alternativa por navegador. Va como secundaria porque Credential
+            // Manager es más rápido cuando hay cuenta en el equipo; pero es
+            // la única salida cuando no la hay.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        if (suggestBrowser) Ink.AmberSoft else Color.White.copy(alpha = 0.06f)
+                    )
+                    .clickable(enabled = !signingIn, onClick = onSignInBrowser)
+                    .padding(vertical = 15.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ExitToApp, null, Modifier.size(17.dp),
+                    tint = if (suggestBrowser) Ink.Amber else Ink.Muted,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    stringResource(R.string.sign_in_browser),
+                    color = if (suggestBrowser) Ink.Amber else Ink.Muted,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.sign_in_browser_hint),
+                fontSize = 11.sp, color = Ink.Faint, lineHeight = 16.sp,
+            )
 
             if (BuildConfig.GOOGLE_WEB_CLIENT_ID == "REPLACE_ME") {
                 Spacer(Modifier.height(20.dp))

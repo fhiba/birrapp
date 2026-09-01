@@ -16,6 +16,9 @@ data class Config(
     val dbUser: String,
     val dbPassword: String,
     val googleWebClientId: String,
+    val googleClientSecret: String,
+    val publicBaseUrl: String,
+    val appRedirectScheme: String,
     val jwtSecret: String,
     val jwtIssuer: String,
     val jwtAudience: String,
@@ -72,6 +75,13 @@ data class Config(
                     "client ID del cliente OAuth *Web*. Sin esto el login queda " +
                         "deshabilitado; el resto anda. Ver docs/SETUP.md paso 4b.",
                 ),
+                googleClientSecret = optional(
+                    "GOOGLE_CLIENT_SECRET",
+                    "secreto del cliente OAuth Web. Sin esto no funciona el " +
+                        "login por navegador; Credential Manager sí anda.",
+                ),
+                publicBaseUrl = (raw("PUBLIC_BASE_URL") ?: "").trimEnd('/'),
+                appRedirectScheme = raw("APP_REDIRECT_SCHEME") ?: "birrapp",
                 jwtSecret = required(
                     "JWT_SECRET",
                     "secreto propio de birrapp, NO de Google. Generar: openssl rand -base64 48",

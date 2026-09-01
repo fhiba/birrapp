@@ -103,4 +103,6 @@ data class BarDetail(
 
 @Serializable data class GoogleLoginRequest(val idToken: String)
 @Serializable data class RefreshRequest(val refreshToken: String)
+@Serializable data class BrowserStartResponse(val authorizeUrl: String)
+@Serializable data class HandoffRequest(val code: String)
 @Serializable data class ApiError(val code: String, val message: String)

@@ -4,6 +4,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import com.birrapp.core.ApiException
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -26,13 +28,81 @@ private val authLog = org.slf4j.LoggerFactory.getLogger("birrapp.auth")
     val user: UserDto,
 )
 
+@Serializable data class BrowserStartResponse(val authorizeUrl: String)
+@Serializable data class HandoffRequest(val code: String)
+
 fun Route.authRoutes(
     cfg: Config,
     verifier: GoogleTokenVerifier,
     users: UserRepo,
     refreshTokens: RefreshTokenRepo,
     jwt: JwtService,
+    browserOAuth: BrowserOAuth,
+    handoffs: HandoffStore,
 ) = route("/auth") {
+
+    // ---------- login por navegador ----------
+    // Alternativa a Credential Manager, que sólo ofrece cuentas ya cargadas
+    // en el teléfono. Este camino sirve para cualquier cuenta de Google.
+
+    post("/browser/start") {
+        if (!browserOAuth.isConfigured || cfg.publicBaseUrl.isBlank()) {
+            throw ApiException(
+                HttpStatusCode.ServiceUnavailable,
+                "El inicio de sesión por navegador no está disponible por ahora.",
+                "not_configured",
+            )
+        }
+        val (url, _) = browserOAuth.startAuthorization()
+        call.respond(BrowserStartResponse(url))
+    }
+
+    /** Google vuelve acá. No lo llama la app: lo llama el navegador. */
+    get("/callback") {
+        val params = call.request.queryParameters
+        val error = params["error"]
+        val code = params["code"]
+        val state = params["state"]
+
+        suspend fun fail(reason: String) {
+            authLog.warn("login por navegador falló: {}", reason)
+            call.respondRedirect("${cfg.appRedirectScheme}://auth?error=1")
+        }
+
+        if (error != null) return@get fail("google devolvió $error")
+        if (code == null || state == null) return@get fail("faltan code o state")
+
+        val idToken = runCatching { browserOAuth.exchange(code, state) }
+            .getOrElse { e -> return@get fail("el canje falló: ${e.message}") }
+            ?: return@get fail("state inválido o vencido")
+
+        val identity = runCatching { verifier.verify(idToken) }
+            .getOrElse { e -> return@get fail("token inválido: ${e.message}") }
+
+        val user = users.upsert(identity, cfg.bootstrapAdminEmails)
+        if (user.isBanned) return@get fail("cuenta suspendida")
+
+        // Los tokens NO viajan por la URL: quedarían en el historial del
+        // navegador. Va un código de un solo uso que la app canjea por HTTPS.
+        val handoff = handoffs.issue(user.id)
+        call.respondRedirect("${cfg.appRedirectScheme}://auth?handoff=$handoff")
+    }
+
+    post("/handoff") {
+        val body = call.receive<HandoffRequest>()
+        val userId = handoffs.consume(body.code)
+            ?: unauthorized("ese código ya se usó o venció")
+        val user = users.findById(userId) ?: unauthorized("usuario inexistente")
+        if (user.isBanned) forbidden("esta cuenta está suspendida")
+        call.respond(
+            SessionResponse(
+                accessToken = jwt.accessToken(user),
+                refreshToken = refreshTokens.issue(user.id, cfg.refreshDays),
+                expiresInSeconds = cfg.accessMinutes * 60,
+                user = user.toDto(),
+            )
+        )
+    }
 
     // Los dos endpoints sin autenticar del sistema: acá es donde pega
     // cualquiera que quiera hacer fuerza bruta o quemarte la cuota de Google.

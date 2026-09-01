@@ -47,6 +47,18 @@ fun Application.module(cfg: Config, db: Db) {
     val refreshTokens = RefreshTokenRepo(db)
     val jwt = JwtService(cfg)
     val verifier = GoogleTokenVerifier(cfg.googleWebClientId)
+    val oauthHttp = io.ktor.client.HttpClient(io.ktor.client.engine.cio.CIO) {
+        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+    }
+    val browserOAuth = BrowserOAuth(
+        clientId = cfg.googleWebClientId,
+        clientSecret = cfg.googleClientSecret,
+        redirectUri = "${cfg.publicBaseUrl}/auth/callback",
+        http = oauthHttp,
+    )
+    val handoffs = HandoffStore()
     val bars = BarRepo(db)
     val prices = PriceRepo(db)
     val reviews = ReviewRepo(db)
@@ -125,5 +137,5 @@ fun Application.module(cfg: Config, db: Db) {
     }
 
     routing { apiRoutes(bars, prices, reviews, moderation, users) }
-    routing { authRoutes(cfg, verifier, users, refreshTokens, jwt) }
+    routing { authRoutes(cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs) }
 }

@@ -1,5 +1,6 @@
 package com.birrapp
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -33,6 +34,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.birrapp.auth.BrowserSignInLauncher
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -58,13 +61,42 @@ import com.birrapp.ui.theme.BirrappTheme
 
 class MainActivity : ComponentActivity() {
 
+    /**
+     * Código que llega por el deep link al volver del navegador.
+     *
+     * Se expone como estado y no como evento porque la Activity es
+     * `singleTask`: el intent puede llegar por `onNewIntent` con la UI ya
+     * compuesta, y hace falta que la composición lo vea.
+     */
+    private val handoffCode = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val container = (application as BirrappApplication).container
+        readHandoff(intent)
 
         setContent {
-            BirrappTheme { BirrappApp(container) }
+            BirrappTheme {
+                BirrappApp(
+                    container = container,
+                    handoffCode = handoffCode.value,
+                    onHandoffConsumed = { handoffCode.value = null },
+                )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readHandoff(intent)
+    }
+
+    private fun readHandoff(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "birrapp" && data.host == "auth") {
+            handoffCode.value = data.getQueryParameter("handoff")
         }
     }
 }
@@ -87,7 +119,11 @@ private object Routes {
 }
 
 @Composable
-fun BirrappApp(container: AppContainer) {
+fun BirrappApp(
+    container: AppContainer,
+    handoffCode: String? = null,
+    onHandoffConsumed: () -> Unit = {},
+) {
     val navController = rememberNavController()
 
     val authViewModel: AuthViewModel = viewModel(
@@ -95,12 +131,26 @@ fun BirrappApp(container: AppContainer) {
     )
     val authState by authViewModel.state.collectAsState()
 
+    LaunchedEffect(handoffCode) {
+        handoffCode?.let { authViewModel.redeemHandoff(it); onHandoffConsumed() }
+    }
+
     // Un solo MapViewModel compartido entre mapa y lista: cambiar el orden en
     // una pantalla tiene que verse reflejado en la otra.
     val mapViewModel: MapViewModel = viewModel(
         factory = factory { MapViewModel(container.bars, container.location) }
     )
     val mapState by mapViewModel.state.collectAsState()
+
+    // El ViewModel no abre el navegador: entrega la URL y la pantalla la
+    // consume. Así el ViewModel no depende de Android ni de una Activity.
+    val context = LocalContext.current
+    LaunchedEffect(authState.browserUrl) {
+        authState.browserUrl?.let { url ->
+            BrowserSignInLauncher(context).launch(url)
+            authViewModel.browserUrlConsumed()
+        }
+    }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -147,7 +197,9 @@ fun BirrappApp(container: AppContainer) {
                     user = authState.user,
                     signingIn = authState.signingIn,
                     authError = authState.error,
+                    suggestBrowser = authState.suggestBrowser,
                     onSignIn = { activity?.let(authViewModel::signIn) },
+                    onSignInBrowser = authViewModel::signInWithBrowser,
                     onSignOut = authViewModel::signOut,
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
                 )

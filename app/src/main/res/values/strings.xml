@@ -56,6 +56,9 @@
 
     <!-- Sesión -->
     <string name="sign_in">Continuar con Google</string>
+    <string name="sign_in_browser">Iniciar sesión en el navegador</string>
+    <string name="sign_in_browser_hint">Usá esta opción si no tenés una cuenta de Google en este teléfono, o si querés entrar con otra.</string>
+    <string name="sign_in_cancelled">Se canceló el inicio de sesión.</string>
     <string name="sign_out">Cerrar sesión</string>
     <string name="sign_in_why">Para cargar precios hace falta una cuenta. Mirar el mapa no.</string>
     <string name="my_reports">Mis aportes</string>

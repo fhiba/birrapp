@@ -17,6 +17,7 @@ datastore       = "1.2.1"
 coroutines      = "1.10.2"
 haze            = "1.7.3"
 places          = "5.3.0"
+browser         = "1.9.0"
 
 [libraries]
 core-ktx            = { module = "androidx.core:core-ktx",                       version.ref = "coreKtx" }
@@ -39,6 +40,10 @@ googleid            = { module = "com.google.android.libraries.identity.googleid
 maps-compose        = { module = "com.google.maps.android:maps-compose",         version.ref = "mapsCompose" }
 play-location       = { module = "com.google.android.gms:play-services-location",version.ref = "playLocation" }
 places              = { module = "com.google.android.libraries.places:places", version.ref = "places" }
+# Custom Tabs: el login por navegador va en una pestaña de Chrome, no en un
+# WebView. Un WebView pidiendo credenciales de Google es indistinguible de
+# un phishing, y Google directamente lo bloquea.
+browser             = { module = "androidx.browser:browser", version.ref = "browser" }
 
 ktor-client-android = { module = "io.ktor:ktor-client-android",                  version.ref = "ktor" }
 ktor-client-contentneg = { module = "io.ktor:ktor-client-content-negotiation",   version.ref = "ktor" }

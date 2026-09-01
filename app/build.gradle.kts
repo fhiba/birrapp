@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.location)
     implementation(libs.places)
+    implementation(libs.browser)
     implementation(libs.coroutines.play)
 
     implementation(libs.ktor.client.android)

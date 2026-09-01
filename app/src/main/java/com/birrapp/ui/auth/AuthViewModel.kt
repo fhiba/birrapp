@@ -19,6 +19,10 @@ data class AuthUiState(
     val user: UserDto? = null,
     val signingIn: Boolean = false,
     val error: String? = null,
+    /** URL a abrir en el navegador; la pantalla la consume y la limpia. */
+    val browserUrl: String? = null,
+    /** true cuando Credential Manager no encontró ninguna cuenta en el equipo. */
+    val suggestBrowser: Boolean = false,
 )
 
 class AuthViewModel(
@@ -55,7 +59,15 @@ class AuthViewModel(
                 is SignInResult.Failure -> {
                     // El detalle técnico va al log, no a la pantalla.
                     result.technical?.let { Log.w("AuthViewModel", "login falló: $it") }
-                    _state.update { it.copy(signingIn = false, error = result.message) }
+                    _state.update {
+                        it.copy(
+                            signingIn = false,
+                            error = result.message,
+                            // Si el problema es que no hay cuenta en el equipo,
+                            // el navegador es exactamente la salida.
+                            suggestBrowser = result.noAccountOnDevice,
+                        )
+                    }
                 }
 
                 is SignInResult.Success -> {
@@ -80,6 +92,54 @@ class AuthViewModel(
             }
         }
     }
+
+    /** Login por navegador: sirve para cualquier cuenta, haya o no en el equipo. */
+    fun signInWithBrowser() {
+        viewModelScope.launch {
+            _state.update { it.copy(signingIn = true, error = null) }
+            runCatching { api.startBrowserLogin() }
+                .onSuccess { r ->
+                    _state.update { it.copy(browserUrl = r.authorizeUrl) }
+                }
+                .onFailure { e ->
+                    Log.w("AuthViewModel", "no se pudo iniciar el login por navegador", e)
+                    _state.update {
+                        it.copy(
+                            signingIn = false,
+                            error = "No pudimos abrir el inicio de sesión. " +
+                                "Revisá tu conexión y probá de nuevo.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun browserUrlConsumed() = _state.update { it.copy(browserUrl = null) }
+
+    /** Canjea el código que llega por el deep link al volver del navegador. */
+    fun redeemHandoff(code: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(signingIn = true, error = null) }
+            runCatching { api.redeemHandoff(code) }
+                .onSuccess { session ->
+                    this@AuthViewModel.session.save(session)
+                    _state.update {
+                        it.copy(signingIn = false, user = session.user, suggestBrowser = false)
+                    }
+                }
+                .onFailure { e ->
+                    Log.w("AuthViewModel", "canje de handoff falló", e)
+                    _state.update {
+                        it.copy(
+                            signingIn = false,
+                            error = "El inicio de sesión expiró. Probá de nuevo.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onBrowserCancelled() = _state.update { it.copy(signingIn = false) }
 
     fun signOut() {
         viewModelScope.launch {
