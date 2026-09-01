@@ -4,23 +4,36 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class StylePriceDto(
-    /** Id del reporte vigente. Lo necesita la moderación para borrarlo. */
-    val id: Long,
+    /**
+     * Id del reporte vigente, null si esta birra no tiene precio cargado.
+     *
+     * La lista dejó de ser "los precios del bar" para ser "las birras del
+     * bar": una birra puede tener notas y fotos sin precio vigente, por
+     * ejemplo si un moderador bajó el reporte. Antes esas birras
+     * desaparecían de la pantalla y sus fotos y notas quedaban inalcanzables
+     * aunque siguieran en la base.
+     */
+    val id: Long?,
     val styleSlug: String,
     val styleName: String,
-    val price: Double,
-    val sizeMl: Int,
-    val ageDays: Int,
-    /** fresh <14d · aging 14-45d · stale >45d */
-    val freshness: String,
+    val price: Double?,
+    val sizeMl: Int?,
+    val ageDays: Int?,
+    /** fresh <14d · aging 14-45d · stale >45d. Null sin precio. */
+    val freshness: String?,
+    // Nada de esto lleva valor por defecto a propósito: kotlinx no serializa
+    // un campo que vale su default, y el frontend recibiría `undefined` donde
+    // el tipo promete `number | null`.
     /**
-     * Nota de esta birra en este bar, con shrinkage bayesiano — ver
-     * `v_style_ratings`. Null mientras nadie votó.
+     * Promedio real, el que se muestra. Con un solo voto de 5 esto dice 5,0.
      */
-    //  Sin valor por defecto a propósito: kotlinx no serializa un campo que
-    //  vale su default, y el frontend recibiría `undefined` donde el tipo
-    //  promete `number | null`. Con el campo siempre presente, las dos puntas
-    //  dicen lo mismo.
+    val ratingRaw: Double?,
+    /**
+     * El mismo promedio empujado hacia la media global. Sirve para ordenar —un
+     * 5,0 con un voto no puede ganarle a un 4,6 con cuarenta— pero NO para
+     * mostrar: enseñarle 3,8 a alguien que acaba de poner cinco estrellas hace
+     * que el número parezca roto, y con razón.
+     */
     val ratingAvg: Double?,
     val ratingCount: Int,
     /** Días desde el último voto. La nota tampoco se muestra sin su edad. */

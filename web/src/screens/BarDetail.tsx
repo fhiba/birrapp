@@ -38,7 +38,9 @@ export function BarDetailScreen({
   const [photos, setPhotos] = useState<Photo[]>([])
   const [mine, setMine] = useState<MyRating[]>([])
   const [tab, setTab] = useState<string | null>(null)
-  const [comments, setComments] = useState<StylePrice | null>(null)
+  const [comments, setComments] = useState<{ price: StylePrice; initial?: number } | null>(null)
+  const [viewing, setViewing] = useState<Photo | null>(null)
+  const [confirmPrice, setConfirmPrice] = useState<StylePrice | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -138,7 +140,28 @@ export function BarDetailScreen({
           </div>
         )}
 
-        <h1 className="ttl" style={{ fontSize: 28, margin: '20px 0 6px' }}>{bar.name}</h1>
+        {/* El enlace va acá y no abajo: pegado a las pestañas quedaba
+            separando el nombre del bar de sus birras, que es lo que se viene
+            a mirar. Al lado del nombre es donde se lo busca. */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '20px 0 6px' }}>
+          <h1 className="ttl" style={{ fontSize: 28, margin: 0, flex: 1, minWidth: 0 }}>
+            {bar.name}
+          </h1>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`
+              + (bar.googlePlaceId ? `&query_place_id=${bar.googlePlaceId}` : '')}
+            target="_blank" rel="noreferrer" aria-label="Cómo llegar"
+            style={{
+              flexShrink: 0, width: 42, height: 42, borderRadius: '50%',
+              display: 'grid', placeItems: 'center', marginTop: 2,
+              background: 'var(--elevated)', color: 'var(--amber)',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
+            </svg>
+          </a>
+        </div>
         {meta && <p style={{ color: 'var(--faint)', fontSize: 13, margin: 0 }}>{meta}</p>}
         {barAvg != null && (
           <div style={{
@@ -154,18 +177,6 @@ export function BarDetailScreen({
           </div>
         )}
 
-        <a
-          href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`
-            + (bar.googlePlaceId ? `&query_place_id=${bar.googlePlaceId}` : '')}
-          target="_blank" rel="noreferrer" className="lbl"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16,
-            padding: '11px 16px', borderRadius: 12, background: 'var(--elevated)',
-            color: 'var(--cream)', textDecoration: 'none', fontSize: 13,
-          }}
-        >
-          <span style={{ color: 'var(--amber)' }}>◈</span> Cómo llegar
-        </a>
       </div>
 
       {bar.prices.length === 0 ? (
@@ -239,7 +250,7 @@ export function BarDetailScreen({
                   ? act(() => api.confirmPrice(barId, active.styleSlug), active.styleSlug)
                   : nav('/perfil')}
                 onUpdate={() => user ? setReporting({ style: active.styleSlug }) : nav('/perfil')}
-                onRemove={() => act(() => api.removePrice(active.id), active.styleSlug)}
+                onRemove={() => setConfirmPrice(active)}
                 onHistory={() => setHistory({ slug: active.styleSlug, name: active.styleName })}
                 onFlag={() => user ? setReportingBad(active) : nav('/perfil')}
               />
@@ -248,7 +259,7 @@ export function BarDetailScreen({
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active.styleSlug)}
-                  onOpen={() => setComments(active)}
+                  onOpen={n => setComments({ price: active, initial: n })}
                 />
 
                 <PhotoStrip
@@ -258,7 +269,7 @@ export function BarDetailScreen({
                     await api.uploadPhoto(barId, active.styleSlug, file)
                     setPhotos(await api.barPhotos(barId))
                   }}
-                  onOpen={p => window.open(p.url, '_blank', 'noopener')}
+                  onOpen={setViewing}
                 />
               </div>
             </>
@@ -347,9 +358,11 @@ export function BarDetailScreen({
             const p = reportingBad
             setReportingBad(null)
             try {
+              // Reportar sólo se ofrece desde la fila con precio, así que
+              // acá no puede ser null.
               await api.flag({
-                targetType: 'price', targetId: p.id,
-                reason: `precio incorrecto: ${p.styleName} a ${formatPrice(p.price)}`,
+                targetType: 'price', targetId: p.id!,
+                reason: `precio incorrecto: ${p.styleName} a ${formatPrice(p.price!)}`,
               })
               setToast('Reportado. Gracias, lo revisa un moderador.')
             } catch (e) { setToast((e as Error).message) }
@@ -360,12 +373,35 @@ export function BarDetailScreen({
       {comments && (
         <BeerComments
           barId={barId}
-          styleSlug={comments.styleSlug}
-          styleName={comments.styleName}
+          styleSlug={comments.price.styleSlug}
+          styleName={comments.price.styleName}
           canWrite={user != null}
-          myRating={myRatingOf(comments.styleSlug)}
+          myRating={myRatingOf(comments.price.styleSlug)}
+          initialRating={comments.initial}
           onClose={() => setComments(null)}
           onWrote={load}
+        />
+      )}
+
+      {viewing && <PhotoViewer photo={viewing} onClose={() => setViewing(null)} />}
+
+      {confirmPrice && (
+        <Confirm
+          title={`¿Eliminar el precio de ${confirmPrice.styleName}?`}
+          body={<>
+            Se baja el reporte vigente de <strong>{confirmPrice.styleName}</strong> a{' '}
+            {formatPrice(confirmPrice.price!)}. No se puede deshacer.
+            <br /><br />
+            Las notas y las fotos de esta birra no se tocan: la birra sigue en la
+            lista, sin precio, hasta que alguien cargue uno nuevo.
+          </>}
+          confirmLabel="Eliminar" danger
+          onCancel={() => setConfirmPrice(null)}
+          onConfirm={() => {
+            const p = confirmPrice
+            setConfirmPrice(null)
+            act(() => api.removePrice(p.id!), p.styleSlug)
+          }}
         />
       )}
 
@@ -386,23 +422,40 @@ function PriceRow({
   onConfirm: () => void; onUpdate: () => void; onRemove: () => void
   onHistory: () => void; onFlag: () => void
 }) {
-  const color = freshnessColor(price.freshness)
+  // Una birra puede tener notas y fotos sin precio vigente: pasa cuando se
+  // borra el reporte. Antes esa birra directamente desaparecía.
+  if (price.price == null) {
+    return (
+      <div style={{
+        padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
+      }}>
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
+          Esta birra no tiene precio cargado.
+        </p>
+        <button onClick={onUpdate} className="lbl" style={{
+          width: '100%', marginTop: 12, padding: 12, borderRadius: 12, fontSize: 13.5,
+          background: 'var(--amber)', color: 'var(--base)',
+        }}>Cargar su precio</button>
+      </div>
+    )
+  }
+
+  const color = freshnessColor(price.freshness!)
   const dim = price.freshness === 'stale'
   return (
     <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
-          <div className="lbl" style={{
-            fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
-          }}>{price.styleName.toUpperCase()}</div>
+          {/* El nombre del estilo ya está en la pestaña de arriba: repetirlo
+              acá lo decía dos veces en la misma pantalla. */}
           <div className="num" style={{
-            fontSize: 30, marginTop: 6, color: dim ? 'var(--faint)' : 'var(--cream)',
-          }}>{formatPrice(price.price)}</div>
+            fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
+          }}>{formatPrice(price.price!)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
-            {ageLabel(price.ageDays, price.freshness)}
+            {ageLabel(price.ageDays!, price.freshness!)}
           </div>
           {price.sizeMl !== 473 && (
             <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{price.sizeMl} ml</div>
@@ -460,6 +513,47 @@ function PriceRow({
 }
 
 /**
+ * Foto ampliada.
+ *
+ * Antes esto abría la URL del bucket en otra pestaña: se salía de la app, se
+ * veía la barra de direcciones con un dominio `r2.dev` que no dice nada, y
+ * volver era el botón de atrás del navegador. Un modal se cierra tocando al
+ * lado y no rompe la navegación.
+ */
+function PhotoViewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,.92)',
+        display: 'grid', placeItems: 'center', padding: 16,
+      }}
+    >
+      <img
+        src={photo.url} alt="Foto de la birra"
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain',
+          borderRadius: 12, display: 'block',
+        }}
+      />
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: `calc(24px + var(--safe-bottom))`,
+        textAlign: 'center', color: 'var(--muted)', fontSize: 12.5,
+      }}>
+        {photo.authorName && <span>{photo.mine ? 'Tu foto' : photo.authorName} · </span>}
+        {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
+      </div>
+      <button onClick={onClose} aria-label="Cerrar" style={{
+        position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
+        width: 40, height: 40, borderRadius: '50%',
+        background: 'rgba(255,255,255,.12)', color: 'var(--cream)', fontSize: 20,
+      }}>×</button>
+    </div>
+  )
+}
+
+/**
  * Nota de una birra: estrellas, cuántos votaron y el ícono de comentarios.
  *
  * Las estrellas van en ámbar si ya votaste y en gris si no — de un vistazo se
@@ -470,16 +564,26 @@ function PriceRow({
 function BeerRating({
   price, myRating, onOpen,
 }: {
-  price: StylePrice; myRating: number | null; onOpen: () => void
+  price: StylePrice; myRating: number | null; onOpen: (n?: number) => void
 }) {
   const mine = myRating != null
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <Stars value={mine ? myRating : price.ratingAvg} mine={mine} size={19} />
+      {/* Tocar una estrella abre el modal con ese valor ya elegido. Antes
+          eran decorativas y puntuar obligaba a encontrar el ícono de
+          comentarios, que es lo último donde alguien lo busca. */}
+      <Stars
+        value={mine ? myRating : price.ratingRaw} mine={mine} size={19}
+        onRate={n => onOpen(n)}
+      />
 
       {price.ratingCount > 0 ? (
         <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>
-          {price.ratingAvg!.toFixed(1)} · {price.ratingCount === 1
+          {/* `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage y sirve
+              para ordenar, pero mostrarle 3,8 a alguien que acaba de poner
+              cinco estrellas hace que el número parezca roto. El conteo al
+              lado es lo que comunica cuánta confianza tiene. */}
+          {price.ratingRaw!.toFixed(1)} · {price.ratingCount === 1
             ? '1 voto' : `${price.ratingCount} votos`}
           {price.ratingAgeDays != null && price.ratingAgeDays > 45 && ' · sin votos nuevos'}
         </span>
@@ -487,7 +591,7 @@ function BeerRating({
         <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>Sin votos</span>
       )}
 
-      <button onClick={onOpen} aria-label="Ver comentarios" style={{
+      <button onClick={() => onOpen()} aria-label="Ver comentarios" style={{
         marginLeft: 'auto', display: 'grid', placeItems: 'center',
         width: 38, height: 38, borderRadius: '50%',
         background: 'rgba(255,255,255,.07)', color: 'var(--muted)',

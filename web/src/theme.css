@@ -57,7 +57,9 @@ body {
 }
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-input  { font: inherit; color: inherit; }
+/* `textarea` va acá y no sólo `input`: sin esto usa el color por defecto del
+   navegador, que sobre este fondo es negro sobre negro y el texto no se ve. */
+input, textarea { font: inherit; color: inherit; }
 a { color: var(--amber); }
 
 .num { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }

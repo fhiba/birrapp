@@ -84,7 +84,6 @@ export function ProfileScreen({ user, onSession }: {
       <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
         {isModerator(user) && <Row label="Moderación" onClick={() => nav('/moderacion')} />}
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
-        <Row label="Buscar actualización" onClick={forceUpdate} />
       </div>
 
       <SectionLabel>Cuenta</SectionLabel>

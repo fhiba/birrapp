@@ -10,15 +10,21 @@ export interface BarPin {
   distanceMeters: number | null
 }
 
+/**
+ * Una birra del bar. Puede no tener precio vigente y tener notas y fotos:
+ * pasa cuando se borra el reporte de precio.
+ */
 export interface StylePrice {
-  id: number
+  id: number | null
   styleSlug: string
   styleName: string
-  price: number
-  sizeMl: number
-  ageDays: number
-  freshness: Freshness
-  /** Nota con shrinkage bayesiano. Null mientras nadie votó. */
+  price: number | null
+  sizeMl: number | null
+  ageDays: number | null
+  freshness: Freshness | null
+  /** Promedio real: es el que se muestra. Null mientras nadie votó. */
+  ratingRaw: number | null
+  /** Con shrinkage bayesiano. Para ordenar, nunca para mostrar. */
   ratingAvg: number | null
   ratingCount: number
   /** Días desde el último voto: una nota sin su edad miente igual que un precio. */

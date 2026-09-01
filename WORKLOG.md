@@ -309,3 +309,47 @@ componente bajó de 130 a 91 líneas.
 
 NO verificado: nada de esto se probó en un teléfono. La cámara (`capture`), el
 carrusel y el modal quedan pendientes de prueba en dispositivo.
+
+## 2026-09-01 (cont.) — Diez correcciones de la prueba en teléfono
+
+Todo lo de abajo salió de usar la app en un teléfono, no de leer el código.
+
+**El bug que importa: borrar un precio escondía las fotos y las notas.** Las
+pestañas salían de `v_current_prices`, así que sin precio vigente la birra
+desaparecía de la pantalla y se llevaba puestos sus votos y sus fotos, que
+seguían en la base sin ninguna forma de llegar a ellas. Ahora la consulta parte
+de `beer_styles` y conserva la birra si tiene precio, nota **o** foto; la fila
+sin precio muestra "no tiene precio cargado" y un botón para cargarlo. Por eso
+`price`, `sizeMl`, `ageDays`, `freshness` e `id` pasaron a ser nullable: la
+lista dejó de ser "los precios del bar" para ser "las birras del bar".
+
+**El puntaje mostraba 3,8 con un único voto de 5.** La matemática estaba bien
+—es el shrinkage— pero el número parecía roto, y con razón. El promedio
+bayesiano sirve para *ordenar*, no para mostrar: un 5,0 con un voto no puede
+ganarle a un 4,6 con cuarenta, pero a quien acaba de poner cinco estrellas hay
+que mostrarle 5,0. Se agregó `ratingRaw` para la pantalla y `ratingAvg` queda
+para rankear.
+
+**El texto de la reseña era negro sobre negro.** La regla de `theme.css` cubría
+`input` pero no `textarea`, así que el textarea usaba el color por defecto del
+navegador. Una línea.
+
+El resto:
+
+- La foto abría la URL del bucket en otra pestaña: se salía de la app y volvía
+  con el botón de atrás. Ahora amplía en un modal.
+- Las estrellas eran decorativas; puntuar obligaba a encontrar el ícono de
+  comentarios, que es el último lugar donde alguien lo busca. Ahora tocarlas
+  abre el modal con esa estrella ya elegida.
+- Borrar un precio no pedía confirmación, siendo irreversible. Ahora sí, y el
+  texto aclara que las notas y las fotos no se tocan.
+- El botón de buscar actualización estaba dos veces en Perfil. Queda el del pie.
+- "Cómo llegar" pasó al lado del nombre del bar: abajo quedaba separando el
+  nombre de las birras, que es lo que se viene a mirar.
+- El nombre del estilo se repetía en la pestaña y en la fila de precio.
+- En "bar nuevo", el input de arriba se veía cortado: el contenedor que
+  scrollea no tenía padding superior y se comía el borde.
+
+Verificado contra la base local: votar, borrar el precio, comprobar que la
+birra sigue listada con su nota y ordenada después de las que sí tienen precio,
+y restaurar. 22 tests verdes.

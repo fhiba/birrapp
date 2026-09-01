@@ -13,19 +13,21 @@ import { Stars } from './Stars'
  * varias birras en una sola pantalla sin que sea un muro.
  */
 export function BeerComments({
-  barId, styleSlug, styleName, canWrite, myRating, onClose, onWrote,
+  barId, styleSlug, styleName, canWrite, myRating, initialRating, onClose, onWrote,
 }: {
   barId: number
   styleSlug: string
   styleName: string
   canWrite: boolean
   myRating: number | null
+  /** Estrella que se tocó para abrir esto, si se abrió desde las estrellas. */
+  initialRating?: number
   onClose: () => void
   onWrote: () => void
 }) {
   const [items, setItems] = useState<RatingComment[] | null>(null)
   const [body, setBody] = useState('')
-  const [rating, setRating] = useState(myRating ?? 0)
+  const [rating, setRating] = useState(initialRating ?? myRating ?? 0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

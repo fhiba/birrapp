@@ -159,30 +159,44 @@ class BarRepo(private val db: Db) {
             )
         } ?: return@conn null
 
-        // La nota viaja pegada al precio: son la misma birra, y el frontend
-        // arma una pestaña por cada fila de esto.
+        // Una fila por birra del bar, no por precio vigente.
+        //
+        // Se parte de `beer_styles` y se conservan las que tengan precio, nota
+        // o foto. Antes esto salía sólo de `v_current_prices`, así que al
+        // borrarse el precio la birra desaparecía de la pantalla y se llevaba
+        // puestas sus fotos y sus notas, que seguían existiendo en la base sin
+        // ninguna forma de llegar a ellas.
+        //
+        // Orden: primero las que tienen precio, de la más barata a la más
+        // cara y con las stale al final; después las que no.
         val prices = c.query(
             """
-            SELECT cp.id, cp.style_slug, cp.style_name, cp.price, cp.size_ml,
-                   cp.age_days, cp.freshness,
-                   sr.rating_avg, sr.rating_count,
+            SELECT s.slug AS style_slug, s.name_es AS style_name,
+                   cp.id, cp.price, cp.size_ml, cp.age_days, cp.freshness,
+                   sr.rating_raw, sr.rating_avg, sr.rating_count,
                    EXTRACT(DAY FROM (now() - sr.last_rated_at))::int AS rating_age_days
-            FROM v_current_prices cp
-            LEFT JOIN v_style_ratings sr
-                   ON sr.bar_id = cp.bar_id AND sr.style_id = cp.style_id
-            WHERE cp.bar_id = ?
-            ORDER BY cp.freshness = 'stale', cp.price ASC
+            FROM beer_styles s
+            LEFT JOIN v_current_prices cp ON cp.bar_id = ? AND cp.style_id = s.id
+            LEFT JOIN v_style_ratings  sr ON sr.bar_id = ? AND sr.style_id = s.id
+            WHERE cp.id IS NOT NULL
+               OR sr.style_id IS NOT NULL
+               OR EXISTS (SELECT 1 FROM bar_photos p
+                          WHERE p.bar_id = ? AND p.style_id = s.id
+                            AND p.status = 'active')
+            ORDER BY (cp.id IS NULL), cp.freshness = 'stale', cp.price ASC,
+                     s.sort_order
             """.trimIndent(),
-            id,
+            id, id, id,
         ) { rs ->
             StylePriceDto(
-                id = rs.getLong("id"),
+                id = rs.getLong("id").takeUnless { rs.wasNull() },
                 styleSlug = rs.getString("style_slug"),
                 styleName = rs.getString("style_name"),
-                price = rs.getBigDecimal("price").toDouble(),
-                sizeMl = rs.getInt("size_ml"),
-                ageDays = rs.getInt("age_days"),
+                price = rs.getBigDecimal("price")?.toDouble(),
+                sizeMl = rs.getInt("size_ml").takeUnless { rs.wasNull() },
+                ageDays = rs.getInt("age_days").takeUnless { rs.wasNull() },
                 freshness = rs.getString("freshness"),
+                ratingRaw = rs.getBigDecimal("rating_raw")?.toDouble(),
                 ratingAvg = rs.getBigDecimal("rating_avg")?.toDouble(),
                 ratingCount = rs.getInt("rating_count"),
                 ratingAgeDays = rs.getInt("rating_age_days").takeUnless { rs.wasNull() },

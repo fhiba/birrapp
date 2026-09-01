@@ -132,7 +132,11 @@ export function AddBarScreen(
         <h1 className="ttl" style={{ fontSize: 20, margin: 0 }}>Bar nuevo</h1>
       </header>
 
-      <div className="desk-narrow" style={{ flex: 1, overflowY: 'auto', padding: '0 18px', width: '100%' }}>
+      {/* Con `paddingTop: 0` el borde del input queda pegado al origen del
+          scroll y el contenedor se lo come: se veía cortado por arriba. */}
+      <div className="desk-narrow" style={{
+        flex: 1, overflowY: 'auto', padding: '6px 18px 0', width: '100%',
+      }}>
         {chosen ? (
           <>
             <div style={{
