@@ -35,8 +35,12 @@ APIs & Services → Library → **Maps SDK for Android** → Enable.
 
 Es gratis e ilimitado para mapas en móvil, pero **igual hay que tener
 billing habilitado en el proyecto** o las tiles vuelven en gris.
-No habilites Places API: no la usamos (sus términos no dejan guardar
-datos de lugares, por eso los bares salen de OpenStreetMap).
+Habilitá también **Places API (New)** — no la vieja "Places API", que es
+otra: el SDK usa la nueva. Sirve para buscar bares que no están en
+OpenStreetMap y para validar que existen.
+
+De Places sólo guardamos el `place_id`, que es lo único que sus términos
+permiten almacenar de forma permanente.
 
 ## 3. API key del mapa
 
@@ -45,7 +49,11 @@ APIs & Services → Credentials → Create credentials → **API key**.
 Restringirla, si no queda abierta a cualquiera:
 - *Application restrictions* → **Android apps** → agregar
   package `com.birrapp` + el SHA-1 de arriba.
-- *API restrictions* → sólo **Maps SDK for Android**.
+- *API restrictions* → **Maps SDK for Android** y **Places API (New)**.
+
+> Ojo: si la key quedó restringida sólo a "Maps SDK for Android", habilitar
+> Places en el proyecto no alcanza — la key igual rechaza las llamadas.
+> Hay que agregar Places a la lista de APIs permitidas de esa misma key.
 
 Pegar en `app/local.properties` (gitignoreado):
 ```properties
