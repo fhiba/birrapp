@@ -121,3 +121,20 @@ Sobre publicar (consultado por el usuario):
 - Port: el backend se reusa entero; con Compose Multiplatform porta ~60% de la
   app, pero mapa, auth y ubicación necesitan implementación nativa.
   Recomendación: no portear hasta validar que la gente carga precios.
+
+## 2026-09-01 (cont.) — Lista verificada en dispositivo
+
+Pantalla de lista funcionando: barra de frescura por fila, distancia + edad,
+precio a la derecha. La barra flotante cortaba en seco la última fila, así que
+se agregó un degradado detrás: ahora el contenido se desvanece por debajo en
+vez de quedar tajeado.
+
+Verificado en el teléfono: mapa con tiles, pines sin superposición, detalle de
+bar con precios y edades, estado vacío ("Todavía nadie cargó precios acá"),
+lista ordenable.
+
+NO verificado: que al acercar el zoom aparezcan más etiquetas de precio. La
+lógica es correcta por construcción (la separación mínima se divide a la mitad
+por nivel de zoom), pero no se pudo comprobar por adb: con 592 bares en pantalla
+casi cualquier tap cae sobre un marcador en vez de hacer zoom. Queda para
+comprobar a mano.

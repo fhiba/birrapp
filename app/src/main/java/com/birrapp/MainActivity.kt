@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -187,6 +189,22 @@ fun BirrappApp(container: AppContainer) {
         }
 
         if (showBottomBar) {
+            // Degradado detrás de la barra: sin esto el contenido que scrollea
+            // por debajo queda tajeado en seco contra el borde de la píldora.
+            // Con el fade se lee como que pasa por abajo, que es la intención.
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.55f to Ink.Base.copy(alpha = 0.85f),
+                            1f to Ink.Base,
+                        )
+                    )
+            )
             FloatingNav(
                 current = currentRoute,
                 isModerator = authState.user?.isModerator == true,
