@@ -41,8 +41,18 @@ fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
 
     // Al cambiar el orden o el filtro, la lista es otra: quedarse a mitad de
     // scroll deja al usuario mirando el bar número 40 de un ranking nuevo.
-    LaunchedEffect(state.sort, state.styleFilter) {
-        listState.scrollToItem(0)
+    //
+    // No alcanza con scrollear al cambiar el orden: en ese instante la lista
+    // vieja sigue en pantalla, y cuando llega la nueva el LazyColumn reancla
+    // el scroll usando las `key` de los ítems y vuelve a bajar. Hay que
+    // esperar a que lleguen los datos nuevos.
+    var pendingReset by remember { mutableStateOf(false) }
+    LaunchedEffect(state.sort, state.styleFilter) { pendingReset = true }
+    LaunchedEffect(state.bars, pendingReset) {
+        if (pendingReset && !state.loading) {
+            listState.scrollToItem(0)
+            pendingReset = false
+        }
     }
 
     Column(Modifier.fillMaxSize().background(Ink.Base)) {

@@ -24,7 +24,18 @@ export function ListScreen(p: Props) {
 
   // Al cambiar el orden o el filtro la lista es otra: quedarse a mitad de
   // scroll deja al usuario mirando el bar 40 de un ranking nuevo.
-  useEffect(() => { scroller.current?.scrollTo({ top: 0 }) }, [p.sort, p.styleFilter])
+  //
+  // No alcanza con scrollear al cambiar el orden: en ese instante la lista
+  // vieja sigue en pantalla y el navegador restaura la posición cuando llega
+  // la nueva. Hay que esperar a los datos.
+  const pendingReset = useRef(false)
+  useEffect(() => { pendingReset.current = true }, [p.sort, p.styleFilter])
+  useEffect(() => {
+    if (pendingReset.current && !p.loading) {
+      scroller.current?.scrollTo({ top: 0 })
+      pendingReset.current = false
+    }
+  }, [p.bars, p.loading])
 
   return (
     <div ref={scroller} style={{

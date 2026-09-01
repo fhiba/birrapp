@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -267,6 +268,13 @@ fun MapScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // La fila de chips scrolleaba mal y se comía una franja del
+                // mapa. Un desplegable ocupa un botón y no pelea con el gesto
+                // de paneo del mapa, que es el problema de fondo de una lista
+                // horizontal encima de un mapa.
+                StyleFilterButton(
+                    hazeState, state.styles, state.styleFilter, viewModel::setStyleFilter,
+                )
                 SortSelector(hazeState, state.sort, viewModel::setSort)
                 RadiusControl(
                     hazeState, state.radiusMeters, radiusOpen,
@@ -275,10 +283,7 @@ fun MapScreen(
                 )
             }
 
-            if (state.styles.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                StyleFilterRow(hazeState, state.styles, state.styleFilter, viewModel::setStyleFilter)
-            }
+
 
             // El aviso de zoom se queda: sin él la pantalla queda vacía sin
             // explicación. Los de "buscando" se fueron: el usuario ya ve que
@@ -515,58 +520,89 @@ private fun SegmentChip(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Filtro de estilo como desplegable.
+ *
+ * Antes era una fila de chips horizontal sobre el mapa: el gesto de scroll
+ * competía con el de paneo, así que a veces se movía el mapa en lugar de la
+ * lista, y ocupaba una franja permanente de pantalla.
+ */
 @Composable
-private fun StyleFilterRow(
+private fun StyleFilterButton(
     hazeState: HazeState,
     styles: List<BeerStyle>,
     selected: String?,
     onSelect: (String?) -> Unit,
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
-        contentPadding = PaddingValues(horizontal = 14.dp),
-    ) {
-        item { StyleChip(hazeState, "Todos", selected == null) { onSelect(null) } }
-        items(styles, key = { it.slug }) { style ->
-            StyleChip(hazeState, style.name, selected == style.slug) {
-                onSelect(if (selected == style.slug) null else style.slug)
+    var open by remember { mutableStateOf(false) }
+    val active = selected != null
+    val label = styles.firstOrNull { it.slug == selected }?.name
+
+    Box {
+        if (active) {
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Ink.Amber)
+                    .clickable { open = true }
+                    .padding(horizontal = 13.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_filter), null,
+                    Modifier.size(15.dp), tint = Ink.Base,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    label ?: "Filtrado",
+                    color = Ink.Base,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontSize = 12.sp,
+                )
+            }
+        } else {
+            GlassPanel(
+                hazeState,
+                Modifier.size(44.dp).clickable { open = true },
+                shape = RoundedCornerShape(50),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_filter),
+                    "Filtrar por estilo",
+                    Modifier.align(Alignment.Center).size(18.dp),
+                    tint = Ink.Muted,
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = Ink.Elevated,
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "Todos los estilos",
+                        color = if (selected == null) Ink.Amber else Ink.Cream,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                },
+                onClick = { onSelect(null); open = false },
+            )
+            styles.forEach { style ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            style.name,
+                            color = if (selected == style.slug) Ink.Amber else Ink.Cream,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    },
+                    onClick = { onSelect(style.slug); open = false },
+                )
             }
         }
     }
 }
 
-@Composable
-private fun StyleChip(
-    hazeState: HazeState,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    if (selected) {
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(50))
-                .background(Ink.Cream)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 14.dp, vertical = 7.dp),
-        ) {
-            Text(label, color = Ink.Base, fontSize = 12.sp,
-                style = MaterialTheme.typography.labelLarge)
-        }
-    } else {
-        GlassPanel(
-            hazeState,
-            Modifier.clickable(onClick = onClick),
-            shape = RoundedCornerShape(50),
-            intensity = 0.8f,
-        ) {
-            Text(
-                label,
-                Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                color = Ink.Cream.copy(alpha = 0.8f),
-                fontSize = 12.sp,
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-    }
-}

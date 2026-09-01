@@ -69,7 +69,12 @@ export function MapScreen(p: Props) {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', gap: 8, padding: '0 14px' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '0 14px', alignItems: 'flex-start' }}>
+          {/* La fila de chips scrolleaba mal: el gesto competía con el paneo
+              del mapa, así que a veces se movía el mapa en vez de la lista, y
+              encima ocupaba una franja permanente de pantalla. */}
+          <StyleFilter styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle} />
+
           <div className="glass pill" style={{ display: 'flex', padding: 4 }}>
             {(['distance', 'cheapest'] as Sort[]).map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl" style={{
@@ -99,21 +104,6 @@ export function MapScreen(p: Props) {
             )}
           </div>
         </div>
-
-        {p.styles.length > 0 && (
-          <div style={{
-            display: 'flex', gap: 7, overflowX: 'auto', maxWidth: '100%',
-            padding: '0 14px', scrollbarWidth: 'none',
-          }}>
-            <Chip on={!p.styleFilter} onClick={() => p.onStyle(undefined)}>Todos</Chip>
-            {p.styles.map(s => (
-              <Chip key={s.slug} on={p.styleFilter === s.slug}
-                onClick={() => p.onStyle(p.styleFilter === s.slug ? undefined : s.slug)}>
-                {s.name}
-              </Chip>
-            ))}
-          </div>
-        )}
 
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
@@ -151,14 +141,74 @@ export function MapScreen(p: Props) {
   )
 }
 
-function Chip(
+/** Filtro de estilo como desplegable. */
+function StyleFilter({
+  styles, selected, onSelect,
+}: {
+  styles: BeerStyle[]; selected?: string; onSelect: (s?: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const active = selected != null
+  const label = styles.find(s => s.slug === selected)?.name
+
+  if (styles.length === 0) return null
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={active ? 'lbl pill' : 'lbl pill glass'}
+        aria-label="Filtrar por estilo"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          height: 44, padding: active ? '0 14px' : 0, width: active ? undefined : 44,
+          justifyContent: 'center',
+          background: active ? 'var(--amber)' : undefined,
+          color: active ? 'var(--base)' : 'var(--muted)',
+          fontSize: 12,
+        }}
+      >
+        <svg width={active ? 15 : 18} height={active ? 15 : 18} viewBox="0 0 24 24"
+          fill="currentColor" aria-hidden>
+          <path d="M4 5h16v2.2l-6 6V21l-4-2v-5.8l-6-6z" />
+        </svg>
+        {active && <span>{label}</span>}
+      </button>
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+          <div style={{
+            position: 'absolute', left: 0, top: 50, zIndex: 21, minWidth: 190,
+            maxHeight: 320, overflowY: 'auto',
+            background: 'var(--elevated)', borderRadius: 14, padding: 6,
+            border: '.8px solid rgba(255,255,255,.12)',
+            boxShadow: '0 10px 34px rgba(0,0,0,.5)',
+          }}>
+            <MenuItem on={selected == null} onClick={() => { onSelect(undefined); setOpen(false) }}>
+              Todos los estilos
+            </MenuItem>
+            {styles.map(s => (
+              <MenuItem key={s.slug} on={selected === s.slug}
+                onClick={() => { onSelect(s.slug); setOpen(false) }}>
+                {s.name}
+              </MenuItem>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MenuItem(
   { on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode },
 ) {
   return (
-    <button onClick={onClick} className={on ? 'lbl pill' : 'lbl pill glass'} style={{
-      padding: '7px 14px', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0,
-      background: on ? 'var(--cream)' : undefined,
-      color: on ? 'var(--base)' : 'rgba(251,246,238,.8)',
+    <button onClick={onClick} className="lbl row-hover" style={{
+      display: 'block', width: '100%', textAlign: 'left',
+      padding: '10px 12px', borderRadius: 10, fontSize: 13.5,
+      color: on ? 'var(--amber)' : 'var(--cream)',
     }}>{children}</button>
   )
 }
