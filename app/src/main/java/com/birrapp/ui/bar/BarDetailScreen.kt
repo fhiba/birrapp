@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +53,7 @@ fun BarDetailScreen(
     onBarDeleted: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
+    var modMode by remember { mutableStateOf(false) }
     var badPrice by remember { mutableStateOf<StylePrice?>(null) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -122,49 +123,47 @@ fun BarDetailScreen(
 
                             Spacer(Modifier.weight(1f))
 
-                            // Moderación en un menú secundario: son acciones
-                            // destructivas y poco frecuentes, no merecen un
-                            // bloque permanente al final de cada bar.
+                            // Modo moderador: un interruptor, no un menú.
+                            // Prendido aparecen todas las herramientas
+                            // destructivas juntas; apagado, un moderador ve
+                            // exactamente lo mismo que cualquiera. Así no hay
+                            // botones de borrar acechando todo el tiempo.
                             if (isModerator) {
-                                Box {
-                                    Box(
-                                        Modifier
-                                            .size(38.dp)
-                                            .clip(RoundedCornerShape(50))
-                                            .background(
-                                                if (menuOpen) Ink.AmberSoft
-                                                else Color.White.copy(alpha = 0.07f)
-                                            )
-                                            .clickable { menuOpen = true },
-                                    ) {
-                                        Icon(
-                                            Icons.Default.MoreVert,
-                                            "Opciones de moderación",
-                                            Modifier.align(Alignment.Center).size(19.dp),
-                                            tint = if (menuOpen) Ink.Amber else Ink.Muted,
+                                Box(
+                                    Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(
+                                            if (modMode) Ink.Amber
+                                            else Color.White.copy(alpha = 0.07f)
                                         )
-                                    }
-                                    DropdownMenu(
-                                        expanded = menuOpen,
-                                        onDismissRequest = { menuOpen = false },
-                                        containerColor = Ink.Elevated,
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    "Eliminar bar",
-                                                    color = Ink.Danger,
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                )
-                                            },
-                                            onClick = {
-                                                menuOpen = false
-                                                confirmDelete = true
-                                            },
-                                        )
-                                    }
+                                        .clickable { modMode = !modMode },
+                                ) {
+                                    Icon(
+                                        painterResource(
+                                            if (modMode) R.drawable.ic_eye
+                                            else R.drawable.ic_eye_off
+                                        ),
+                                        if (modMode) "Salir del modo moderador"
+                                        else "Modo moderador",
+                                        Modifier.align(Alignment.Center).size(19.dp),
+                                        tint = if (modMode) Ink.Base else Ink.Muted,
+                                    )
                                 }
                             }
+                        }
+
+                        if (modMode) {
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                "Modo moderador — las acciones de esta vista no " +
+                                    "se pueden deshacer",
+                                Modifier
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(Ink.AmberSoft)
+                                    .padding(13.dp, 9.dp),
+                                color = Ink.Amber, fontSize = 12.sp, lineHeight = 16.sp,
+                            )
                         }
 
                         Spacer(Modifier.height(20.dp))
@@ -236,7 +235,7 @@ fun BarDetailScreen(
                         PriceRow(
                             price = price,
                             busy = state.busyStyle == price.styleSlug,
-                            isModerator = isModerator,
+                            modMode = modMode,
                             onRemove = { viewModel.removePrice(price.id) },
                             onConfirm = {
                                 if (isSignedIn) viewModel.confirmPrice(price.styleSlug)
@@ -399,7 +398,7 @@ fun BarDetailScreen(
 private fun PriceRow(
     price: StylePrice,
     busy: Boolean,
-    isModerator: Boolean,
+    modMode: Boolean,
     onRemove: () -> Unit,
     onConfirm: () -> Unit,
     onUpdate: () -> Unit,
@@ -499,18 +498,33 @@ private fun PriceRow(
             // Sólo moderación. El botón vive acá, sobre el precio concreto,
             // en vez de en una pantalla aparte: cuando ves un precio absurdo
             // querés sacarlo en ese momento, no anotarlo para después.
-            if (isModerator) {
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Ink.Danger.copy(alpha = 0.14f))
-                        .clickable(enabled = !busy, onClick = onRemove)
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Default.Delete, "Eliminar precio",
-                        Modifier.size(17.dp), tint = Ink.Danger)
-                }
+        }
+
+        // Acciones secundarias en su propia línea, alineadas a la izquierda.
+        // Antes iban apretadas contra el borde derecho, debajo de la fecha,
+        // y competían visualmente con ella.
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Ver historial",
+                Modifier.clickable(onClick = onHistory),
+                fontSize = 12.sp, color = Ink.Muted,
+            )
+            Text("  ·  ", fontSize = 12.sp, color = Ink.Faint)
+            // Reportar lo puede usar cualquiera, no sólo moderadores: quien ve
+            // el precio mal es el que está parado en el bar.
+            Text(
+                "Reportar precio",
+                Modifier.clickable(onClick = onFlag),
+                fontSize = 12.sp, color = Ink.Muted,
+            )
+            if (modMode) {
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "Eliminar",
+                    Modifier.clickable(enabled = !busy, onClick = onRemove),
+                    fontSize = 12.sp, color = Ink.Danger,
+                )
             }
         }
     }
