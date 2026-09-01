@@ -182,29 +182,53 @@ export function BarDetailScreen({
               estilos, precio + nota + fotos de cada uno era una pantalla que
               no terminaba nunca; así se ve una birra a la vez y el largo no
               depende de cuántas tenga el bar. */}
-          {bar.prices.length > 1 && (
-            <div style={{
-              display: 'flex', gap: 6, padding: '4px 18px 0',
-              overflowX: 'auto', scrollSnapType: 'x proximity',
-            }}>
-              {bar.prices.map(p => {
-                const on = p.styleSlug === active?.styleSlug
-                return (
-                  <button
-                    key={p.styleSlug} onClick={() => setTab(p.styleSlug)}
-                    className="lbl" aria-pressed={on}
-                    style={{
-                      flex: '0 0 auto', scrollSnapAlign: 'start',
-                      padding: '9px 14px', borderRadius: 999, fontSize: 13,
-                      whiteSpace: 'nowrap',
-                      background: on ? 'var(--amber)' : 'rgba(255,255,255,.07)',
-                      color: on ? 'var(--base)' : 'var(--muted)',
-                    }}
-                  >{p.styleName}</button>
-                )
-              })}
-            </div>
-          )}
+          {/* La fila se muestra incluso con una sola birra: es donde vive el
+              "+", y un control que aparece y desaparece según cuántas haya es
+              un control que no se encuentra cuando se lo necesita. */}
+          <div style={{
+            display: 'flex', gap: 6, padding: '4px 18px 0',
+            overflowX: 'auto', scrollSnapType: 'x proximity',
+          }}>
+            {bar.prices.map(p => {
+              const on = p.styleSlug === active?.styleSlug
+              return (
+                <button
+                  key={p.styleSlug} onClick={() => setTab(p.styleSlug)}
+                  className="lbl" aria-pressed={on}
+                  style={{
+                    flex: '0 0 auto', scrollSnapAlign: 'start',
+                    padding: '9px 14px', borderRadius: 999, fontSize: 13,
+                    whiteSpace: 'nowrap',
+                    background: on ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                    color: on ? 'var(--base)' : 'var(--muted)',
+                  }}
+                >{p.styleName}</button>
+              )
+            })}
+
+            {/* Última posición de la lista: es donde se agrega otra, como las
+                solapas de un navegador. Antes esto era un botón ancho abajo
+                que decía "Cargar precio", y con precios ya cargados eso
+                describía mal lo que hace: no carga *el* precio, agrega otra
+                birra. */}
+            <button
+              onClick={() => user ? setReporting({}) : nav('/perfil')}
+              className="lbl" aria-label="Cargar otra birra"
+              style={{
+                flex: '0 0 auto', scrollSnapAlign: 'start',
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 14px', borderRadius: 999, fontSize: 13,
+                whiteSpace: 'nowrap', color: 'var(--amber)',
+                border: '1px dashed rgba(255,182,39,.45)',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 5v14M5 12h14" stroke="currentColor"
+                  strokeWidth="2.6" strokeLinecap="round" />
+              </svg>
+              Otra birra
+            </button>
+          </div>
 
           {active && (
             <>
@@ -240,10 +264,6 @@ export function BarDetailScreen({
             </>
           )}
 
-          <div style={{ padding: 18 }}>
-            <PrimaryAction label="+  Cargar precio"
-              onClick={() => user ? setReporting({}) : nav('/perfil')} />
-          </div>
         </>
       )}
 

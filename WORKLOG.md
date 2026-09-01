@@ -290,5 +290,15 @@ desapareció. Más el rechazo de una llave forjada con `../`.
 
 22 tests verdes, `FreshnessTest` y `PriceReportTest` incluidos.
 
+**Corrección sobre la marcha (0.3.9).** El botón ancho de abajo decía "Cargar
+precio" incluso en bares que ya tenían precio. No era sólo la etiqueta: ese
+botón abre `ReportPrice` **sin estilo preseleccionado**, o sea que no carga *el*
+precio, agrega otra birra. Se mudó al final de la fila de pestañas como
+"+ Otra birra" —última posición de una lista es donde se agrega otra, como las
+solapas de un navegador— y la fila pasa a mostrarse aunque haya una sola birra,
+porque un control que aparece y desaparece según cuántas haya es un control que
+no se encuentra cuando hace falta. Se descartó llamarlo "producto": en toda la
+app son birras y estilos, nunca productos.
+
 NO verificado: nada de esto se probó en un teléfono. La cámara (`capture`), el
 carrusel y el modal quedan pendientes de prueba en dispositivo.
