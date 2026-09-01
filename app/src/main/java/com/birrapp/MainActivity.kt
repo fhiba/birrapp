@@ -2,6 +2,7 @@ package com.birrapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
@@ -102,7 +104,17 @@ fun BirrappApp(container: AppContainer) {
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in setOf(Routes.MAP, Routes.LIST, Routes.PROFILE)
+
+    // Durante una transición la ruta puede venir null por un frame, y con el
+    // chequeo directo la barra desaparecía y volvía: eso es el parpadeo al
+    // entrar y salir del perfil. Se recuerda la última pestaña conocida para
+    // que la selección no se pierda entre frames.
+    val tabs = remember { setOf(Routes.MAP, Routes.LIST, Routes.PROFILE) }
+    var lastTab by rememberSaveable { mutableStateOf(Routes.MAP) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in tabs) lastTab = currentRoute!!
+    }
+    val showBottomBar = currentRoute == null || currentRoute in tabs
 
     Box(Modifier.fillMaxSize().background(Ink.Base)) {
         NavHost(
@@ -128,11 +140,14 @@ fun BirrappApp(container: AppContainer) {
             }
 
             composable(Routes.PROFILE) {
+                // Credential Manager necesita una Activity para anclar su
+                // diálogo; con el context de la app falla al abrir el selector.
+                val activity = LocalActivity.current
                 ProfileScreen(
                     user = authState.user,
                     signingIn = authState.signingIn,
                     authError = authState.error,
-                    onSignIn = authViewModel::signIn,
+                    onSignIn = { activity?.let(authViewModel::signIn) },
                     onSignOut = authViewModel::signOut,
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
                 )
@@ -206,7 +221,7 @@ fun BirrappApp(container: AppContainer) {
                     )
             )
             FloatingNav(
-                current = currentRoute,
+                current = lastTab,
                 isModerator = authState.user?.isModerator == true,
                 onSelect = { route ->
                     navController.navigate(route) {

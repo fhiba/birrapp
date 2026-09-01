@@ -25,6 +25,12 @@ data class MapUiState(
     val center: Pair<Double, Double> = BUENOS_AIRES_CENTER,
     val hasLocationPermission: Boolean = false,
     val radiusMeters: Int = 2000,
+    /**
+     * Se incrementa cuando el usuario pide centrarse. La pantalla observa el
+     * cambio y anima la cámara. Un booleano no sirve: dos toques seguidos en
+     * el mismo lugar no producirían cambio de estado y el segundo se perdería.
+     */
+    val recenterToken: Int = 0,
 )
 
 class MapViewModel(
@@ -44,11 +50,18 @@ class MapViewModel(
         }
     }
 
-    fun refreshLocationThenLoad() {
+    /** [recenter] = además de recargar, mover la cámara a la ubicación. */
+    fun refreshLocationThenLoad(recenter: Boolean = false) {
         viewModelScope.launch {
             val granted = location.hasPermission()
             val center = location.current()
-            _state.update { it.copy(center = center, hasLocationPermission = granted) }
+            _state.update {
+                it.copy(
+                    center = center,
+                    hasLocationPermission = granted,
+                    recenterToken = if (recenter) it.recenterToken + 1 else it.recenterToken,
+                )
+            }
             load()
         }
     }

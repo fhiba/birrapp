@@ -16,12 +16,15 @@ import { execFileSync } from 'node:child_process';
 
 const DRY = process.argv.includes('--dry-run');
 
-// CABA. Bounding box en vez del área administrativa: es más rápido en
-// Overpass y no depende de que la relación de límites esté bien taggeada.
-const BBOX = { south: -34.7056, west: -58.5315, north: -34.5265, east: -58.3350 };
+// AMBA: CABA + GBA Norte (Vicente Lopez, Olivos, Martinez, San Isidro,
+// Beccar, San Fernando, Tigre) + parte de Oeste y Sur.
+//
+// El recorte anterior era solo CABA y dejaba afuera toda la Zona Norte, que
+// es justo donde hay mas cerveceria por metro cuadrado.
+const BBOX = { south: -34.72, west: -58.66, north: -34.36, east: -58.30 };
 
 const QUERY = `
-[out:json][timeout:180];
+[out:json][timeout:300];
 (
   node["amenity"~"^(bar|pub|biergarten)$"](${BBOX.south},${BBOX.west},${BBOX.north},${BBOX.east});
   way ["amenity"~"^(bar|pub|biergarten)$"](${BBOX.south},${BBOX.west},${BBOX.north},${BBOX.east});

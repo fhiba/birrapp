@@ -1,5 +1,7 @@
 package com.birrapp.ui.auth
 
+import android.app.Activity
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,15 +45,18 @@ class AuthViewModel(
         }
     }
 
-    fun signIn() {
+    fun signIn(activity: Activity) {
         viewModelScope.launch {
             _state.update { it.copy(signingIn = true, error = null) }
-            when (val result = googleSignIn.signIn()) {
+            when (val result = googleSignIn.signIn(activity)) {
                 is SignInResult.Cancelled ->
                     _state.update { it.copy(signingIn = false) }
 
-                is SignInResult.Failure ->
+                is SignInResult.Failure -> {
+                    // El detalle técnico va al log, no a la pantalla.
+                    result.technical?.let { Log.w("AuthViewModel", "login falló: $it") }
                     _state.update { it.copy(signingIn = false, error = result.message) }
+                }
 
                 is SignInResult.Success -> {
                     runCatching { api.loginWithGoogle(result.idToken) }
@@ -62,7 +67,14 @@ class AuthViewModel(
                             }
                         }
                         .onFailure { e ->
-                            _state.update { it.copy(signingIn = false, error = e.message) }
+                            Log.w("AuthViewModel", "canje de token falló", e)
+                            _state.update {
+                                it.copy(
+                                    signingIn = false,
+                                    error = "No pudimos completar el inicio de sesión. " +
+                                        "Revisá tu conexión y probá de nuevo.",
+                                )
+                            }
                         }
                 }
             }

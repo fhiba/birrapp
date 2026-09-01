@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -67,7 +68,22 @@ fun MapScreen(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { granted -> if (granted) viewModel.refreshLocationThenLoad() }
+    ) { granted -> if (granted) viewModel.refreshLocationThenLoad(recenter = true) }
+
+    // Centrar en la ubicación cuando el usuario lo pide. Antes esto sólo
+    // actualizaba el estado y recargaba la lista, pero la cámara no se movía:
+    // el botón parecía no hacer nada.
+    LaunchedEffect(state.recenterToken) {
+        if (state.recenterToken > 0) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(state.center.first, state.center.second),
+                    16f,
+                ),
+                durationMs = 700,
+            )
+        }
+    }
 
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
@@ -208,50 +224,51 @@ fun MapScreen(
             }
         }
 
-        Column(
+        // Ubicación a la izquierda, agregar a la derecha. Antes estaban
+        // apilados en la misma esquina y se leían como un solo control.
+        GlassPanel(
+            hazeState,
+            Modifier
+                .align(Alignment.BottomStart)
+                .navigationBarsPadding()
+                .padding(start = 14.dp, bottom = 84.dp)
+                .size(48.dp)
+                .clickable {
+                    if (state.hasLocationPermission) {
+                        viewModel.refreshLocationThenLoad(recenter = true)
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                    }
+                },
+            shape = RoundedCornerShape(50),
+        ) {
+            Icon(
+                Icons.Default.LocationOn,
+                stringResource(R.string.recenter),
+                Modifier.align(Alignment.Center).size(21.dp),
+                tint = if (state.hasLocationPermission) Ink.Amber else Ink.Muted,
+            )
+        }
+
+        Box(
             Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 14.dp, bottom = 84.dp),
-            horizontalAlignment = Alignment.End,
+                .padding(end = 14.dp, bottom = 84.dp)
+                .size(52.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Ink.Amber)
+                .clickable {
+                    val t = cameraPositionState.position.target
+                    onAddBar(t.latitude, t.longitude)
+                },
         ) {
-            GlassPanel(
-                hazeState,
-                Modifier
-                    .size(48.dp)
-                    .clickable {
-                        if (state.hasLocationPermission) viewModel.refreshLocationThenLoad()
-                        else permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                    },
-                shape = RoundedCornerShape(50),
-            ) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    stringResource(R.string.recenter),
-                    Modifier.align(Alignment.Center).size(21.dp),
-                    tint = if (state.hasLocationPermission) Ink.Amber else Ink.Muted,
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            Box(
-                Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Ink.Amber)
-                    .clickable {
-                        val t = cameraPositionState.position.target
-                        onAddBar(t.latitude, t.longitude)
-                    },
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    stringResource(R.string.add_this_bar),
-                    Modifier.align(Alignment.Center).size(23.dp),
-                    tint = Ink.Base,
-                )
-            }
+            Icon(
+                Icons.Default.Add,
+                stringResource(R.string.add_this_bar),
+                Modifier.align(Alignment.Center).size(25.dp),
+                tint = Ink.Base,
+            )
         }
     }
 }

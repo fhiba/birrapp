@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +25,7 @@ import com.birrapp.data.model.Freshness
 import com.birrapp.data.model.StylePrice
 import com.birrapp.ui.common.FreshnessColors
 import com.birrapp.ui.common.ageLabel
+import com.birrapp.ui.common.openDirections
 import com.birrapp.ui.common.formatDistance
 import com.birrapp.ui.common.formatPrice
 import com.birrapp.ui.report.ReportPriceSheet
@@ -39,6 +42,7 @@ fun BarDetailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var reportingStyle by remember { mutableStateOf<String?>(null) }
     var showReportSheet by remember { mutableStateOf(false) }
 
@@ -122,6 +126,29 @@ fun BarDetailScreen(
                             Text(
                                 "★ %.1f · %d reseñas".format(bar.avgRating, bar.reviewCount),
                                 fontSize = 13.sp, color = Ink.Muted,
+                            )
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Ink.Elevated)
+                                .clickable {
+                                    openDirections(context, bar.lat, bar.lng, bar.name)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Place, null,
+                                Modifier.size(17.dp), tint = Ink.Amber,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(R.string.directions),
+                                color = Ink.Cream,
+                                style = MaterialTheme.typography.labelLarge,
                             )
                         }
                     }

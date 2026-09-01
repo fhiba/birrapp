@@ -19,7 +19,9 @@ class AppContainer(context: Context) {
 
     val session by lazy { SessionStore(appContext) }
     val api by lazy { ApiClient(session) }
-    val googleSignIn by lazy { GoogleSignInClient(appContext) }
+    // Sin context: Credential Manager necesita la Activity, y se le pasa
+    // en cada llamada para no retenerla.
+    val googleSignIn by lazy { GoogleSignInClient() }
     val location by lazy { LocationProvider(appContext) }
     val bars by lazy { BarRepository(api) }
 }

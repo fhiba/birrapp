@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -36,6 +37,13 @@ import com.birrapp.ui.theme.PriceMedium
 @Composable
 fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
     val state by viewModel.state.collectAsState()
+    val listState = rememberLazyListState()
+
+    // Al cambiar el orden o el filtro, la lista es otra: quedarse a mitad de
+    // scroll deja al usuario mirando el bar número 40 de un ranking nuevo.
+    LaunchedEffect(state.sort, state.styleFilter) {
+        listState.scrollToItem(0)
+    }
 
     Column(Modifier.fillMaxSize().background(Ink.Base)) {
 
@@ -89,7 +97,10 @@ fun ListScreen(viewModel: MapViewModel, onBarClick: (Long) -> Unit) {
             }
         }
 
-        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 120.dp),
+        ) {
             items(state.bars, key = { it.id }) { bar ->
                 BarRow(bar) { onBarClick(bar.id) }
                 HorizontalDivider(color = Color.White.copy(alpha = 0.06f))

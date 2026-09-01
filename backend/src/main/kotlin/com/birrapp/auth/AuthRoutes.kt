@@ -41,6 +41,9 @@ fun Route.authRoutes(
             // Sin client ID configurado no hay forma de validar nada: mejor decirlo
             // explícito que fallar más adentro con un error incomprensible.
             if (cfg.googleWebClientId.isBlank()) {
+            call.application.log.error(
+                "rechazado /auth/google: falta GOOGLE_WEB_CLIENT_ID en la config del servidor",
+            )
                 throw com.birrapp.core.ApiException(
                     io.ktor.http.HttpStatusCode.ServiceUnavailable,
                     "El login no está configurado en este servidor: falta " +

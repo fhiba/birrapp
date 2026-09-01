@@ -49,27 +49,25 @@ class GoogleTokenVerifier(
         val claims = try {
             processor.process(idToken, null)
         } catch (e: Exception) {
-            throw InvalidGoogleToken("no se pudo verificar el ID token: ${e.message}")
+            throw InvalidGoogleToken("no pudimos validar tu cuenta de Google")
         }
 
         if (claims.issuer !in issuers) {
             throw InvalidGoogleToken("issuer inesperado: ${claims.issuer}")
         }
         if (claims.audience.none { it == expectedAudience }) {
-            throw InvalidGoogleToken(
-                "el `aud` del token no coincide con GOOGLE_WEB_CLIENT_ID. " +
-                    "Casi siempre significa que local.properties y backend/.env " +
-                    "tienen client IDs distintos. Ver docs/SETUP.md paso 4b.",
-            )
+            // El detalle importa para diagnosticar (app y servidor con client
+            // IDs distintos) pero no se le devuelve a quien está logueando.
+            throw InvalidGoogleToken("no pudimos validar tu cuenta de Google")
         }
         val exp = claims.expirationTime ?: throw InvalidGoogleToken("token sin exp")
-        if (exp.before(clock())) throw InvalidGoogleToken("token vencido")
+        if (exp.before(clock())) throw InvalidGoogleToken("la sesión de Google venció, probá de nuevo")
 
         val email = claims.getStringClaim("email")
             ?: throw InvalidGoogleToken("token sin email")
         // Un email no verificado no sirve para identificar a nadie.
         val verified = claims.getBooleanClaim("email_verified") ?: false
-        if (!verified) throw InvalidGoogleToken("el email de Google no está verificado")
+        if (!verified) throw InvalidGoogleToken("tu cuenta de Google no tiene el email verificado")
 
         return GoogleIdentity(
             sub = claims.subject,

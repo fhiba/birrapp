@@ -72,14 +72,18 @@
     <string name="nothing_pending">Nada pendiente. Todo en orden.</string>
 
     <!-- Errores -->
-    <string name="error_network">No se pudo conectar. ¿Está andando el backend?</string>
-    <string name="error_generic">Algo salió mal.</string>
+    <string name="error_network">No pudimos conectarnos. Revisá tu conexión y probá de nuevo.</string>
+    <string name="error_generic">Algo salió mal. Probá de nuevo en un momento.</string>
     <string name="retry">Reintentar</string>
     <string name="location_needed">Necesitamos tu ubicación para mostrarte los bares cerca.</string>
     <string name="grant_location">Dar permiso</string>
 
     <!-- Configuración faltante (Fase B) -->
-    <string name="setup_missing_title">Falta configurar</string>
-    <string name="setup_missing_maps">Falta MAPS_API_KEY en local.properties: el mapa se ve gris. Ver docs/SETUP.md paso 3.</string>
-    <string name="setup_missing_oauth">Falta GOOGLE_WEB_CLIENT_ID en local.properties: no se puede iniciar sesión. Ver docs/SETUP.md paso 4b.</string>
+    <string name="setup_missing_title">Función no disponible</string>
+    <string name="setup_missing_maps">El mapa no está disponible en esta versión de la app.</string>
+    <string name="setup_missing_oauth">El inicio de sesión no está disponible en esta versión de la app.</string>
+    <string name="directions">Cómo llegar</string>
+    <string name="choose_app">Abrir con</string>
+    <string name="no_maps_app">No encontramos una app de mapas instalada.</string>
+    <string name="showing_cached">Mostrando lo último guardado</string>
 </resources>
