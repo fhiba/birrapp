@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.birrapp.data.model.BarPin
 import com.birrapp.data.model.BeerStyle
@@ -31,6 +33,8 @@ data class MapUiState(
      * el mismo lugar no producirían cambio de estado y el segundo se perdería.
      */
     val recenterToken: Int = 0,
+    /** true mientras se muestran datos guardados y todavía no llegó lo fresco. */
+    val fromCache: Boolean = false,
 )
 
 class MapViewModel(
@@ -42,7 +46,33 @@ class MapViewModel(
     val state: StateFlow<MapUiState> = _state.asStateFlow()
 
     init {
-        refreshLocationThenLoad()
+        // Orden deliberado: ubicación → caché → red.
+        //
+        // Antes se pintaba el caché usando el centro por defecto (el Obelisco)
+        // antes de saber dónde estaba el usuario, así que alguien en zona norte
+        // veía por un instante bares del centro. Ahora se resuelve la ubicación
+        // primero, y recién con ese punto se decide qué mostrar y si hace falta
+        // pedir algo.
+        viewModelScope.launch {
+            val granted = location.hasPermission()
+            val here = location.current()
+            _state.update { it.copy(center = here, hasLocationPermission = granted) }
+
+            // Lo guardado en disco, si cubre donde está parado: aparece al
+            // instante, sin esperar a la red.
+            bars.primeFromDisk()
+            val cached = bars.peek(
+                here.first, here.second, _state.value.radiusMeters, _state.value.sort.apiValue,
+            )
+            if (!cached.isNullOrEmpty()) {
+                _state.update { it.copy(bars = cached, loading = false, fromCache = true) }
+            }
+
+            // Y ahora sí la red. `nearby` decide sola: si la región guardada ya
+            // alcanza, no sale ninguna request.
+            load(immediate = true)
+        }
+
         viewModelScope.launch {
             runCatching { bars.styles() }.onSuccess { s ->
                 _state.update { it.copy(styles = s) }
@@ -66,8 +96,16 @@ class MapViewModel(
         }
     }
 
-    fun load(force: Boolean = false) {
-        viewModelScope.launch {
+    private var loadJob: Job? = null
+
+    fun load(force: Boolean = false, immediate: Boolean = false) {
+        // Cancelar la carga anterior: paneando, cada movimiento disparaba una
+        // corrutina y llegaban respuestas fuera de orden.
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            // Pequeña espera para no consultar en cada micro-movimiento del
+            // mapa. Si llega otro movimiento antes, este job se cancela.
+            if (!force && !immediate) delay(280)
             _state.update { it.copy(loading = true, error = null) }
             val s = _state.value
             runCatching {
@@ -77,9 +115,20 @@ class MapViewModel(
                     style = s.styleFilter, force = force,
                 )
             }.onSuccess { result ->
-                _state.update { it.copy(bars = result, loading = false) }
+                _state.update {
+                    it.copy(bars = result, loading = false, fromCache = bars.servingFromCache)
+                }
             }.onFailure { e ->
-                _state.update { it.copy(loading = false, error = e.message) }
+                // Con datos en pantalla no se muestra el error: sigue siendo
+                // usable, sólo que sin refrescar. Molestar con un cartel
+                // cuando la app funciona es ruido.
+                _state.update { current ->
+                    if (current.bars.isNotEmpty()) {
+                        current.copy(loading = false, fromCache = true)
+                    } else {
+                        current.copy(loading = false, error = e.message)
+                    }
+                }
             }
         }
     }

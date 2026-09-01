@@ -4,6 +4,7 @@ import android.content.Context
 import com.birrapp.auth.GoogleSignInClient
 import com.birrapp.auth.SessionStore
 import com.birrapp.data.api.ApiClient
+import com.birrapp.data.db.BarStore
 import com.birrapp.data.repo.BarRepository
 import com.birrapp.location.LocationProvider
 
@@ -23,5 +24,6 @@ class AppContainer(context: Context) {
     // en cada llamada para no retenerla.
     val googleSignIn by lazy { GoogleSignInClient() }
     val location by lazy { LocationProvider(appContext) }
-    val bars by lazy { BarRepository(api) }
+    val barStore by lazy { BarStore(appContext) }
+    val bars by lazy { BarRepository(api, barStore) }
 }

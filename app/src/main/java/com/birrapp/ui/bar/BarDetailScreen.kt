@@ -245,6 +245,7 @@ fun BarDetailScreen(
         ReportPriceSheet(
             styles = state.styles,
             preselected = reportingStyle,
+            barName = state.bar?.name,
             onDismiss = { showReportSheet = false },
             onSubmit = { slug, price, sizeMl ->
                 viewModel.reportPrice(slug, price, sizeMl)
