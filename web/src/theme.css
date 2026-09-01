@@ -1,0 +1,73 @@
+/* Misma paleta que Android. Los tokens se comparten a ojo, no por build:
+   son doce colores y un build compartido no justifica la complejidad. */
+:root {
+  --base:     #1A1410;
+  --raised:   #261E18;
+  --elevated: #332822;
+  --hairline: rgba(255,255,255,.12);
+
+  --amber:      #FFB627;
+  --amber-soft: rgba(255,182,39,.20);
+  --amber-deep: #D98C00;
+
+  --cream: #FBF6EE;
+  --muted: #B6A899;
+  --faint: #8A7B6D;
+  --danger:#FF7A66;
+
+  --fresh: #5FD98D;
+  --aging: #FFB627;
+  --stale: #9C8C7C;
+
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--base);
+  color: var(--cream);
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  overscroll-behavior: none;
+  /* Sin esto iOS deja "rebotar" toda la página sobre el mapa. */
+  position: fixed; inset: 0;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input  { font: inherit; color: inherit; }
+a { color: var(--amber); }
+
+.num { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
+.ttl { font-family: var(--display); font-weight: 700; letter-spacing: -.03em; }
+.lbl { font-family: var(--display); font-weight: 500; }
+
+/* Vidrio. En web sale más barato que en Android: backdrop-filter difumina
+   el fondo de forma nativa, sin librerías. */
+.glass {
+  background: linear-gradient(rgba(255,255,255,.10), rgba(255,255,255,.02));
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: .8px solid rgba(255,255,255,.22);
+  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass { background: rgba(38,30,24,.94); }
+}
+
+.pill { border-radius: 999px; }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+/* Barras de scroll discretas: el contenido es el dato, no el cromo. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--amber);
+  animation: spin .7s linear infinite;
+}

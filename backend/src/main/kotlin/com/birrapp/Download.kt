@@ -1,6 +1,7 @@
 package com.birrapp
 
 import io.ktor.http.ContentDisposition
+import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -9,6 +10,7 @@ import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.http.content.staticFiles
 import io.ktor.server.routing.route
 import java.io.File
 import java.text.SimpleDateFormat
@@ -25,6 +27,33 @@ import java.util.Date
  * automáticas y firma— pero para pasarle el APK a un grupo de gente que lo
  * va a probar, alcanza y sobra.
  */
+/**
+ * Sirve la PWA en /app.
+ *
+ * Va en el mismo dominio que la API a propósito: así el navegador manda la
+ * sesión sin líos de CORS ni cookies cross-site, y el redirect del login
+ * vuelve al mismo origen.
+ */
+fun Route.webAppRoutes(webDir: File) {
+    if (!webDir.isDirectory) return
+
+    staticFiles("/app", webDir) {
+        default("index.html")
+        // El shell cambia en cada deploy; los assets llevan hash en el nombre
+        // y son inmutables.
+        cacheControl { file ->
+            if (file.name == "index.html") listOf(CacheControl.NoCache(null))
+            else listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000))
+        }
+    }
+
+    // Rutas del router (/app/perfil, /app/bar/12) devuelven el shell: es una
+    // SPA, el servidor no las conoce.
+    get("/app/{...}") {
+        call.respondFile(File(webDir, "index.html"))
+    }
+}
+
 fun Route.downloadRoutes(apkDir: File) {
 
     route("/descargar") {
@@ -59,7 +88,12 @@ private fun latestApk(dir: File): File? =
     dir.listFiles { f -> f.isFile && f.extension == "apk" }
         ?.maxByOrNull { it.lastModified() }
 
+/** Saca la version del nombre: birrapp-0.2.2-20260901.apk -> 0.2.2 */
+private fun versionOf(apk: File): String? =
+    Regex("[0-9]+\\.[0-9]+\\.[0-9]+").find(apk.name)?.value
+
 private fun landingPage(apk: File?): String {
+    val version = apk?.let { versionOf(it) }
     val size = apk?.let { "%.1f MB".format(it.length() / 1_048_576.0) } ?: "—"
     val date = apk?.let {
         SimpleDateFormat("d/M/yyyy HH:mm").format(Date(it.lastModified()))
@@ -98,17 +132,22 @@ private fun landingPage(apk: File?): String {
     background: rgba(255,182,39,.10); color: #B6A899; font-size: 12.5px;
   }
   code { color: #FFB627; }
+  .ver {
+    display: inline-block; margin-left: 6px; padding: 2px 8px;
+    border-radius: 20px; background: rgba(255,182,39,.15);
+    color: #FFB627; font-size: 12px; vertical-align: middle;
+  }
 </style>
 </head>
 <body>
   <div class="card">
     <h1>birrapp</h1>
-    <p class="sub">El precio de la pinta, en el mapa.</p>
+    <p class="sub">El precio de la pinta, en el mapa.${if (version != null) " <span class=\"ver\">v$version</span>" else ""}</p>
 
     <a class="btn ${if (available) "" else "off"}" href="/descargar/birrapp.apk">
       ${if (available) "Descargar para Android" else "No disponible por ahora"}
     </a>
-    <p class="meta">$size · actualizado el $date</p>
+    <p class="meta">${if (version != null) "versión $version · " else ""}$size · actualizado el $date</p>
 
     <ol>
       <li>Tocá <strong>Descargar</strong>. Android va a avisarte que este tipo

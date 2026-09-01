@@ -29,3 +29,8 @@ scripts/out/
 
 # Artefactos de build de IDEs (plugin de Kotlin en VS Code)
 bin/
+
+# Claves del frontend web
+web/.env.local
+web/node_modules/
+web/dist/

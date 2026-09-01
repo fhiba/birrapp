@@ -48,6 +48,10 @@ fun Route.authRoutes(
     // en el teléfono. Este camino sirve para cualquier cuenta de Google.
 
     post("/browser/start") {
+        // `platform=web` vuelve a la PWA por URL; el resto vuelve a la app
+        // por deep link. Se resuelve acá y no en el callback porque para
+        // entonces ya no hay forma de saber de dónde salió el pedido.
+        val web = call.request.queryParameters["platform"] == "web"
         if (!browserOAuth.isConfigured || cfg.publicBaseUrl.isBlank()) {
             throw ApiException(
                 HttpStatusCode.ServiceUnavailable,
@@ -55,7 +59,7 @@ fun Route.authRoutes(
                 "not_configured",
             )
         }
-        val (url, _) = browserOAuth.startAuthorization()
+        val (url, _) = browserOAuth.startAuthorization(web)
         call.respond(BrowserStartResponse(url))
     }
 
@@ -66,9 +70,17 @@ fun Route.authRoutes(
         val code = params["code"]
         val state = params["state"]
 
+        // El `state` recuerda de dónde vino: sin eso, alguien que entra desde
+        // la web terminaría en un deep link que su navegador no sabe abrir.
+        val fromWeb = state != null && browserOAuth.isWebFlow(state)
+
+        fun target(query: String) =
+            if (fromWeb) "${cfg.publicBaseUrl}/app/perfil?$query"
+            else "${cfg.appRedirectScheme}://auth?$query"
+
         suspend fun fail(reason: String) {
             authLog.warn("login por navegador falló: {}", reason)
-            call.respondRedirect("${cfg.appRedirectScheme}://auth?error=1")
+            call.respondRedirect(target("error=1"))
         }
 
         if (error != null) return@get fail("google devolvió $error")
@@ -87,7 +99,7 @@ fun Route.authRoutes(
         // Los tokens NO viajan por la URL: quedarían en el historial del
         // navegador. Va un código de un solo uso que la app canjea por HTTPS.
         val handoff = handoffs.issue(user.id)
-        call.respondRedirect("${cfg.appRedirectScheme}://auth?handoff=$handoff")
+        call.respondRedirect(target("handoff=$handoff"))
     }
 
     post("/handoff") {

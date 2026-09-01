@@ -38,7 +38,7 @@ class BrowserOAuth(
     private val rng = SecureRandom()
 
     /** Estados en vuelo. Efímeros: el flujo dura menos de un minuto. */
-    private data class Pending(val verifier: String, val createdAt: Long)
+    private data class Pending(val verifier: String, val createdAt: Long, val web: Boolean)
     private val pending = ConcurrentHashMap<String, Pending>()
 
     private fun randomUrlSafe(bytes: Int = 32): String =
@@ -46,14 +46,14 @@ class BrowserOAuth(
             .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
 
     /** Arma la URL de autorización y guarda el verifier contra el `state`. */
-    fun startAuthorization(): Pair<String, String> {
+    fun startAuthorization(web: Boolean = false): Pair<String, String> {
         purgeExpired()
         val state = randomUrlSafe(24)
         val verifier = randomUrlSafe(48)
         val challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(
             MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray())
         )
-        pending[state] = Pending(verifier, System.currentTimeMillis())
+        pending[state] = Pending(verifier, System.currentTimeMillis(), web)
 
         val url = buildString {
             append("https://accounts.google.com/o/oauth2/v2/auth")
@@ -71,6 +71,9 @@ class BrowserOAuth(
         }
         return url to state
     }
+
+    /** ¿Este flujo arrancó desde la web? Se consulta antes de consumir el state. */
+    fun isWebFlow(state: String): Boolean = pending[state]?.web == true
 
     /** Canjea el `code` por el ID token. null si el `state` no es válido. */
     suspend fun exchange(code: String, state: String): String? {

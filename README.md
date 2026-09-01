@@ -77,6 +77,21 @@ node scripts/seed_osm.mjs
 El vocabulario de estilos (14 cargados) se edita en
 `backend/src/main/resources/db/migration/` o vía API como admin.
 
+## PWA
+
+El mismo frontend, en web. Se sirve en `/app` desde el propio backend, así que
+comparte origen con la API: sin CORS, sin cookies cross-site, y el redirect del
+login vuelve al mismo dominio.
+
+```bash
+cd web && npm run build
+rm -rf "$WEB_DIR"/* && cp -r dist/* "$WEB_DIR"/
+```
+
+En iOS se instala desde Safari con *Compartir → Agregar a pantalla de inicio*.
+El service worker cachea el shell pero **nunca los datos**: servir precios
+viejos desde el caché sería exactamente lo que la app existe para evitar.
+
 ## Distribuir el APK
 
 El backend sirve el APK más reciente de `APK_DIR` en `/descargar`, con una

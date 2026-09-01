@@ -20,6 +20,7 @@ data class Config(
     val publicBaseUrl: String,
     val appRedirectScheme: String,
     val apkDir: String,
+    val webDir: String,
     val jwtSecret: String,
     val jwtIssuer: String,
     val jwtAudience: String,
@@ -84,6 +85,7 @@ data class Config(
                 publicBaseUrl = (raw("PUBLIC_BASE_URL") ?: "").trimEnd('/'),
                 appRedirectScheme = raw("APP_REDIRECT_SCHEME") ?: "birrapp",
                 apkDir = raw("APK_DIR") ?: "/home/jaiba/birrapp-deploy/apk",
+                webDir = raw("WEB_DIR") ?: "/home/jaiba/birrapp-deploy/web",
                 jwtSecret = required(
                     "JWT_SECRET",
                     "secreto propio de birrapp, NO de Google. Generar: openssl rand -base64 48",
