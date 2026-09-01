@@ -50,6 +50,29 @@ Consecuencias, todas a resolver **antes** de la primera línea de código:
   historial *es* el dato; un rating viejo del mismo usuario no sirve para nada.
   UPSERT sobre `UNIQUE (bar_id, style_id, user_id)`.
 
+**Forma de la pantalla, decidida con el usuario (2026-09-01):**
+
+- El **mapa no cambia**: sigue mostrando sólo precios. La nota no compite con
+  el precio por el mismo pin.
+- El **detalle del bar** abre con el promedio general arriba.
+- **Al lado de cada birra cargada, su nota propia** en cinco estrellas. Color
+  distinto según la hayas rateado vos o no — así se ve de un vistazo dónde
+  falta tu voto sin tener que abrir nada.
+- **A la derecha de las estrellas, un ícono de comentario** que abre un modal
+  con los comentarios de *esa* birra. Los comentarios no están nunca a la
+  vista por defecto: el contenido de la pantalla es el precio y la nota, no el
+  texto.
+
+**Ratear obliga a actualizar el precio.** Es el mejor gancho del diseño:
+convierte cada voto en una confirmación de precio, que es justo el gesto que
+hoy nadie hace por sí solo. La estructura ya existe — `is_confirmation` en
+`price_reports`, y "Sigue igual" cuesta un tap.
+
+Cuidado al implementarlo: el rating es UPSERT (uno por usuario y birra) pero el
+precio es append-only, así que re-ratear agrega otra fila de confirmación.
+Es lo deseable, pero abre la puerta a inflar la frescura votando en loop.
+Necesita límite de tasa por usuario, no sólo por IP.
+
 Queda abierto: si la nota del bar se muestra sola (agregando todas sus birras)
 o siempre desglosada por estilo.
 
@@ -66,7 +89,41 @@ mitad de su valor.
 Forma: tabla `favorites (user_id, bar_id, created_at)` con clave primaria
 compuesta. El filtro de la lista es un JOIN, no un campo más en `bars`.
 
-### 4. Canal de soporte
+### 4. Fotos de la birra
+Que la gente suba una foto de lo que se tomó.
+
+**Dónde, decidido (2026-09-01): Cloudflare R2**, no la infra actual ni S3.
+
+- Neon son 0,5 GB y es una base: los blobs le comen la cuota (~2.500 fotos) e
+  inflan cada backup y cada dump.
+- El filesystem de Railway es efímero, se borra en cada deploy.
+- S3 tiene la capa gratis limitada en el tiempo y **cobra egress**. Una foto se
+  sirve muchas más veces de las que se sube, así que el costo que importa no es
+  guardar sino servir.
+- R2 son 10 GB gratis, API compatible con S3 y **egress gratis sin tope**: un
+  bar que se vuelve viral no genera factura. Backblaze B2 es equivalente.
+
+Los números no son el problema: una foto a 1280px en WebP q80 pesa ~200 KB, así
+que 740 bares × 5 fotos son ~740 MB y en 10 GB entran ~50.000 fotos.
+
+Las dos decisiones que importan más que el proveedor:
+
+1. **Las fotos no pasan por el backend.** El servidor firma una URL de subida
+   y el navegador sube directo al bucket. Si los bytes atraviesan Railway se
+   paga el ancho de banda dos veces y se le pone carga de CPU a un contenedor
+   que hoy resuelve consultas en milisegundos.
+2. **Redimensionar en el cliente antes de subir.** Una foto de teléfono son
+   3-5 MB y a 1280px son 200 KB. Y re-encodear en un canvas **borra el EXIF**,
+   que trae las coordenadas GPS de dónde se sacó: subir el original publica la
+   ubicación de los usuarios.
+
+A decidir antes de empezar: moderación. `flag_target` hoy es
+`('bar', 'price', 'review')` y hace falta sumar las fotos. Una foto denunciada
+tiene que dejar de servirse de inmediato, no en la próxima pasada de un
+moderador — y son fotos sacadas dentro de bares, así que va a haber gente en
+ellas.
+
+### 5. Canal de soporte
 A resolver. Lo más barato es un mail o un formulario que caiga en la cola de
 moderación. **Ojo que Apple y Google exigen un medio de contacto publicado**
 para apps con contenido de usuarios, así que esto no es opcional si se quiere
@@ -105,6 +162,6 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 - [x] Borrado de cuenta dentro de la app — hecho en 0.2.0
 - [ ] Política de privacidad publicada
 - [ ] Declaración de datos (Data Safety en Play, nutrition labels en Apple)
-- [ ] Medio de contacto publicado (ver punto 4)
+- [ ] Medio de contacto publicado (ver punto 5)
 - [ ] Bloqueo entre usuarios
 - [ ] En iOS: Sign in with Apple, obligatorio si se ofrece login de Google
