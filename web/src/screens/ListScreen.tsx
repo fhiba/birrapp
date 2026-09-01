@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as api from '../data/api'
 import type { BarPin } from '../data/types'
 import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '../data/format'
 import type { Sort } from '../data/useBars'
@@ -8,6 +9,8 @@ interface Props {
   bars: BarPin[]; loading: boolean
   sort: Sort; radius: number; simulated: google.maps.LatLngLiteral | null
   styleFilter?: string
+  /** Desde dónde se miden las distancias de los resultados de búsqueda. */
+  center: google.maps.LatLngLiteral | null
   onSort: (s: Sort) => void
   onRadius: (m: number) => void
   onClearSimulated: () => void
@@ -28,6 +31,37 @@ export function ListScreen(p: Props) {
   // No alcanza con scrollear al cambiar el orden: en ese instante la lista
   // vieja sigue en pantalla y el navegador restaura la posición cuando llega
   // la nueva. Hay que esperar a los datos.
+  // Búsqueda por nombre.
+  //
+  // Va contra el servidor y no filtrando `p.bars` en memoria: la lista sólo
+  // trae lo que entra en el radio, así que buscar un bar de otro barrio no
+  // daría nada y parecería que no existe. El índice ya está hecho para esto
+  // —trigramas sobre el nombre sin tildes, V4__search.sql—.
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<BarPin[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const searchingFor = query.trim()
+  const isSearch = searchingFor.length >= 2
+
+  useEffect(() => {
+    if (!isSearch) { setFound(null); setSearching(false); return }
+    let alive = true
+    setSearching(true)
+    // Se espera a que deje de tipear: una consulta por tecla es una consulta
+    // por tecla, y con trigramas no son gratis.
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.searchBars(searchingFor, p.center?.lat, p.center?.lng, 50)
+        if (alive) setFound(r)
+      } catch { if (alive) setFound([]) }
+      finally { if (alive) setSearching(false) }
+    }, 300)
+    return () => { alive = false; clearTimeout(t) }
+  }, [searchingFor, isSearch, p.center])
+
+  const shown = isSearch ? (found ?? []) : p.bars
+  const busy = isSearch ? searching : p.loading
+
   const pendingReset = useRef(false)
   useEffect(() => { pendingReset.current = true }, [p.sort, p.styleFilter])
   useEffect(() => {
@@ -63,21 +97,59 @@ export function ListScreen(p: Props) {
         padding: `calc(14px + var(--safe-top)) 18px 10px`,
         background: 'var(--base)',
         borderBottom: '1px solid rgba(255,255,255,.06)',
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        {(['distance', 'cheapest'] as Sort[]).map(s => (
-          <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
-            padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
-            background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
-            color: p.sort === s ? 'var(--base)' : 'var(--muted)',
-          }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
-        ))}
-        <span className="num" style={{
-          marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
-        }}>{p.bars.length}</span>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar un bar" type="search"
+            style={{
+              width: '100%', padding: '10px 34px 10px 13px', borderRadius: 12,
+              background: 'rgba(255,255,255,.06)', border: '1px solid var(--hairline)',
+              fontSize: 14,
+            }}
+          />
+          {query !== '' && (
+            <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
+              position: 'absolute', right: 4, top: 0, bottom: 0, width: 30,
+              color: 'var(--faint)', fontSize: 16,
+            }}>×</button>
+          )}
+        </div>
+
+        {/* Buscando, el orden no aplica: los resultados vienen del servidor
+            ordenados por cercanía y no por lo que diga esta píldora. Mostrarla
+            igual sería ofrecer un control que no hace nada. */}
+        {isSearch ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <span style={{ color: 'var(--muted)' }}>
+              {searching ? 'Buscando…'
+                : shown.length === 0 ? 'Sin resultados'
+                : shown.length === 1 ? '1 resultado' : `${shown.length} resultados`}
+            </span>
+            <button onClick={() => setQuery('')} className="lbl" style={{
+              marginLeft: 'auto', color: 'var(--amber)', fontSize: 13,
+            }}>Volver a la lista</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {(['distance', 'cheapest'] as Sort[]).map(s => (
+              <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
+                padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
+                background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
+                color: p.sort === s ? 'var(--base)' : 'var(--muted)',
+              }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
+            ))}
+            <span className="num" style={{
+              marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
+            }}>{p.bars.length}</span>
+          </div>
+        )}
       </div>
 
-      <header style={{ padding: '12px 18px 0' }}>
+      {/* El radio no aplica buscando: la búsqueda es sobre toda la base, no
+          sobre lo que entra en el círculo. */}
+      {!isSearch && <header style={{ padding: '12px 18px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {p.simulated ? (
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
@@ -103,18 +175,20 @@ export function ListScreen(p: Props) {
             ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,
           }}
         />
-      </header>
+      </header>}
 
-      {p.loading && <div style={{ height: 1, background: 'var(--amber)', margin: '8px 0' }} />}
+      {busy && <div style={{ height: 1, background: 'var(--amber)', margin: '8px 0' }} />}
 
-      {!p.loading && p.bars.length === 0 && (
+      {!busy && shown.length === 0 && (
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
-          No hay bares cargados por acá todavía.
+          {isSearch
+            ? `Ningún bar se llama así. Probá con menos letras.`
+            : 'No hay bares cargados por acá todavía.'}
         </p>
       )}
 
       <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
-        {p.bars.map(b => (
+        {shown.map(b => (
           <li key={b.id}>
             <button className="row-hover" onClick={() => nav(`/bar/${b.id}`)} style={{
               display: 'flex', alignItems: 'center', gap: 14, width: '100%',

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import type { BarPin, BeerStyle } from '../data/types'
-import { ageColor, formatPrice, formatRadius } from '../data/format'
+import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
 import { MAP_STYLE } from '../mapStyle'
+
+export type ColorBy = 'freshness' | 'price'
 
 /** Los extremos del slider, en metros. Compartidos con las etiquetas de abajo
  *  para que no se puedan desincronizar del `min`/`max` reales. */
@@ -17,6 +19,9 @@ interface Props {
   simulated: google.maps.LatLngLiteral | null
   radius: number; styleFilter?: string
   tooZoomedOut: boolean
+  /** Qué codifica el color de los pines. Ver el comentario del toggle. */
+  colorBy: ColorBy
+  onColorBy: (c: ColorBy) => void
   onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onSimulate: (p: google.maps.LatLngLiteral | null) => void
@@ -71,7 +76,7 @@ export function MapScreen(p: Props) {
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
-        <Pins bars={p.bars} onOpen={id => nav(`/bar/${id}`)} />
+        <Pins bars={p.bars} colorBy={p.colorBy} onOpen={id => nav(`/bar/${id}`)} />
       </Map>
 
       {/*
@@ -178,6 +183,38 @@ export function MapScreen(p: Props) {
           </div>
         )}
 
+        {/*
+          El color del pin codifica una cosa u otra, y hasta ahora codificaba
+          la frescura sin decirlo en ninguna parte. Verde/ámbar/rojo es una
+          convención tan fuerte para barato/caro que ésa era la lectura por
+          defecto, incluso para quien escribió la app.
+
+          El toggle resuelve las dos mitades del problema: deja elegir qué
+          mirar, y al nombrar el modo activo dice qué significan los colores.
+        */}
+        <div className="glass pill" style={{
+          display: 'flex', padding: 3, pointerEvents: 'auto',
+        }}>
+          {([
+            ['freshness', 'Frescura'],
+            ['price', 'Precio'],
+          ] as [ColorBy, string][]).map(([mode, label]) => (
+            <button
+              key={mode} onClick={() => p.onColorBy(mode)} className="lbl"
+              aria-pressed={p.colorBy === mode}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 999, fontSize: 12,
+                background: p.colorBy === mode ? 'var(--amber)' : 'transparent',
+                color: p.colorBy === mode ? 'var(--base)' : 'rgba(251,246,238,.7)',
+              }}
+            >
+              <Swatch mode={mode} />
+              {label}
+            </button>
+          ))}
+        </div>
+
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
             padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
@@ -212,6 +249,27 @@ export function MapScreen(p: Props) {
         </svg>
       </button>
     </div>
+  )
+}
+
+/**
+ * Los tres colores del modo, en miniatura.
+ *
+ * Es la leyenda: sin esto el toggle diría qué se está mirando pero no qué
+ * significa cada color, que es la mitad que faltaba.
+ */
+function Swatch({ mode }: { mode: ColorBy }) {
+  const colors = mode === 'freshness'
+    ? ['var(--fresh)', 'var(--aging)', 'var(--stale)']
+    : [priceColor(0), priceColor(0.5), priceColor(1)]
+  return (
+    <span style={{ display: 'flex', gap: 2 }} aria-hidden>
+      {colors.map(c => (
+        <span key={c} style={{
+          width: 6, height: 6, borderRadius: '50%', background: c,
+        }} />
+      ))}
+    </span>
   )
 }
 
@@ -294,7 +352,9 @@ function MenuItem(
  * cae encima de otro ya colocado; el resto queda como punto. El zIndex sólo
  * decide quién gana, no evita que la cápsula de abajo quede cortada.
  */
-function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }) {
+function Pins({
+  bars, colorBy, onOpen,
+}: { bars: BarPin[]; colorBy: ColorBy; onOpen: (id: number) => void }) {
   const map = useMap()
   const [zoom, setZoom] = useState(15)
 
@@ -308,6 +368,18 @@ function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }
   // google.maps.Point, y tocar `google` antes de tiempo es un ReferenceError
   // que tumba la app entera en blanco, no sólo el mapa.
   if (!map) return null
+
+  // El puesto se calcula sobre lo que hay en pantalla, así que la escala se
+  // reajusta al moverse: en Palermo lo barato es otro número que en Liniers, y
+  // un color absoluto no diría nada en ninguno de los dos.
+  const ranks = colorBy === 'price'
+    ? priceRanks(bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]))
+    : null
+
+  const colorOf = (b: BarPin) =>
+    ranks != null
+      ? (ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)')
+      : (b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)')
 
   const showLabels = zoom >= 14.5
   const labelled = new Set<number>()
@@ -343,9 +415,8 @@ function Pins({ bars, onOpen }: { bars: BarPin[]; onOpen: (id: number) => void }
             onClick={() => onOpen(b.id)}
             zIndex={withLabel ? 10 : 1}
             icon={withLabel
-              ? priceIcon(formatPrice(b.fromPrice!), ageColor(b.freshestAgeDays))
-              : dotIcon(b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)',
-                        b.fromPrice != null ? 13 : 9)}
+              ? priceIcon(formatPrice(b.fromPrice!), colorOf(b))
+              : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9)}
           />
         )
       })}

@@ -38,3 +38,45 @@ export const freshnessColor = (f: Freshness) =>
 
 export const ageColor = (d: number | null) =>
   d == null ? 'var(--stale)' : d < 14 ? 'var(--fresh)' : d < 45 ? 'var(--aging)' : 'var(--stale)'
+
+/**
+ * Color por precio, relativo a lo que hay en pantalla.
+ *
+ * Se toma el puesto del bar dentro de los precios visibles y no el valor
+ * absoluto: con escala lineal, un solo precio disparatado aplasta a todos los
+ * demás contra el extremo barato y el mapa se ve todo verde. Por puesto, la
+ * mitad más barata siempre se ve barata.
+ *
+ * Verde → ámbar → rojo, los mismos tres colores de la frescura, para no
+ * inventar una paleta nueva por cada cosa que se codifica.
+ */
+const PRICE_STOPS = [
+  [0x5f, 0xd9, 0x8d], // --fresh
+  [0xff, 0xb6, 0x27], // --aging
+  [0xff, 0x7a, 0x66], // --danger
+]
+
+export function priceColor(rank01: number): string {
+  const t = Math.max(0, Math.min(1, rank01)) * (PRICE_STOPS.length - 1)
+  const i = Math.min(PRICE_STOPS.length - 2, Math.floor(t))
+  const f = t - i
+  const [a, b] = [PRICE_STOPS[i], PRICE_STOPS[i + 1]]
+  const ch = (n: number) => Math.round(a[n] + (b[n] - a[n]) * f)
+  return `rgb(${ch(0)}, ${ch(1)}, ${ch(2)})`
+}
+
+/**
+ * Puesto de cada precio entre 0 y 1, por bar.
+ *
+ * Los empates comparten puesto: dos bares al mismo precio tienen que verse
+ * del mismo color o el mapa miente.
+ *
+ * Recibe pares y no un `Map` armado por quien llama a propósito: en
+ * MapScreen, `Map` es el componente de Google Maps y construir uno ahí no
+ * compila.
+ */
+export function priceRanks(entries: [number, number][]): Map<number, number> {
+  const sorted = [...new Set(entries.map(([, v]) => v))].sort((a, b) => a - b)
+  const of = new Map(sorted.map((v, i) => [v, sorted.length < 2 ? 0 : i / (sorted.length - 1)]))
+  return new Map(entries.map(([id, v]) => [id, of.get(v)!]))
+}

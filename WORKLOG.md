@@ -486,3 +486,39 @@ la lista y se mantiene mientras haya algo que scrollear.
 De paso, el slider del radio de la lista era el único `range` que quedaba con la
 pista gruesa por defecto del navegador: pasa a usar la clase `.range`, la misma
 del mapa.
+
+## 2026-09-01 (cont.) — Buscador en la lista y color del mapa a elección
+
+**Buscador.** Va contra el servidor y no filtrando la lista en memoria: la
+lista sólo trae lo que entra en el radio, así que buscar un bar de otro barrio
+no daría nada y parecería que no existe. El índice ya estaba —trigramas sobre
+el nombre sin tildes, `V4__search.sql`—; lo único que hizo falta fue un `limit`
+en el endpoint, porque el default de 8 era para el autocompletado de "bar
+nuevo" y en una lista queda corto. Se acota a 50: sin tope, una `q` de una
+letra devuelve la base entera.
+
+Buscando se esconden el selector de orden y el radio. El orden lo pone el
+servidor por cercanía, así que dejar la píldora sería ofrecer un control que no
+hace nada; y el radio no aplica porque la búsqueda es sobre toda la base.
+
+**Color del mapa a elección.** Sale de la pregunta del usuario, que leyó verde
+como "barato" cuando siempre significó "reciente". El toggle resuelve las dos
+mitades: deja elegir qué mirar, y al nombrar el modo activo —con los tres
+colores en miniatura al lado— dice qué significan.
+
+El color por precio va por **puesto y no por valor**: con escala lineal, un
+solo precio disparatado aplasta a todos los demás contra el extremo barato y el
+mapa se ve todo verde. Comprobado con cuatro casos: reparto parejo, empates que
+comparten color, un outlier que no aplasta al resto (0 / 0,33 / 0,67 en vez de
+todos cerca de 0), y un único bar sin dividir por cero.
+
+La escala se calcula sobre lo que hay en pantalla y se reajusta al moverse: en
+Palermo lo barato es otro número que en Liniers.
+
+El modo vive en `App` y no en `MapScreen` porque la pantalla se desmonta al
+cambiar de pestaña: guardado adentro, se perdía al ir a la lista y volver.
+
+Una trampa encontrada al escribirlo: en `MapScreen`, `Map` es el componente de
+Google Maps, así que `new Map()` no compila. `priceRanks` recibe pares por eso.
+
+El onboarding queda anotado como punto 6 del backlog.

@@ -115,8 +115,8 @@ export const nearbyBars = (
 export const barDetail = (id: number, lat?: number, lng?: number) =>
   req<BarDetail>('GET', `/bars/${id}`, { params: { lat, lng } })
 
-export const searchBars = (q: string, lat?: number, lng?: number) =>
-  req<BarPin[]>('GET', '/bars/search', { params: { q, lat, lng } })
+export const searchBars = (q: string, lat?: number, lng?: number, limit?: number) =>
+  req<BarPin[]>('GET', '/bars/search', { params: { q, lat, lng, limit } })
 
 export const styles = () => req<BeerStyle[]>('GET', '/styles')
 export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/reviews`)

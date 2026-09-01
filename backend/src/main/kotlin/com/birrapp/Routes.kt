@@ -60,7 +60,11 @@ fun Route.apiRoutes(
         val q = call.request.queryParameters["q"] ?: badRequest("falta q")
         val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
         val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
-        call.respond(bars.search(q, lat, lng))
+        // El default de 8 es el del autocompletado al cargar un bar, donde una
+        // lista larga estorba. El buscador de la lista pide más. Se acota a 50
+        // igual: sin tope, un `q` de una letra devuelve la base entera.
+        val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 8
+        call.respond(bars.search(q, lat, lng, limit))
     }
 
     get("/bars/{id}") {

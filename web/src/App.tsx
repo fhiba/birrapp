@@ -8,7 +8,7 @@ import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
 import { AndroidPrompt } from './ui/AndroidPrompt'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
-import { MapScreen } from './screens/MapScreen'
+import { MapScreen, type ColorBy } from './screens/MapScreen'
 import { ListScreen } from './screens/ListScreen'
 import { BarDetailScreen } from './screens/BarDetail'
 import { AddBarScreen } from './screens/AddBar'
@@ -87,6 +87,11 @@ function Shell() {
       .catch(() => setToast('El inicio de sesión expiró. Probá de nuevo.'))
   }, [])
 
+  // Vive acá y no en MapScreen porque la pantalla se desmonta al cambiar de
+  // pestaña: guardado adentro, el modo se perdía cada vez que se iba a la
+  // lista y se volvía.
+  const [colorBy, setColorBy] = useState<ColorBy>('freshness')
+
   const queryPoint = simulated ?? camera?.center ?? coords
 
   const refresh = useCallback((force = false) => {
@@ -115,6 +120,7 @@ function Shell() {
             bars={bars} styles={styles} loading={loading}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
+            colorBy={colorBy} onColorBy={setColorBy}
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
@@ -131,6 +137,7 @@ function Shell() {
         <Route path="/lista" element={
           <ListScreen
             bars={bars} loading={loading} sort={sort} radius={radius}
+            center={queryPoint ?? null}
             simulated={simulated} styleFilter={styleFilter}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />
