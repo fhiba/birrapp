@@ -20,7 +20,8 @@ export function PhotoStrip({
   photos: Photo[]
   canAdd: boolean
   onAdd: (file: Blob) => Promise<void>
-  onOpen: (p: Photo) => void
+  /** Índice dentro de `photos`: el visor necesita la lista para swipear. */
+  onOpen: (index: number) => void
 }) {
   const picker = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -45,8 +46,8 @@ export function PhotoStrip({
         display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
         scrollSnapType: 'x mandatory',
       }}>
-        {photos.map(p => (
-          <button key={p.id} onClick={() => onOpen(p)} style={{
+        {photos.map((p, i) => (
+          <button key={p.id} onClick={() => onOpen(i)} style={{
             flex: '0 0 auto', padding: 0, scrollSnapAlign: 'start',
             width: 108, height: 108, borderRadius: 14, overflow: 'hidden',
             background: 'var(--elevated)',

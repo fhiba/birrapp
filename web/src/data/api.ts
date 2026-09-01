@@ -158,8 +158,12 @@ export async function uploadPhoto(barId: number, styleSlug: string, file: Blob) 
   return req<Photo>('POST', '/photos', { body: { barId, styleSlug, key }, auth: true })
 }
 
+/** Baja la foto Y borra el objeto del bucket. Irreversible. */
 export const removePhoto = (id: number) =>
   req<unknown>('POST', `/moderation/photos/${id}/remove`, { auth: true })
+
+export const removeRating = (id: number) =>
+  req<unknown>('POST', `/moderation/ratings/${id}/remove`, { auth: true })
 
 /** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
 export const priceHistory = (barId: number, style: string) =>

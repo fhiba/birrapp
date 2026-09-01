@@ -358,3 +358,27 @@ y restaurar. 22 tests verdes.
 encima de una píldora que decía "Más barata". El título no agregaba nada que el
 selector no dijera ya y se comía un renglón entero. Queda el selector, con el
 conteo —que sí es dato— corrido a la derecha.
+
+## 2026-09-01 (cont.) — Moderación de fotos y comentarios, y swipe en el visor
+
+Los endpoints de moderación de fotos y votos existían desde 0.3.8 pero no había
+forma de llegar a ellos desde la app. Ahora cuelgan del **modo moderador**, no
+del rol: prendido aparecen las acciones destructivas, apagado un moderador ve
+exactamente lo mismo que cualquiera. Es el criterio que ya tenía la pantalla.
+
+Borrar una foto avisa que se borra el archivo del bucket y no sólo la fila —es
+lo que la distingue de bajar un precio— y borrar un comentario avisa que también
+se lleva la nota, porque no se puede bajar una sin la otra.
+
+El visor de fotos pasa a recibir la lista y un índice en vez de una sola foto:
+swipe horizontal en teléfono, flechas y teclado en escritorio. El swipe compara
+el desplazamiento horizontal contra el vertical, porque sin eso un arrastre
+diagonal para cerrar cambiaba de foto sin querer. Las flechas van tras una regla
+`(hover: hover) and (pointer: fine)`: en un teléfono el gesto es el swipe y dos
+botones encima de la foto son dos botones de más.
+
+Queda anotado en el backlog un agujero que aparece con esto: `upsert` revive un
+voto bajado por un moderador si el autor lo vuelve a mandar.
+
+Verificado contra la base local: votar, moderar el voto, comprobar que el
+comentario desaparece y la nota vuelve a cero votos.

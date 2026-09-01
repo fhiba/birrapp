@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as api from '../data/api'
 import type { RatingComment } from '../data/types'
-import { Sheet } from './Chrome'
+import { Confirm, Sheet } from './Chrome'
 import { Stars } from './Stars'
 
 /**
@@ -13,12 +13,15 @@ import { Stars } from './Stars'
  * varias birras en una sola pantalla sin que sea un muro.
  */
 export function BeerComments({
-  barId, styleSlug, styleName, canWrite, myRating, initialRating, onClose, onWrote,
+  barId, styleSlug, styleName, canWrite, modMode, myRating, initialRating,
+  onClose, onWrote,
 }: {
   barId: number
   styleSlug: string
   styleName: string
   canWrite: boolean
+  /** Modo moderador prendido: aparecen las acciones destructivas. */
+  modMode: boolean
   myRating: number | null
   /** Estrella que se tocó para abrir esto, si se abrió desde las estrellas. */
   initialRating?: number
@@ -30,6 +33,7 @@ export function BeerComments({
   const [rating, setRating] = useState(initialRating ?? myRating ?? 0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<RatingComment | null>(null)
 
   useEffect(() => {
     api.beerComments(barId, styleSlug)
@@ -104,8 +108,38 @@ export function BeerComments({
             </span>
           </div>
           {c.body && <p style={{ margin: '6px 0 0', fontSize: 14 }}>{c.body}</p>}
+
+          {modMode && (
+            <button onClick={() => setConfirmDelete(c)} style={{
+              marginTop: 6, fontSize: 12, color: 'var(--danger)',
+            }}>Eliminar</button>
+          )}
         </div>
       ))}
+
+      {confirmDelete && (
+        <Confirm
+          title="¿Eliminar este comentario?"
+          body={<>
+            Se baja el voto de <strong>{confirmDelete.authorName}</strong> y su
+            comentario. Deja de contar para el promedio de la birra.
+            <br /><br />
+            Si el problema es sólo el texto, tené en cuenta que esto también borra
+            la nota: no se puede bajar una cosa sin la otra.
+          </>}
+          confirmLabel="Eliminar" danger
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={async () => {
+            const c = confirmDelete
+            setConfirmDelete(null); setError(null)
+            try {
+              await api.removeRating(c.id)
+              setItems(await api.beerComments(barId, styleSlug))
+              onWrote()
+            } catch (e) { setError((e as Error).message) }
+          }}
+        />
+      )}
     </Sheet>
   )
 }

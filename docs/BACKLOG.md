@@ -161,6 +161,16 @@ Ojo con `AGENTS.md`: tocar `v_current_prices` obliga a correr `FreshnessTest` y
 
 ## Deuda técnica detectada
 
+### Un voto moderado se revive re-votando
+`RatingRepo.upsert` hace `ON CONFLICT ... SET status = 'active'`, con el
+argumento de que editar un voto es contenido nuevo y no el que se moderó. El
+costo: si un moderador baja un comentario abusivo, su autor lo vuelve a mandar
+y queda publicado otra vez. Para precios pasa lo mismo y se convive con eso,
+pero un comentario de texto libre es un vector bastante peor.
+
+Salidas posibles: no revivir si lo bajó un moderador (hace falta guardar quién
+lo bajó, hoy no se guarda), o apoyarse en `users.banned_at`, que ya existe.
+
 ### `/bars` no tiene límite de tasa
 Cualquiera se baja la base entera con un `curl`. Mientras el backend vivía
 detrás del Funnel en una máquina propia era teórico; con la API pública en

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type {
@@ -39,7 +39,8 @@ export function BarDetailScreen({
   const [mine, setMine] = useState<MyRating[]>([])
   const [tab, setTab] = useState<string | null>(null)
   const [comments, setComments] = useState<{ price: StylePrice; initial?: number } | null>(null)
-  const [viewing, setViewing] = useState<Photo | null>(null)
+  const [viewing, setViewing] = useState<number | null>(null)
+  const [confirmPhoto, setConfirmPhoto] = useState<Photo | null>(null)
   const [confirmPrice, setConfirmPrice] = useState<StylePrice | null>(null)
 
   const load = useCallback(async () => {
@@ -91,6 +92,7 @@ export function BarDetailScreen({
   // si el precio se actualiza y la lista se reordena, un índice guardado
   // apuntaría a otra birra.
   const active = bar.prices.find(p => p.styleSlug === tab) ?? bar.prices[0] ?? null
+  const stylePhotos = photos.filter(f => f.styleSlug === active?.styleSlug)
 
   return (
     <div style={{
@@ -263,7 +265,7 @@ export function BarDetailScreen({
                 />
 
                 <PhotoStrip
-                  photos={photos.filter(f => f.styleSlug === active.styleSlug)}
+                  photos={stylePhotos}
                   canAdd={user != null}
                   onAdd={async file => {
                     await api.uploadPhoto(barId, active.styleSlug, file)
@@ -376,6 +378,7 @@ export function BarDetailScreen({
           styleSlug={comments.price.styleSlug}
           styleName={comments.price.styleName}
           canWrite={user != null}
+          modMode={modMode}
           myRating={myRatingOf(comments.price.styleSlug)}
           initialRating={comments.initial}
           onClose={() => setComments(null)}
@@ -383,7 +386,38 @@ export function BarDetailScreen({
         />
       )}
 
-      {viewing && <PhotoViewer photo={viewing} onClose={() => setViewing(null)} />}
+      {viewing != null && (
+        <PhotoViewer
+          photos={stylePhotos} start={viewing} modMode={modMode}
+          onClose={() => setViewing(null)}
+          onRemove={p => { setViewing(null); setConfirmPhoto(p) }}
+        />
+      )}
+
+      {confirmPhoto && (
+        <Confirm
+          title="¿Eliminar esta foto?"
+          body={<>
+            Se borra el archivo del bucket, no sólo de la lista.
+            <br /><br />
+            Es distinto de bajar un precio o una reseña: las fotos se sirven
+            desde una URL pública, así que mientras el archivo exista cualquiera
+            con el link la sigue viendo. Por eso hay que borrarlo, y por eso
+            esto no se puede deshacer.
+          </>}
+          confirmLabel="Eliminar" danger
+          onCancel={() => setConfirmPhoto(null)}
+          onConfirm={async () => {
+            const p = confirmPhoto
+            setConfirmPhoto(null)
+            try {
+              await api.removePhoto(p.id)
+              setPhotos(await api.barPhotos(barId))
+              setToast('Foto eliminada')
+            } catch (e) { setToast((e as Error).message) }
+          }}
+        />
+      )}
 
       {confirmPrice && (
         <Confirm
@@ -520,36 +554,135 @@ function PriceRow({
  * volver era el botón de atrás del navegador. Un modal se cierra tocando al
  * lado y no rompe la navegación.
  */
-function PhotoViewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+function PhotoViewer({
+  photos, start, modMode, onClose, onRemove,
+}: {
+  photos: Photo[]
+  start: number
+  modMode: boolean
+  onClose: () => void
+  onRemove: (p: Photo) => void
+}) {
+  const [i, setI] = useState(start)
+  const touch = useRef<{ x: number; y: number } | null>(null)
+
+  const go = useCallback((d: number) => {
+    setI(n => Math.min(photos.length - 1, Math.max(0, n + d)))
+  }, [photos.length])
+
+  // Teclado para escritorio: el swipe no existe con mouse.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') go(-1)
+      if (e.key === 'ArrowRight') go(1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [go, onClose])
+
+  const photo = photos[i]
+  if (!photo) return null
+
   return (
     <div
       onClick={onClose}
+      onTouchStart={e => {
+        const t = e.touches[0]
+        touch.current = { x: t.clientX, y: t.clientY }
+      }}
+      onTouchEnd={e => {
+        const s = touch.current
+        touch.current = null
+        if (!s) return
+        const t = e.changedTouches[0]
+        const dx = t.clientX - s.x
+        const dy = t.clientY - s.y
+        // Se compara con el desplazamiento vertical: sin eso, un arrastre
+        // diagonal para cerrar cambia de foto sin querer.
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1)
+      }}
       style={{
         position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,.92)',
         display: 'grid', placeItems: 'center', padding: 16,
+        touchAction: 'pan-y',
       }}
     >
       <img
+        key={photo.id}
         src={photo.url} alt="Foto de la birra"
         onClick={e => e.stopPropagation()}
         style={{
-          maxWidth: '100%', maxHeight: '82vh', objectFit: 'contain',
+          maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain',
           borderRadius: 12, display: 'block',
         }}
       />
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: `calc(24px + var(--safe-bottom))`,
-        textAlign: 'center', color: 'var(--muted)', fontSize: 12.5,
-      }}>
-        {photo.authorName && <span>{photo.mine ? 'Tu foto' : photo.authorName} · </span>}
-        {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
+
+      {/* Las flechas sólo aparecen con puntero: en un teléfono el gesto es el
+          swipe y dos botones encima de la foto son dos botones de más. */}
+      {photos.length > 1 && (
+        <div className="only-hover">
+          <ViewerArrow side="left" disabled={i === 0} onClick={() => go(-1)} />
+          <ViewerArrow side="right" disabled={i === photos.length - 1} onClick={() => go(1)} />
+        </div>
+      )}
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', left: 0, right: 0,
+          bottom: `calc(22px + var(--safe-bottom))`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          color: 'var(--muted)', fontSize: 12.5,
+        }}
+      >
+        <span>
+          {photo.authorName && <>{photo.mine ? 'Tu foto' : photo.authorName} · </>}
+          {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
+          {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
+        </span>
+        {modMode && (
+          <button onClick={() => onRemove(photo)} className="lbl" style={{
+            padding: '8px 16px', borderRadius: 999, fontSize: 12.5,
+            background: 'rgba(255,122,102,.16)', color: 'var(--danger)',
+          }}>Eliminar esta foto</button>
+        )}
       </div>
+
       <button onClick={onClose} aria-label="Cerrar" style={{
         position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
         width: 40, height: 40, borderRadius: '50%',
         background: 'rgba(255,255,255,.12)', color: 'var(--cream)', fontSize: 20,
       }}>×</button>
     </div>
+  )
+}
+
+function ViewerArrow({
+  side, disabled, onClick,
+}: { side: 'left' | 'right'; disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onClick() }}
+      disabled={disabled}
+      aria-label={side === 'left' ? 'Anterior' : 'Siguiente'}
+      style={{
+        position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+        [side]: 14, width: 44, height: 44, borderRadius: '50%',
+        display: 'grid', placeItems: 'center',
+        background: 'rgba(255,255,255,.12)', color: 'var(--cream)',
+        opacity: disabled ? 0.25 : 1,
+        cursor: disabled ? 'default' : 'pointer',
+      }}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+        <path
+          d={side === 'left' ? 'M15 4 7 12l8 8' : 'M9 4l8 8-8 8'}
+          fill="none" stroke="currentColor" strokeWidth="2.4"
+          strokeLinecap="round" strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   )
 }
 

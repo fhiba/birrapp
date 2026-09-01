@@ -184,6 +184,13 @@ a { color: var(--amber); }
   nav.bottom-nav { transform: translateX(-50%) scale(1.06); }
 }
 
+/* Controles que sólo tienen sentido con puntero: en un teléfono el gesto es
+   el swipe, y dos flechas encima de la foto son dos botones de más. */
+.only-hover { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .only-hover { display: block; }
+}
+
 /* Con mouse conviene marcar lo tocable. */
 @media (hover: hover) {
   button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
