@@ -125,8 +125,8 @@ export function ProfileScreen({ user, onSession }: {
 const Wrap = ({ children }: { children: React.ReactNode }) => (
   <div style={{
     position: 'absolute', inset: 0, overflowY: 'auto',
-    padding: `calc(28px + var(--safe-top)) 22px calc(120px + var(--safe-bottom))`,
-  }}>{children}</div>
+    padding: `calc(28px + var(--safe-top)) 22px calc(108px + var(--nav-gap))`,
+  }}><div className="desk-narrow">{children}</div></div>
 )
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (

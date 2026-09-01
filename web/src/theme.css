@@ -22,6 +22,17 @@
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /*
+   * Separación de la barra flotante respecto del borde inferior.
+   *
+   * En iOS instalado en la pantalla de inicio, safe-area-inset-bottom son
+   * 34px (el indicador de home). Sumarle además un margen propio dejaba casi
+   * 50px muertos debajo de la barra. Con max() se toma el mayor de los dos en
+   * vez de apilarlos: 12px en el navegador, 22px en standalone, que es lo
+   * justo para despejar el indicador sin regalar media pantalla.
+   */
+  --nav-gap: max(12px, calc(env(safe-area-inset-bottom, 0px) - 12px));
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -78,4 +89,31 @@ a { color: var(--amber); }
   width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid rgba(255,255,255,.18); border-top-color: var(--amber);
   animation: spin .7s linear infinite;
+}
+
+/* ---------- Escritorio ----------
+ *
+ * La app se diseñó para un teléfono en la mano y en una pantalla ancha se
+ * rompía: la lista ocupaba 1900px de ancho por fila, los diálogos quedaban
+ * perdidos en el medio y la barra flotante se veía diminuta abajo.
+ *
+ * En vez de rediseñar, se acota: el contenido se limita a un ancho legible y
+ * se centra. Es lo honesto — la app es de usar parado en un bar, y en
+ * escritorio alcanza con que se vea bien, no con que aproveche los 27".
+ */
+@media (min-width: 820px) {
+  /* El mapa sí ocupa todo: es lo único que gana con más espacio. */
+  .desk-narrow {
+    max-width: 560px;
+    margin-inline: auto;
+  }
+
+  /* La barra flotante se agranda un poco para no verse perdida. */
+  nav.bottom-nav { transform: translateX(-50%) scale(1.06); }
+}
+
+/* Con mouse conviene marcar lo tocable. */
+@media (hover: hover) {
+  button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
+  .row-hover:hover { background: rgba(255,255,255,.04); }
 }

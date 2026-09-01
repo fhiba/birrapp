@@ -30,6 +30,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       position: 'absolute', inset: 0, overflowY: 'auto',
       padding: `calc(10px + var(--safe-top)) 0 60px`,
     }}>
+      <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <button onClick={() => nav(-1)} style={{
           width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
@@ -85,6 +86,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }

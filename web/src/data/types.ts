@@ -36,6 +36,7 @@ export interface BarDetail {
 }
 
 export interface BeerStyle { slug: string; name: string }
+export interface PricePoint { price: number; sizeMl: number; at: string }
 export interface Review {
   id: number; authorName: string; rating: number
   body: string | null; createdAt: string

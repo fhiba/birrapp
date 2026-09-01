@@ -60,6 +60,13 @@ Ver la conversación del 2026-09-01: el backend y el login por navegador ya
 sirven tal cual para una web app. Evitaría los US$99/año y el requisito de
 tener una Mac.
 
+## Hecho
+
+- Historial de precios por bar y estilo (sale gratis del modelo append-only)
+- Cualquiera puede reportar un precio mal cargado, no sólo moderadores
+- Layout de escritorio acotado
+- Favicon
+
 ## Requisitos para publicar (bloqueantes)
 
 - [x] Borrado de cuenta dentro de la app — hecho en 0.2.0

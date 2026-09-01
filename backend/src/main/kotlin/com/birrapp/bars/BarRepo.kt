@@ -188,6 +188,24 @@ class BarRepo(private val db: Db) {
      * de pines repetidos y los precios se parten entre ellos.
      */
     fun create(req: NewBarRequest, createdBy: Long): Long = db.conn { c ->
+        // Validación de entrada. La columna es `text` sin límite, así que sin
+        // esto alguien puede cargar un nombre de un megabyte: no rompe la
+        // base, pero llena la lista y el mapa de basura.
+        val name = req.name.trim()
+        if (name.length < 2) badRequest("el nombre es demasiado corto")
+        if (name.length > 120) badRequest("el nombre es demasiado largo")
+        if ((req.address?.length ?: 0) > 300) badRequest("la dirección es demasiado larga")
+        if (req.lat !in -90.0..90.0 || req.lng !in -180.0..180.0) {
+            badRequest("coordenadas fuera de rango")
+        }
+        // Un place_id de Google tiene un formato acotado; cualquier otra cosa
+        // en ese campo es alguien probando.
+        req.googlePlaceId?.let {
+            if (it.length > 255 || !it.matches(Regex("[A-Za-z0-9_-]+"))) {
+                badRequest("identificador de lugar inválido")
+            }
+        }
+
         // Deduplicación en dos pasos. El place_id es el criterio fuerte:
         // si dos personas cargan el mismo bar desde el buscador de Google,
         // traen exactamente el mismo ID y no hay ambigüedad.
@@ -208,7 +226,7 @@ class BarRepo(private val db: Db) {
               AND status <> 'rejected'
             LIMIT 1
             """.trimIndent(),
-            req.name, req.lng, req.lat,
+            name, req.lng, req.lat,
         ) { it.getLong("id") }
         if (dup != null) conflict("ya existe un bar con ese nombre a menos de 100 m (id $dup)")
 
@@ -224,7 +242,7 @@ class BarRepo(private val db: Db) {
             VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, ?::moderation_status, ?, ?)
             RETURNING id
             """.trimIndent(),
-            req.name, req.address, req.neighbourhood, req.lng, req.lat,
+            name, req.address?.trim(), req.neighbourhood?.trim(), req.lng, req.lat,
             status, createdBy, req.googlePlaceId,
         ) { it.getLong("id") }!!
     }

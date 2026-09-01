@@ -1,5 +1,5 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Flag, PriceAccepted, Review, Session, User, UserStats,
+  BarDetail, BarPin, BeerStyle, Flag, PriceAccepted, PricePoint, Review, Session, User, UserStats,
 } from './types'
 
 /**
@@ -109,6 +109,10 @@ export const searchBars = (q: string, lat?: number, lng?: number) =>
 
 export const styles = () => req<BeerStyle[]>('GET', '/styles')
 export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/reviews`)
+
+/** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
+export const priceHistory = (barId: number, style: string) =>
+  req<PricePoint[]>('GET', `/bars/${barId}/history`, { params: { style } })
 
 // ---------- aportes ----------
 export const reportPrice = (b: { barId: number; styleSlug: string; price: number; sizeMl: number }) =>

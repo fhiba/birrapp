@@ -42,7 +42,7 @@ export function ReportPrice({
     <div style={{
       position: 'fixed', inset: 0, zIndex: 70, background: 'var(--base)',
       display: 'flex', flexDirection: 'column',
-      paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)',
+      paddingTop: 'var(--safe-top)', paddingBottom: 'var(--nav-gap)',
     }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
         <button onClick={onCancel} style={{
@@ -84,7 +84,7 @@ export function ReportPrice({
         </span>
       </div>
 
-      <div style={{ padding: '0 18px' }}>
+      <div className="desk-narrow" style={{ padding: '0 18px', width: '100%' }}>
         {[['1','2','3'],['4','5','6'],['7','8','9'],['000','0','⌫']].map((row, i) => (
           <div key={i} style={{ display: 'flex' }}>
             {row.map(k => (

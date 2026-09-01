@@ -47,13 +47,13 @@ export function BottomNav() {
   return (
     <>
       <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, height: 96, zIndex: 40,
+        position: 'fixed', left: 0, right: 0, bottom: 0, height: 88, zIndex: 40,
         pointerEvents: 'none',
         background: 'linear-gradient(transparent, rgba(26,20,16,.9) 60%, var(--base))',
       }} />
-      <nav style={{
+      <nav className="bottom-nav" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)',
-        bottom: `calc(12px + var(--safe-bottom))`, zIndex: 50,
+        bottom: 'var(--nav-gap)', zIndex: 50,
         display: 'flex', gap: 2, padding: 5, borderRadius: 999,
         background: 'rgba(38,30,24,.94)',
         border: '.8px solid rgba(255,255,255,.16)',
@@ -78,7 +78,7 @@ export function Sheet(
       <div onClick={e => e.stopPropagation()} style={{
         width: '100%', maxHeight: '86vh', overflowY: 'auto',
         background: 'var(--raised)', borderRadius: '22px 22px 0 0',
-        padding: `18px 20px calc(20px + var(--safe-bottom))`,
+        padding: `18px 20px calc(20px + var(--nav-gap))`,
       }}>
         {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 20 }}>{title}</h2>}
         {children}
@@ -141,7 +141,7 @@ export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
   setTimeout(onDone, 3200)
   return (
     <div style={{
-      position: 'fixed', left: 16, right: 16, bottom: `calc(96px + var(--safe-bottom))`,
+      position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
       zIndex: 70, background: 'var(--elevated)', borderRadius: 14, padding: '13px 16px',
       fontSize: 13.5, boxShadow: '0 8px 30px rgba(0,0,0,.45)',
     }}>{text}</div>

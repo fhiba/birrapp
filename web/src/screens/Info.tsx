@@ -12,6 +12,7 @@ export function InfoScreen() {
       position: 'absolute', inset: 0, overflowY: 'auto',
       padding: `calc(10px + var(--safe-top)) 22px 60px`,
     }}>
+      <div className="desk-narrow">
       <button onClick={() => nav(-1)} style={{
         width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
       }} aria-label="Volver">←</button>
@@ -49,6 +50,7 @@ export function InfoScreen() {
       <p style={{ color: 'var(--faint)', fontSize: 11, marginTop: 30, lineHeight: 1.5 }}>
         Datos de bares © colaboradores de OpenStreetMap, bajo licencia ODbL.
       </p>
+      </div>
     </div>
   )
 }

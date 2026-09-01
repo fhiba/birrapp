@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import com.birrapp.data.api.ApiClient
 import com.birrapp.data.model.*
 
+data class HistoryState(val styleName: String, val points: List<PricePoint>?)
+
 data class BarDetailUiState(
     val bar: BarDetail? = null,
     val reviews: List<Review> = emptyList(),
@@ -18,6 +20,7 @@ data class BarDetailUiState(
     val error: String? = null,
     val toast: String? = null,
     val busyStyle: String? = null,
+    val history: HistoryState? = null,
 )
 
 class BarDetailViewModel(
@@ -115,6 +118,32 @@ class BarDetailViewModel(
         viewModelScope.launch {
             runCatching { api.deleteBar(barId) }
                 .onSuccess { onDeleted() }
+                .onFailure { e -> _state.update { it.copy(toast = e.message) } }
+        }
+    }
+
+    fun openHistory(styleSlug: String, styleName: String) {
+        _state.update { it.copy(history = HistoryState(styleName, null)) }
+        viewModelScope.launch {
+            val pts = runCatching { api.priceHistory(barId, styleSlug) }.getOrDefault(emptyList())
+            _state.update { it.copy(history = HistoryState(styleName, pts)) }
+        }
+    }
+
+    fun closeHistory() = _state.update { it.copy(history = null) }
+
+    /** Reportar un precio mal cargado. Disponible para cualquiera, no sólo
+     *  moderadores: quien ve el precio mal es el que está en el bar. */
+    fun reportBadPrice(priceId: Long, description: String) {
+        viewModelScope.launch {
+            runCatching {
+                api.flag(NewFlagRequest("price", priceId, "precio incorrecto: $description"))
+            }
+                .onSuccess {
+                    _state.update {
+                        it.copy(toast = "Reportado. Gracias, lo revisa un moderador.")
+                    }
+                }
                 .onFailure { e -> _state.update { it.copy(toast = e.message) } }
         }
     }

@@ -1,5 +1,12 @@
 package com.birrapp.ui.bar
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import com.birrapp.data.model.PricePoint
+import com.birrapp.ui.theme.PriceMedium
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -46,6 +53,7 @@ fun BarDetailScreen(
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var badPrice by remember { mutableStateOf<StylePrice?>(null) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -239,6 +247,12 @@ fun BarDetailScreen(
                                     reportingStyle = price.styleSlug; showReportSheet = true
                                 } else onNeedSignIn()
                             },
+                            onHistory = {
+                                viewModel.openHistory(price.styleSlug, price.styleName)
+                            },
+                            onFlag = {
+                                if (isSignedIn) badPrice = price else onNeedSignIn()
+                            },
                         )
                         HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
                     }
@@ -326,6 +340,40 @@ fun BarDetailScreen(
         )
     }
 
+    state.history?.let { h ->
+        PriceHistoryDialog(h) { viewModel.closeHistory() }
+    }
+
+    badPrice?.let { price ->
+        AlertDialog(
+            onDismissRequest = { badPrice = null },
+            containerColor = Ink.Raised,
+            title = { Text("¿Reportar este precio?", color = Ink.Cream) },
+            text = {
+                Text(
+                    "Vas a avisar que el precio de ${price.styleName} está mal " +
+                        "cargado. Un moderador lo revisa.\n\n" +
+                        "Si sólo cambió, es mejor usar Actualizar: reportar es para " +
+                        "precios que nunca fueron ciertos.",
+                    color = Ink.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.reportBadPrice(
+                        price.id, "${price.styleName} a ${formatPrice(price.price)}",
+                    )
+                    badPrice = null
+                }) { Text("Reportar", color = Ink.Amber) }
+            },
+            dismissButton = {
+                TextButton(onClick = { badPrice = null }) {
+                    Text(stringResource(R.string.cancel), color = Ink.Muted)
+                }
+            },
+        )
+    }
+
     if (showReportSheet) {
         ReportPriceSheet(
             styles = state.styles,
@@ -355,6 +403,8 @@ private fun PriceRow(
     onRemove: () -> Unit,
     onConfirm: () -> Unit,
     onUpdate: () -> Unit,
+    onHistory: () -> Unit,
+    onFlag: () -> Unit,
 ) {
     val accent = FreshnessColors.of(price.fresh)
     val dimmed = price.fresh == Freshness.stale
@@ -478,5 +528,104 @@ private fun PrimaryAction(label: String, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(label, color = Ink.Base, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+
+/**
+ * Historial de un precio.
+ *
+ * Sale gratis del modelo append-only: cada bar ya tiene su serie completa sin
+ * haber hecho nada extra. Con inflación es lo interesante — no sólo cuánto
+ * sale hoy, sino cuánto subió.
+ */
+@Composable
+private fun PriceHistoryDialog(state: HistoryState, onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        containerColor = Ink.Raised,
+        title = { Text(state.styleName, color = Ink.Cream) },
+        text = {
+            val pts = state.points
+            when {
+                pts == null -> Box(Modifier.fillMaxWidth().padding(20.dp)) {
+                    CircularProgressIndicator(
+                        Modifier.align(Alignment.Center).size(22.dp),
+                        color = Ink.Amber, strokeWidth = 2.dp,
+                    )
+                }
+                pts.size < 2 -> Text(
+                    "Todavía no hay suficientes reportes para mostrar una evolución. " +
+                        "Hace falta al menos un segundo precio.",
+                    color = Ink.Muted,
+                )
+                else -> {
+                    // Del más viejo al más nuevo: la API los devuelve al revés.
+                    val series = pts.reversed()
+                    val values = series.map { it.price }
+                    val min = values.min()
+                    val max = values.max()
+                    val span = (max - min).takeIf { it > 0 } ?: 1.0
+
+                    Column {
+                        Canvas(Modifier.fillMaxWidth().height(90.dp)) {
+                            val stepX =
+                                if (series.size > 1) size.width / (series.size - 1) else 0f
+                            val path = Path()
+                            series.forEachIndexed { i, p ->
+                                val x = stepX * i
+                                val y = size.height -
+                                    ((p.price - min) / span).toFloat() * (size.height - 12f) - 6f
+                                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                                drawCircle(Ink.Amber, radius = 4f, center = Offset(x, y))
+                            }
+                            drawPath(
+                                path, Ink.Amber,
+                                style = Stroke(width = 5f, cap = StrokeCap.Round),
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        val first = series.first()
+                        val last = series.last()
+                        val change =
+                            if (first.price > 0)
+                                (((last.price - first.price) / first.price) * 100).toInt()
+                            else null
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            HistoryBox("Primero", formatPrice(first.price), Modifier.weight(1f))
+                            HistoryBox("Ahora", formatPrice(last.price), Modifier.weight(1f))
+                            if (change != null) {
+                                HistoryBox(
+                                    "Variación",
+                                    (if (change > 0) "+" else "") + "$change%",
+                                    Modifier.weight(1f),
+                                    if (change > 0) Ink.Danger else Ink.Fresh,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onClose) { Text("Cerrar", color = Ink.Amber) }
+        },
+    )
+}
+
+@Composable
+private fun HistoryBox(
+    label: String, value: String, modifier: Modifier = Modifier, color: Color = Ink.Cream,
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, style = PriceMedium.copy(fontSize = 15.sp), color = color)
+        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = 10.sp, color = Ink.Faint)
     }
 }

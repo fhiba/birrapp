@@ -124,7 +124,7 @@ export function MapScreen(p: Props) {
 
       {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
       <button onClick={p.onRecenter} className="glass" style={{
-        position: 'absolute', left: 14, bottom: `calc(84px + var(--safe-bottom))`,
+        position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
         width: 48, height: 48, borderRadius: '50%', zIndex: 10,
         display: 'grid', placeItems: 'center',
       }} aria-label="Centrar en mi ubicación">
@@ -134,7 +134,7 @@ export function MapScreen(p: Props) {
       </button>
 
       <button onClick={() => nav('/agregar')} style={{
-        position: 'absolute', right: 14, bottom: `calc(84px + var(--safe-bottom))`,
+        position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
         width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
         color: 'var(--base)', fontSize: 27, zIndex: 10, lineHeight: 1,
         boxShadow: '0 6px 22px rgba(0,0,0,.4)',

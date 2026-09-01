@@ -28,7 +28,7 @@ export function AndroidPrompt() {
   return (
     <div className="glass" style={{
       position: 'fixed', left: 12, right: 12,
-      bottom: `calc(84px + var(--safe-bottom))`, zIndex: 45,
+      bottom: `calc(72px + var(--nav-gap))`, zIndex: 45,
       borderRadius: 16, padding: '12px 14px',
       display: 'flex', alignItems: 'center', gap: 12,
     }}>

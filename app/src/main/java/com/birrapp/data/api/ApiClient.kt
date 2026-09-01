@@ -140,6 +140,10 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun styles(): List<BeerStyle> = request(HttpMethod.Get, "styles")
 
+    /** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
+    suspend fun priceHistory(barId: Long, style: String): List<PricePoint> =
+        request(HttpMethod.Get, "bars/$barId/history", params = mapOf("style" to style))
+
     /** Busca entre los bares ya cargados, para no crear duplicados. */
     suspend fun searchBars(query: String, lat: Double?, lng: Double?): List<BarPin> =
         request(

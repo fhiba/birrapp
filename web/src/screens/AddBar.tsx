@@ -132,7 +132,7 @@ export function AddBarScreen(
         <h1 className="ttl" style={{ fontSize: 20, margin: 0 }}>Bar nuevo</h1>
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 18px' }}>
+      <div className="desk-narrow" style={{ flex: 1, overflowY: 'auto', padding: '0 18px', width: '100%' }}>
         {chosen ? (
           <>
             <div style={{
@@ -240,7 +240,7 @@ export function AddBarScreen(
       </div>
 
       <button disabled={!canSend || sending} onClick={submit} className="lbl" style={{
-        margin: `12px 18px calc(18px + var(--safe-bottom))`, padding: 16,
+        margin: `12px 18px calc(14px + var(--nav-gap))`, padding: 16,
         borderRadius: 16, fontSize: 15,
         background: canSend ? 'var(--amber)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',

@@ -102,20 +102,25 @@ for (const el of data.elements) {
 process.stderr.write(`bares con nombre y coordenadas: ${bars.length}\n`);
 if (!bars.length) { process.stderr.write('nada que insertar\n'); process.exit(1); }
 
-const q = (v) => (v == null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
-const values = bars
-  .map(b => `(${q(b.osmId)}, ${q(b.name)}, ${q(b.address)}, ${q(b.neighbourhood)}, ` +
-            `ST_MakePoint(${b.lon}, ${b.lat})::geography, 'approved')`)
+// Los nombres de OSM los edita cualquiera en el mundo, así que son entrada
+// no confiable. Antes se escapaban comillas a mano y se concatenaba el SQL:
+// funcionaba, pero el escapeo manual es exactamente donde aparecen los
+// agujeros. Ahora va por parámetros, que no se puede escapar mal.
+const cols = 6;
+const placeholders = bars
+  .map((_, i) => {
+    const b = i * cols;
+    return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, ` +
+           `ST_MakePoint($${b + 5}, $${b + 6})::geography, 'approved')`;
+  })
   .join(',\n  ');
 
-// Los bares de OSM entran ya aprobados: OSM es una fuente curada, no una
-// carga anónima. Sólo lo que sube la comunidad pasa por moderación.
-// El UPSERT no toca `status`: si un moderador rechazó un bar, un re-seed
-// no puede resucitarlo.
+const values = bars.flatMap(b => [b.osmId, b.name, b.address, b.neighbourhood, b.lon, b.lat]);
+
 const sql = `
 INSERT INTO bars (osm_id, name, address, neighbourhood, location, status)
 VALUES
-  ${values}
+  ${placeholders}
 ON CONFLICT (osm_id) DO UPDATE
   SET name          = EXCLUDED.name,
       address       = EXCLUDED.address,
@@ -124,7 +129,42 @@ ON CONFLICT (osm_id) DO UPDATE
       updated_at    = now();
 `;
 
-if (DRY) { console.log(sql.slice(0, 2000)); process.exit(0); }
+if (DRY) { console.log(sql.slice(0, 1200)); console.log(`\n... ${bars.length} bares`); process.exit(0); }
+
+// `psql -c` no acepta parámetros enlazados, así que los valores se mandan
+// por stdin en formato COPY —que es texto delimitado, no SQL— a una tabla
+// temporal, y desde ahí se hace el INSERT. Nada de lo que viene de OSM se
+// interpreta como SQL en ningún momento.
+const esc = (v) => v === null || v === undefined
+  ? '\\N'
+  : String(v).replace(/\\/g, '\\\\').replace(/\t/g, ' ').replace(/\n/g, ' ').replace(/\r/g, '');
+
+const copyBody = bars
+  .map(b => [b.osmId, b.name, b.address, b.neighbourhood, b.lon, b.lat].map(esc).join('\t'))
+  .join('\n');
+
+const script = `
+BEGIN;
+CREATE TEMP TABLE incoming (
+  osm_id text, name text, address text, neighbourhood text, lon float8, lat float8
+) ON COMMIT DROP;
+
+COPY incoming FROM STDIN;
+${copyBody}
+\\.
+
+INSERT INTO bars (osm_id, name, address, neighbourhood, location, status)
+SELECT osm_id, left(name, 120), left(address, 300), neighbourhood,
+       ST_MakePoint(lon, lat)::geography, 'approved'
+FROM incoming
+ON CONFLICT (osm_id) DO UPDATE
+  SET name          = EXCLUDED.name,
+      address       = EXCLUDED.address,
+      neighbourhood = COALESCE(EXCLUDED.neighbourhood, bars.neighbourhood),
+      location      = EXCLUDED.location,
+      updated_at    = now();
+COMMIT;
+`;
 
 const env = {
   ...process.env,
@@ -136,7 +176,7 @@ execFileSync('psql', [
   '-U', process.env.DATABASE_USER || 'birrapp',
   '-d', process.env.PGDATABASE || 'birrapp',
   '-v', 'ON_ERROR_STOP=1',
-  '-c', sql,
-], { env, stdio: 'inherit' });
+  '-q', '-f', '-',
+], { env, input: script, stdio: ['pipe', 'inherit', 'inherit'] });
 
 process.stderr.write(`listo: ${bars.length} bares insertados/actualizados\n`);

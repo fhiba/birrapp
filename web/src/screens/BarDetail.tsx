@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { ageLabel, formatDistance, formatPrice, freshnessColor } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 import { ReportPrice } from './ReportPrice'
+import { PriceHistory } from '../ui/PriceHistory'
 
 export function BarDetailScreen({
   user, center, styles, onChanged,
@@ -26,6 +27,8 @@ export function BarDetailScreen({
   const [busy, setBusy] = useState<string | null>(null)
   const [reporting, setReporting] = useState<{ style?: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [history, setHistory] = useState<{ slug: string; name: string } | null>(null)
+  const [reportingBad, setReportingBad] = useState<StylePrice | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
@@ -63,6 +66,7 @@ export function BarDetailScreen({
       position: 'absolute', inset: 0, overflowY: 'auto',
       paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 40,
     }}>
+      <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button onClick={() => nav(-1)} style={{
@@ -142,6 +146,8 @@ export function BarDetailScreen({
                 : nav('/perfil')}
               onUpdate={() => user ? setReporting({ style: p.styleSlug }) : nav('/perfil')}
               onRemove={() => act(() => api.removePrice(p.id), p.styleSlug)}
+              onHistory={() => setHistory({ slug: p.styleSlug, name: p.styleName })}
+              onFlag={() => user ? setReportingBad(p) : nav('/perfil')}
             />
           ))}
           <div style={{ padding: 18 }}>
@@ -198,6 +204,40 @@ export function BarDetailScreen({
         />
       )}
 
+      </div>
+      {history && (
+        <PriceHistory
+          barId={barId} styleSlug={history.slug} styleName={history.name}
+          onClose={() => setHistory(null)}
+        />
+      )}
+
+      {reportingBad && (
+        <Confirm
+          title="¿Reportar este precio?"
+          body={<>
+            Vas a avisar que el precio de <strong>{reportingBad.styleName}</strong> está
+            mal cargado. Un moderador lo revisa.
+            <br /><br />
+            Si sólo cambió, es mejor usar <strong>Actualizar</strong>: reportar es
+            para precios que nunca fueron ciertos.
+          </>}
+          confirmLabel="Reportar"
+          onCancel={() => setReportingBad(null)}
+          onConfirm={async () => {
+            const p = reportingBad
+            setReportingBad(null)
+            try {
+              await api.flag({
+                targetType: 'price', targetId: p.id,
+                reason: `precio incorrecto: ${p.styleName} a ${formatPrice(p.price)}`,
+              })
+              setToast('Reportado. Gracias, lo revisa un moderador.')
+            } catch (e) { setToast((e as Error).message) }
+          }}
+        />
+      )}
+
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </div>
   )
@@ -209,10 +249,11 @@ export function BarDetailScreen({
  * confirmar tiene que costar menos que corregir, o el dataset envejece.
  */
 function PriceRow({
-  price, busy, isModerator, onConfirm, onUpdate, onRemove,
+  price, busy, isModerator, onConfirm, onUpdate, onRemove, onHistory, onFlag,
 }: {
   price: StylePrice; busy: boolean; isModerator: boolean
   onConfirm: () => void; onUpdate: () => void; onRemove: () => void
+  onHistory: () => void; onFlag: () => void
 }) {
   const color = freshnessColor(price.freshness)
   const dim = price.freshness === 'stale'
@@ -235,6 +276,16 @@ function PriceRow({
           {price.sizeMl !== 473 && (
             <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{price.sizeMl} ml</div>
           )}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 6 }}>
+            <button onClick={onHistory} style={{ fontSize: 11, color: 'var(--muted)' }}>
+              Historial
+            </button>
+            {/* Reportar está disponible para cualquiera, no sólo moderadores:
+                quien ve el precio mal es el que está en el bar. */}
+            <button onClick={onFlag} style={{ fontSize: 11, color: 'var(--muted)' }}>
+              Reportar
+            </button>
+          </div>
         </div>
       </div>
 

@@ -30,8 +30,9 @@ export function ListScreen(p: Props) {
     <div ref={scroller} style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
       paddingTop: `calc(14px + var(--safe-top))`,
-      paddingBottom: `calc(120px + var(--safe-bottom))`,
+      paddingBottom: `calc(108px + var(--nav-gap))`,
     }}>
+      <div className="desk-narrow">
       <header style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline' }}>
           <h1 className="ttl" style={{ fontSize: 28, margin: 0, flex: 1 }}>
@@ -81,7 +82,7 @@ export function ListScreen(p: Props) {
       <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
         {p.bars.map(b => (
           <li key={b.id}>
-            <button onClick={() => nav(`/bar/${b.id}`)} style={{
+            <button className="row-hover" onClick={() => nav(`/bar/${b.id}`)} style={{
               display: 'flex', alignItems: 'center', gap: 14, width: '100%',
               padding: '15px 18px', textAlign: 'left',
               borderBottom: '1px solid rgba(255,255,255,.06)',
@@ -113,6 +114,7 @@ export function ListScreen(p: Props) {
           </li>
         ))}
       </ul>
+      </div>
     </div>
   )
 }

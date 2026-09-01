@@ -37,6 +37,19 @@ private const val OUTLIER_FACTOR = 3.0
 /** Mínimo de datos antes de que la mediana signifique algo. */
 private const val OUTLIER_MIN_SAMPLES = 5
 
+/**
+ * Techo absoluto del precio.
+ *
+ * La columna es numeric(12,2), así que la base ya rechaza cualquier cosa por
+ * encima de 10^10 — pero lo hace con "numeric field overflow", que sale como
+ * error 500 y no le dice nada a quien lo cargó. Este tope corta antes y
+ * devuelve un mensaje entendible.
+ *
+ * 10 millones de pesos es absurdo para una pinta hoy, y deja margen para
+ * años de inflación antes de que haya que tocarlo.
+ */
+private const val MAX_PRICE = 10_000_000.0
+
 class PriceRepo(private val db: Db) {
 
     fun styles(): List<StyleDto> = db.conn {
@@ -53,6 +66,10 @@ class PriceRepo(private val db: Db) {
     fun report(req: NewPriceRequest, userId: Long, isConfirmation: Boolean = false): PriceAccepted =
         db.tx { c ->
             if (req.price <= 0) badRequest("el precio tiene que ser mayor a cero")
+            if (!req.price.isFinite()) badRequest("ese precio no es un número válido")
+            if (req.price > MAX_PRICE) {
+                badRequest("ese precio es demasiado alto, revisá si no sobra un cero")
+            }
             if (req.sizeMl !in 100..2000) badRequest("tamaño fuera de rango (100-2000 ml)")
 
             val styleId = c.queryOne(

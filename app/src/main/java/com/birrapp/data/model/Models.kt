@@ -56,6 +56,8 @@ data class BarDetail(
 
 @Serializable data class BeerStyle(val slug: String, val name: String)
 
+@Serializable data class PricePoint(val price: Double, val sizeMl: Int, val at: String)
+
 @Serializable data class UserStats(
     val prices: Int, val confirmations: Int, val bars: Int, val reviews: Int,
 )
