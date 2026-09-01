@@ -123,13 +123,34 @@ tiene que dejar de servirse de inmediato, no en la próxima pasada de un
 moderador — y son fotos sacadas dentro de bares, así que va a haber gente en
 ellas.
 
-### 5. Canal de soporte
+### 5. Perfil ajeno, para moderar a la persona y no al contenido
+Hoy la moderación llega hasta la fila: bajar un precio, una foto, un voto. No
+hay forma de llegar desde ahí a **quién** lo cargó.
+
+Falta poco: el ban ya está implementado del lado del servidor y se hace
+cumplir. `POST /moderation/users/{id}/ban` existe, y `isBanned` se chequea en
+el login y en cada refresh (`AuthRoutes.kt`), así que una cuenta baneada deja
+de poder aportar en cuanto se le vence el access token. Lo que no existe es la
+pantalla: una vista del perfil de otra persona, a la que se llegue tocando su
+nombre en un comentario o una foto, con sus aportes y —en modo moderador— el
+botón de banear.
+
+Esto es lo que cierra el caso de un comentario abusivo. Bajar la fila no
+alcanza, porque el autor puede volver a mandarla; lo que corta el problema es
+sacarle a esa persona la posibilidad de comentar, no perseguir cada fila.
+
+Detalle a decidir: el ban tarda hasta una expiración de token en surtir efecto
+(30 minutos por defecto), por el mismo motivo que los cambios de rol —el dato
+viaja en el JWT y no se va a la base en cada request—. Para un abuso sostenido
+puede no alcanzar.
+
+### 6. Canal de soporte
 A resolver. Lo más barato es un mail o un formulario que caiga en la cola de
 moderación. **Ojo que Apple y Google exigen un medio de contacto publicado**
 para apps con contenido de usuarios, así que esto no es opcional si se quiere
 publicar.
 
-### 6. Precio por consenso, no por último reporte
+### 7. Precio por consenso, no por último reporte
 Hoy `v_current_prices` hace `DISTINCT ON` ordenado por fecha: **el último que
 reporta gana**, aunque sea uno solo contra veinte. Alcanza con que alguien
 cargue un valor falso para que ese sea *el* precio del bar.
@@ -160,16 +181,6 @@ Ojo con `AGENTS.md`: tocar `v_current_prices` obliga a correr `FreshnessTest` y
 `PriceReportTest`. Y hay que revisar `v_bar_headline`, que se construye encima.
 
 ## Deuda técnica detectada
-
-### Un voto moderado se revive re-votando
-`RatingRepo.upsert` hace `ON CONFLICT ... SET status = 'active'`, con el
-argumento de que editar un voto es contenido nuevo y no el que se moderó. El
-costo: si un moderador baja un comentario abusivo, su autor lo vuelve a mandar
-y queda publicado otra vez. Para precios pasa lo mismo y se convive con eso,
-pero un comentario de texto libre es un vector bastante peor.
-
-Salidas posibles: no revivir si lo bajó un moderador (hace falta guardar quién
-lo bajó, hoy no se guarda), o apoyarse en `users.banned_at`, que ya existe.
 
 ### `/bars` no tiene límite de tasa
 Cualquiera se baja la base entera con un `curl`. Mientras el backend vivía
@@ -202,6 +213,6 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 - [x] Borrado de cuenta dentro de la app — hecho en 0.2.0
 - [ ] Política de privacidad publicada
 - [ ] Declaración de datos (Data Safety en Play, nutrition labels en Apple)
-- [ ] Medio de contacto publicado (ver punto 5)
+- [ ] Medio de contacto publicado (ver punto 6)
 - [ ] Bloqueo entre usuarios
 - [ ] En iOS: Sign in with Apple, obligatorio si se ofrece login de Google

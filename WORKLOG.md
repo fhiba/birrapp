@@ -377,8 +377,14 @@ diagonal para cerrar cambiaba de foto sin querer. Las flechas van tras una regla
 `(hover: hover) and (pointer: fine)`: en un teléfono el gesto es el swipe y dos
 botones encima de la foto son dos botones de más.
 
-Queda anotado en el backlog un agujero que aparece con esto: `upsert` revive un
-voto bajado por un moderador si el autor lo vuelve a mandar.
+Sobre el `upsert` que revive un voto bajado por un moderador: al principio se
+anotó como agujero del modelo, pero el encuadre estaba mal. No se puede impedir
+que alguien vuelva a comentar reenviando una fila —siempre puede mandar otra—,
+así que perseguir filas no cierra el caso. Lo que lo cierra es sacarle a esa
+persona la posibilidad de aportar, y para eso el ban **ya existe y se hace
+cumplir**: `isBanned` se chequea en el login y en cada refresh. Lo que falta es
+la pantalla para llegar a esa persona desde su comentario. Queda anotado como
+punto 5 del backlog.
 
 Verificado contra la base local: votar, moderar el voto, comprobar que el
 comentario desaparece y la nota vuelve a cero votos.
