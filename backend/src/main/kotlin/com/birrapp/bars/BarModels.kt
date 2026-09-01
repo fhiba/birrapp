@@ -35,6 +35,7 @@ data class BarDetailDto(
     val lat: Double,
     val lng: Double,
     val status: String,
+    val googlePlaceId: String? = null,
     val distanceMeters: Double?,
     val prices: List<StylePriceDto>,
     val avgRating: Double?,
@@ -48,6 +49,11 @@ data class NewBarRequest(
     val lng: Double,
     val address: String? = null,
     val neighbourhood: String? = null,
+    /**
+     * Place ID de Google Maps, si el usuario eligió el bar del buscador.
+     * Es lo único de Places que se puede guardar de forma permanente.
+     */
+    val googlePlaceId: String? = null,
 )
 
 enum class BarSort { distance, cheapest }

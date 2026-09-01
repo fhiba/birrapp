@@ -75,13 +75,14 @@ fun MapScreen(
     // el botón parecía no hacer nada.
     LaunchedEffect(state.recenterToken) {
         if (state.recenterToken > 0) {
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(
-                    LatLng(state.center.first, state.center.second),
-                    16f,
-                ),
-                durationMs = 700,
+            val update = CameraUpdateFactory.newLatLngZoom(
+                LatLng(state.center.first, state.center.second), 15f,
             )
+            if (state.recenterAnimated) {
+                cameraPositionState.animate(update, durationMs = 700)
+            } else {
+                cameraPositionState.move(update)
+            }
         }
     }
 
@@ -237,7 +238,7 @@ fun MapScreen(
                     if (state.hasLocationPermission) {
                         viewModel.refreshLocationThenLoad(recenter = true)
                     } else {
-                        permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     }
                 },
             shape = RoundedCornerShape(50),

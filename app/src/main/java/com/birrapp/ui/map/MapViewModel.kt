@@ -33,6 +33,8 @@ data class MapUiState(
      * el mismo lugar no producirían cambio de estado y el segundo se perdería.
      */
     val recenterToken: Int = 0,
+    /** false = salto instantáneo (primer arranque); true = animación. */
+    val recenterAnimated: Boolean = true,
     /** true mientras se muestran datos guardados y todavía no llegó lo fresco. */
     val fromCache: Boolean = false,
 )
@@ -56,7 +58,19 @@ class MapViewModel(
         viewModelScope.launch {
             val granted = location.hasPermission()
             val here = location.current()
-            _state.update { it.copy(center = here, hasLocationPermission = granted) }
+            // Mover la cámara ya: antes el estado se actualizaba pero la
+            // cámara se quedaba donde había arrancado (el Obelisco), así que
+            // el usuario veía el centro aunque estuviera en zona norte.
+            // Salto instantáneo, no animación: volar desde el Obelisco hasta
+            // San Isidro al abrir la app es un viaje que nadie pidió.
+            _state.update {
+                it.copy(
+                    center = here,
+                    hasLocationPermission = granted,
+                    recenterToken = it.recenterToken + 1,
+                    recenterAnimated = false,
+                )
+            }
 
             // Lo guardado en disco, si cubre donde está parado: aparece al
             // instante, sin esperar a la red.
@@ -90,6 +104,7 @@ class MapViewModel(
                     center = center,
                     hasLocationPermission = granted,
                     recenterToken = if (recenter) it.recenterToken + 1 else it.recenterToken,
+                    recenterAnimated = true,
                 )
             }
             load()

@@ -3,9 +3,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Ubicación aproximada alcanza para ordenar bares por cercanía.
-         No pedimos FINE: no hace falta y es más intrusivo. El usuario
-         puede conceder sólo COARSE y la app funciona igual. -->
+    <!-- Se piden las dos. Declarar sólo COARSE fuerza precisión aproximada
+         (±1-2 km), y con ese error ordenar bares "por cercanía" es ruido:
+         a 2 km de margen, "a 94 m" no significa nada. Con FINE declarada,
+         Android le ofrece al usuario elegir Precisa o Aproximada, y la app
+         funciona con cualquiera de las dos. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-feature android:name="android.hardware.location" android:required="false" />

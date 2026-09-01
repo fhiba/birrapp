@@ -15,6 +15,8 @@ import com.birrapp.core.Config
 import com.birrapp.core.forbidden
 import com.birrapp.core.unauthorized
 
+private val authLog = org.slf4j.LoggerFactory.getLogger("birrapp.auth")
+
 @Serializable data class GoogleLoginRequest(val idToken: String)
 @Serializable data class RefreshRequest(val refreshToken: String)
 @Serializable data class SessionResponse(
@@ -41,7 +43,7 @@ fun Route.authRoutes(
             // Sin client ID configurado no hay forma de validar nada: mejor decirlo
             // explícito que fallar más adentro con un error incomprensible.
             if (cfg.googleWebClientId.isBlank()) {
-            call.application.log.error(
+            authLog.error(
                 "rechazado /auth/google: falta GOOGLE_WEB_CLIENT_ID en la config del servidor",
             )
                 throw com.birrapp.core.ApiException(

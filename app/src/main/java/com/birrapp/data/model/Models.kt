@@ -46,6 +46,7 @@ data class BarDetail(
     val lat: Double,
     val lng: Double,
     val status: String,
+    val googlePlaceId: String? = null,
     val distanceMeters: Double? = null,
     val prices: List<StylePrice> = emptyList(),
     val avgRating: Double? = null,
@@ -70,6 +71,8 @@ data class BarDetail(
 @Serializable data class NewBarRequest(
     val name: String, val lat: Double, val lng: Double,
     val address: String? = null, val neighbourhood: String? = null,
+    /** Lo único de Google Places que se puede guardar de forma permanente. */
+    val googlePlaceId: String? = null,
 )
 
 @Serializable data class NewReviewRequest(

@@ -87,7 +87,7 @@ class BarRepo(private val db: Db) {
     fun detail(id: Long, fromLat: Double?, fromLng: Double?): BarDetailDto? = db.conn { c ->
         val bar = c.queryOne(
             """
-            SELECT b.id, b.name, b.address, b.neighbourhood, b.status,
+            SELECT b.id, b.name, b.address, b.neighbourhood, b.status, b.google_place_id,
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    CASE WHEN ?::float8 IS NULL THEN NULL
@@ -109,6 +109,7 @@ class BarRepo(private val db: Db) {
                 lat = rs.getDouble("lat"),
                 lng = rs.getDouble("lng"),
                 status = rs.getString("status"),
+                googlePlaceId = rs.getString("google_place_id"),
                 distanceMeters = rs.getDouble("distance_meters").takeUnless { rs.wasNull() },
                 prices = emptyList(),
                 avgRating = rs.getDouble("avg_rating").takeUnless { rs.wasNull() },
@@ -144,33 +145,18 @@ class BarRepo(private val db: Db) {
      * de pines repetidos y los precios se parten entre ellos.
      */
     fun create(req: NewBarRequest, createdBy: Long): Long = db.conn { c ->
-        // PostGIS NO rechaza coordenadas fuera de rango: las mete a la fuerza
-        // adentro del rango con un simple NOTICE. ST_MakePoint(-58.4, 999)
-        // termina siendo POINT(-58.4 -81), o sea un bar en la Antártida creado
-        // en silencio. Por eso se valida acá, igual que en GET /bars.
-        if (req.lat !in -90.0..90.0 || req.lng !in -180.0..180.0) {
-            badRequest("coordenadas fuera de rango")
-        }
-        val name = req.name.trim()
-        if (name.isBlank()) badRequest("el bar necesita un nombre")
-        if (name.length > MAX_NAME) badRequest("el nombre es demasiado largo (máx $MAX_NAME)")
-        if ((req.address?.length ?: 0) > MAX_ADDRESS) badRequest("la dirección es demasiado larga")
-        if ((req.neighbourhood?.length ?: 0) > MAX_ADDRESS) badRequest("el barrio es demasiado largo")
-
-        // Sin esto, una cuenta sola puede inundar la cola de moderación con
-        // bares inventados: alcanza con variar el nombre para esquivar el
-        // chequeo de duplicados de abajo.
-        val recent = c.queryOne(
-            """
-            SELECT count(*) AS n FROM bars
-            WHERE created_by = ? AND created_at > now() - make_interval(hours => 24)
-            """.trimIndent(),
-            createdBy,
-        ) { it.getInt("n") } ?: 0
-        if (recent >= MAX_BARS_PER_DAY) {
-            tooManyRequests("ya cargaste $MAX_BARS_PER_DAY bares hoy, probá mañana")
+        // Deduplicación en dos pasos. El place_id es el criterio fuerte:
+        // si dos personas cargan el mismo bar desde el buscador de Google,
+        // traen exactamente el mismo ID y no hay ambigüedad.
+        req.googlePlaceId?.let { placeId ->
+            val existing = c.queryOne(
+                "SELECT id FROM bars WHERE google_place_id = ?", placeId,
+            ) { it.getLong("id") }
+            if (existing != null) conflict("ese bar ya está cargado (id $existing)")
         }
 
+        // Sin place_id sólo queda el heurístico: mismo nombre a menos de
+        // 100 m. Es más débil, por eso estos quedan pendientes de moderación.
         val dup = c.queryOne(
             """
             SELECT id FROM bars
@@ -179,17 +165,24 @@ class BarRepo(private val db: Db) {
               AND status <> 'rejected'
             LIMIT 1
             """.trimIndent(),
-            name, req.lng, req.lat,
+            req.name, req.lng, req.lat,
         ) { it.getLong("id") }
         if (dup != null) conflict("ya existe un bar con ese nombre a menos de 100 m (id $dup)")
 
+        // Un bar elegido del buscador de Google entra aprobado: el riesgo que
+        // cubre la moderación es que alguien invente un lugar, y venir con
+        // place_id ya prueba que existe. Lo cargado a mano sigue en cola.
+        val status = if (req.googlePlaceId != null) "approved" else "pending"
+
         c.queryOne(
             """
-            INSERT INTO bars (name, address, neighbourhood, location, status, created_by)
-            VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, 'pending', ?)
+            INSERT INTO bars (name, address, neighbourhood, location, status,
+                              created_by, google_place_id)
+            VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, ?::moderation_status, ?, ?)
             RETURNING id
             """.trimIndent(),
-            name, req.address, req.neighbourhood, req.lng, req.lat, createdBy,
+            req.name, req.address, req.neighbourhood, req.lng, req.lat,
+            status, createdBy, req.googlePlaceId,
         ) { it.getLong("id") }!!
     }
 

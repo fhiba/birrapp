@@ -40,6 +40,8 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"${localProp("API_BASE_URL", "http://10.0.2.2:8090")}\"")
         // Permite avisar en pantalla en vez de dejar un mapa gris sin explicación.
         buildConfigField("boolean", "MAPS_KEY_MISSING", "${localProp("MAPS_API_KEY") == "REPLACE_ME"}")
+        buildConfigField("boolean", "MAPS_API_KEY_PRESENT", "${localProp("MAPS_API_KEY") != "REPLACE_ME"}")
+        buildConfigField("String", "MAPS_API_KEY", "\"${localProp("MAPS_API_KEY")}\"")
     }
 
     signingConfigs {
@@ -105,6 +107,7 @@ dependencies {
 
     implementation(libs.maps.compose)
     implementation(libs.play.location)
+    implementation(libs.places)
     implementation(libs.coroutines.play)
 
     implementation(libs.ktor.client.android)

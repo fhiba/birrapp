@@ -14,7 +14,13 @@ val BUENOS_AIRES_CENTER = -34.6037 to -58.3816
 
 class LocationProvider(private val context: Context) {
 
-    fun hasPermission(): Boolean =
+    fun hasPermission(): Boolean = hasFine() || hasCoarse()
+
+    fun hasFine(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun hasCoarse(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
@@ -29,8 +35,14 @@ class LocationProvider(private val context: Context) {
         if (!hasPermission()) return BUENOS_AIRES_CENTER
         return try {
             val client = LocationServices.getFusedLocationProviderClient(context)
-            val location = client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
-                .await() ?: client.lastLocation.await()
+            // Con permiso fino se pide alta precisión: el círculo de
+            // precisión en pantalla es el margen de error real, y con
+            // BALANCED queda un globo de kilómetros tapando el mapa.
+            val priority =
+                if (hasFine()) Priority.PRIORITY_HIGH_ACCURACY
+                else Priority.PRIORITY_BALANCED_POWER_ACCURACY
+            val location = client.getCurrentLocation(priority, null).await()
+                ?: client.lastLocation.await()
             location?.let { it.latitude to it.longitude } ?: BUENOS_AIRES_CENTER
         } catch (e: Exception) {
             BUENOS_AIRES_CENTER
