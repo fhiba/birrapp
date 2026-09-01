@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.birrapp.data.model.BarPin
@@ -144,16 +143,27 @@ class MapViewModel(
         camera = CameraSnapshot(lat, lng, zoom)
     }
 
-    private var loadJob: Job? = null
+    /**
+     * Generación de la carga en curso.
+     *
+     * Antes esto se resolvía cancelando el job anterior, y eso hacía crashear
+     * la app: cancelar mientras hay una request de Ktor en vuelo dispara el
+     * cleanup handler del cliente, que lanza desde el hilo principal y se
+     * lleva puesto el proceso.
+     *
+     * Un contador logra lo mismo sin cancelar nada: cada carga se queda con su
+     * número y descarta su propio resultado si mientras tanto empezó otra. La
+     * request vieja termina sola y su respuesta se ignora.
+     */
+    private var generation = 0
 
     fun load(force: Boolean = false, immediate: Boolean = false) {
-        // Cancelar la carga anterior: paneando, cada movimiento disparaba una
-        // corrutina y llegaban respuestas fuera de orden.
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
+        val mine = ++generation
+        viewModelScope.launch {
             // Pequeña espera para no consultar en cada micro-movimiento del
-            // mapa. Si llega otro movimiento antes, este job se cancela.
+            // mapa. Si llegó otro pedido mientras tanto, este se descarta.
             if (!force && !immediate) delay(280)
+            if (mine != generation) return@launch
             _state.update { it.copy(loading = true, error = null) }
             val s = _state.value
             if (s.tooZoomedOut) {
@@ -168,10 +178,13 @@ class MapViewModel(
                     style = s.styleFilter, force = force,
                 )
             }.onSuccess { result ->
+                // Llegó una respuesta vieja: se descarta en silencio.
+                if (mine != generation) return@launch
                 _state.update {
                     it.copy(bars = result, loading = false, fromCache = bars.servingFromCache)
                 }
             }.onFailure { e ->
+                if (mine != generation) return@launch
                 // Con datos en pantalla no se muestra el error: sigue siendo
                 // usable, sólo que sin refrescar. Molestar con un cartel
                 // cuando la app funciona es ruido.
