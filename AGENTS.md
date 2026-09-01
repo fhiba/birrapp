@@ -37,6 +37,23 @@ Antes de tocar `v_current_prices`, `v_bar_headline` o `PriceRepo`: correr
   ENUM, ni `percentile_cont` — o sea, justo todo lo que hay que testear.
 - Cada sesión de trabajo → entrada nueva en WORKLOG.md. Decisiones con el "por qué".
 
+## Versionado — sin excepciones
+Todo cambio que se publica lleva versión nueva, y el commit se titula
+`vX.Y.Z: qué cambió` en minúscula y en castellano. Nunca un commit de cambios
+sin subir la versión.
+
+Se suben los **tres** lugares en el mismo commit, o quedan desincronizados:
+
+| Archivo | Qué |
+|---|---|
+| `app/build.gradle.kts` | `versionName` y `versionCode` (este último sólo crece: Android rechaza instalar un código menor o igual al instalado) |
+| `web/package.json` | `version` |
+| `web/vite.config.ts` | `const VERSION` — alimenta `__APP_VERSION__`, que es lo que se ve en Perfil |
+
+Si se olvida `vite.config.ts`, la app sigue reportando la versión vieja en
+pantalla aunque el código sea nuevo, y deja de haber forma de saber qué está
+corriendo cada quien.
+
 ## Estado
 Fase A completa: backend andando, APK compilando, 592 bares cargados, 18 tests verdes.
 Fase B pendiente (necesita al usuario): credenciales de Google Cloud → docs/SETUP.md.

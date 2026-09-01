@@ -84,6 +84,25 @@ a { color: var(--amber); }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
 
+/* ---------- Controles del mapa ----------
+ *
+ * Los tres controles no entran en un teléfono angosto con el padding holgado
+ * de escritorio. Antes se encogían y las etiquetas se partían en dos
+ * renglones; con `wrap` dejaban de partirse pero el botón de radio bajaba de
+ * línea, que se ve igual de mal.
+ *
+ * Así que el padding se aprieta por ancho de pantalla y el `wrap` queda sólo
+ * como red de seguridad para pantallas muy chicas, donde ninguna combinación
+ * entra en una sola fila.
+ */
+.map-controls { --sort-pad: 18px; --pill-pad: 14px; --ctl-gap: 8px; }
+@media (max-width: 420px) {
+  .map-controls { --sort-pad: 12px; --pill-pad: 10px; --ctl-gap: 7px; }
+}
+@media (max-width: 350px) {
+  .map-controls { --sort-pad: 9px;  --pill-pad: 8px;  --ctl-gap: 6px; }
+}
+
 /* ---------- Slider de rango ----------
  *
  * El `input[type=range]` nativo trae una pista gruesa y un pulgar distinto en

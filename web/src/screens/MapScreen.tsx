@@ -79,19 +79,25 @@ export function MapScreen(p: Props) {
       {/* Controles. Dos filas, no cinco: el mapa es el contenido. */}
       <div
         onPointerDown={e => e.stopPropagation()}
+        className="map-controls"
         style={{
           position: 'absolute', top: `calc(10px + var(--safe-top))`, left: 0, right: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 10,
+          // La franja ocupa todo el ancho y crece cuando el slider está
+          // abierto. Sin esto se come el paneo del mapa en toda esa zona,
+          // incluido el aire entre controles.
+          pointerEvents: 'none',
         }}
       >
-        {/* `wrap` y `flexShrink: 0`: sin esto, en un teléfono angosto los tres
-            controles no entran, flex los encoge y las etiquetas se parten en
-            dos renglones dentro de píldoras pensadas para uno solo. Es
-            preferible que el radio baje a una segunda fila. */}
+        {/* `flexShrink: 0` para que las etiquetas no se partan en dos
+            renglones dentro de píldoras de una sola línea, y el padding
+            apretado por ancho de pantalla (.map-controls) para que los tres
+            entren en una fila. El `wrap` queda de red de seguridad: en una
+            pantalla muy chica es mejor que baje de línea a que se desborde. */}
         <div style={{
-          display: 'flex', gap: 8, padding: '0 14px',
+          display: 'flex', gap: 'var(--ctl-gap)', padding: '0 14px',
           alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center',
-          maxWidth: '100%',
+          maxWidth: '100%', pointerEvents: 'auto',
         }}>
           {/* La fila de chips scrolleaba mal: el gesto competía con el paneo
               del mapa, así que a veces se movía el mapa en vez de la lista, y
@@ -101,7 +107,7 @@ export function MapScreen(p: Props) {
           <div className="glass pill" style={{ display: 'flex', padding: 4, flexShrink: 0 }}>
             {(['distance', 'cheapest'] as Sort[]).map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl" style={{
-                padding: '9px 18px', borderRadius: 999, fontSize: 13,
+                padding: '9px var(--sort-pad)', borderRadius: 999, fontSize: 13,
                 whiteSpace: 'nowrap',
                 background: p.sort === s ? 'var(--amber)' : 'transparent',
                 color: p.sort === s ? 'var(--base)' : 'rgba(251,246,238,.75)',
@@ -114,7 +120,7 @@ export function MapScreen(p: Props) {
             className="lbl pill glass"
             style={{
               display: 'flex', alignItems: 'center', gap: 6, height: 44,
-              padding: '0 14px', fontSize: 13,
+              padding: '0 var(--pill-pad)', fontSize: 13,
               flexShrink: 0, whiteSpace: 'nowrap',
               background: radiusOpen ? 'var(--amber)' : undefined,
               color: radiusOpen ? 'var(--base)' : undefined,
@@ -124,59 +130,64 @@ export function MapScreen(p: Props) {
               fill={radiusOpen ? 'var(--base)' : 'var(--muted)'} aria-hidden>
               <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
             </svg>
-            <span style={{ color: radiusOpen ? 'var(--base)' : 'var(--amber)' }}>
+            {/* Ancho fijo: si la etiqueta crece al arrastrar ("15 km" contra
+                "1.5 km"), la fila cambia de ancho y el botón salta de
+                renglón mientras movés el slider. */}
+            <span style={{
+              color: radiusOpen ? 'var(--base)' : 'var(--amber)',
+              minWidth: 46, textAlign: 'center',
+            }}>
               {formatRadius(p.radius)}
             </span>
           </button>
         </div>
 
+        {/* El slider va acá, pegado a los controles: es el control que lo
+            abre, y arriba hay ancho real. Al pie quedaba lejos del botón y
+            competía con los dos botones flotantes y la barra de navegación. */}
+        {radiusOpen && (
+          <div
+            className="glass"
+            style={{
+              alignSelf: 'stretch', margin: '0 14px', pointerEvents: 'auto',
+              borderRadius: 18, padding: '10px 18px 8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ color: 'var(--muted)', fontSize: 12, minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
+              </span>
+              <span className="lbl" style={{
+                marginLeft: 'auto', paddingLeft: 10, color: 'var(--amber)', fontSize: 14,
+                whiteSpace: 'nowrap',
+              }}>{formatRadius(p.radius)}</span>
+            </div>
+            <input
+              className="range"
+              type="range" min={RADIUS_MIN} max={RADIUS_MAX} step={100} value={p.radius}
+              onChange={e => p.onRadius(Number(e.target.value))}
+              style={{
+                ['--fill' as string]:
+                  `${((p.radius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN)) * 100}%`,
+              }}
+            />
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              color: 'var(--faint)', fontSize: 10.5, marginTop: 2,
+            }}>
+              <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
+            </div>
+          </div>
+        )}
+
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
             padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            pointerEvents: 'auto',
           }}>Acercá el mapa para ver bares</div>
         )}
       </div>
-
-      {/* El slider va abajo, no dentro de la píldora: ahí hay ancho real.
-          Metido arriba se desbordaba en web y quedaba impracticable en
-          Android, donde apenas entraban unos pocos píxeles de recorrido. */}
-      {radiusOpen && (
-        <div
-          onPointerDown={e => e.stopPropagation()}
-          className="glass"
-          style={{
-            position: 'absolute', left: 12, right: 12,
-            bottom: `calc(144px + var(--nav-gap))`, zIndex: 12,
-            borderRadius: 18, padding: '10px 18px 8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ color: 'var(--muted)', fontSize: 12, minWidth: 0,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
-            </span>
-            <span className="lbl" style={{
-              marginLeft: 'auto', paddingLeft: 10, color: 'var(--amber)', fontSize: 14,
-              whiteSpace: 'nowrap',
-            }}>{formatRadius(p.radius)}</span>
-          </div>
-          <input
-            className="range"
-            type="range" min={RADIUS_MIN} max={RADIUS_MAX} step={100} value={p.radius}
-            onChange={e => p.onRadius(Number(e.target.value))}
-            style={{
-              ['--fill' as string]:
-                `${((p.radius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN)) * 100}%`,
-            }}
-          />
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            color: 'var(--faint)', fontSize: 10.5, marginTop: 2,
-          }}>
-            <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
-          </div>
-        </div>
-      )}
 
       {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
       <button onClick={p.onRecenter} className="glass" style={{

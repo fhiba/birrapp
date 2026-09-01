@@ -138,3 +138,92 @@ lógica es correcta por construcción (la separación mínima se divide a la mit
 por nivel de zoom), pero no se pudo comprobar por adb: con 592 bares en pantalla
 casi cualquier tap cae sobre un marcador en vez de hacer zoom. Queda para
 comprobar a mano.
+
+## 2026-09-01 (cont.) — Deploy fuera de la máquina y arreglos de la web
+
+Primera vez que la app corre entera fuera de la Debian: base en Neon (AWS São
+Paulo), backend en Railway, PWA en Vercel. Cinco cosas fallaron, y ninguna
+estaba anotada en DEPLOY.md. Ahora sí.
+
+**Neon.** La cadena que da el panel apunta al host del pooler (PgBouncer en
+modo transacción) y trae `channel_binding=require`. Ninguna de las dos sirve
+acá: Flyway toma un lock de sesión para migrar y no sobrevive al pooler, y
+`channel_binding` es de libpq — el driver JDBC lo ignora. Va el host directo,
+sin `-pooler`.
+
+**Railway, dos veces.** Primero con el root directory en la raíz del repo:
+Railpack no reconoce nada y el build ni arranca. Después, con el root ya en
+`backend`, Railpack sí encontró el proyecto Gradle y lo construyó a su manera
+—`gradle build` en vez de `buildFatJar`— arrancando con
+`java -jar $(ls */build/libs/*jar)`. Ese glob no matchea nada porque el jar
+queda en `build/libs/`, y el deploy muere con `-jar requires jar file
+specification`. Se fija el builder con `backend/railway.json`.
+
+**El bug que importa: V4 fallaba en Postgres nuevo.** `V4__search.sql` creaba
+el índice GIN llamando a `unaccent` sin calificar el esquema. Desde Postgres
+16.5 y 17, las operaciones de mantenimiento (`CREATE INDEX` entre ellas) corren
+con `search_path` restringido a `pg_catalog, pg_temp` — fue un parche de
+seguridad. Al inlinear `bar_search_key`, la función no se resuelve y la
+migración se cae.
+
+Lo peligroso es que la base local es **16.4**, justo anterior al parche, y Neon
+es 18.6: el bug era invisible en desarrollo y sólo aparecía al desplegar. Se
+calificó todo con `public.` (incluido el opclass `gin_trgm_ops`) y se reparó el
+checksum del historial local con `Flyway.repair()`.
+
+**Migración de datos.** El comando de DEPLOY.md exportaba `beer_styles`, que
+Flyway ya siembra en V2 — el import reventaba con clave duplicada. Se saca de
+la lista. Además el `pg_dump` del sistema es 15 contra un servidor 16, así que
+va por `docker exec`. Migrados 740 bares, 12 precios, 1 usuario; verificado
+contra la API en vivo.
+
+### Arreglos de la web reportados desde el teléfono
+
+1. **Slider del radio demasiado alto, y mal ubicado.** El `input[type=range]`
+   nativo trae la pista gruesa de cada navegador, y en iOS bastante más. Se le
+   da la forma del `Slider` de Material que ya usa Android: pista de 4px,
+   pulgar redondo de 18px. El relleno activo va por degradado con el porcentaje
+   inyectado desde React, porque WebKit no expone pseudo-elemento para esa
+   parte (Firefox sí).
+
+   Además el panel pasó de estar al pie a colgar de la barra de arriba, pegado
+   al botón que lo abre. Al pie quedaba lejos de su control y compitiendo con
+   los dos botones flotantes y la barra de navegación.
+
+2. **No se podían dejar puntos desde el iPhone.** `LongPress` escuchaba sólo
+   el evento `contextmenu` del mapa, que cubre el clic derecho y Chrome de
+   Android pero **Safari de iOS no emite nunca**. Se agregó detección táctil
+   propia sobre el div del mapa, con la proyección de un `OverlayView` para
+   pasar de píxel a coordenada. Dos trampas: en Android se disparaban los dos
+   caminos por el mismo gesto (sello de tiempo), y al soltar el dedo el mapa
+   emite igual un `click` que borraba el punto en el mismo gesto que lo ponía.
+
+3. **Controles de arriba aplastados en pantalla angosta.** La fila no tenía
+   `wrap`: los tres controles no entran en un teléfono, flex los encoge y las
+   etiquetas se parten dentro de píldoras de un solo renglón. El usuario lo
+   atribuyó al locale del teléfono, pero no hay nada en el código que dependa
+   del idioma — `es-AR` está hardcodeado en los cuatro lugares donde se
+   formatea. Es sólo ancho.
+
+   El primer intento fue `flexWrap`, y el remedio fue tan feo como la
+   enfermedad: el botón de radio bajaba de renglón, y encima *mientras
+   arrastrabas*, porque la etiqueta cambia de ancho entre "1.5 km" y "15 km".
+   La versión final aprieta el padding por ancho de pantalla (variables CSS en
+   `.map-controls`, cortes en 420px y 350px) y le fija ancho al valor del radio
+   para que la fila no cambie de tamaño. El `wrap` queda sólo de red de
+   seguridad para pantallas donde nada entra en una fila.
+
+   De paso, la franja de controles ahora es `pointer-events: none` con los
+   controles en `auto`: ocupaba todo el ancho de la pantalla y se comía el
+   paneo del mapa en esa zona, incluido el aire entre botones. Con el slider
+   colgado ahí, la franja es más alta y el problema se habría notado más.
+
+NO verificado: el long-press táctil no se pudo probar en un dispositivo real,
+sólo por construcción — es el arreglo con más partes móviles de los tres. Los
+anchos de la fila de controles tampoco se midieron: no hay navegador headless
+en esta máquina, así que los cortes de 420px y 350px salieron de calcular a
+mano y hay que confirmarlos en el teléfono.
+
+Pendiente: `/descargar` quedó vacío en Railway — los APK viven en
+`/home/jaiba/birrapp-deploy/apk`, que no existe en el contenedor. Y la
+contraseña de Neon conviene rotarla, se pegó en un chat.
