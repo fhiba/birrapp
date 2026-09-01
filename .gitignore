@@ -34,3 +34,6 @@ bin/
 web/.env.local
 web/node_modules/
 web/dist/
+
+# Dump de datos para migrar a Neon: trae emails y google_sub de usuarios
+birrapp-data.sql
