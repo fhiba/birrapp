@@ -99,17 +99,24 @@ class ApiClient(private val session: SessionStore) {
     private suspend fun refreshAccessToken(): Boolean = refreshMutex.withLock {
         val refresh = session.refreshToken() ?: return false
         return try {
-            val res: SessionResponse = http.post("auth/refresh") {
-                setBody(RefreshRequest(refresh))
-            }.let {
-                if (!it.status.isSuccess()) return@withLock false.also { _ -> session.clear() }
-                it.body()
+            val response = http.post("auth/refresh") { setBody(RefreshRequest(refresh)) }
+            if (!response.status.isSuccess()) {
+                // Sólo un rechazo explícito invalida la sesión. Un 500 o un
+                // backend reiniciando no significan que haya que salir.
+                if (response.status == HttpStatusCode.Unauthorized ||
+                    response.status == HttpStatusCode.Forbidden
+                ) {
+                    session.clear()
+                }
+                return@withLock false
             }
+            val res: SessionResponse = response.body()
             session.save(res)
             true
         } catch (e: Exception) {
+            // Fallo de red: la sesión sigue siendo válida, sólo que ahora no
+            // se puede confirmar. Se reintenta en la próxima llamada.
             Log.w("ApiClient", "no se pudo refrescar la sesión", e)
-            session.clear()
             false
         }
     }

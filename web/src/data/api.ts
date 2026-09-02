@@ -69,7 +69,12 @@ async function refresh(): Promise<boolean> {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: session!.refreshToken }),
         })
-        if (!r.ok) { clearSession(); return false }
+        // Sólo un rechazo explícito invalida la sesión. Un 500 o un backend
+        // que está reiniciando no significan que el usuario deba salir.
+        if (!r.ok) {
+          if (r.status === 401 || r.status === 403) clearSession()
+          return false
+        }
         saveSession(await r.json())
         return true
       } catch { return false } finally { refreshing = null }

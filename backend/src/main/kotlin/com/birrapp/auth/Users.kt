@@ -168,7 +168,18 @@ class RefreshTokenRepo(private val db: Db) {
         return raw
     }
 
-    /** Consume el token y emite uno nuevo (rotación). null si es inválido. */
+    /**
+     * Consume el token y emite uno nuevo (rotación). null si es inválido.
+     *
+     * El token viejo NO se revoca en el acto: se le deja una ventana corta de
+     * gracia. Con revocación inmediata, si la respuesta con el token nuevo se
+     * pierde —red inestable, la app se cierra a mitad— el cliente se queda con
+     * uno ya muerto y en el siguiente intento lo echa la sesión, sin que haya
+     * pasado nada malo. Con la ventana, ese reintento funciona.
+     *
+     * La rotación sigue cumpliendo su función: un token robado deja de servir
+     * en segundos, no en 60 días.
+     */
     fun rotate(raw: String, ttlDays: Long): Pair<Long, String>? = db.tx { c ->
         val userId = c.queryOne(
             "SELECT user_id FROM refresh_tokens " +
@@ -176,7 +187,11 @@ class RefreshTokenRepo(private val db: Db) {
             sha256(raw),
         ) { it.getLong("user_id") } ?: return@tx null
 
-        c.update("UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = ?", sha256(raw))
+        c.update(
+            "UPDATE refresh_tokens SET expires_at = now() + interval '90 seconds' " +
+                "WHERE token_hash = ?",
+            sha256(raw),
+        )
         val next = ByteArray(32).also { rng.nextBytes(it) }
             .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
         c.update(

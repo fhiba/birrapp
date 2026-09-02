@@ -70,8 +70,21 @@ function Shell() {
   useEffect(() => api.onSessionChange(setUser), [])
 
   // Revalidar contra el backend: el rol pudo cambiar desde la última vez.
+  //
+  // Sólo se cierra la sesión si el servidor RECHAZA la credencial. Antes
+  // cualquier error la borraba, así que un corte de red o un reinicio del
+  // backend deslogueaba al usuario aunque su sesión siguiera siendo válida.
   useEffect(() => {
-    if (api.currentUser()) api.me().then(setUser).catch(() => api.clearSession())
+    if (!api.currentUser()) return
+    api.me()
+      .then(setUser)
+      .catch((e: unknown) => {
+        if (e instanceof api.ApiError && (e.status === 401 || e.status === 403)) {
+          api.clearSession()
+        }
+        // Cualquier otro error: se conserva la sesión y se sigue con los
+        // datos que ya había en local.
+      })
   }, [])
 
   // Vuelta del login por navegador: el código de un solo uso llega por la URL.

@@ -13,6 +13,7 @@ import com.birrapp.auth.GoogleSignInClient
 import com.birrapp.auth.SessionStore
 import com.birrapp.auth.SignInResult
 import com.birrapp.data.api.ApiClient
+import com.birrapp.data.api.ApiException
 import com.birrapp.data.model.UserDto
 
 data class AuthUiState(
@@ -43,12 +44,24 @@ class AuthViewModel(
             if (cached != null) {
                 // Revalidar contra el backend: el rol pudo haber cambiado, o
                 // la cuenta pudo haber sido suspendida desde el último uso.
+                // Sólo se cierra la sesión si el servidor RECHAZA la
+                // credencial. Antes cualquier error la borraba, así que un
+                // corte de red o un reinicio del backend deslogueaba al
+                // usuario aunque su sesión siguiera siendo válida.
                 runCatching { api.me() }
                     .onSuccess { fresh ->
                         _state.update { it.copy(user = fresh) }
                         loadStats()
                     }
-                    .onFailure { session.clear(); _state.update { it.copy(user = null) } }
+                    .onFailure { e ->
+                        val rejected = e is ApiException && (e.status == 401 || e.status == 403)
+                        if (rejected) {
+                            session.clear()
+                            _state.update { it.copy(user = null) }
+                        } else {
+                            Log.w("AuthViewModel", "no se pudo revalidar; se conserva la sesión", e)
+                        }
+                    }
             }
         }
     }
