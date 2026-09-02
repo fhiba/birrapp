@@ -178,35 +178,58 @@ class BarRepo(private val db: Db) {
             )
         } ?: return@conn null
 
-        // Una fila por birra del bar, no por precio vigente.
+        // Una fila por birra del bar: la birra es (estilo, marca).
         //
-        // Se parte de `beer_styles` y se conservan las que tengan precio, nota
-        // o foto. Antes esto salía sólo de `v_current_prices`, así que al
-        // borrarse el precio la birra desaparecía de la pantalla y se llevaba
-        // puestas sus fotos y sus notas, que seguían existiendo en la base sin
-        // ninguna forma de llegar a ellas.
+        // Las filas salen de la unión de las tres cosas que pueden existir
+        // sobre una birra —precio vigente, notas, fotos— y no de recorrer
+        // `beer_styles`. Dos razones:
         //
-        // Orden: primero las que tienen precio, de la más barata a la más
-        // cara y con las stale al final; después las que no.
+        // 1. Una birra sin precio no puede desaparecer. Cuando se borra el
+        //    reporte, sus fotos y sus notas siguen en la base y sin esto
+        //    quedaban sin ninguna forma de llegar a ellas.
+        // 2. Con marcas, unir por estilo solo hacía producto cartesiano: un
+        //    bar con IPA de Antares e IPA de Juguetes Perdidos, ambas
+        //    votadas, daba cuatro filas y la nota de una terminaba colgada
+        //    de la otra. Las tres tablas se cruzan por (estilo, marca), y
+        //    `IS NOT DISTINCT FROM` es lo que hace que "sin marca" case con
+        //    "sin marca" en vez de que NULL no case con nada.
+        //
+        // Orden: por estilo según el vocabulario, y dentro de cada estilo
+        // primero las que tienen precio, de la más barata a la más cara y con
+        // las stale al final. Que las marcas de un mismo estilo queden
+        // contiguas es lo que le permite a la pantalla agruparlas en
+        // sub-solapas sin reordenar nada.
         val prices = c.query(
             """
+            WITH beers AS (
+                SELECT style_id, brand_id FROM v_current_prices WHERE bar_id = ?
+                UNION
+                SELECT style_id, brand_id FROM v_style_ratings  WHERE bar_id = ?
+                UNION
+                SELECT style_id, brand_id FROM bar_photos
+                 WHERE bar_id = ? AND status = 'active'
+            )
             SELECT s.slug AS style_slug, s.name_es AS style_name,
                    cp.id, cp.price, cp.size_ml, cp.age_days, cp.freshness,
-                   cp.brand_slug, cp.brand_name, cp.brand_craft,
-                   sr.rating_raw, sr.rating_avg, sr.rating_count,
+                   br.slug AS brand_slug, br.name AS brand_name,
+                   br.craft AS brand_craft,
+                   sr.rating_raw, sr.rating_avg,
+                   coalesce(sr.rating_count, 0) AS rating_count,
                    EXTRACT(DAY FROM (now() - sr.last_rated_at))::int AS rating_age_days
-            FROM beer_styles s
-            LEFT JOIN v_current_prices cp ON cp.bar_id = ? AND cp.style_id = s.id
-            LEFT JOIN v_style_ratings  sr ON sr.bar_id = ? AND sr.style_id = s.id
-            WHERE cp.id IS NOT NULL
-               OR sr.style_id IS NOT NULL
-               OR EXISTS (SELECT 1 FROM bar_photos p
-                          WHERE p.bar_id = ? AND p.style_id = s.id
-                            AND p.status = 'active')
-            ORDER BY (cp.id IS NULL), s.sort_order, cp.freshness = 'stale',
-                     cp.price ASC
+            FROM beers x
+            JOIN beer_styles s ON s.id = x.style_id
+            LEFT JOIN brands br ON br.id = x.brand_id
+            LEFT JOIN v_current_prices cp
+                   ON cp.bar_id = ? AND cp.style_id = x.style_id
+                  AND cp.brand_id IS NOT DISTINCT FROM x.brand_id
+            LEFT JOIN v_style_ratings sr
+                   ON sr.bar_id = ? AND sr.style_id = x.style_id
+                  AND sr.brand_id IS NOT DISTINCT FROM x.brand_id
+            ORDER BY s.sort_order, s.id,
+                     (cp.id IS NULL), cp.freshness = 'stale',
+                     cp.price ASC, br.name
             """.trimIndent(),
-            id, id, id,
+            id, id, id, id, id,
         ) { rs ->
             StylePriceDto(
                 id = rs.getLong("id").takeUnless { rs.wasNull() },

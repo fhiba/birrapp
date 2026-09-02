@@ -1,5 +1,5 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Flag, ModerationSummary, MyContributions,
+  BarDetail, BarPin, BeerStyle, Brand, Flag, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -124,6 +124,16 @@ export const searchBars = (q: string, lat?: number, lng?: number, limit?: number
   req<BarPin[]>('GET', '/bars/search', { params: { q, lat, lng, limit } })
 
 export const styles = () => req<BeerStyle[]>('GET', '/styles')
+
+/**
+ * Marcas aprobadas. Vocabulario abierto, a diferencia de los estilos: cada
+ * cervecería chica es una marca, así que la lista crece con moderación.
+ */
+export const brands = () => req<Brand[]>('GET', '/brands')
+
+/** Alta de marca por un usuario. Queda pendiente hasta que la aprueben. */
+export const createBrand = (name: string, craft: boolean) =>
+  req<Brand>('POST', '/brands', { body: { name, craft }, auth: true })
 export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/reviews`)
 
 // ---------- notas y fotos por birra ----------
@@ -132,14 +142,17 @@ export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/r
 export const barPhotos = (barId: number) =>
   req<Photo[]>('GET', `/bars/${barId}/photos`, { auth: true })
 
-export const beerComments = (barId: number, styleSlug: string) =>
-  req<RatingComment[]>('GET', `/bars/${barId}/ratings/${styleSlug}/comments`, { auth: true })
+export const beerComments = (barId: number, styleSlug: string, brandSlug: string | null) =>
+  req<RatingComment[]>('GET', `/bars/${barId}/ratings/${styleSlug}/comments`, {
+    auth: true, params: { brand: brandSlug ?? undefined },
+  })
 
 export const myRatings = (barId: number) =>
   req<MyRating[]>('GET', `/bars/${barId}/my-ratings`, { auth: true })
 
 export const rateBeer = (b: {
-  barId: number; styleSlug: string; rating: number; body?: string | null
+  barId: number; styleSlug: string; brandSlug: string | null
+  rating: number; body?: string | null
 }) => req<unknown>('POST', '/ratings', { body: b, auth: true })
 
 /**
@@ -149,9 +162,11 @@ export const rateBeer = (b: {
  * es a un dominio distinto y con una URL ya firmada, así que va con `fetch`
  * pelado: meterle el header de Authorization rompería la firma.
  */
-export async function uploadPhoto(barId: number, styleSlug: string, file: Blob) {
+export async function uploadPhoto(
+  barId: number, styleSlug: string, brandSlug: string | null, file: Blob,
+) {
   const { uploadUrl, key } = await req<{ uploadUrl: string; key: string }>(
-    'POST', '/photos/upload-url', { body: { barId, styleSlug }, auth: true },
+    'POST', '/photos/upload-url', { body: { barId, styleSlug, brandSlug }, auth: true },
   )
   const put = await fetch(uploadUrl, {
     method: 'PUT',
@@ -161,7 +176,9 @@ export async function uploadPhoto(barId: number, styleSlug: string, file: Blob) 
   if (!put.ok) throw new ApiError(put.status, 'No se pudo subir la foto')
   // La fila se escribe recién ahora: si se escribiera antes, una subida
   // abandonada dejaría una foto rota en la galería.
-  return req<Photo>('POST', '/photos', { body: { barId, styleSlug, key }, auth: true })
+  return req<Photo>('POST', '/photos', {
+    body: { barId, styleSlug, brandSlug, key }, auth: true,
+  })
 }
 
 /** Baja la foto Y borra el objeto del bucket. Irreversible. */
@@ -171,16 +188,34 @@ export const removePhoto = (id: number) =>
 export const removeRating = (id: number) =>
   req<unknown>('POST', `/moderation/ratings/${id}/remove`, { auth: true })
 
-/** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
-export const priceHistory = (barId: number, style: string) =>
-  req<PricePoint[]>('GET', `/bars/${barId}/history`, { params: { style } })
+/**
+ * Histórico de una birra. Sale gratis del modelo append-only.
+ *
+ * Por marca y no por estilo: mezclar dos IPA distintas da una serie que sube y
+ * baja porque son dos cervezas, no porque el precio se haya movido.
+ */
+export const priceHistory = (barId: number, style: string, brand: string | null) =>
+  req<PricePoint[]>('GET', `/bars/${barId}/history`, {
+    params: { style, brand: brand ?? undefined },
+  })
 
 // ---------- aportes ----------
-export const reportPrice = (b: { barId: number; styleSlug: string; price: number; sizeMl: number }) =>
-  req<PriceAccepted>('POST', '/prices', { body: b, auth: true })
+export const reportPrice = (b: {
+  barId: number; styleSlug: string; brandSlug: string | null
+  price: number; sizeMl: number
+}) => req<PriceAccepted>('POST', '/prices', { body: b, auth: true })
 
-export const confirmPrice = (barId: number, styleSlug: string) =>
-  req<PriceAccepted>('POST', `/bars/${barId}/confirm/${styleSlug}`, { auth: true })
+/**
+ * "Sigue igual".
+ *
+ * Va con cuerpo y no con la marca en la URL: los slugs llevan acentos y
+ * guiones, y un `peñon-del-aguila` en el path es una fuente de errores de
+ * encoding que no aporta nada.
+ */
+export const confirmPrice = (barId: number, styleSlug: string, brandSlug: string | null) =>
+  req<PriceAccepted>('POST', `/bars/${barId}/confirm`, {
+    body: { styleSlug, brandSlug }, auth: true,
+  })
 
 export const addBar = (b: {
   name: string; lat: number; lng: number; address?: string | null; googlePlaceId?: string | null
@@ -228,4 +263,10 @@ export const rejectBar = (id: number) => req<unknown>('POST', `/moderation/bars/
 export const deleteBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/delete`, { auth: true })
 export const resolveFlag = (id: number) => req<unknown>('POST', `/moderation/flags/${id}/resolve`, { auth: true })
 export const approvePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/approve`, { auth: true })
+export const pendingBrands = () =>
+  req<Brand[]>('GET', '/moderation/brands/pending', { auth: true })
+export const approveBrand = (slug: string) =>
+  req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
+export const rejectBrand = (slug: string) =>
+  req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/reject`, { auth: true })
 export const removePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/remove`, { auth: true })

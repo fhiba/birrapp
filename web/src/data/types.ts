@@ -18,6 +18,15 @@ export interface StylePrice {
   id: number | null
   styleSlug: string
   styleName: string
+  /**
+   * La marca es parte de la identidad de la birra, no un adorno: una IPA de
+   * Antares y una de Juguetes Perdidos son dos cervezas con precio, nota y
+   * fotos propias. Null es "sin marca", que es una birra concreta y no un
+   * dato faltante.
+   */
+  brandSlug: string | null
+  brandName: string | null
+  brandCraft: boolean | null
   price: number | null
   sizeMl: number | null
   ageDays: number | null
@@ -34,6 +43,7 @@ export interface StylePrice {
 export interface Photo {
   id: number
   styleSlug: string
+  brandSlug: string | null
   url: string
   authorName: string | null
   ageDays: number
@@ -49,7 +59,13 @@ export interface RatingComment {
   mine: boolean
 }
 
-export interface MyRating { styleSlug: string; rating: number }
+export interface MyRating {
+  styleSlug: string
+  brandSlug: string | null
+  rating: number
+}
+
+export interface Brand { slug: string; name: string; craft: boolean }
 
 export interface BarDetail {
   id: number
@@ -90,6 +106,7 @@ export interface MyBar {
 }
 export interface MyPrice {
   id: number; barId: number; barName: string; styleName: string
+  brandName: string | null
   price: number; sizeMl: number; ageDays: number
   isConfirmation: boolean
   /** Es el precio que la app muestra hoy para ese bar y estilo. */
@@ -97,6 +114,7 @@ export interface MyPrice {
 }
 export interface MyPhoto {
   id: number; barId: number; barName: string; styleName: string
+  brandName: string | null
   url: string; ageDays: number
 }
 export interface MyContributions {
@@ -115,4 +133,8 @@ export interface Flag {
 export const isModerator = (u: User | null) =>
   u?.role === 'moderator' || u?.role === 'admin'
 
-export interface ModerationSummary { pendingBars: number; openFlags: number }
+export interface ModerationSummary {
+  pendingBars: number
+  openFlags: number
+  pendingBrands: number
+}

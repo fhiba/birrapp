@@ -13,12 +13,20 @@ import { Stars } from './Stars'
  * varias birras en una sola pantalla sin que sea un muro.
  */
 export function BeerComments({
-  barId, styleSlug, styleName, canWrite, modMode, myRating, initialRating,
+  barId, styleSlug, brandSlug, title, canWrite, modMode, myRating, initialRating,
   onClose, onWrote,
 }: {
   barId: number
   styleSlug: string
-  styleName: string
+  /**
+   * Los comentarios son de esta birra y de ninguna otra. Sin la marca, lo que
+   * alguien escribió sobre la IPA de Antares aparecía debajo de la de Juguetes
+   * Perdidos: la señal que más confunde, porque dice que probaste una cosa
+   * cuando probaste otra.
+   */
+  brandSlug: string | null
+  /** Estilo y marca juntos: el estilo solo ya no nombra a la birra. */
+  title: string
   canWrite: boolean
   /** Modo moderador prendido: aparecen las acciones destructivas. */
   modMode: boolean
@@ -36,25 +44,25 @@ export function BeerComments({
   const [confirmDelete, setConfirmDelete] = useState<RatingComment | null>(null)
 
   useEffect(() => {
-    api.beerComments(barId, styleSlug)
+    api.beerComments(barId, styleSlug, brandSlug)
       .then(setItems)
       .catch(e => { setError((e as Error).message); setItems([]) })
-  }, [barId, styleSlug])
+  }, [barId, styleSlug, brandSlug])
 
   const send = async () => {
     if (rating < 1) { setError('Elegí cuántas estrellas antes de comentar'); return }
     setBusy(true); setError(null)
     try {
-      await api.rateBeer({ barId, styleSlug, rating, body: body.trim() || null })
+      await api.rateBeer({ barId, styleSlug, brandSlug, rating, body: body.trim() || null })
       setBody('')
-      setItems(await api.beerComments(barId, styleSlug))
+      setItems(await api.beerComments(barId, styleSlug, brandSlug))
       onWrote()
     } catch (e) { setError((e as Error).message) }
     finally { setBusy(false) }
   }
 
   return (
-    <Sheet title={styleName} onClose={onClose}>
+    <Sheet title={title} onClose={onClose}>
       {canWrite && (
         <div style={{
           padding: 12, borderRadius: 14, background: 'var(--base)', marginBottom: 16,
@@ -134,7 +142,7 @@ export function BeerComments({
             setConfirmDelete(null); setError(null)
             try {
               await api.removeRating(c.id)
-              setItems(await api.beerComments(barId, styleSlug))
+              setItems(await api.beerComments(barId, styleSlug, brandSlug))
               onWrote()
             } catch (e) { setError((e as Error).message) }
           }}

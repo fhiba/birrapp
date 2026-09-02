@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import type { BeerStyle } from '../data/types'
+import { useEffect, useState } from 'react'
+import type { BeerStyle, Brand } from '../data/types'
 import { groupThousands } from '../data/format'
+import { BrandPicker } from '../ui/BrandPicker'
 
 /**
  * Carga de precio: una pantalla, teclado propio.
@@ -12,18 +13,40 @@ import { groupThousands } from '../data/format'
  *
  * Tocar el monto o el tamaño edita ese campo directamente; el activo se
  * resalta. Nada de modos escondidos.
+ *
+ * La marca va debajo del estilo y es opcional: se sabe siempre si es rubia o
+ * IPA, no siempre de qué marca. Sin ella, el precio se carga igual — y esa
+ * birra "sin marca" es una birra propia, no un dato a medio cargar.
  */
 export function ReportPrice({
-  styles, preselected, barName, onCancel, onSubmit,
+  styles, brands, preselected, preselectedBrand, barName,
+  onCancel, onSubmit, onBrandCreated,
 }: {
-  styles: BeerStyle[]; preselected?: string; barName?: string
+  styles: BeerStyle[]
+  brands: Brand[]
+  preselected?: string
+  preselectedBrand?: string | null
+  barName?: string
   onCancel: () => void
-  onSubmit: (styleSlug: string, price: number, sizeMl: number) => void
+  onSubmit: (
+    styleSlug: string, brandSlug: string | null, price: number, sizeMl: number,
+  ) => void
+  onBrandCreated: (b: Brand) => void
 }) {
   const [style, setStyle] = useState(preselected ?? styles[0]?.slug)
+  const [brand, setBrand] = useState<string | null>(preselectedBrand ?? null)
   const [digits, setDigits] = useState('')
   const [size, setSize] = useState('473')
   const [editingSize, setEditingSize] = useState(false)
+
+  // Cambiar de estilo limpia la marca elegida: una IPA de Antares y una rubia
+  // de Antares son birras distintas, pero arrastrar la marca sin querer
+  // convierte un cambio de estilo en un precio cargado sobre otra cerveza.
+  // Se conserva sólo cuando el estilo vuelve a ser el que venía preseleccionado
+  // (el caso de "Actualizar" sobre una birra concreta).
+  useEffect(() => {
+    setBrand(style === preselected ? (preselectedBrand ?? null) : null)
+  }, [style, preselected, preselectedBrand])
 
   const price = Number(digits) || 0
   const sizeMl = Number(size) || 473
@@ -63,6 +86,13 @@ export function ReportPrice({
         ))}
       </div>
 
+      <div style={{ padding: '10px 14px 0' }}>
+        <BrandPicker
+          brands={brands} value={brand} onChange={setBrand}
+          onCreated={onBrandCreated}
+        />
+      </div>
+
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -98,12 +128,17 @@ export function ReportPrice({
         ))}
       </div>
 
-      <button disabled={!valid} onClick={() => onSubmit(style!, price, sizeMl)} className="lbl" style={{
-        margin: '12px 18px 18px', padding: 16, borderRadius: 16, fontSize: 15,
-        background: valid ? 'var(--amber)' : 'var(--elevated)',
-        color: valid ? 'var(--base)' : 'var(--faint)',
-        cursor: valid ? 'pointer' : 'not-allowed',
-      }}>Enviar</button>
+      <button
+        disabled={!valid}
+        onClick={() => onSubmit(style!, brand, price, sizeMl)}
+        className="lbl"
+        style={{
+          margin: '12px 18px 18px', padding: 16, borderRadius: 16, fontSize: 15,
+          background: valid ? 'var(--amber)' : 'var(--elevated)',
+          color: valid ? 'var(--base)' : 'var(--faint)',
+          cursor: valid ? 'pointer' : 'not-allowed',
+        }}
+      >Enviar</button>
     </div>
   )
 }

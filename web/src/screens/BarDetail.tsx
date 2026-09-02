@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type {
-  BarDetail as Bar, BeerStyle, MyRating, Photo, Review, StylePrice, User,
+  BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
 } from '../data/types'
 import { isModerator } from '../data/types'
 import { ageLabel, formatDistance, formatPrice, freshnessColor } from '../data/format'
@@ -13,12 +13,28 @@ import { Stars } from '../ui/Stars'
 import { PhotoStrip } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
 
+/**
+ * Identidad de una birra: estilo + marca.
+ *
+ * Existe como función y no como campo porque el estilo solo dejó de nombrar a
+ * la cerveza. Un bar puede tener dos IPA, y decirle "IPA" a las dos —en el
+ * historial, en la denuncia, en el diálogo de borrar— hace que el usuario
+ * confirme una acción sobre una birra distinta de la que está mirando.
+ */
+const beerName = (p: StylePrice) =>
+  p.brandName ? `${p.styleName} · ${p.brandName}` : p.styleName
+
+/** Clave estable de una birra, para `key` y para marcar cuál está ocupada. */
+const beerKey = (p: StylePrice) => `${p.styleSlug}|${p.brandSlug ?? ''}`
+
 export function BarDetailScreen({
-  user, center, styles, onChanged,
+  user, center, styles, brands, onBrandCreated, onChanged,
 }: {
   user: User | null
   center: google.maps.LatLngLiteral | null
   styles: BeerStyle[]
+  brands: Brand[]
+  onBrandCreated: (b: Brand) => void
   onChanged: () => void
 }) {
   const { id } = useParams()
@@ -30,14 +46,18 @@ export function BarDetailScreen({
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  const [reporting, setReporting] = useState<{ style?: string } | null>(null)
+  const [reporting, setReporting] =
+    useState<{ style?: string; brand?: string | null } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [history, setHistory] = useState<{ slug: string; name: string } | null>(null)
+  const [history, setHistory] = useState<StylePrice | null>(null)
   const [reportingBad, setReportingBad] = useState<StylePrice | null>(null)
   const [modMode, setModMode] = useState(false)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [mine, setMine] = useState<MyRating[]>([])
-  const [tab, setTab] = useState<string | null>(null)
+  // La birra elegida se guarda como (estilo, marca) y no como un índice: si
+  // se actualiza un precio y la lista se reordena, un índice apuntaría a otra
+  // cerveza.
+  const [tab, setTab] = useState<{ style: string; brand: string | null } | null>(null)
   const [comments, setComments] = useState<{ price: StylePrice; initial?: number } | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
   const [confirmPhoto, setConfirmPhoto] = useState<Photo | null>(null)
@@ -100,14 +120,33 @@ export function BarDetailScreen({
     ? voted.reduce((n, p) => n + p.ratingRaw! * p.ratingCount, 0) / votes
     : null
 
-  const myRatingOf = (slug: string) =>
-    mine.find(m => m.styleSlug === slug)?.rating ?? null
+  const myRatingOf = (p: StylePrice) =>
+    mine.find(m => m.styleSlug === p.styleSlug && m.brandSlug === p.brandSlug)?.rating ?? null
 
-  // La pestaña elegida, o la primera. Se resuelve al vuelo y no en un efecto:
-  // si el precio se actualiza y la lista se reordena, un índice guardado
-  // apuntaría a otra birra.
-  const active = bar.prices.find(p => p.styleSlug === tab) ?? bar.prices[0] ?? null
-  const stylePhotos = photos.filter(f => f.styleSlug === active?.styleSlug)
+  // Las birras vienen agrupadas por estilo desde la API, con las marcas de un
+  // mismo estilo contiguas. Acá sólo se parten en grupos: el orden lo decide
+  // el servidor y duplicarlo del lado del cliente sería una segunda fuente de
+  // verdad para lo mismo.
+  const groups: { slug: string; name: string; beers: StylePrice[] }[] = []
+  for (const p of bar.prices) {
+    const last = groups[groups.length - 1]
+    if (last && last.slug === p.styleSlug) last.beers.push(p)
+    else groups.push({ slug: p.styleSlug, name: p.styleName, beers: [p] })
+  }
+
+  // La selección se resuelve al vuelo, con dos niveles de repliegue: la birra
+  // exacta, si no la primera de ese estilo, si no la primera de todas. Hace
+  // falta porque la lista cambia bajo los pies —se carga un precio, se borra
+  // otro— y una marca elegida puede dejar de existir.
+  const group = groups.find(g => g.slug === tab?.style) ?? groups[0] ?? null
+  const active =
+    group?.beers.find(b => b.brandSlug === (tab?.brand ?? null)) ?? group?.beers[0] ?? null
+
+  // Las fotos son de la birra, no del estilo: sin filtrar por marca, las de la
+  // IPA de Antares aparecían debajo de la de Juguetes Perdidos.
+  const beerPhotos = active
+    ? photos.filter(f => f.styleSlug === active.styleSlug && f.brandSlug === active.brandSlug)
+    : []
 
   return (
     <div style={{
@@ -229,11 +268,15 @@ export function BarDetailScreen({
             display: 'flex', gap: 6, padding: '4px 18px 0',
             overflowX: 'auto', scrollSnapType: 'x proximity',
           }}>
-            {bar.prices.map(p => {
-              const on = p.styleSlug === active?.styleSlug
+            {groups.map(g => {
+              const on = g.slug === group?.slug
               return (
                 <button
-                  key={p.styleSlug} onClick={() => setTab(p.styleSlug)}
+                  key={g.slug}
+                  // Cambiar de estilo cae en su primera marca. Conservar la
+                  // marca anterior llevaría a pedir una birra que no existe:
+                  // "rubia de Juguetes Perdidos" porque venías mirando su IPA.
+                  onClick={() => setTab({ style: g.slug, brand: g.beers[0].brandSlug })}
                   className="lbl" aria-pressed={on}
                   style={{
                     flex: '0 0 auto', scrollSnapAlign: 'start',
@@ -242,7 +285,19 @@ export function BarDetailScreen({
                     background: on ? 'var(--amber)' : 'rgba(255,255,255,.07)',
                     color: on ? 'var(--base)' : 'var(--muted)',
                   }}
-                >{p.styleName}</button>
+                >
+                  {g.name}
+                  {/* Cuántas marcas hay de este estilo. Sin esto, que una
+                      solapa esconda tres cervezas y otra una sola no se ve
+                      hasta entrar. */}
+                  {g.beers.length > 1 && (
+                    <span style={{
+                      marginLeft: 6, fontSize: 11,
+                      opacity: on ? 0.65 : 1,
+                      color: on ? 'inherit' : 'var(--faint)',
+                    }}>{g.beers.length}</span>
+                  )}
+                </button>
               )
             })}
 
@@ -270,32 +325,98 @@ export function BarDetailScreen({
             </button>
           </div>
 
+          {/* Segunda fila: las marcas de ese estilo.
+              Se ve una marca por vez y se alterna entre ellas — mostrar dos
+              precios juntos bajo el rótulo "IPA" es exactamente lo que hacía
+              que el número no significara nada. La fila aparece siempre,
+              incluso con una sola marca, porque es donde vive el "+": un
+              control que aparece y desaparece según cuántas haya es un control
+              que no se encuentra cuando se lo necesita. */}
+          {group && (
+            <div style={{
+              display: 'flex', gap: 6, padding: '8px 18px 0',
+              overflowX: 'auto', scrollSnapType: 'x proximity',
+            }}>
+              {group.beers.map(b => {
+                const on = b.brandSlug === active?.brandSlug
+                return (
+                  <button
+                    key={b.brandSlug ?? '_'}
+                    onClick={() => setTab({ style: group.slug, brand: b.brandSlug })}
+                    className="lbl" aria-pressed={on}
+                    style={{
+                      flex: '0 0 auto', scrollSnapAlign: 'start',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 12px', borderRadius: 999, fontSize: 12.5,
+                      whiteSpace: 'nowrap',
+                      background: on ? 'rgba(255,182,39,.16)' : 'transparent',
+                      color: on ? 'var(--amber)' : 'var(--faint)',
+                      border: `1px solid ${on ? 'rgba(255,182,39,.4)' : 'var(--hairline)'}`,
+                    }}
+                  >
+                    {b.brandName ?? 'Sin marca'}
+                    {b.price != null && (
+                      <span className="num" style={{ opacity: 0.75 }}>
+                        {formatPrice(b.price)}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+
+              <button
+                onClick={() => user
+                  ? setReporting({ style: group.slug })
+                  : nav('/perfil')}
+                className="lbl" aria-label="Cargar otra marca"
+                style={{
+                  flex: '0 0 auto', scrollSnapAlign: 'start',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 12px', borderRadius: 999, fontSize: 12.5,
+                  whiteSpace: 'nowrap', color: 'var(--muted)',
+                  border: '1px dashed var(--hairline)',
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12 5v14M5 12h14" stroke="currentColor"
+                    strokeWidth="2.6" strokeLinecap="round" />
+                </svg>
+                Otra marca
+              </button>
+            </div>
+          )}
+
           {active && (
             <>
               <PriceRow
-                key={active.styleSlug} price={active} busy={busy === active.styleSlug}
+                key={beerKey(active)} price={active} busy={busy === beerKey(active)}
                 modMode={modMode}
                 onConfirm={() => user
-                  ? act(() => api.confirmPrice(barId, active.styleSlug), active.styleSlug)
+                  ? act(
+                    () => api.confirmPrice(barId, active.styleSlug, active.brandSlug),
+                    beerKey(active),
+                  )
                   : nav('/perfil')}
-                onUpdate={() => user ? setReporting({ style: active.styleSlug }) : nav('/perfil')}
+                onUpdate={() => user
+                  ? setReporting({ style: active.styleSlug, brand: active.brandSlug })
+                  : nav('/perfil')}
                 onRemove={() => setConfirmPrice(active)}
-                onHistory={() => setHistory({ slug: active.styleSlug, name: active.styleName })}
+                onHistory={() => setHistory(active)}
                 onFlag={() => user ? setReportingBad(active) : nav('/perfil')}
               />
 
               <div style={{ padding: '14px 18px 4px' }}>
                 <BeerRating
                   price={active}
-                  myRating={myRatingOf(active.styleSlug)}
+                  myRating={myRatingOf(active)}
                   onOpen={n => setComments({ price: active, initial: n })}
                 />
 
                 <PhotoStrip
-                  photos={stylePhotos}
+                  photos={beerPhotos}
                   canAdd={user != null}
                   onAdd={async file => {
-                    await api.uploadPhoto(barId, active.styleSlug, file)
+                    await api.uploadPhoto(barId, active.styleSlug, active.brandSlug, file)
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
@@ -335,11 +456,21 @@ export function BarDetailScreen({
 
       {reporting && (
         <ReportPrice
-          styles={styles} preselected={reporting.style} barName={bar.name}
+          styles={styles} brands={brands}
+          preselected={reporting.style} preselectedBrand={reporting.brand}
+          barName={bar.name}
           onCancel={() => setReporting(null)}
-          onSubmit={(slug, price, sizeMl) => {
+          onBrandCreated={onBrandCreated}
+          onSubmit={(slug, brandSlug, price, sizeMl) => {
             setReporting(null)
-            act(() => api.reportPrice({ barId, styleSlug: slug, price, sizeMl }), slug)
+            // La birra cargada pasa a ser la que se está mirando: si no, se
+            // carga la segunda IPA y la pantalla se queda mostrando la
+            // primera, como si no hubiera pasado nada.
+            setTab({ style: slug, brand: brandSlug })
+            act(
+              () => api.reportPrice({ barId, styleSlug: slug, brandSlug, price, sizeMl }),
+              slug + '|' + (brandSlug ?? ''),
+            )
           }}
         />
       )}
@@ -366,7 +497,8 @@ export function BarDetailScreen({
       </div>
       {history && (
         <PriceHistory
-          barId={barId} styleSlug={history.slug} styleName={history.name}
+          barId={barId} styleSlug={history.styleSlug} brandSlug={history.brandSlug}
+          title={beerName(history)}
           onClose={() => setHistory(null)}
         />
       )}
@@ -375,7 +507,7 @@ export function BarDetailScreen({
         <Confirm
           title="¿Reportar este precio?"
           body={<>
-            Vas a avisar que el precio de <strong>{reportingBad.styleName}</strong> está
+            Vas a avisar que el precio de <strong>{beerName(reportingBad)}</strong> está
             mal cargado. Un moderador lo revisa.
             <br /><br />
             Si sólo cambió, es mejor usar <strong>Actualizar</strong>: reportar es
@@ -391,7 +523,7 @@ export function BarDetailScreen({
               // acá no puede ser null.
               await api.flag({
                 targetType: 'price', targetId: p.id!,
-                reason: `precio incorrecto: ${p.styleName} a ${formatPrice(p.price!)}`,
+                reason: `precio incorrecto: ${beerName(p)} a ${formatPrice(p.price!)}`,
               })
               setToast('Reportado. Gracias, lo revisa un moderador.')
             } catch (e) { setToast((e as Error).message) }
@@ -403,10 +535,11 @@ export function BarDetailScreen({
         <BeerComments
           barId={barId}
           styleSlug={comments.price.styleSlug}
-          styleName={comments.price.styleName}
+          brandSlug={comments.price.brandSlug}
+          title={beerName(comments.price)}
           canWrite={user != null}
           modMode={modMode}
-          myRating={myRatingOf(comments.price.styleSlug)}
+          myRating={myRatingOf(comments.price)}
           initialRating={comments.initial}
           onClose={() => setComments(null)}
           onWrote={load}
@@ -415,7 +548,7 @@ export function BarDetailScreen({
 
       {viewing != null && (
         <PhotoViewer
-          photos={stylePhotos} start={viewing} modMode={modMode}
+          photos={beerPhotos} start={viewing} modMode={modMode}
           onClose={() => setViewing(null)}
           onRemove={p => { setViewing(null); setConfirmPhoto(p) }}
         />
@@ -448,9 +581,9 @@ export function BarDetailScreen({
 
       {confirmPrice && (
         <Confirm
-          title={`¿Eliminar el precio de ${confirmPrice.styleName}?`}
+          title={`¿Eliminar el precio de ${beerName(confirmPrice)}?`}
           body={<>
-            Se baja el reporte vigente de <strong>{confirmPrice.styleName}</strong> a{' '}
+            Se baja el reporte vigente de <strong>{beerName(confirmPrice)}</strong> a{' '}
             {formatPrice(confirmPrice.price!)}. No se puede deshacer.
             <br /><br />
             Las notas y las fotos de esta birra no se tocan: la birra sigue en la
@@ -461,7 +594,7 @@ export function BarDetailScreen({
           onConfirm={() => {
             const p = confirmPrice
             setConfirmPrice(null)
-            act(() => api.removePrice(p.id!), p.styleSlug)
+            act(() => api.removePrice(p.id!), beerKey(p))
           }}
         />
       )}
@@ -490,7 +623,8 @@ function PriceRow({
       <div style={{
         padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
       }}>
-        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
+        <BeerLabel price={price} />
+        <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 14 }}>
           Esta birra no tiene precio cargado.
         </p>
         <button onClick={onUpdate} className="lbl" style={{
@@ -505,10 +639,15 @@ function PriceRow({
   const dim = price.freshness === 'stale'
   return (
     <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+      {/* Estilo y marca sobre el precio.
+          Cuando el estilo era toda la identidad esto sobraba —lo decía la
+          pestaña de arriba— pero con dos IPA a precios distintos el número
+          suelto no dice de cuál es, y las dos filas de pestañas se pueden
+          haber corrido de lado. El precio sin su birra no significa nada. */}
+      <BeerLabel price={price} />
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 8 }}>
         <div style={{ flex: 1 }}>
-          {/* El nombre del estilo ya está en la pestaña de arriba: repetirlo
-              acá lo decía dos veces en la misma pantalla. */}
           <div className="num" style={{
             fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!)}</div>
@@ -569,6 +708,42 @@ function PriceRow({
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * El rótulo que dice qué birra es esta.
+ *
+ * El estilo en cream y la marca en ámbar: son dos datos de distinto peso y
+ * leerlos como una sola frase ("IPA · Antares") es más rápido que buscar cuál
+ * de las dos pestañas está encendida.
+ */
+function BeerLabel({ price }: { price: StylePrice }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
+      <span className="lbl" style={{
+        fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
+      }}>{price.styleName.toUpperCase()}</span>
+
+      {price.brandName ? (
+        <span className="lbl" style={{ fontSize: 13, color: 'var(--amber)' }}>
+          {price.brandName}
+        </span>
+      ) : (
+        // "Sin marca" se dice, no se omite: en un bar con dos IPA, una con
+        // marca y otra sin, el silencio se lee como que falta el dato.
+        <span className="lbl" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+          Sin marca
+        </span>
+      )}
+
+      {price.brandCraft && (
+        <span className="lbl" style={{
+          fontSize: 10, letterSpacing: '.08em', padding: '2px 7px', borderRadius: 999,
+          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
+        }}>ARTESANAL</span>
+      )}
     </div>
   )
 }

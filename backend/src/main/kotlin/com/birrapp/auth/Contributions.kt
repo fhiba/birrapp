@@ -22,6 +22,8 @@ data class MyPriceDto(
     val barId: Long,
     val barName: String,
     val styleName: String,
+    /** null = sin marca. Sin esto dos birras del mismo estilo se ven iguales. */
+    val brandName: String?,
     val price: Double,
     val sizeMl: Int,
     val ageDays: Int,
@@ -37,6 +39,7 @@ data class MyPhotoDto(
     val barId: Long,
     val barName: String,
     val styleName: String,
+    val brandName: String?,
     val url: String,
     val ageDays: Int,
 )
@@ -77,14 +80,20 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
         val prices = c.query(
             """
             SELECT pr.id, pr.bar_id, b.name AS bar_name, s.name_es AS style_name,
+                   br.name AS brand_name,
                    pr.price, pr.size_ml, pr.is_confirmation,
                    EXTRACT(DAY FROM (now() - pr.created_at))::int AS age_days,
                    (cp.id = pr.id) AS is_current
             FROM price_reports pr
             JOIN bars b ON b.id = pr.bar_id
             JOIN beer_styles s ON s.id = pr.style_id
+            LEFT JOIN brands br ON br.id = pr.brand_id
+            -- La marca va en el ON, no sólo el estilo: la vista tiene una fila
+            -- por marca, así que sin esto un bar con dos IPA duplicaba cada
+            -- reporte y marcaba como vigente el de la otra marca.
             LEFT JOIN v_current_prices cp
                    ON cp.bar_id = pr.bar_id AND cp.style_id = pr.style_id
+                  AND cp.brand_id IS NOT DISTINCT FROM pr.brand_id
             WHERE pr.reported_by = ? AND pr.status = 'active'
             ORDER BY pr.created_at DESC LIMIT ?
             """.trimIndent(),
@@ -95,6 +104,7 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
                 barId = rs.getLong("bar_id"),
                 barName = rs.getString("bar_name"),
                 styleName = rs.getString("style_name"),
+                brandName = rs.getString("brand_name"),
                 price = rs.getBigDecimal("price").toDouble(),
                 sizeMl = rs.getInt("size_ml"),
                 ageDays = rs.getInt("age_days"),
@@ -106,11 +116,12 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
         val photos = c.query(
             """
             SELECT p.id, p.bar_id, b.name AS bar_name, s.name_es AS style_name,
-                   p.object_key,
+                   br.name AS brand_name, p.object_key,
                    EXTRACT(DAY FROM (now() - p.created_at))::int AS age_days
             FROM bar_photos p
             JOIN bars b ON b.id = p.bar_id
             JOIN beer_styles s ON s.id = p.style_id
+            LEFT JOIN brands br ON br.id = p.brand_id
             WHERE p.user_id = ? AND p.status = 'active'
             ORDER BY p.created_at DESC LIMIT ?
             """.trimIndent(),
@@ -121,6 +132,7 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
                 barId = rs.getLong("bar_id"),
                 barName = rs.getString("bar_name"),
                 styleName = rs.getString("style_name"),
+                brandName = rs.getString("brand_name"),
                 url = r2.publicUrl(rs.getString("object_key")),
                 ageDays = rs.getInt("age_days"),
             )

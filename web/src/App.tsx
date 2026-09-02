@@ -51,7 +51,9 @@ function Shell() {
   const [toast, setToast] = useState<string | null>(null)
 
   const { coords, request } = useLocation()
-  const { bars, styles, loading, error, load, invalidate, MIN_QUERY_ZOOM } = useBars()
+  const {
+    bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
+  } = useBars()
 
   const [sort, setSort] = useState<Sort>('distance')
   const [radius, setRadius] = useState(2000)
@@ -181,7 +183,8 @@ function Shell() {
         } />
         <Route path="/bar/:id" element={
           <BarDetailScreen user={user} center={queryPoint ?? null}
-            styles={styles} onChanged={afterChange} />
+            styles={styles} brands={brands} onBrandCreated={addBrand}
+            onChanged={afterChange} />
         } />
         <Route path="/agregar" element={
           <AddBarScreen user={user} center={queryPoint ?? null} onAdded={afterChange} />

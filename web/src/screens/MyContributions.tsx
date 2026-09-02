@@ -60,7 +60,8 @@ export function MyContributionsScreen() {
             key={p.id}
             onOpen={() => nav(`/bar/${p.barId}`)}
             onRemove={() => setKillPrice(p)}
-            title={`${formatPrice(p.price)} · ${p.styleName}`}
+            title={`${formatPrice(p.price)} · ${p.styleName}`
+              + (p.brandName ? ` · ${p.brandName}` : '')}
             sub={`${p.barName}${p.sizeMl !== 473 ? ` · ${p.sizeMl} ml` : ''}`}
             age={p.ageDays}
             tag={p.isConfirmation ? 'confirmación' : undefined}
@@ -74,7 +75,7 @@ export function MyContributionsScreen() {
             key={f.id}
             onOpen={() => nav(`/bar/${f.barId}`)}
             onRemove={() => setKillPhoto(f)}
-            title={f.styleName}
+            title={f.brandName ? `${f.styleName} · ${f.brandName}` : f.styleName}
             sub={f.barName}
             age={f.ageDays}
             thumb={f.url}

@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { BarPin, Flag } from '../data/types'
+import type { BarPin, Brand, Flag } from '../data/types'
 
 export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   const nav = useNavigate()
   const [pending, setPending] = useState<BarPin[]>([])
   const [flags, setFlags] = useState<Flag[]>([])
+  const [newBrands, setNewBrands] = useState<Brand[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [p, f] = await Promise.all([api.pendingBars(), api.openFlags()])
-      setPending(p); setFlags(f)
+      const [p, f, b] = await Promise.all([
+        api.pendingBars(), api.openFlags(), api.pendingBrands(),
+      ])
+      setPending(p); setFlags(f); setNewBrands(b)
     } catch (e) { setError((e as Error).message) } finally { setLoading(false) }
   }, [])
 
@@ -25,7 +28,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     catch (e) { setError((e as Error).message) }
   }
 
-  const total = pending.length + flags.length
+  const total = pending.length + flags.length + newBrands.length
 
   return (
     <div style={{
@@ -52,7 +55,8 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
       {loading && <div className="spinner" style={{ margin: '30px auto' }} />}
 
-      {!loading && pending.length === 0 && flags.length === 0 && (
+      {!loading && pending.length === 0 && flags.length === 0
+        && newBrands.length === 0 && (
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
           Nada pendiente. Todo en orden.
         </p>
@@ -69,6 +73,28 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
             <Btn primary onClick={() => act(() => api.approveBar(b.id))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBar(b.id))}>Rechazar</Btn>
             <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>Eliminar</Btn>
+          </div>
+        </div>
+      ))}
+
+      {/* Marcas nuevas.
+          Van arriba de las denuncias porque son lo más barato de resolver y lo
+          que más traba a quien las cargó: hasta que se apruebe, la marca la ve
+          sólo esa persona. Aprobar es el caso normal —lo que falta en la lista
+          es casi siempre una cervecería chica real—; rechazar es para
+          duplicados y para nombres que no son una marca. */}
+      {newBrands.length > 0 && <H>Marcas nuevas · {newBrands.length}</H>}
+      {newBrands.map(b => (
+        <div key={b.slug} style={{
+          padding: '10px 18px', borderBottom: '1px solid var(--hairline)',
+        }}>
+          <div className="lbl">{b.name}</div>
+          <div style={{ color: 'var(--faint)', fontSize: 11 }}>
+            {b.craft ? 'artesanal' : 'industrial'} · {b.slug}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
+            <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
           </div>
         </div>
       ))}

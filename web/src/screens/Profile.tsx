@@ -24,7 +24,7 @@ export function ProfileScreen({ user, onSession }: {
     // los bares pendientes y sus reportes enteros para dibujar un número.
     if (isModerator(user)) {
       api.moderationSummary()
-        .then(s => setPendingWork(s.pendingBars + s.openFlags))
+        .then(s => setPendingWork(s.pendingBars + s.openFlags + s.pendingBrands))
         .catch(() => {})
     }
   }, [user])

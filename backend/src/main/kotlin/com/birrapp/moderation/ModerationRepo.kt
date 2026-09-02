@@ -28,7 +28,12 @@ private val VALID_TARGETS = setOf("bar", "price", "review")
 private const val MAX_FLAGS_PER_DAY = 20
 
 @Serializable
-data class ModerationSummaryDto(val pendingBars: Int, val openFlags: Int)
+data class ModerationSummaryDto(
+    val pendingBars: Int,
+    val openFlags: Int,
+    /** Marcas que cargó un usuario y todavía nadie aprobó. */
+    val pendingBrands: Int,
+)
 
 class ModerationRepo(private val db: Db) {
 
@@ -83,6 +88,9 @@ class ModerationRepo(private val db: Db) {
             ) { it.getInt("n") } ?: 0,
             openFlags = c.queryOne(
                 "SELECT count(*) AS n FROM flags WHERE resolved_at IS NULL",
+            ) { it.getInt("n") } ?: 0,
+            pendingBrands = c.queryOne(
+                "SELECT count(*) AS n FROM brands WHERE status = 'pending'",
             ) { it.getInt("n") } ?: 0,
         )
     }

@@ -108,7 +108,11 @@ fun Route.apiRoutes(
     get("/bars/{id}/history") {
         val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
         val style = call.request.queryParameters["style"] ?: badRequest("falta style")
-        call.respond(prices.history(id, style))
+        // Sin `brand` la serie es la de la birra sin marca, no la del estilo
+        // entero: son cervezas distintas y mezclarlas dibuja un zigzag que no
+        // es una variación de precio.
+        val brand = call.request.queryParameters["brand"]
+        call.respond(prices.history(id, style, brand))
     }
 
     // ---------- aportes (requiere sesión) ----------

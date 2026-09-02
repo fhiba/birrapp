@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from './api'
-import type { BarPin, BeerStyle } from './types'
+import type { BarPin, BeerStyle, Brand } from './types'
 
 export const BA_CENTER = { lat: -34.6037, lng: -58.3816 }
 const OVER_FETCH = 2.5
@@ -31,6 +31,7 @@ function haversine(a: google.maps.LatLngLiteral, b: google.maps.LatLngLiteral) {
 export function useBars() {
   const [bars, setBars] = useState<BarPin[]>([])
   const [styles, setStyles] = useState<BeerStyle[]>([])
+  const [brands, setBrands] = useState<Brand[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,6 +51,18 @@ export function useBars() {
   const keyOf = (style?: string) => style ?? ''
 
   useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
+  useEffect(() => { api.brands().then(setBrands).catch(() => {}) }, [])
+
+  /**
+   * Una marca recién creada todavía no está en la lista del servidor —queda
+   * pendiente de moderación— pero quien la creó tiene que poder usarla en el
+   * mismo paso. Sin esto, cargar el precio de una marca nueva serían dos
+   * viajes a la app: uno para crearla y otro, después de que la aprueben,
+   * para cargar el precio.
+   */
+  const addBrand = useCallback((b: Brand) => {
+    setBrands(cur => cur.some(x => x.slug === b.slug) ? cur : [...cur, b])
+  }, [])
 
   const covers = (c: google.maps.LatLngLiteral, radius: number, style?: string) => {
     const cur = covered.current.get(keyOf(style))
@@ -112,7 +125,9 @@ export function useBars() {
   // el pin de cualquiera de las cachés.
   const invalidate = useCallback(() => { covered.current.clear() }, [])
 
-  return { bars, styles, loading, error, load, invalidate, MIN_QUERY_ZOOM }
+  return {
+    bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
+  }
 }
 
 /** Ubicación del navegador. Igual que en la app: nunca bloquea la primera pintura. */

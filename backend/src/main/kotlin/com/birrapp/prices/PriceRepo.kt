@@ -265,17 +265,36 @@ class PriceRepo(private val db: Db) {
         ) > 0
     }
 
-    /** Histórico por bar+estilo. Lo interesante que ningún competidor tiene. */
-    fun history(barId: Long, styleSlug: String, limit: Int = 50): List<PricePoint> = db.conn {
-        it.query(
+    /**
+     * Histórico de una birra. Lo interesante que ningún competidor tiene.
+     *
+     * Va por (bar, estilo, marca) y no por (bar, estilo): mezclar la IPA de
+     * Antares con la de Juguetes Perdidos daría una serie que sube y baja
+     * porque son dos cervezas distintas, no porque el precio se haya movido.
+     *
+     * `brandSlug` null significa "sin marca", que es una birra concreta, no un
+     * comodín: la comparación es contra NULL y no "cualquier marca".
+     */
+    fun history(
+        barId: Long,
+        styleSlug: String,
+        brandSlug: String? = null,
+        limit: Int = 50,
+    ): List<PricePoint> = db.conn { c ->
+        val brandId = brandSlug?.let {
+            c.queryOne("SELECT id FROM brands WHERE slug = ?", it) { rs -> rs.getInt("id") }
+                ?: notFound("marca desconocida: $it")
+        }
+        c.query(
             """
             SELECT pr.price, pr.size_ml, pr.created_at
             FROM price_reports pr
             JOIN beer_styles bs ON bs.id = pr.style_id
             WHERE pr.bar_id = ? AND bs.slug = ? AND pr.status = 'active'
+              AND pr.brand_id IS NOT DISTINCT FROM ?
             ORDER BY pr.created_at DESC LIMIT ?
             """.trimIndent(),
-            barId, styleSlug, limit,
+            barId, styleSlug, brandId, limit,
         ) { rs ->
             PricePoint(
                 price = rs.getBigDecimal("price").toDouble(),

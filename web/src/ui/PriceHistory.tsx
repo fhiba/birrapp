@@ -12,14 +12,21 @@ import { formatPrice } from '../data/format'
  * no sólo cuánto sale hoy, sino cuánto subió.
  */
 export function PriceHistory(
-  { barId, styleSlug, styleName, onClose }:
-  { barId: number; styleSlug: string; styleName: string; onClose: () => void },
+  { barId, styleSlug, brandSlug, title, onClose }:
+  {
+    barId: number
+    styleSlug: string
+    /** La serie es de esta birra, no del estilo: dos marcas son dos series. */
+    brandSlug: string | null
+    title: string
+    onClose: () => void
+  },
 ) {
   const [points, setPoints] = useState<PricePoint[] | null>(null)
 
   useEffect(() => {
-    api.priceHistory(barId, styleSlug).then(setPoints).catch(() => setPoints([]))
-  }, [barId, styleSlug])
+    api.priceHistory(barId, styleSlug, brandSlug).then(setPoints).catch(() => setPoints([]))
+  }, [barId, styleSlug, brandSlug])
 
   const series = (points ?? []).slice().reverse()   // del más viejo al más nuevo
   const values = series.map(p => p.price)
@@ -46,7 +53,7 @@ export function PriceHistory(
         background: 'var(--raised)', borderRadius: 20, padding: 22,
         width: '100%', maxWidth: 380,
       }}>
-        <h3 className="ttl" style={{ margin: 0, fontSize: 19 }}>{styleName}</h3>
+        <h3 className="ttl" style={{ margin: 0, fontSize: 19 }}>{title}</h3>
         <p style={{ color: 'var(--faint)', fontSize: 12, margin: '4px 0 18px' }}>
           Historial de precios
         </p>
