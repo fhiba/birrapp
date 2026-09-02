@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation as useRoute } from 'react-router-dom'
+import {
+  BrowserRouter, Navigate, Route, Routes, useNavigate,
+  useLocation as useRoute,
+} from 'react-router-dom'
 import { APIProvider } from '@vis.gl/react-google-maps'
 import { Analytics } from '@vercel/analytics/react'
 import * as api from './data/api'
@@ -43,6 +46,7 @@ export default function App() {
 
 function Shell() {
   const route = useRoute()
+  const nav = useNavigate()
   const [user, setUser] = useState<User | null>(api.currentUser())
   const [toast, setToast] = useState<string | null>(null)
 
@@ -84,9 +88,17 @@ function Shell() {
     // en el historial ni volver a dispararse al recargar.
     history.replaceState({}, '', location.pathname)
     api.redeemHandoff(handoff)
-      .then(s => { api.saveSession(s); setToast(`¡Hola, ${s.user.displayName}!`) })
+      .then(s => {
+        api.saveSession(s)
+        setToast(`¡Hola, ${s.user.displayName}!`)
+        // Al mapa, no a donde se había tocado "Entrar". El tutorial empieza
+        // ahí y arranca explicando de qué va la app; caer en Perfil recién
+        // logueado deja la primera pantalla del tutorial en el lugar
+        // equivocado.
+        nav('/', { replace: true })
+      })
       .catch(() => setToast('El inicio de sesión expiró. Probá de nuevo.'))
-  }, [])
+  }, [nav])
 
   // Vive acá y no en MapScreen porque la pantalla se desmonta al cambiar de
   // pestaña: guardado adentro, el modo se perdía cada vez que se iba a la

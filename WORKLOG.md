@@ -595,3 +595,31 @@ Decisiones:
 Verificado con once comprobaciones de la máquina de estados fuera del navegador:
 que una pantalla vista no se repita, que saltear corte todas, que dos cuentas en
 el mismo teléfono no se pisen y que el reset desde Perfil devuelva todo.
+
+## 2026-09-01 (cont.) — Ajustes del onboarding con el usuario delante
+
+**Intro primero.** No hay que dar por sentado que quien abre la app sabe qué se
+bajó. El primer paso dice qué es birrapp, que los precios los carga la gente y
+por qué cada uno viene con su fecha — que es la regla del proyecto, dicha en
+una oración y no en una pantalla de ayuda que nadie abre.
+
+**El login manda al mapa.** Volvía a la pantalla desde donde se había tocado
+"Entrar", casi siempre Perfil, así que el tutorial arrancaba por el paso de
+Perfil. Ahora `redeemHandoff` navega a `/`.
+
+**El paso del punto secundario se rehizo.** Era el que peor se entendía: hablaba
+de un gesto sin señalar dónde hacerlo. Ahora hay un blanco invisible en el
+centro del mapa —un div sin eventos, puesto sólo para que el tutorial tenga qué
+medir— y el recorte de luz sale redondo alrededor de esa zona. Se partió en dos
+pasos: cómo dejar la marca y cómo sacarla.
+
+Y se corrigió una contradicción: el cartel decía "probá" mientras el overlay se
+comía los toques, así que no se podía probar nada. Los pasos que enseñan un
+gesto ahora dejan pasar los toques a la app; el overlay queda de puro dibujo y
+sólo avanza el botón. En esos pasos se pierde el avance tocando el fondo, pero
+tocar el fondo es justamente lo que se está enseñando.
+
+**Textos repasados.** Varios estaban en tercera persona o daban vueltas: "busca
+en todos los bares" pasó a "te busca entre todos los bares", "no te puede
+encabezar el ranking" a "no le gana a uno fresco", y la pinta se explica
+diciendo quién carga los precios en vez de describir la interfaz.

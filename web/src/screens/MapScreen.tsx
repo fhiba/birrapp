@@ -79,6 +79,21 @@ export function MapScreen(p: Props) {
         <Pins bars={p.bars} colorBy={p.colorBy} onOpen={id => nav(`/bar/${id}`)} />
       </Map>
 
+      {/* Blanco del tutorial para el paso del punto secundario.
+          Ese paso habla de un gesto sobre el mapa, no de un botón, así que no
+          hay control al que apuntar: se marca un pedazo del mapa y el recorte
+          de luz cae ahí. No se ve ni recibe toques; existe sólo para que el
+          tutorial tenga qué medir. */}
+      <div
+        data-tour="map-longpress"
+        aria-hidden
+        style={{
+          position: 'absolute', left: '50%', top: '50%',
+          width: 190, height: 190, marginLeft: -95, marginTop: -95,
+          pointerEvents: 'none',
+        }}
+      />
+
       {/*
         Controles. Dos filas, no cinco: el mapa es el contenido.
 

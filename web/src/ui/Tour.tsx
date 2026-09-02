@@ -23,6 +23,17 @@ export type TourView = 'map' | 'list' | 'bar' | 'profile'
 interface Step {
   /** Valor de `data-tour` del control que explica. Sin esto, cartel centrado. */
   anchor?: string
+  /** Recorte redondo. Para señalar una zona del mapa, que no es un botón. */
+  round?: boolean
+  /**
+   * Deja pasar los toques a la app de abajo.
+   *
+   * Para los pasos que piden probar un gesto: si el overlay los come, el
+   * cartel dice "mantené apretado" y no pasa nada, que es peor que no
+   * explicarlo. Se pierde el avance tocando el fondo, pero en estos pasos
+   * tocar el fondo es justamente lo que se está enseñando.
+   */
+  interactive?: boolean
   title: string
   body: string
 }
@@ -30,67 +41,92 @@ interface Step {
 const STEPS: Record<TourView, Step[]> = {
   map: [
     {
+      title: 'Esto es birrapp',
+      body: 'Un mapa con el precio de la pinta en Buenos Aires. Los precios '
+        + 'los cargamos entre todos: cada uno es alguien que estuvo ahí y lo '
+        + 'anotó. Por eso al lado de cada precio siempre vas a ver cuándo se '
+        + 'cargó — un precio sin fecha no te sirve para nada.',
+    },
+    {
+      anchor: 'map-longpress',
+      round: true,
+      interactive: true,
       title: 'Mantené apretado el mapa',
-      body: 'Te deja un punto y busca desde ahí en vez de desde donde estás. '
-        + 'Buenísimo para chusmear un barrio al que estás por caer.',
+      body: 'Probalo ahora, acá adentro del círculo. Te deja una marca y pasa '
+        + 'a buscar los bares alrededor de ese punto en vez de alrededor '
+        + 'tuyo. Ideal para ver a cuánto está la birra en un barrio al que '
+        + 'estás por caer.',
+    },
+    {
+      anchor: 'map-longpress',
+      round: true,
+      interactive: true,
+      title: 'Para sacarla, tocá el mapa',
+      body: 'Un toque en cualquier lado la borra y volvés a buscar desde donde '
+        + 'estás parado. Probá también eso si dejaste una marca recién.',
     },
     {
       anchor: 'map-radius',
       title: '¿Hasta dónde buscamos?',
       body: 'De 300 metros a 15 kilómetros. Cuanto más chico, más sirve '
-        + 'comparar: dos bares a diez cuadras compiten, a diez kilómetros no.',
+        + 'comparar: dos bares a diez cuadras compiten entre sí, a diez '
+        + 'kilómetros ya no.',
     },
     {
       anchor: 'map-color',
       title: 'Qué te dice el color',
       body: 'En Frescura, verde es un precio de esta semana y gris uno que ya '
-        + 'tiene más de 45 días. En Precio, verde es lo barato y rojo lo caro '
-        + 'de lo que estás viendo en pantalla.',
+        + 'tiene más de 45 días. En Precio, verde es lo más barato y rojo lo '
+        + 'más caro de lo que estés viendo en pantalla.',
     },
     {
       anchor: 'map-style',
       title: 'Una birra a la vez',
       body: 'Filtrá por estilo y comparás IPA contra IPA. Sin filtro, cada pin '
-        + 'te muestra la más barata del bar, que capaz es otra cosa.',
+        + 'te muestra la más barata del bar, que puede ser cualquier estilo.',
     },
   ],
   list: [
     {
       anchor: 'list-search',
-      title: 'Buscá por nombre',
-      body: 'Busca en todos los bares cargados, no sólo en los que entran en '
-        + 'el radio. Escribilo sin tildes si querés, lo encuentra igual.',
+      title: 'Buscá un bar por nombre',
+      body: 'Te busca entre todos los bares cargados, no sólo entre los que '
+        + 'entran en el radio. Podés escribirlo sin tildes, lo encuentra igual.',
     },
     {
       anchor: 'list-sort',
       title: 'Más cerca o más barata',
-      body: '"Más barata" saltea los precios de más de 45 días. Uno viejo y '
-        + 'bajo no te puede encabezar el ranking.',
+      body: 'Ordenás por distancia o por precio. "Más barata" deja afuera los '
+        + 'precios de más de 45 días, así uno viejo y bajo no le gana a uno '
+        + 'fresco.',
     },
   ],
   bar: [
     {
       anchor: 'bar-tabs',
       title: 'Una pestaña por birra',
-      body: 'Cada una tiene su precio, su nota y sus fotos. El "+" del final '
-        + 'es para sumar una que el bar tenga y todavía no esté cargada.',
+      body: 'Cada una tiene su precio, su puntaje y sus fotos. El "+" del '
+        + 'final es para sumar una que el bar tenga y todavía no esté cargada.',
     },
     {
       anchor: 'bar-confirm',
       title: 'Esto es lo que más ayuda',
-      body: 'Si el precio sigue igual, tocá acá y queda al día. Es un toque, y '
-        + 'es lo que evita que la app se llene de precios que ya no existen.',
+      body: 'Si fuiste y el precio sigue igual, tocá acá y queda al día. Es un '
+        + 'toque, y es lo que evita que la app se llene de precios que ya no '
+        + 'existen.',
     },
     {
       anchor: 'bar-rating',
       title: 'Puntuá la birra',
-      body: 'Tocá las estrellas. En ámbar va tu voto y en gris el promedio del '
-        + 'resto. El iconito de al lado abre los comentarios.',
+      body: 'Tocá las estrellas y ponele del 1 al 5. En ámbar ves tu voto y en '
+        + 'gris el promedio del resto. El iconito de al lado abre los '
+        + 'comentarios, y ahí también podés dejar el tuyo.',
     },
     {
       anchor: 'bar-photos',
       title: 'Subí una foto',
-      body: 'Se achica en tu teléfono antes de subirla, así no te come datos.',
+      body: 'Sacale una foto a la birra o elegí una de la galería. Se achica '
+        + 'en tu teléfono antes de subirse, así no te come datos.',
     },
   ],
   profile: [
@@ -225,8 +261,16 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
 
   return (
     // Tocar el fondo avanza. Un tutorial que sólo responde a un botón chiquito
-    // se siente trabado, y el reflejo de todo el mundo es tocar afuera.
-    <div onClick={next} style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+    // se siente trabado, y el reflejo de todo el mundo es tocar afuera. Salvo
+    // en los pasos que enseñan un gesto: ahí el toque tiene que llegar a la
+    // app, así que el overlay se vuelve puro dibujo y sólo avanza el botón.
+    <div
+      onClick={current.interactive ? undefined : next}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        pointerEvents: current.interactive ? 'none' : 'auto',
+      }}
+    >
       {/* El recorte de luz: un rectángulo transparente con una sombra enorme
           alrededor. Es la forma barata de agujerear un fondo oscuro sin SVG
           ni cuatro divs que hay que mantener alineados. */}
@@ -235,7 +279,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
           position: 'absolute',
           top: rect.top - pad, left: rect.left - pad,
           width: rect.width + pad * 2, height: rect.height + pad * 2,
-          borderRadius: 14, pointerEvents: 'none',
+          borderRadius: current.round ? '50%' : 14, pointerEvents: 'none',
           boxShadow: '0 0 0 9999px rgba(0,0,0,.74)',
           outline: '2px solid var(--amber)',
         }} />
@@ -245,7 +289,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
       )}
 
       <div className="desk-narrow" onClick={e => e.stopPropagation()} style={{
-        position: 'absolute', ...cardStyle,
+        position: 'absolute', ...cardStyle, pointerEvents: 'auto',
         background: 'var(--elevated)', borderRadius: 16, padding: '16px 18px',
         boxShadow: '0 12px 40px rgba(0,0,0,.5)',
       }}>
