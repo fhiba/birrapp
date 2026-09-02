@@ -16,6 +16,10 @@ data class StylePriceDto(
     val id: Long?,
     val styleSlug: String,
     val styleName: String,
+    /** null = el precio se cargó antes de que existieran las marcas. */
+    val brandSlug: String?,
+    val brandName: String?,
+    val brandCraft: Boolean?,
     val price: Double?,
     val sizeMl: Int?,
     val ageDays: Int?,

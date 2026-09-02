@@ -35,6 +35,8 @@ fun Route.apiRoutes(
 
     get("/styles") { call.respond(prices.styles()) }
 
+    get("/brands") { call.respond(prices.brands()) }
+
     // ---------- lectura pública ----------
     // El mapa se puede mirar sin cuenta. Pedir login para ver precios mataría
     // la adopción; el login sólo hace falta para aportar.
@@ -86,7 +88,10 @@ fun Route.apiRoutes(
         get("/bars/{id}/ratings/{style}/comments") {
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             val style = call.parameters["style"] ?: badRequest("falta style")
-            call.respond(ratings.comments(id, style, viewerId = call.callerOrNull()?.userId))
+            val brand = call.request.queryParameters["brand"]
+            call.respond(
+                ratings.comments(id, style, brand, viewerId = call.callerOrNull()?.userId),
+            )
         }
 
         get("/bars/{id}/photos") {
@@ -114,12 +119,24 @@ fun Route.apiRoutes(
             call.respond(prices.report(call.receive<NewPriceRequest>(), caller.userId))
         }
 
-        /** "Sigue igual" — un solo tap, sin body. */
-        post("/bars/{id}/confirm/{style}") {
+        /**
+         * "Sigue igual" — un solo tap.
+         *
+         * Pasa a POST con cuerpo: la marca puede tener caracteres que no
+         * sobreviven bien en la URL, y un mismo estilo puede tener varias
+         * marcas con precios distintos en el mismo bar.
+         */
+        post("/bars/{id}/confirm") {
             val caller = call.caller()
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
-            val style = call.parameters["style"] ?: badRequest("falta style")
-            call.respond(prices.confirm(id, style, caller.userId))
+            val body = call.receive<ConfirmPriceRequest>()
+            call.respond(prices.confirm(id, body.styleSlug, body.brandSlug, caller.userId))
+        }
+
+        /** Alta de marca por un usuario. Queda pendiente de moderación. */
+        post("/brands") {
+            val caller = call.caller()
+            call.respond(prices.createBrand(call.receive<NewBrandRequest>(), caller.userId))
         }
 
         post("/bars") {
@@ -228,6 +245,25 @@ fun Route.apiRoutes(
             get("/summary") {
                 call.requireRole(Role.moderator)
                 call.respond(moderation.summary())
+            }
+
+            get("/brands/pending") {
+                call.requireRole(Role.moderator)
+                call.respond(prices.pendingBrands())
+            }
+
+            post("/brands/{slug}/approve") {
+                call.requireRole(Role.moderator)
+                val slug = call.parameters["slug"] ?: badRequest("falta slug")
+                if (!prices.setBrandStatus(slug, "approved")) notFound("no existe esa marca")
+                call.respond(OkResponse())
+            }
+
+            post("/brands/{slug}/reject") {
+                call.requireRole(Role.moderator)
+                val slug = call.parameters["slug"] ?: badRequest("falta slug")
+                if (!prices.setBrandStatus(slug, "rejected")) notFound("no existe esa marca")
+                call.respond(OkResponse())
             }
 
             get("/flags") {

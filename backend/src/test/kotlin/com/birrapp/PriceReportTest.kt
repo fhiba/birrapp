@@ -99,7 +99,7 @@ class PriceReportTest {
         assertEquals("aging", antes.prices.single().freshness)
 
         val otro = TestDb.insertUser("confirmador")
-        repo.confirm(bar, "rubia", otro)
+        repo.confirm(bar, "rubia", null, otro)
 
         val despues = com.birrapp.bars.BarRepo(TestDb.db).detail(bar, null, null)!!
         assertEquals("fresh", despues.prices.single().freshness)
@@ -128,5 +128,48 @@ class PriceReportTest {
         assertFailsWith<ApiException> { repo.report(NewPriceRequest(bar, "rubia", -5.0), u) }
         assertFailsWith<ApiException> { repo.report(NewPriceRequest(bar, "rubia", 100.0, sizeMl = 5), u) }
         assertFailsWith<ApiException> { repo.report(NewPriceRequest(bar, "no-existe", 100.0), u) }
+    }
+
+    @Test
+    fun `dos marcas del mismo estilo en el mismo bar conviven`() {
+        TestDb.reset()
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        // El caso real: un bar con dos IPA a precios distintos. Antes una
+        // pisaba a la otra porque la clave era (bar, estilo).
+        repo.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
+        repo.report(NewPriceRequest(bar, "ipa", 12000.0, brandSlug = "juguetes-perdidos"), u)
+
+        val detail = com.birrapp.bars.BarRepo(TestDb.db).detail(bar, null, null)!!
+        assertEquals(2, detail.prices.size, "las dos IPA tienen que convivir")
+        assertEquals(
+            setOf("Antares", "Juguetes Perdidos"),
+            detail.prices.mapNotNull { it.brandName }.toSet(),
+        )
+        // Cada marca conserva su propio precio.
+        // `price` es nullable: una birra puede figurar sin precio vigente.
+        val porMarca = detail.prices.associate { it.brandName to it.price?.toInt() }
+        assertEquals(8000, porMarca["Antares"])
+        assertEquals(12000, porMarca["Juguetes Perdidos"])
+    }
+
+    @Test
+    fun `el cooldown es por marca, no por estilo`() {
+        TestDb.reset()
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        repo.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
+        // Otra marca del mismo estilo no debe chocar con el cooldown.
+        val second = repo.report(
+            NewPriceRequest(bar, "ipa", 12000.0, brandSlug = "berlina"), u,
+        )
+        assertFalse(second.heldForReview)
+
+        // La misma marca sí.
+        assertFailsWith<ApiException> {
+            repo.report(NewPriceRequest(bar, "ipa", 8500.0, brandSlug = "antares"), u)
+        }
     }
 }

@@ -192,6 +192,7 @@ class BarRepo(private val db: Db) {
             """
             SELECT s.slug AS style_slug, s.name_es AS style_name,
                    cp.id, cp.price, cp.size_ml, cp.age_days, cp.freshness,
+                   cp.brand_slug, cp.brand_name, cp.brand_craft,
                    sr.rating_raw, sr.rating_avg, sr.rating_count,
                    EXTRACT(DAY FROM (now() - sr.last_rated_at))::int AS rating_age_days
             FROM beer_styles s
@@ -202,8 +203,8 @@ class BarRepo(private val db: Db) {
                OR EXISTS (SELECT 1 FROM bar_photos p
                           WHERE p.bar_id = ? AND p.style_id = s.id
                             AND p.status = 'active')
-            ORDER BY (cp.id IS NULL), cp.freshness = 'stale', cp.price ASC,
-                     s.sort_order
+            ORDER BY (cp.id IS NULL), s.sort_order, cp.freshness = 'stale',
+                     cp.price ASC
             """.trimIndent(),
             id, id, id,
         ) { rs ->
@@ -211,6 +212,9 @@ class BarRepo(private val db: Db) {
                 id = rs.getLong("id").takeUnless { rs.wasNull() },
                 styleSlug = rs.getString("style_slug"),
                 styleName = rs.getString("style_name"),
+                brandSlug = rs.getString("brand_slug"),
+                brandName = rs.getString("brand_name"),
+                brandCraft = rs.getBoolean("brand_craft").takeUnless { rs.wasNull() },
                 price = rs.getBigDecimal("price")?.toDouble(),
                 sizeMl = rs.getInt("size_ml").takeUnless { rs.wasNull() },
                 ageDays = rs.getInt("age_days").takeUnless { rs.wasNull() },

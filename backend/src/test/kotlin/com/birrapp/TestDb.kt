@@ -21,13 +21,32 @@ object TestDb {
         d
     }
 
-    /** Limpia todo menos el vocabulario de estilos. */
+    /**
+     * Limpia todo menos los vocabularios (estilos y marcas).
+     *
+     * `brands` referencia a `users`, así que el TRUNCATE CASCADE de usuarios
+     * se la lleva puesta aunque no esté en la lista. Por eso se vuelve a
+     * sembrar acá: si no, los tests que usan marcas fallan con "marca
+     * desconocida" y el motivo no es evidente.
+     */
     fun reset() {
         db.conn { c ->
             c.createStatement().use {
                 it.execute(
                     "TRUNCATE flags, reviews, price_reports, refresh_tokens, bars, users " +
                         "RESTART IDENTITY CASCADE"
+                )
+            }
+            c.createStatement().use {
+                it.execute(
+                    """
+                    INSERT INTO brands (slug, name, craft) VALUES
+                        ('antares','Antares',true),
+                        ('berlina','Berlina',true),
+                        ('juguetes-perdidos','Juguetes Perdidos',true),
+                        ('quilmes','Quilmes',false)
+                    ON CONFLICT (slug) DO NOTHING
+                    """.trimIndent()
                 )
             }
         }

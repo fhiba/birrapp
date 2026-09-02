@@ -15,7 +15,21 @@ data class NewPriceRequest(
     val styleSlug: String,
     val price: Double,
     val sizeMl: Int = 473,
+    /** Opcional: no siempre se sabe, y obligarla frenaría la carga. */
+    val brandSlug: String? = null,
 )
+
+@Serializable
+data class ConfirmPriceRequest(
+    val styleSlug: String,
+    val brandSlug: String? = null,
+)
+
+@Serializable
+data class BrandDto(val slug: String, val name: String, val craft: Boolean)
+
+@Serializable
+data class NewBrandRequest(val name: String, val craft: Boolean = true)
 
 @Serializable
 data class PriceAccepted(
@@ -52,6 +66,59 @@ private const val MAX_PRICE = 10_000_000.0
 
 class PriceRepo(private val db: Db) {
 
+    fun brands(): List<BrandDto> = db.conn {
+        it.query(
+            """
+            SELECT slug, name, craft FROM brands
+            WHERE status = 'approved'
+            -- Artesanales primero: es lo que más se carga en esta app.
+            ORDER BY craft DESC, name
+            """.trimIndent(),
+        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
+    }
+
+    /**
+     * Alta de marca por un usuario. Queda pendiente hasta que un moderador la
+     * apruebe: las marcas son una cola larga y la lista tiene que poder
+     * crecer, pero sin que cualquiera meta basura en el vocabulario.
+     */
+    fun createBrand(req: NewBrandRequest, userId: Long): BrandDto = db.conn { c ->
+        val name = req.name.trim()
+        if (name.length < 2) badRequest("el nombre es demasiado corto")
+        if (name.length > 60) badRequest("el nombre es demasiado largo")
+
+        val slug = name.lowercase()
+            .replace(Regex("[^a-z0-9áéíóúñü ]"), "")
+            .trim().replace(Regex("\\s+"), "-")
+            .replace("á","a").replace("é","e").replace("í","i")
+            .replace("ó","o").replace("ú","u").replace("ñ","n").replace("ü","u")
+            .take(60)
+        if (slug.isBlank()) badRequest("ese nombre no es válido")
+
+        val existing = c.queryOne(
+            "SELECT slug, name, craft FROM brands WHERE slug = ?", slug,
+        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
+        if (existing != null) return@conn existing
+
+        c.queryOne(
+            "INSERT INTO brands (slug, name, craft, status, created_by) " +
+                "VALUES (?, ?, ?, 'pending', ?) RETURNING slug, name, craft",
+            slug, name, req.craft, userId,
+        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }!!
+    }
+
+    fun pendingBrands(): List<BrandDto> = db.conn {
+        it.query(
+            "SELECT slug, name, craft FROM brands WHERE status = 'pending' ORDER BY created_at",
+        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
+    }
+
+    fun setBrandStatus(slug: String, status: String): Boolean = db.conn {
+        it.update(
+            "UPDATE brands SET status = ?::moderation_status WHERE slug = ?", status, slug,
+        ) > 0
+    }
+
     fun styles(): List<StyleDto> = db.conn {
         it.query(
             "SELECT slug, name_es FROM beer_styles WHERE active ORDER BY sort_order, name_es",
@@ -76,6 +143,13 @@ class PriceRepo(private val db: Db) {
                 "SELECT id FROM beer_styles WHERE slug = ? AND active", req.styleSlug,
             ) { it.getLong("id") } ?: notFound("estilo desconocido: ${req.styleSlug}")
 
+            // La marca puede venir sin aprobar todavía: quien la creó puede
+            // usarla enseguida, y el moderador decide después si queda.
+            val brandId = req.brandSlug?.let { slug ->
+                c.queryOne("SELECT id FROM brands WHERE slug = ?", slug) { it.getLong("id") }
+                    ?: notFound("marca desconocida: $slug")
+            }
+
             val barExists = c.queryOne(
                 "SELECT 1 AS x FROM bars WHERE id = ? AND status = 'approved'", req.barId,
             ) { it.getInt("x") } != null
@@ -87,13 +161,14 @@ class PriceRepo(private val db: Db) {
                 """
                 SELECT count(*) AS n FROM price_reports
                 WHERE reported_by = ? AND bar_id = ? AND style_id = ?
+                  AND brand_id IS NOT DISTINCT FROM ?
                   AND created_at > now() - make_interval(hours => ?)
                 """.trimIndent(),
-                userId, req.barId, styleId, REPORT_COOLDOWN_HOURS,
+                userId, req.barId, styleId, brandId, REPORT_COOLDOWN_HOURS,
             ) { it.getInt("n") } ?: 0
             if (recent > 0) {
                 tooManyRequests(
-                    "ya reportaste este estilo en este bar hace menos de " +
+                    "ya reportaste esta cerveza en este bar hace menos de " +
                         "$REPORT_COOLDOWN_HOURS horas",
                 )
             }
@@ -122,11 +197,12 @@ class PriceRepo(private val db: Db) {
             val id = c.queryOne(
                 """
                 INSERT INTO price_reports
-                    (bar_id, style_id, price, size_ml, reported_by, status, is_confirmation)
-                VALUES (?, ?, ?, ?, ?, ?::content_status, ?)
+                    (bar_id, style_id, brand_id, price, size_ml, reported_by,
+                     status, is_confirmation)
+                VALUES (?, ?, ?, ?, ?, ?, ?::content_status, ?)
                 RETURNING id
                 """.trimIndent(),
-                req.barId, styleId, req.price, req.sizeMl, userId,
+                req.barId, styleId, brandId, req.price, req.sizeMl, userId,
                 // Un outlier entra como 'removed': queda registrado pero no
                 // aparece en el mapa hasta que un moderador lo habilite.
                 if (isOutlier) "removed" else "active",
@@ -162,18 +238,21 @@ class PriceRepo(private val db: Db) {
      * solo tap — si confirmar cuesta lo mismo que reportar, nadie confirma y
      * todo el mapa envejece.
      */
-    fun confirm(barId: Long, styleSlug: String, userId: Long): PriceAccepted = db.conn { c ->
+    fun confirm(
+        barId: Long, styleSlug: String, brandSlug: String?, userId: Long,
+    ): PriceAccepted = db.conn { c ->
         val current = c.queryOne(
             """
             SELECT cp.price, cp.size_ml FROM v_current_prices cp
             WHERE cp.bar_id = ? AND cp.style_slug = ?
+              AND cp.brand_slug IS NOT DISTINCT FROM ?
             """.trimIndent(),
-            barId, styleSlug,
+            barId, styleSlug, brandSlug,
         ) { rs -> rs.getBigDecimal("price").toDouble() to rs.getInt("size_ml") }
             ?: notFound("no hay un precio vigente para confirmar")
 
         report(
-            NewPriceRequest(barId, styleSlug, current.first, current.second),
+            NewPriceRequest(barId, styleSlug, current.first, current.second, brandSlug),
             userId,
             isConfirmation = true,
         )
