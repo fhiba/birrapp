@@ -623,3 +623,40 @@ tocar el fondo es justamente lo que se está enseñando.
 en todos los bares" pasó a "te busca entre todos los bares", "no te puede
 encabezar el ranking" a "no le gana a uno fresco", y la pinta se explica
 diciendo quién carga los precios en vez de describir la interfaz.
+
+## 2026-09-01 (cont.) — El filtro de estilo no filtraba
+
+Reportado por el usuario: filtrando por un estilo, el mapa muestra precios de
+otros. Al mirarlo eran dos bugs encadenados y el filtro no filtraba por estilo
+en ninguna de las dos puntas.
+
+**Backend.** Con `style`, el `EXISTS` elegía qué bares aparecían pero el precio
+seguía saliendo de `v_bar_headline`, que es el más barato de *cualquier*
+estilo. Filtrando IPA se veía el precio de la rubia. Ahora es un JOIN contra
+`v_current_prices` —hace falta la fila para leerle el precio, no sólo saber que
+existe— y el pin trae el precio y la edad del estilo filtrado. El orden "más
+barata" también pasa a usar ese precio.
+
+**Frontend.** Peor: el estilo nunca llegaba al servidor. `useBars` pedía
+siempre con `undefined` y después "filtraba" en memoria con
+`b => !style || b.fromPrice != null`, que descarta los bares sin precio y no
+mira el estilo por ningún lado. La caché era una sola para todos los filtros,
+lo cual era coherente con no mandar nunca el filtro.
+
+Ahora hay **una caché por estilo**: con filtro el servidor devuelve otro precio
+para el mismo bar, así que son datos distintos y no pueden convivir en la misma
+tabla. `invalidate` las limpia todas, porque un precio nuevo puede cambiar
+cualquiera.
+
+**Filtro de estilo también en la lista**, pedido junto con lo anterior. Ahí
+importa incluso más: la lista muestra una columna de precios, y sin filtrar
+cada fila puede ser un estilo distinto, con lo cual la columna no compara nada.
+
+El componente se extrajo a `ui/StyleFilter.tsx` y lo usan las dos pantallas.
+Sólo cambia el `tone` —vidrio sobre el mapa, sólido en la lista—; duplicarlo
+garantizaba que se fueran separando con cada retoque.
+
+Verificado contra la base local con un bar que tiene rubia a 7.200 e IPA a
+9.900: sin filtro el pin dice 7.200, con IPA dice 9.900 y con rubia 7.200. Los
+seis bares con rubia no-stale de la base son los seis que devuelve, y el orden
+"más barata" ordena por el precio del estilo filtrado.

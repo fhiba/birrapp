@@ -34,14 +34,25 @@ export function useBars() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const known = useRef(new Map<number, BarPin>())
-  const covered = useRef<{ center: google.maps.LatLngLiteral; radius: number; at: number } | null>(null)
+  // Una caché por filtro de estilo, no una sola.
+  //
+  // Con filtro, el servidor devuelve el precio DE ESE estilo, así que los
+  // pines de "IPA" y los de "sin filtro" son datos distintos para el mismo
+  // bar. Guardarlos juntos era el bug: se pedía siempre sin filtro y después
+  // se pretendía filtrar en memoria algo que ya venía mezclado.
+  const known = useRef(new Map<string, Map<number, BarPin>>())
+  const covered = useRef(
+    new Map<string, { center: google.maps.LatLngLiteral; radius: number; at: number }>(),
+  )
   const seq = useRef(0)
+
+  /** '' es "sin filtro". Sirve de clave y no choca con ningún slug. */
+  const keyOf = (style?: string) => style ?? ''
 
   useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
 
-  const covers = (c: google.maps.LatLngLiteral, radius: number) => {
-    const cur = covered.current
+  const covers = (c: google.maps.LatLngLiteral, radius: number, style?: string) => {
+    const cur = covered.current.get(keyOf(style))
     if (!cur) return false
     if (Date.now() - cur.at > MAX_AGE_MS) return false
     return haversine(cur.center, c) + radius <= cur.radius
@@ -50,10 +61,12 @@ export function useBars() {
   const project = useCallback((
     c: google.maps.LatLngLiteral, radius: number, sort: Sort, style?: string,
   ): BarPin[] => {
-    const out = [...known.current.values()]
+    // Ya no se filtra por estilo acá: lo hace el servidor, y con el precio
+    // del estilo correcto. El filtro que había —descartar los que no tienen
+    // precio— no filtraba por estilo en absoluto.
+    const out = [...(known.current.get(style ?? '') ?? new Map<number, BarPin>()).values()]
       .map(b => ({ ...b, distanceMeters: haversine(c, { lat: b.lat, lng: b.lng }) }))
       .filter(b => b.distanceMeters! <= radius)
-      .filter(b => !style || b.fromPrice != null)
     out.sort(sort === 'cheapest'
       // NULLS LAST igual que el servidor: un bar sin precio fresco no puede
       // encabezar el ranking de más barata.
@@ -68,7 +81,7 @@ export function useBars() {
   ) => {
     if (opts.zoom !== undefined && opts.zoom < MIN_QUERY_ZOOM) { setLoading(false); return }
 
-    if (!opts.force && covers(c, radius)) {
+    if (!opts.force && covers(c, radius, opts.style)) {
       setBars(project(c, radius, sort, opts.style)); setLoading(false); return
     }
 
@@ -76,23 +89,28 @@ export function useBars() {
     setLoading(true); setError(null)
     try {
       const big = Math.min(50_000, Math.max(1000, Math.round(radius * OVER_FETCH)))
-      const fresh = await api.nearbyBars(c.lat, c.lng, big, 'distance', undefined, 500)
+      // El estilo VA en el pedido. Antes iba `undefined` y el filtro no
+      // llegaba nunca al servidor.
+      const fresh = await api.nearbyBars(c.lat, c.lng, big, 'distance', opts.style, 500)
       if (mine !== seq.current) return   // llegó una respuesta vieja, se descarta
-      known.current = new Map(fresh.map(b => [b.id, b]))
-      covered.current = { center: c, radius: big, at: Date.now() }
+      const k = keyOf(opts.style)
+      known.current.set(k, new Map(fresh.map(b => [b.id, b])))
+      covered.current.set(k, { center: c, radius: big, at: Date.now() })
       setBars(project(c, radius, sort, opts.style))
     } catch (e) {
       if (mine !== seq.current) return
       // Con datos en pantalla no se molesta con un cartel: sigue siendo
       // usable, sólo que sin refrescar.
-      if (known.current.size === 0) setError((e as Error).message)
+      if ((known.current.get(keyOf(opts.style))?.size ?? 0) === 0) setError((e as Error).message)
       else setBars(project(c, radius, sort, opts.style))
     } finally {
       if (mine === seq.current) setLoading(false)
     }
   }, [project])
 
-  const invalidate = useCallback(() => { covered.current = null }, [])
+  // Se limpia todo, no sólo el filtro activo: un precio nuevo puede cambiar
+  // el pin de cualquiera de las cachés.
+  const invalidate = useCallback(() => { covered.current.clear() }, [])
 
   return { bars, styles, loading, error, load, invalidate, MIN_QUERY_ZOOM }
 }

@@ -36,39 +36,58 @@ class BarRepo(private val db: Db) {
         limit: Int,
         styleSlug: String? = null,
     ): List<BarPinDto> {
-        val styleFilter = if (styleSlug != null) {
+        // Con filtro de estilo, el precio del pin tiene que ser el DE ESE
+        // estilo. Antes el filtro sólo elegía qué bares aparecían y el precio
+        // seguía saliendo de `v_bar_headline`, que es el más barato de
+        // cualquier estilo: filtrando IPA se veía el precio de la rubia. Eso
+        // vacía de sentido al filtro, que es justamente comparar lo mismo
+        // contra lo mismo.
+        val filtered = styleSlug != null
+
+        val priceCols = if (filtered) {
+            "cp.price AS from_price, cp.age_days AS freshest_age_days"
+        } else {
+            "h.from_price, h.freshest_age_days"
+        }
+
+        // JOIN en vez de EXISTS: hace falta la fila para leerle el precio, no
+        // sólo saber que existe.
+        val joins = if (filtered) {
             """
-            AND EXISTS (
-                SELECT 1 FROM v_current_prices cp
-                WHERE cp.bar_id = b.id AND cp.style_slug = ? AND cp.freshness <> 'stale'
-            )
+            JOIN v_current_prices cp
+              ON cp.bar_id = b.id AND cp.style_slug = ? AND cp.freshness <> 'stale'
             """.trimIndent()
-        } else ""
+        } else {
+            "LEFT JOIN v_bar_headline h ON h.bar_id = b.id"
+        }
 
         val orderBy = when (sort) {
             BarSort.distance -> "distance_meters ASC"
-            BarSort.cheapest -> "h.from_price ASC NULLS LAST, distance_meters ASC"
+            BarSort.cheapest ->
+                if (filtered) "cp.price ASC, distance_meters ASC"
+                else "h.from_price ASC NULLS LAST, distance_meters ASC"
         }
 
         val sql = """
             SELECT b.id, b.name,
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
-                   h.from_price, h.freshest_age_days,
+                   $priceCols,
                    ST_Distance(b.location, ST_MakePoint(?, ?)::geography) AS distance_meters
             FROM bars b
-            LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            $joins
             WHERE b.status = 'approved'
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
-              $styleFilter
             ORDER BY $orderBy
             LIMIT ?
         """.trimIndent()
 
+        // El orden importa: el slug va en el JOIN, que en el SQL aparece antes
+        // del WHERE, pero después del ST_Distance del SELECT.
         val args = buildList<Any?> {
             add(lng); add(lat)            // ST_MakePoint es (x=lng, y=lat)
+            if (filtered) add(styleSlug)
             add(lng); add(lat); add(radiusMeters)
-            if (styleSlug != null) add(styleSlug)
             add(limit)
         }
 

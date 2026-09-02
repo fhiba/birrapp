@@ -161,7 +161,8 @@ function Shell() {
           <ListScreen
             bars={bars} loading={loading} sort={sort} radius={radius}
             center={queryPoint ?? null}
-            simulated={simulated} styleFilter={styleFilter}
+            styles={styles} styleFilter={styleFilter} onStyle={setStyleFilter}
+            simulated={simulated}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />
         } />

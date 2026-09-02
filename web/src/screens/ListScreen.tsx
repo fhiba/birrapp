@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { BarPin } from '../data/types'
+import type { BarPin, BeerStyle } from '../data/types'
 import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '../data/format'
 import type { Sort } from '../data/useBars'
+import { StyleFilter } from '../ui/StyleFilter'
 
 interface Props {
   bars: BarPin[]; loading: boolean
   sort: Sort; radius: number; simulated: google.maps.LatLngLiteral | null
   styleFilter?: string
+  styles: BeerStyle[]
   /** Desde dónde se miden las distancias de los resultados de búsqueda. */
   center: google.maps.LatLngLiteral | null
   onSort: (s: Sort) => void
+  onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onClearSimulated: () => void
 }
@@ -133,6 +136,14 @@ export function ListScreen(p: Props) {
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-tour="list-sort">
+            {/* El mismo componente que el mapa, en sólido en vez de vidrio.
+                Acá el filtro importa más todavía: la lista muestra el precio
+                de cada bar, y sin filtrar cada fila puede ser un estilo
+                distinto, así que la columna de precios no compara nada. */}
+            <StyleFilter
+              styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
+              tone="plain" size={34}
+            />
             {(['distance', 'cheapest'] as Sort[]).map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
                 padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',

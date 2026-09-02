@@ -5,6 +5,7 @@ import type { BarPin, BeerStyle } from '../data/types'
 import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
 import { MAP_STYLE } from '../mapStyle'
+import { StyleFilter } from '../ui/StyleFilter'
 
 export type ColorBy = 'freshness' | 'price'
 
@@ -130,7 +131,10 @@ export function MapScreen(p: Props) {
           {/* La fila de chips scrolleaba mal: el gesto competía con el paneo
               del mapa, así que a veces se movía el mapa en vez de la lista, y
               encima ocupaba una franja permanente de pantalla. */}
-          <StyleFilter styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle} />
+          <StyleFilter
+            styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
+            tourId="map-style"
+          />
 
           <button
             onClick={() => setRadiusOpen(o => !o)}
@@ -286,78 +290,6 @@ function Swatch({ mode }: { mode: ColorBy }) {
         }} />
       ))}
     </span>
-  )
-}
-
-/** Filtro de estilo como desplegable. */
-function StyleFilter({
-  styles, selected, onSelect,
-}: {
-  styles: BeerStyle[]; selected?: string; onSelect: (s?: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const active = selected != null
-  const label = styles.find(s => s.slug === selected)?.name
-
-  if (styles.length === 0) return null
-
-  return (
-    <div style={{ position: 'relative', flexShrink: 0 }} data-tour="map-style">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className={active ? 'lbl pill' : 'lbl pill glass'}
-        aria-label="Filtrar por estilo"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          height: 44, padding: active ? '0 14px' : 0, width: active ? undefined : 44,
-          justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
-          background: active ? 'var(--amber)' : undefined,
-          color: active ? 'var(--base)' : 'var(--muted)',
-          fontSize: 12,
-        }}
-      >
-        <svg width={active ? 15 : 18} height={active ? 15 : 18} viewBox="0 0 24 24"
-          fill="currentColor" aria-hidden>
-          <path d="M4 5h16v2.2l-6 6V21l-4-2v-5.8l-6-6z" />
-        </svg>
-        {active && <span>{label}</span>}
-      </button>
-
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-          <div style={{
-            position: 'absolute', left: 0, top: 50, zIndex: 21, minWidth: 190,
-            maxHeight: 320, overflowY: 'auto',
-            background: 'var(--elevated)', borderRadius: 14, padding: 6,
-            border: '.8px solid rgba(255,255,255,.12)',
-            boxShadow: '0 10px 34px rgba(0,0,0,.5)',
-          }}>
-            <MenuItem on={selected == null} onClick={() => { onSelect(undefined); setOpen(false) }}>
-              Todos los estilos
-            </MenuItem>
-            {styles.map(s => (
-              <MenuItem key={s.slug} on={selected === s.slug}
-                onClick={() => { onSelect(s.slug); setOpen(false) }}>
-                {s.name}
-              </MenuItem>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function MenuItem(
-  { on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode },
-) {
-  return (
-    <button onClick={onClick} className="lbl row-hover" style={{
-      display: 'block', width: '100%', textAlign: 'left',
-      padding: '10px 12px', borderRadius: 10, fontSize: 13.5,
-      color: on ? 'var(--amber)' : 'var(--cream)',
-    }}>{children}</button>
   )
 }
 
