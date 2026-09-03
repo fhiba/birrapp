@@ -17,9 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.birrapp.data.model.Brand
@@ -49,32 +46,30 @@ fun BrandField(
     var open by remember { mutableStateOf(false) }
     val brand = brands.firstOrNull { it.slug == selected }
 
+    // Compacto y a la izquierda, no una barra de ancho completo: con ancho
+    // completo competía visualmente con el monto, que es lo único que esta
+    // pantalla tiene que hacer grande. La marca es un atributo del estilo que
+    // se acaba de elegir, no un campo del mismo peso.
     Row(
         Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(13.dp))
-            .background(Ink.Elevated)
+            .clip(RoundedCornerShape(50))
+            .background(if (brand != null) Ink.AmberSoft else Color.White.copy(alpha = 0.06f))
             .clickable { open = true }
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            "MARCA",
-            style = MaterialTheme.typography.labelLarge,
-            color = Ink.Faint, fontSize = 11.sp, letterSpacing = 1.1.sp,
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
             brand?.name ?: "Sin marca",
-            color = if (brand != null) Ink.Cream else Ink.Muted,
+            color = if (brand != null) Ink.Amber else Ink.Muted,
             style = MaterialTheme.typography.labelLarge,
-            fontSize = 13.5.sp,
-            modifier = Modifier.weight(1f),
+            fontSize = 12.5.sp,
             maxLines = 1,
         )
+        Spacer(Modifier.width(6.dp))
         Icon(
             Icons.Default.KeyboardArrowDown, null,
-            Modifier.size(18.dp), tint = Ink.Muted,
+            Modifier.size(15.dp),
+            tint = if (brand != null) Ink.Amber else Ink.Muted,
         )
     }
 
@@ -153,6 +148,38 @@ private fun BrandSheet(
                 Text(it, color = Ink.Danger, fontSize = 13.sp)
             }
 
+            if (canCreate) {
+                Spacer(Modifier.height(10.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(if (busy) Ink.AmberDeep else Ink.Amber)
+                        .clickable(enabled = !busy) {
+                            busy = true; error = null
+                            scope.launch {
+                                runCatching { onCreate(typed) }
+                                    .onSuccess { onCreated(it) }
+                                    .onFailure { error = it.message; busy = false }
+                            }
+                        }
+                        .padding(vertical = 13.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Agregar \"$typed\"",
+                        color = Ink.Base,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontSize = 13.5.sp,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "La podés usar al toque; un moderador la revisa después.",
+                    color = Ink.Faint, fontSize = 11.5.sp, lineHeight = 16.sp,
+                )
+            }
+
             Spacer(Modifier.height(8.dp))
 
             // La lista se limita en alto para que el teclado no la empuje
@@ -190,40 +217,6 @@ private fun BrandSheet(
                 }
             }
 
-            if (canCreate) {
-                Spacer(Modifier.height(12.dp))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(if (busy) Ink.AmberDeep else Ink.Amber)
-                        .clickable(enabled = !busy) {
-                            busy = true; error = null
-                            scope.launch {
-                                runCatching { onCreate(typed) }
-                                    .onSuccess { onCreated(it) }
-                                    .onFailure { error = it.message; busy = false }
-                            }
-                        }
-                        .padding(vertical = 13.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        buildAnnotatedString {
-                            append("Agregar ")
-                            withStyle(SpanStyle(color = Ink.Base)) { append("\"$typed\"") }
-                        },
-                        color = Ink.Base,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontSize = 13.5.sp,
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "La marca queda cargada al toque y un moderador la revisa después.",
-                    color = Ink.Faint, fontSize = 11.5.sp, lineHeight = 16.sp,
-                )
-            }
         }
     }
 }
