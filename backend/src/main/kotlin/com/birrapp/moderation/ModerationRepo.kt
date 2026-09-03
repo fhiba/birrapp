@@ -53,6 +53,13 @@ data class DashboardUserDto(
     val ratings: Int,
     /** Días desde su último aporte. Null = nunca aportó nada. */
     val lastActiveDays: Int?,
+    /**
+     * Los aportes pesados. La fórmula —y por qué las confirmaciones pesan
+     * menos— vive en [CONTRIBUTION_WEIGHT], única definición para las tres
+     * queries que la usan; este número sale de ahí. No vive en el front por lo
+     * mismo: dos copias se desincronizan.
+     */
+    val score: Int,
 )
 
 @Serializable
@@ -158,6 +165,10 @@ class ModerationRepo(private val db: Db) {
             ), r AS (
                 SELECT user_id AS uid, count(*) AS ratings, max(updated_at) AS last_at
                 FROM beer_ratings WHERE status = 'active' GROUP BY user_id
+            ), sc AS (
+                SELECT user_id AS uid,
+                       sum($CONTRIBUTION_WEIGHT)::int AS score
+                FROM v_contributions GROUP BY user_id
             )
             SELECT u.id, u.display_name, u.email, u.role::text AS role,
                    u.avatar_url,
@@ -168,6 +179,7 @@ class ModerationRepo(private val db: Db) {
                    coalesce(b.bars, 0)          AS bars,
                    coalesce(f.photos, 0)        AS photos,
                    coalesce(r.ratings, 0)       AS ratings,
+                   coalesce(sc.score, 0)        AS score,
                    EXTRACT(DAY FROM (now() - GREATEST(
                        p.last_at, b.last_at, f.last_at, r.last_at
                    )))::int AS last_active_days
@@ -176,6 +188,7 @@ class ModerationRepo(private val db: Db) {
             LEFT JOIN b ON b.uid = u.id
             LEFT JOIN f ON f.uid = u.id
             LEFT JOIN r ON r.uid = u.id
+            LEFT JOIN sc ON sc.uid = u.id
             ORDER BY u.created_at DESC
             LIMIT ?
             """.trimIndent(),
@@ -195,6 +208,7 @@ class ModerationRepo(private val db: Db) {
                 photos = rs.getInt("photos"),
                 ratings = rs.getInt("ratings"),
                 lastActiveDays = rs.getInt("last_active_days").takeUnless { rs.wasNull() },
+                score = rs.getInt("score"),
             )
         }
     }

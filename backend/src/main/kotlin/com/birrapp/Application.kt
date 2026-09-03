@@ -24,9 +24,11 @@ import kotlinx.serialization.json.Json
 import com.birrapp.auth.*
 import com.birrapp.bars.BarRepo
 import com.birrapp.core.*
+import com.birrapp.moderation.AnalyticsRepo
 import com.birrapp.moderation.ModerationRepo
 import com.birrapp.prices.PriceRepo
 import com.birrapp.reviews.ReviewRepo
+import com.birrapp.traffic.TrafficRepo
 import io.ktor.client.request.delete
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.minutes
@@ -84,6 +86,8 @@ fun Application.module(cfg: Config, db: Db) {
         }
     }
     val moderation = ModerationRepo(db)
+    val analytics = AnalyticsRepo(db)
+    val traffic = TrafficRepo(db)
 
     // CORS sólo si el frontend está en otro dominio. Con el frontend servido
     // desde acá no hace falta y no se instala: una política CORS de más es
@@ -127,6 +131,15 @@ fun Application.module(cfg: Config, db: Db) {
         // la cuota de la cuenta.
         register(RateLimitName("auth")) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+        // El beacon de visita: escritura sin sesión y con un UUID nuevo por
+        // request. El límite global sólo cuida al servidor; a 120/min una sola
+        // IP mete 170 mil filas por día y deja sin valor a `visitors30` y al
+        // escalón cero del embudo, que es lo único que la tabla mide. Un cliente
+        // legítimo manda un beacon por carga, así que 5/min sobra.
+        register(RateLimitName("traffic")) {
+            rateLimiter(limit = 5, refillPeriod = 1.minutes)
             requestKey { call -> call.request.origin.remoteHost }
         }
     }
@@ -197,7 +210,7 @@ fun Application.module(cfg: Config, db: Db) {
 
     routing {
         apiRoutes(
-            bars, prices, reviews, ratings, photos, moderation, users,
+            bars, prices, reviews, ratings, photos, moderation, analytics, users, traffic,
             // El borrado del objeto se hace acá y no en el repo: el repo habla
             // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
             deletePhotoObject = deletePhotoObject,

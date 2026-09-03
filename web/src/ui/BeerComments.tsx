@@ -5,6 +5,57 @@ import { Confirm, Sheet } from './Chrome'
 import { Stars } from './Stars'
 
 /**
+ * Convierte lo tecleado en un puntaje de 0 a 5 con un decimal, o null si no
+ * hay nada válido. Acepta coma (3,8), redondea y recorta al rango: el backend
+ * valida igual, esto es sólo para no mandarle basura.
+ */
+function parseRating(raw: string): number | null {
+  const n = parseFloat(raw.trim().replace(',', '.'))
+  if (Number.isNaN(n)) return null
+  return Math.min(5, Math.max(0, Math.round(n * 10) / 10))
+}
+
+/**
+ * Campo para teclear la nota con decimal: la estrella sólo da enteras y para un
+ * 3,8 hace falta escribirlo.
+ *
+ * Controlado y con su propio texto, que se resincroniza contra `rating` al
+ * salir del foco. Antes iba sin control y se reseteaba con `key`, así que si
+ * tecleabas "abc" —o un valor que redondea a la nota ya guardada— el campo se
+ * quedaba mostrando eso y no se mandaba nada: parecía guardado y no lo estaba.
+ * Confirma con Enter o al salir del foco; `parseRating` hace clamp, redondeo y
+ * acepta coma.
+ */
+function RatingField({ rating, onCommit }: {
+  rating: number | null
+  onCommit: (n: number) => void
+}) {
+  const real = rating != null ? String(rating) : ''
+  const [text, setText] = useState(real)
+  useEffect(() => { setText(real) }, [real])
+
+  return (
+    <input
+      type="number" inputMode="decimal" min={0} max={5} step={0.1}
+      value={text}
+      aria-label="Puntaje de 0 a 5"
+      onChange={e => setText(e.currentTarget.value)}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+      onBlur={() => {
+        const n = parseRating(text)
+        if (n != null && n !== rating) onCommit(n)
+        setText(n != null ? String(n) : real)
+      }}
+      style={{
+        width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
+        background: 'transparent', border: '1px solid var(--hairline)',
+        color: 'inherit', fontFamily: 'inherit',
+      }}
+    />
+  )
+}
+
+/**
  * Nota y comentarios de una birra, detrás del ícono.
  *
  * No están nunca a la vista por defecto: el contenido de la pantalla es el
@@ -95,11 +146,12 @@ export function BeerComments({
         <div style={{
           padding: 12, borderRadius: 14, background: 'var(--base)', marginBottom: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Stars value={rating} mine={rating != null} size={26} onRate={rate} />
+            <RatingField rating={rating} onCommit={rate} />
             <span style={{ fontSize: 12, color: 'var(--faint)' }}>
               {savingStar ? 'Guardando…'
-                : rating != null ? 'Tu puntaje — tocá otra estrella para cambiarlo'
+                : rating != null ? 'Tu puntaje — tocá una estrella o escribilo'
                 : 'Tu puntaje'}
             </span>
           </div>

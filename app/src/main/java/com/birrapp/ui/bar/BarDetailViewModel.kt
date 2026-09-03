@@ -193,7 +193,7 @@ class BarDetailViewModel(
 
     // ---------- nota, comentarios y fotos ----------
 
-    fun myRatingOf(beer: StylePrice): Int? = _state.value.myRatings
+    fun myRatingOf(beer: StylePrice): Double? = _state.value.myRatings
         .firstOrNull { it.styleSlug == beer.styleSlug && it.brandSlug == beer.brandSlug }
         ?.rating
 
@@ -202,7 +202,9 @@ class BarDetailViewModel(
         // Si se abrió tocando una estrella, ese toque ya es el voto: pedirle
         // además que confirme sería agregarle un paso a la acción más barata
         // que tiene la app.
-        if (initialRating != null && initialRating != myRatingOf(beer)) rate(beer, initialRating)
+        if (initialRating != null && initialRating.toDouble() != myRatingOf(beer)) {
+            rate(beer, initialRating)
+        }
         loadComments(beer)
     }
 
@@ -229,7 +231,7 @@ class BarDetailViewModel(
                 val rest = st.myRatings.filterNot {
                     it.styleSlug == beer.styleSlug && it.brandSlug == beer.brandSlug
                 }
-                st.copy(myRatings = rest + MyRating(beer.styleSlug, beer.brandSlug, rating))
+                st.copy(myRatings = rest + MyRating(beer.styleSlug, beer.brandSlug, rating.toDouble()))
             }
             runCatching {
                 api.rateBeer(NewRatingRequest(barId, beer.styleSlug, beer.brandSlug, rating))

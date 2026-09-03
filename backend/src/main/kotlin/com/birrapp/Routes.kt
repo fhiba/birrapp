@@ -2,6 +2,8 @@ package com.birrapp
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.ratelimit.RateLimitName
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
@@ -15,6 +17,8 @@ import com.birrapp.photos.*
 import com.birrapp.prices.*
 import com.birrapp.ratings.*
 import com.birrapp.reviews.*
+import com.birrapp.traffic.TrafficPing
+import com.birrapp.traffic.TrafficRepo
 
 @Serializable data class RoleChangeRequest(val role: String)
 @Serializable data class OkResponse(val ok: Boolean = true)
@@ -26,7 +30,9 @@ fun Route.apiRoutes(
     ratings: RatingRepo,
     photos: PhotoRepo,
     moderation: ModerationRepo,
+    analytics: AnalyticsRepo,
     users: UserRepo,
+    traffic: TrafficRepo,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
      *  alcanza con cambiarle el estado. */
     deletePhotoObject: suspend (String) -> Unit,
@@ -97,6 +103,25 @@ fun Route.apiRoutes(
         get("/bars/{id}/photos") {
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             call.respond(photos.forBar(id, viewerId = call.callerOrNull()?.userId))
+        }
+
+        /**
+         * El beacon de visita.
+         *
+         * Único endpoint de escritura sin sesión obligatoria, porque medir a
+         * los anónimos exige justamente eso. Por eso lleva su propio límite
+         * ("traffic", 5 req/min por IP): el global de 120 cuida al servidor
+         * pero deja margen de sobra para inflar la tabla con filas falsas, y el
+         * único valor de la tabla es que las filas sean visitas reales.
+         */
+        rateLimit(RateLimitName("traffic")) {
+            post("/traffic") {
+                val body = call.receive<TrafficPing>()
+                val id = runCatching { java.util.UUID.fromString(body.clientId) }.getOrNull()
+                    ?: badRequest("clientId inválido")
+                traffic.record(id, authed = call.callerOrNull() != null)
+                call.respond(OkResponse())
+            }
         }
     }
 
@@ -319,6 +344,17 @@ fun Route.apiRoutes(
             get("/dashboard/summary") {
                 call.requireRole(Role.moderator)
                 call.respond(moderation.dashboardSummary())
+            }
+
+            /**
+             * Las mismas preguntas que el resumen, pero en el tiempo.
+             *
+             * Un contador sin tendencia no dice si 12 precios en la semana es
+             * bueno, malo o igual que siempre.
+             */
+            get("/dashboard/analytics") {
+                call.requireRole(Role.moderator)
+                call.respond(analytics.all())
             }
 
             get("/brands/pending") {

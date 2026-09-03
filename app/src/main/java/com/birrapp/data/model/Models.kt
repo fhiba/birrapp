@@ -122,14 +122,16 @@ data class BarDetail(
     val body: String? = null,
     val ageDays: Int,
     val mine: Boolean = false,
-    val rating: Int? = null,
+    /** De 0 a 5, con un decimal: alguien pudo cargar un 3,8 desde la web. */
+    val rating: Double? = null,
 )
 
 /** Lo que votó el usuario en un bar, por birra. */
 @Serializable data class MyRating(
     val styleSlug: String,
     val brandSlug: String? = null,
-    val rating: Int,
+    /** De 0 a 5, con un decimal. */
+    val rating: Double,
 )
 
 @Serializable data class NewRatingRequest(

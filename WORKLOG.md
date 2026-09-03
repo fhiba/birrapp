@@ -718,3 +718,102 @@ el repo y ya se pisaron: aparecieron cambios ajenos en el árbol de trabajo a
 mitad de esta feature. Queda escrito en `AGENTS.md`.
 
 37 tests en verde.
+
+## 2026-09-03 — La nota se puede cargar con un decimal (BIR-19)
+
+Hasta acá la nota de una birra se movía sólo con la estrella, y la estrella da
+enteros. Si querías ponerle un 3,8 no había cómo. El promedio de la comunidad
+ya se mostraba con decimales y `<Stars>` ya sabía pintar fracciones —lo único
+que faltaba era poder *ingresar* uno.
+
+**El piso baja de 1 a 0.** El 1 era piso sólo porque no se puede "tocar cero
+estrellas"; con carga numérica el 0 es un voto legítimo —"estuvo pésima"— y no
+se confunde con "no voté", que es la ausencia de fila, no un 0.
+
+**Backend:** `beer_ratings.rating` pasa de `smallint` a `numeric(2,1)`, CHECK
+de 0.0 a 5.0 (`V10`). La vista `v_style_ratings` hubo que bajarla y recrearla
+—Postgres no deja cambiar el tipo de una columna de la que depende una vista—
+pero su definición no cambia: `avg` y `round(...::numeric,2)` andan igual. El
+`upsert` valida el rango y redondea a un decimal antes de guardar, así el valor
+validado y el guardado son el mismo. Los DTOs (`NewRatingRequest`,
+`MyRatingDto`, `RatingCommentDto`) pasan a `Double`.
+
+**Web:** al lado de las estrellas, un campo numérico. Confirma con Enter o al
+salir del foco, acepta coma, redondea y recorta al rango antes de mandar. La
+estrella sigue funcionando igual para el que no quiere teclear.
+
+**Android sólo se puso a tolerar el decimal**, no lo carga todavía: los modelos
+que decodifican la nota (`MyRating`, `RatingComment`) pasan a `Double` para no
+crashear cuando llegue un 3,8 desde la web. El input numérico en la app queda
+como parity pendiente.
+
+**Fuera de alcance:** la reseña del bar (`ReviewRepo`, su propio `1..5`) es otra
+cosa y no se tocó.
+
+49 tests en verde (backend). Web y app compilan.
+
+## 2026-09-03 (cont.) — Dashboard con analíticas (BIR-20)
+
+El dashboard contestaba con seis números sueltos y sin tendencia: `pricesWeek`
+decía 12 y no había con qué compararlo, así que no se sabía si eso era bueno,
+malo o igual que siempre. Ahora hay seis gráficos.
+
+**Por qué no un script de Python con matplotlib.** Era la primera idea y se
+descartó por escrito: los PNG quedan congelados (haría falta un cron y el
+dashboard mostraría la última corrida), son una imagen —sin hover, sin cambiar
+el rango, sin adaptarse al tema ni al ancho del teléfono— y sumarían un tercer
+lenguaje con su propio camino de deploy a un proyecto cuyo item más urgente de
+backlog es que desplegar el backend ya es a mano. Lo que sí era correcto de esa
+intuición es que **la agregación va del lado de la base**: SQL agrupa, el
+backend devuelve JSON, el front dibuja.
+
+**Tampoco una librería de gráficos.** Un gráfico de líneas es un `<polyline>`
+con los valores escalados a la caja; las estrellas de `Stars.tsx` ya eran SVG a
+mano. Recharts pesa ~95kb gzip. Los seis gráficos, escritos a mano, costaron
+**2,13 kb** (120,02 → 122,15 kb gzip). El número solo justifica la decisión.
+
+**Una definición de qué es un aporte.** La unión de los cuatro tipos estaba
+escrita a mano y repetida en `recentUsers()` y `dashboardSummary()`. Salió a la
+vista `v_contributions` (V11), y de ahí cuelgan casi todas las métricas. La
+nota va por `updated_at` y no por `created_at` porque se pisa al corregirla.
+
+**Un dueño del peso.** `Dashboard.tsx` calculaba su propio `weight()`. Se mudó
+al backend como `DashboardUserDto.score`. Ojo con la trampa: sacarlo del front
+y después tener tres copias del `CASE` en SQL era la misma falla con otro
+disfraz, y por un rato el plan mandaba exactamente eso. Quedó en una constante,
+`CONTRIBUTION_WEIGHT`, que usan las tres queries.
+
+**Las seis métricas.** Pulso diario de aportes por tipo; altas contra
+aportantes por semana —la brecha es el problema de activación—; cobertura del
+mapa en el tiempo; visitantes por día; concentración (qué porción se lleva el
+top 5, porque si tres personas hacen el 80% el mapa tiene punto único de
+falla); y el embudo de activación.
+
+**Visitantes que no inician sesión** (pedido a mitad del trabajo). No era
+computable: no había tabla de visitas y `CallLogging` sólo escribe a stdout. La
+PWA ya mandaba pageviews a Vercel Analytics, pero eso vive fuera del Postgres.
+Se mide con `traffic_sessions` (V12) y un ID aleatorio en `localStorage`: **ni
+IP, ni user agent, ni una fila por request**, una fila por (día, cliente). El
+hash de IP se evitó porque en criterio europeo sigue siendo dato personal.
+`authed` sólo sube hacia `true`, así que quien entra anónimo y después se
+loguea es un visitante que convirtió y no dos personas. Eso le dio al embudo el
+escalón que le faltaba: de los que miran, cuántos se anotan.
+
+**Deuda que esto crea, y hay que pagarla antes de publicar:** esta recolección
+tiene que declararse en BIR-15 (política de privacidad) y BIR-16 (Data Safety /
+nutrition labels). Y los números miden **sólo la web**: la app de Android no
+manda el beacon, lo cual está dicho en el hint del gráfico para que nadie lo
+lea como tráfico total.
+
+**El dashboard es la excepción al ancho de 560px.** El resto de la app se acota
+porque se usa parado en un bar; el dashboard es lo único que se usa sentado.
+En mobile queda breve: los seis `Stat`, la cobertura, el pulso y la lista.
+
+**Dos aproximaciones que quedaron dichas y no escondidas.** La cobertura
+histórica usa "bares creados hasta esa fecha que hoy están aprobados" porque
+`bars` no guarda cuándo se aprobó uno; un bar que estuvo mucho tiempo pendiente
+baja la cobertura pasada. Y el último punto de esa serie *se aproxima* al
+`barsWithFreshPrice` del resumen, no coincide: uno corta a medianoche y el otro
+a la hora actual.
+
+69 tests de backend en verde. Web y app compilan.

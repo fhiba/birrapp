@@ -34,8 +34,8 @@ class BarDetailTest {
 
         prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
         prices.report(NewPriceRequest(bar, "ipa", 12000.0, brandSlug = "juguetes-perdidos"), u)
-        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 5), u)
-        ratings.upsert(NewRatingRequest(bar, "ipa", "juguetes-perdidos", 2), otro)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 5.0), u)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "juguetes-perdidos", 2.0), otro)
 
         val detail = bars.detail(bar, null, null)!!
         assertEquals(2, detail.prices.size, "una fila por birra, no el cruce de las dos")
@@ -57,7 +57,7 @@ class BarDetailTest {
         prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
         // Sin precio: sólo una nota. La birra tiene que seguir siendo
         // alcanzable o su nota queda enterrada en la base.
-        ratings.upsert(NewRatingRequest(bar, "negra", "berlina", 4), u)
+        ratings.upsert(NewRatingRequest(bar, "negra", "berlina", 4.0), u)
 
         val detail = bars.detail(bar, null, null)!!
         assertEquals(2, detail.prices.size)
@@ -74,7 +74,7 @@ class BarDetailTest {
 
         prices.report(NewPriceRequest(bar, "ipa", 7000.0), u)
         prices.report(NewPriceRequest(bar, "ipa", 9000.0, brandSlug = "antares"), u)
-        ratings.upsert(NewRatingRequest(bar, "ipa", null, 3), u)
+        ratings.upsert(NewRatingRequest(bar, "ipa", null, 3.0), u)
 
         val detail = bars.detail(bar, null, null)!!
         assertEquals(2, detail.prices.size)

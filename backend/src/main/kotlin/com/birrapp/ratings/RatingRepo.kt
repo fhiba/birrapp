@@ -14,7 +14,12 @@ data class NewRatingRequest(
     val styleSlug: String,
     /** null = "sin marca", que es un valor legítimo, no un dato faltante. */
     val brandSlug: String? = null,
-    val rating: Int,
+    /**
+     * De 0 a 5, con un decimal. El 0 es un voto real —"estuvo pésima"— y no
+     * se confunde con "no voté", que es la ausencia de fila. Más de un decimal
+     * se redondea al guardar.
+     */
+    val rating: Double,
 )
 
 /**
@@ -46,12 +51,12 @@ data class RatingCommentDto(
      * Puede faltar: comentar y puntuar son cosas separadas, y alguien puede
      * dejar un comentario sin votar.
      */
-    val rating: Int?,
+    val rating: Double?,
 )
 
 /** Lo que el usuario votó, por birra. Vacío si no inició sesión. */
 @Serializable
-data class MyRatingDto(val styleSlug: String, val brandSlug: String?, val rating: Int)
+data class MyRatingDto(val styleSlug: String, val brandSlug: String?, val rating: Double)
 
 class RatingRepo(private val db: Db) {
 
@@ -63,7 +68,11 @@ class RatingRepo(private val db: Db) {
      * nadie. De ahí el ON CONFLICT.
      */
     fun upsert(req: NewRatingRequest, userId: Long) = db.conn { c ->
-        if (req.rating !in 1..5) badRequest("la nota va de 1 a 5")
+        if (req.rating.isNaN() || req.rating < 0.0 || req.rating > 5.0)
+            badRequest("la nota va de 0 a 5")
+        // Un decimal: 3,8 sí, 3,84 no. La columna es numeric(2,1) y redondearía
+        // igual, pero hacerlo acá deja el valor guardado y el validado idénticos.
+        val rating = Math.round(req.rating * 10) / 10.0
 
         val styleId = c.queryOne(
             "SELECT id FROM beer_styles WHERE slug = ? AND active", req.styleSlug,
@@ -91,7 +100,7 @@ class RatingRepo(private val db: Db) {
                    -- contenido nuevo, no el que se moderó.
                    status = 'active'
             """.trimIndent(),
-            req.barId, styleId, brandId, userId, req.rating,
+            req.barId, styleId, brandId, userId, rating,
         )
     }
 
@@ -174,7 +183,7 @@ class RatingRepo(private val db: Db) {
                 body = rs.getString("body"),
                 ageDays = rs.getInt("age_days"),
                 mine = viewerId != null && rs.getLong("user_id") == viewerId,
-                rating = rs.getInt("rating").takeUnless { rs.wasNull() },
+                rating = rs.getDouble("rating").takeUnless { rs.wasNull() },
             )
         }
     }
@@ -191,7 +200,7 @@ class RatingRepo(private val db: Db) {
             """.trimIndent(),
             barId, userId,
         ) { rs ->
-            MyRatingDto(rs.getString("slug"), rs.getString("brand_slug"), rs.getInt("rating"))
+            MyRatingDto(rs.getString("slug"), rs.getString("brand_slug"), rs.getDouble("rating"))
         }
     }
 
