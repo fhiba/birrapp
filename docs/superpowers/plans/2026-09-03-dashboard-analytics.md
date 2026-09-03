@@ -1442,6 +1442,7 @@ data class DashboardAnalytics(
     val pulse: List<PulseDay>,
     val weekly: List<WeeklyPoint>,
     val coverage: List<CoverageDay>,
+    val traffic: List<TrafficDay>,
     val topContributors: List<TopContributor>,
     val top5Share: Double,
     val funnel: Funnel,
