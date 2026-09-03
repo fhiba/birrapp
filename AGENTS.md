@@ -1,6 +1,6 @@
 # AGENTS.md — birrapp
 
-Actualizado: 2026-09-02. Historia: WORKLOG.md (append-only). Decisiones: docs/DECISIONS.md.
+Actualizado: 2026-09-03. Historia: WORKLOG.md (append-only). Decisiones: docs/DECISIONS.md.
 
 ## Proyecto
 Mapa comunitario de precios de la pinta en Buenos Aires. App Android + API.
@@ -38,12 +38,25 @@ Antes de tocar `v_current_prices`, `v_bar_headline` o `PriceRepo`: correr
 - Cada sesión de trabajo → entrada nueva en WORKLOG.md. Decisiones con el "por qué".
 
 ## Ramas — una por feature
-`feature branch` → `dev` → `main`. **Todas las ramas salen de `dev`**, nunca de
-`main`, y nunca se trabaja directo sobre `dev` ni sobre `main`.
+`feature branch` → `dev` → `master`. **Todas las ramas salen de `dev`**, nunca de
+`master`, y nunca se trabaja directo sobre `dev` ni sobre `master`.
 
 Existe porque Felipe corre varios agentes en paralelo sobre este mismo repo: sin
 una rama por feature se pisan entre ellos, y ya pasó. `dev` es donde él prueba;
-a `main` se mergea cada tanto, cuando lo probado anda.
+a `master` se mergea cada tanto, cuando lo probado anda.
+
+Ciclo de vida de cada rama, sin saltarse pasos:
+1. Sale de `dev` y se pushea a `origin` **apenas se crea**. Una rama que vive
+   sólo en local nadie más la ve: los otros agentes no saben que existe y se
+   acumulan ramas sin que se sepa si están terminadas. Eso es lo que esto evita.
+2. Se integra a `dev` por PR, no por merge local a ciegas.
+3. Apenas está en `dev` y la feature está terminada, se borra en los dos lados:
+   `git branch -d <rama>` y `git push origin --delete <rama>`. Así `git branch -a`
+   siempre refleja el estado real.
+
+Cada tanto, cuando lo que está en `dev` anda probado, se hace el merge grande
+`dev` → `master` con merge commit, se taggea la versión (`git tag vX.Y.Z`) y se
+pushean `master` y los tags.
 
 Al commitear, agregar **sólo los archivos propios por path**. Nada de `git add
 -A`: si aparecen cambios ajenos en el árbol son de otro agente, se dejan afuera
