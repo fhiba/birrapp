@@ -137,6 +137,26 @@ fun Route.apiRoutes(
             call.respond(prices.confirm(id, body.styleSlug, body.brandSlug, caller.userId))
         }
 
+        /**
+         * La forma vieja de confirmar, con el estilo en la URL y sin marca.
+         *
+         * Existe sólo para los APK ya instalados: la 0.3.24 está en los
+         * teléfonos de los que están probando la app y no se actualiza sola.
+         * Sin esto, "Sigue igual" —el gesto que mantiene fresco todo el mapa—
+         * les devolvería 404 desde el momento en que se despliega esta
+         * versión, y el síntoma sería un error genérico imposible de asociar
+         * con un cambio de servidor.
+         *
+         * Confirma la birra sin marca, que es lo único que esa versión sabía
+         * cargar. Se puede borrar cuando nadie tenga una anterior a la 0.4.0.
+         */
+        post("/bars/{id}/confirm/{style}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            val style = call.parameters["style"] ?: badRequest("falta el estilo")
+            call.respond(prices.confirm(id, style, null, caller.userId))
+        }
+
         /** Alta de marca por un usuario. Queda pendiente de moderación. */
         post("/brands") {
             val caller = call.caller()
