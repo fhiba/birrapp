@@ -162,6 +162,8 @@ export interface DashboardUser {
   ratings: number
   /** Días desde su último aporte. Null = nunca aportó nada. */
   lastActiveDays: number | null
+  /** Aportes pesados. La fórmula vive en el backend; ver DashboardUserDto. */
+  score: number
 }
 
 export interface DashboardSummary {

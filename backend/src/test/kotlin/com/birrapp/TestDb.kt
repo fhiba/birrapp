@@ -89,15 +89,17 @@ object TestDb {
     /** Inserta un precio con fecha retroactiva, para poder probar la frescura. */
     fun insertPrice(
         barId: Long, styleSlug: String, price: Double, daysAgo: Int,
-        userId: Long, sizeMl: Int = 473,
+        userId: Long, sizeMl: Int = 473, isConfirmation: Boolean = false,
     ): Long = db.conn { c ->
         val sid = styleId(c, styleSlug)
         c.prepareStatement(
-            "INSERT INTO price_reports (bar_id, style_id, price, size_ml, reported_by, created_at) " +
-                "VALUES (?, ?, ?, ?, ?, now() - make_interval(days => ?)) RETURNING id"
+            "INSERT INTO price_reports " +
+                "(bar_id, style_id, price, size_ml, reported_by, created_at, is_confirmation) " +
+                "VALUES (?, ?, ?, ?, ?, now() - make_interval(days => ?), ?) RETURNING id"
         ).use { st ->
             st.setLong(1, barId); st.setLong(2, sid); st.setDouble(3, price)
             st.setInt(4, sizeMl); st.setLong(5, userId); st.setInt(6, daysAgo)
+            st.setBoolean(7, isConfirmation)
             st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
         }
     }

@@ -71,6 +71,23 @@ class DashboardTest {
     }
 
     @Test
+    fun `el score pesa menos las confirmaciones que los precios`() {
+        val cargador = TestDb.insertUser("cargador")
+        val confirmador = TestDb.insertUser("confirmador")
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        TestDb.insertPrice(bar, "ipa", 8000.0, daysAgo = 0, userId = cargador)
+        TestDb.insertPrice(
+            bar, "ipa", 8000.0, daysAgo = 0, userId = confirmador, isConfirmation = true,
+        )
+
+        val byName = repo.recentUsers().associateBy { it.displayName }
+        assertEquals(3, byName["cargador"]!!.score, "relevar un precio nuevo pesa 3")
+        assertEquals(1, byName["confirmador"]!!.score,
+            "mantener fresco lo que ya está vale, pero menos que relevar")
+    }
+
+    @Test
     fun `el resumen cuenta personas y no aportes`() {
         val a = TestDb.insertUser("a")
         TestDb.insertUser("b")

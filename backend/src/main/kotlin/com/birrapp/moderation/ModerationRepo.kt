@@ -53,6 +53,17 @@ data class DashboardUserDto(
     val ratings: Int,
     /** Días desde su último aporte. Null = nunca aportó nada. */
     val lastActiveDays: Int?,
+    /**
+     * Los aportes pesados: precio 3, bar 3, foto 2, nota 2, confirmación 1.
+     *
+     * Las confirmaciones pesan menos porque mantener fresco lo que ya está es
+     * un aporte real pero más barato que relevar un precio nuevo. Sin ese
+     * peso, el ranking lo gana quien aprieta "Sigue igual" en serie.
+     *
+     * Vive acá y no en el front porque la concentración del dashboard usa la
+     * misma fórmula, y dos copias se desincronizan.
+     */
+    val score: Int,
 )
 
 @Serializable
@@ -158,6 +169,14 @@ class ModerationRepo(private val db: Db) {
             ), r AS (
                 SELECT user_id AS uid, count(*) AS ratings, max(updated_at) AS last_at
                 FROM beer_ratings WHERE status = 'active' GROUP BY user_id
+            ), sc AS (
+                SELECT user_id AS uid,
+                       sum(CASE kind WHEN 'price'  THEN 3
+                                     WHEN 'bar'    THEN 3
+                                     WHEN 'photo'  THEN 2
+                                     WHEN 'rating' THEN 2
+                                     ELSE 1 END)::int AS score
+                FROM v_contributions GROUP BY user_id
             )
             SELECT u.id, u.display_name, u.email, u.role::text AS role,
                    u.avatar_url,
@@ -168,6 +187,7 @@ class ModerationRepo(private val db: Db) {
                    coalesce(b.bars, 0)          AS bars,
                    coalesce(f.photos, 0)        AS photos,
                    coalesce(r.ratings, 0)       AS ratings,
+                   coalesce(sc.score, 0)        AS score,
                    EXTRACT(DAY FROM (now() - GREATEST(
                        p.last_at, b.last_at, f.last_at, r.last_at
                    )))::int AS last_active_days
@@ -176,6 +196,7 @@ class ModerationRepo(private val db: Db) {
             LEFT JOIN b ON b.uid = u.id
             LEFT JOIN f ON f.uid = u.id
             LEFT JOIN r ON r.uid = u.id
+            LEFT JOIN sc ON sc.uid = u.id
             ORDER BY u.created_at DESC
             LIMIT ?
             """.trimIndent(),
@@ -195,6 +216,7 @@ class ModerationRepo(private val db: Db) {
                 photos = rs.getInt("photos"),
                 ratings = rs.getInt("ratings"),
                 lastActiveDays = rs.getInt("last_active_days").takeUnless { rs.wasNull() },
+                score = rs.getInt("score"),
             )
         }
     }

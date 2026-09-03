@@ -31,15 +31,9 @@ export function DashboardScreen() {
 
   useEffect(() => { load() }, [load])
 
-  // Las confirmaciones cuentan, pero menos: mantener fresco lo que ya está es
-  // un aporte real y más barato que relevar un precio nuevo. Sin ese peso, un
-  // ranking por aportes lo gana quien aprieta "Sigue igual" en serie.
-  const weight = (u: DashboardUser) =>
-    u.prices * 3 + u.bars * 3 + u.photos * 2 + u.ratings * 2 + u.confirmations
-
   const shown = useMemo(() => {
     if (!users) return null
-    return sort === 'nuevos' ? users : [...users].sort((a, b) => weight(b) - weight(a))
+    return sort === 'nuevos' ? users : [...users].sort((a, b) => b.score - a.score)
   }, [users, sort])
 
   return (
