@@ -8,6 +8,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.request.path
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
@@ -165,6 +166,25 @@ fun Application.module(cfg: Config, db: Db) {
                 ApiError("bad_request", "JSON inválido: ${cause.message}"),
             )
         }
+        // Un cliente que corta la descarga a mitad de camino no es un error del
+        // servidor. Pasaba seguido con el APK —23 MB por el Funnel— y caía en
+        // el handler genérico de abajo: quedaba logueado como 500 con stack
+        // trace completo, cuando la respuesta ya había salido y no había a
+        // quién contestarle. Eso escondía los errores de verdad justo en el
+        // endpoint que había que diagnosticar.
+        exception<java.io.IOException> { call, cause ->
+            if (call.response.isCommitted) {
+                call.application.log.info(
+                    "el cliente cortó ${call.request.path()}: ${cause.message}",
+                )
+            } else {
+                call.application.log.error("error de E/S", cause)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiError("internal_error", "algo se rompió de nuestro lado"),
+                )
+            }
+        }
         exception<Throwable> { call, cause ->
             // Nunca devolver el stack trace al cliente: filtra estructura interna.
             call.application.log.error("error no manejado", cause)
@@ -188,7 +208,7 @@ fun Application.module(cfg: Config, db: Db) {
     routing {
         authRoutes(
             cfg, verifier, users, refreshTokens, jwt, browserOAuth, handoffs,
-            contributions, deletePhotoObject,
+            contributions, deletePhotoObject, r2,
         )
     }
 }

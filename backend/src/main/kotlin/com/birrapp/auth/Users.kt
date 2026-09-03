@@ -2,6 +2,7 @@ package com.birrapp.auth
 
 import kotlinx.serialization.Serializable
 import com.birrapp.core.Db
+import com.birrapp.core.query
 import com.birrapp.core.queryOne
 import com.birrapp.core.update
 import java.security.MessageDigest
@@ -49,6 +50,9 @@ data class UserDto(
 
 fun User.toDto() = UserDto(id, email, displayName, avatarUrl, role.name)
 
+/** Lo que hay que limpiar fuera de la base después de borrar una cuenta. */
+data class DeletedAccount(val objectKeys: List<String>)
+
 class UserRepo(private val db: Db) {
 
     private fun map(rs: ResultSet) = User(
@@ -78,16 +82,55 @@ class UserRepo(private val db: Db) {
 
         c.update(
             """
-            INSERT INTO users (google_sub, email, display_name, avatar_url, role)
-            VALUES (?, ?, ?, ?, ?::user_role)
+            INSERT INTO users (google_sub, email, display_name, avatar_url,
+                               google_avatar_url, role)
+            VALUES (?, ?, ?, ?, ?, ?::user_role)
             ON CONFLICT (google_sub) DO UPDATE
-              SET email        = EXCLUDED.email,
-                  display_name = EXCLUDED.display_name,
-                  avatar_url   = EXCLUDED.avatar_url
+              SET email             = EXCLUDED.email,
+                  display_name      = EXCLUDED.display_name,
+                  google_avatar_url = EXCLUDED.google_avatar_url,
+                  -- La foto propia le gana a la de Google y no se pisa al
+                  -- volver a entrar. Sin esto, cada login deshacía la que el
+                  -- usuario había subido.
+                  avatar_url        = CASE
+                      WHEN users.avatar_key IS NULL THEN EXCLUDED.avatar_url
+                      ELSE users.avatar_url
+                  END
             """.trimIndent(),
-            identity.sub, identity.email, identity.name, identity.picture, initialRole.name,
+            identity.sub, identity.email, identity.name, identity.picture,
+            identity.picture, initialRole.name,
         )
         c.queryOne("SELECT * FROM users WHERE google_sub = ?", identity.sub, map = ::map)!!
+    }
+
+    /**
+     * Guarda la foto propia y devuelve la llave de la anterior, si había.
+     *
+     * Devuelve la vieja para que quien llama borre el objeto del bucket: si no,
+     * cada cambio de foto deja un archivo huérfano ahí para siempre, y son
+     * públicos.
+     */
+    fun setAvatar(userId: Long, key: String, url: String): String? = db.tx { c ->
+        val previous = c.queryOne(
+            "SELECT avatar_key FROM users WHERE id = ?", userId,
+        ) { it.getString("avatar_key") }
+        c.update(
+            "UPDATE users SET avatar_key = ?, avatar_url = ? WHERE id = ?",
+            key, url, userId,
+        )
+        previous
+    }
+
+    /** Saca la foto propia y vuelve a la de Google. Devuelve la llave a borrar. */
+    fun clearAvatar(userId: Long): String? = db.tx { c ->
+        val previous = c.queryOne(
+            "SELECT avatar_key FROM users WHERE id = ?", userId,
+        ) { it.getString("avatar_key") }
+        c.update(
+            "UPDATE users SET avatar_key = NULL, avatar_url = google_avatar_url WHERE id = ?",
+            userId,
+        )
+        previous
     }
 
     fun setRole(userId: Long, role: Role): Boolean = db.conn {
@@ -105,12 +148,25 @@ class UserRepo(private val db: Db) {
      * desvinculan del usuario (`reported_by` queda NULL), que es lo que pide
      * la regulación: que la persona deje de ser identificable.
      */
-    fun deleteAccount(userId: Long): Boolean = db.tx { c ->
+    fun deleteAccount(userId: Long): DeletedAccount? = db.tx { c ->
+        // Las fotos propias se juntan ANTES de borrar la fila: el FK es ON
+        // DELETE CASCADE, así que después de borrar al usuario ya no hay forma
+        // de saber qué objetos del bucket eran suyos. Y quedarían públicos,
+        // que es exactamente lo que el borrado de cuenta viene a evitar.
+        val objects = c.query(
+            "SELECT object_key FROM bar_photos WHERE user_id = ?", userId,
+        ) { it.getString("object_key") }.toMutableList()
+
+        c.queryOne("SELECT avatar_key FROM users WHERE id = ?", userId) {
+            it.getString("avatar_key")
+        }?.let { objects += it }
+
         c.update("UPDATE price_reports SET reported_by = NULL WHERE reported_by = ?", userId)
         c.update("DELETE FROM reviews WHERE user_id = ?", userId)
         c.update("UPDATE flags SET reporter_id = NULL WHERE reporter_id = ?", userId)
         c.update("DELETE FROM refresh_tokens WHERE user_id = ?", userId)
-        c.update("DELETE FROM users WHERE id = ?", userId) > 0
+        if (c.update("DELETE FROM users WHERE id = ?", userId) == 0) return@tx null
+        DeletedAccount(objects)
     }
 
     fun stats(userId: Long): UserStats = db.conn { c ->

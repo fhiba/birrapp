@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
+import { AvatarPicker } from '../ui/AvatarPicker'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -63,7 +64,7 @@ export function ProfileScreen({ user, onSession }: {
   return (
     <Wrap>
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="ttl" style={{ fontSize: 28, margin: 0 }}>{user.displayName}</h1>
           <p style={{ color: 'var(--faint)', fontSize: 13, margin: '4px 0 0' }}>{user.email}</p>
         </div>
@@ -75,8 +76,15 @@ export function ProfileScreen({ user, onSession }: {
         }}>⇥</button>
       </div>
 
+      <div style={{ marginTop: 18 }}>
+        <AvatarPicker
+          user={user}
+          onChange={u => { api.updateSessionUser(u); onSession() }}
+        />
+      </div>
+
       <span className="lbl pill" style={{
-        display: 'inline-block', marginTop: 14, padding: '6px 12px', fontSize: 12,
+        display: 'inline-block', marginTop: 18, padding: '6px 12px', fontSize: 12,
         background: isModerator(user) ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
         color: isModerator(user) ? 'var(--amber)' : 'var(--muted)',
       }}>
