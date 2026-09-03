@@ -112,12 +112,17 @@ class AnalyticsRepo(private val db: Db) {
      *
      * `price_reports` es append-only, así que la historia está intacta y la
      * cobertura pasada se reconstruye. Los 45 días son el corte de `stale`
-     * que ya define `v_current_prices` en V2: así el último punto de esta
-     * serie coincide con el `barsWithFreshPrice` que el dashboard ya muestra.
+     * que ya define `v_current_prices` en V2: el último punto se aproxima al
+     * `barsWithFreshPrice` que el dashboard ya muestra (la diferencia es la
+     * ventana de hasta 24h entre midnight y la hora actual).
      *
-     * El denominador son los bares aprobados A ESA FECHA y no los de hoy: con
-     * el total actual, la cobertura de hace tres meses se vería falsamente
-     * baja sólo porque después se cargaron más bares.
+     * El denominador cuenta bares que existen hoy y cuyo `created_at` es ≤ d.day.
+     * Es un proxy, no la verdad: `bars` no guarda `approved_at`, así que uno que
+     * estuvo pendiente dos meses antes de aprobarse cuenta desde que nació, y uno
+     * aprobado después rechazado no cuenta nunca. Se acepta porque el grueso de
+     * bares entró del import de OSM ya aprobado, la cola de moderación es una
+     * persona, y esto es un gráfico de tendencia — agregar `approved_at` quedaría
+     * igual de aproximado pero pareciendo exacto.
      *
      * Son dos subconsultas correlacionadas por día. Con ~740 bares es
      * instantáneo; si algún día molesta, se materializa.

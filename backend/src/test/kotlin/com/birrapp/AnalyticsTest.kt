@@ -137,7 +137,11 @@ class AnalyticsTest {
         val bar = TestDb.insertBar("Prueba", lat, lng)
         TestDb.insertPrice(bar, "ipa", 8000.0, daysAgo = 60, userId = u)
 
-        val serie = analytics.coverage(90).associateBy { it.day }
+        val cobertura = analytics.coverage(90)
+        assertEquals(90, cobertura.size,
+            "la serie debe tener exactamente 90 días para que el índice [89 - 50] sea confiable")
+
+        val serie = cobertura.associateBy { it.day }
         val hoy = serie.keys.max()
         val haceCincuenta = serie.keys.sorted()[89 - 50]
 
