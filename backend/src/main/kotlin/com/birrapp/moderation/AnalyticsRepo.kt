@@ -20,6 +20,27 @@ data class WeeklyPoint(val week: String, val signups: Int, val contributors: Int
 @Serializable
 data class CoverageDay(val day: String, val bars: Int, val covered: Int)
 
+@Serializable
+data class TopContributor(
+    val userId: Long,
+    val displayName: String,
+    val score: Int,
+    val prices: Int,
+    val confirmations: Int,
+    val bars: Int,
+    val photos: Int,
+    val ratings: Int,
+)
+
+/** Cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días. */
+@Serializable
+data class Funnel(
+    val accounts: Int,
+    val everContributed: Int,
+    val fiveOrMore: Int,
+    val activeMonth: Int,
+)
+
 /**
  * Las analíticas del dashboard: lo mismo que ya muestra, pero en el tiempo.
  *
@@ -154,5 +175,99 @@ class AnalyticsRepo(private val db: Db) {
                 covered = rs.getInt("covered"),
             )
         }
+    }
+
+    /**
+     * Los que más aportan, por score.
+     *
+     * El peso es el mismo que el de DashboardUserDto.score. Están escritos dos
+     * veces porque son dos queries distintas, no porque sean dos criterios:
+     * si cambia uno, cambian los dos.
+     */
+    fun topContributors(limit: Int = 10): List<TopContributor> = db.conn { c ->
+        c.query(
+            """
+            SELECT u.id, u.display_name,
+                   sum(CASE c.kind WHEN 'price'  THEN 3
+                                   WHEN 'bar'    THEN 3
+                                   WHEN 'photo'  THEN 2
+                                   WHEN 'rating' THEN 2
+                                   ELSE 1 END)::int                 AS score,
+                   count(*) FILTER (WHERE c.kind = 'price')::int        AS prices,
+                   count(*) FILTER (WHERE c.kind = 'confirmation')::int AS confirmations,
+                   count(*) FILTER (WHERE c.kind = 'bar')::int          AS bars,
+                   count(*) FILTER (WHERE c.kind = 'photo')::int        AS photos,
+                   count(*) FILTER (WHERE c.kind = 'rating')::int       AS ratings
+            FROM v_contributions c
+            JOIN users u ON u.id = c.user_id
+            GROUP BY u.id, u.display_name
+            ORDER BY score DESC, u.display_name
+            LIMIT ?
+            """.trimIndent(),
+            limit,
+        ) { rs ->
+            TopContributor(
+                userId = rs.getLong("id"),
+                displayName = rs.getString("display_name"),
+                score = rs.getInt("score"),
+                prices = rs.getInt("prices"),
+                confirmations = rs.getInt("confirmations"),
+                bars = rs.getInt("bars"),
+                photos = rs.getInt("photos"),
+                ratings = rs.getInt("ratings"),
+            )
+        }
+    }
+
+    /**
+     * Qué porción del total concentran los cinco primeros.
+     *
+     * En una app que depende de aportes gratis, si el 80% lo hacen tres
+     * personas el mapa tiene un punto único de falla. Hoy eso es invisible: la
+     * lista está ordenada por aportes pero no dice cuánto pesa la cabeza.
+     */
+    fun top5Share(): Double = db.conn { c ->
+        c.query(
+            """
+            WITH s AS (
+                SELECT sum(CASE kind WHEN 'price'  THEN 3
+                                     WHEN 'bar'    THEN 3
+                                     WHEN 'photo'  THEN 2
+                                     WHEN 'rating' THEN 2
+                                     ELSE 1 END) AS score
+                FROM v_contributions GROUP BY user_id
+            )
+            SELECT coalesce(
+                (SELECT sum(score) FROM (SELECT score FROM s ORDER BY score DESC LIMIT 5) t)
+                    / nullif((SELECT sum(score) FROM s), 0),
+                0)::float8 AS share
+            """.trimIndent(),
+        ) { it.getDouble("share") }.first()
+    }
+
+    /** En qué escalón se cae la gente. */
+    fun funnel(): Funnel = db.conn { c ->
+        c.query(
+            """
+            WITH per_user AS (
+                SELECT user_id,
+                       count(*) AS n,
+                       max(at)  AS last_at
+                FROM v_contributions GROUP BY user_id
+            )
+            SELECT (SELECT count(*) FROM users)::int                      AS accounts,
+                   (SELECT count(*) FROM per_user)::int                   AS ever,
+                   (SELECT count(*) FROM per_user WHERE n >= 5)::int      AS five,
+                   (SELECT count(*) FROM per_user
+                     WHERE last_at > now() - interval '30 days')::int     AS active
+            """.trimIndent(),
+        ) { rs ->
+            Funnel(
+                accounts = rs.getInt("accounts"),
+                everContributed = rs.getInt("ever"),
+                fiveOrMore = rs.getInt("five"),
+                activeMonth = rs.getInt("active"),
+            )
+        }.first()
     }
 }

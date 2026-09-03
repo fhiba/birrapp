@@ -160,4 +160,57 @@ class AnalyticsTest {
             "un bar creado hoy no puede bajar la cobertura de hace tres meses")
         assertEquals(1, serie.last().bars)
     }
+
+    @Test
+    fun `el top ordena por score y no por cantidad de aportes`() {
+        val calidad = TestDb.insertUser("calidad")
+        val cantidad = TestDb.insertUser("cantidad")
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        // Dos notas: 2 + 2 = 4 puntos en 2 aportes.
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), calidad)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "berlina", 3.0), calidad)
+        // Tres confirmaciones: 1 + 1 + 1 = 3 puntos en 3 aportes.
+        repeat(3) { i ->
+            TestDb.insertPrice(
+                bar, "ipa", 8000.0, daysAgo = i, userId = cantidad, isConfirmation = true,
+            )
+        }
+
+        val top = analytics.topContributors(10)
+        // Por cantidad ganaría "cantidad", que hizo tres cosas contra dos.
+        assertEquals("calidad", top.first().displayName, "ordena por peso, no por volumen")
+        assertEquals(4, top.first().score)
+        assertEquals(2, top.first().ratings)
+        assertEquals(3, top[1].score)
+        assertEquals(3, top[1].confirmations)
+    }
+
+    @Test
+    fun `la concentracion es la porcion del score que se lleva el top cinco`() {
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        // Seis personas con una nota cada una: 2 puntos cada una, 12 en total.
+        // El top 5 se lleva 10 de 12.
+        listOf("a", "b", "c", "d", "e", "f").forEach { name ->
+            val u = TestDb.insertUser(name)
+            ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), u)
+        }
+
+        assertEquals(10.0 / 12.0, analytics.top5Share(), 0.001)
+    }
+
+    @Test
+    fun `el embudo no cuenta como constante al que aporto cuatro veces`() {
+        val u = TestDb.insertUser("cuatro")
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        repeat(4) { i ->
+            TestDb.insertPrice(bar, "ipa", 8000.0 + i, daysAgo = i, userId = u)
+        }
+
+        val f = analytics.funnel()
+        assertEquals(1, f.accounts)
+        assertEquals(1, f.everContributed)
+        assertEquals(0, f.fiveOrMore, "cuatro no llega al escalón de cinco")
+        assertEquals(1, f.activeMonth)
+    }
 }
