@@ -130,4 +130,30 @@ class AnalyticsTest {
     fun `la serie semanal trae una fila por semana aunque esten vacias`() {
         assertEquals(12, analytics.weekly(12).size)
     }
+
+    @Test
+    fun `un precio viejo cuenta para su epoca pero no para hoy`() {
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        TestDb.insertPrice(bar, "ipa", 8000.0, daysAgo = 60, userId = u)
+
+        val serie = analytics.coverage(90).associateBy { it.day }
+        val hoy = serie.keys.max()
+        val haceCincuenta = serie.keys.sorted()[89 - 50]
+
+        assertEquals(1, serie[haceCincuenta]!!.covered,
+            "hace 50 días ese precio tenía 10 días: estaba vigente")
+        assertEquals(0, serie[hoy]!!.covered,
+            "hoy tiene 60 días: venció a los 45")
+    }
+
+    @Test
+    fun `el denominador son los bares que existian a esa fecha`() {
+        TestDb.insertBar("Nuevo", lat, lng)
+
+        val serie = analytics.coverage(90)
+        assertEquals(0, serie.first().bars,
+            "un bar creado hoy no puede bajar la cobertura de hace tres meses")
+        assertEquals(1, serie.last().bars)
+    }
 }
