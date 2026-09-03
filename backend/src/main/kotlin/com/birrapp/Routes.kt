@@ -2,6 +2,8 @@ package com.birrapp
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.ratelimit.RateLimitName
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
@@ -107,15 +109,19 @@ fun Route.apiRoutes(
          * El beacon de visita.
          *
          * Único endpoint de escritura sin sesión obligatoria, porque medir a
-         * los anónimos exige justamente eso. Lo acota el RateLimit global de
-         * 120 req/min por IP que ya está instalado.
+         * los anónimos exige justamente eso. Por eso lleva su propio límite
+         * ("traffic", 5 req/min por IP): el global de 120 cuida al servidor
+         * pero deja margen de sobra para inflar la tabla con filas falsas, y el
+         * único valor de la tabla es que las filas sean visitas reales.
          */
-        post("/traffic") {
-            val body = call.receive<TrafficPing>()
-            val id = runCatching { java.util.UUID.fromString(body.clientId) }.getOrNull()
-                ?: badRequest("clientId inválido")
-            traffic.record(id, authed = call.callerOrNull() != null)
-            call.respond(OkResponse())
+        rateLimit(RateLimitName("traffic")) {
+            post("/traffic") {
+                val body = call.receive<TrafficPing>()
+                val id = runCatching { java.util.UUID.fromString(body.clientId) }.getOrNull()
+                    ?: badRequest("clientId inválido")
+                traffic.record(id, authed = call.callerOrNull() != null)
+                call.respond(OkResponse())
+            }
         }
     }
 
