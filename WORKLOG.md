@@ -660,3 +660,61 @@ Verificado contra la base local con un bar que tiene rubia a 7.200 e IPA a
 9.900: sin filtro el pin dice 7.200, con IPA dice 9.900 y con rubia 7.200. Los
 seis bares con rubia no-stale de la base son los seis que devuelve, y el orden
 "más barata" ordena por el precio del estilo filtrado.
+
+## 2026-09-02 — v0.4.0: la marca de la cerveza, y un dashboard
+
+Salida del caso concreto que trajo Felipe: un bar con dos IPA a precios
+distintos. Con la clave del precio en (bar, estilo), una pisaba a la otra y el
+mapa mostraba un número que no correspondía a ninguna de las dos.
+
+**La birra pasó a ser (estilo, marca).** No sólo el precio: también la nota,
+los comentarios, las fotos y el historial. Una IPA de Antares y una de Juguetes
+Perdidos son dos cervezas, y darles una sola nota es la señal que más confunde
+porque dice que probaste una cosa cuando probaste otra.
+
+`brand_id` es nullable en todas las tablas y "sin marca" es un valor legítimo,
+no un dato faltante: hay bares donde la birra no tiene marca declarada, y todos
+los precios y votos que ya existían son exactamente ese caso.
+
+Cuatro cosas que costaron:
+
+- **La unicidad del voto va por índice parcial**, no por `UNIQUE`: con
+  `brand_id` NULL, `UNIQUE` no compara, así que la misma persona podía votar
+  dos veces la birra sin marca.
+- **`v_current_prices` hubo que recrearla**, no reemplazarla: las columnas
+  nuevas van en el medio y Postgres no deja reordenar columnas de una vista.
+  Eso arrastra `v_bar_headline`.
+- **El cooldown de 6 horas pasó a ser por marca.** Si no, cargabas la primera
+  IPA y la segunda quedaba bloqueada — justo el caso que motivó todo esto.
+- **En los tests, `TRUNCATE users CASCADE` se lleva puesta `brands`** porque la
+  referencia. Fallaban con "marca desconocida", que no decía nada de la causa.
+
+**Tres bugs que la migración dejó y los tests no cubrían.** Los tres eran el
+mismo error: cruzar por estilo cuando la clave ya era (estilo, marca). Con una
+marca por estilo daban el resultado correcto de casualidad; con dos, producto
+cartesiano. El detalle del bar devolvía cuatro filas para dos birras y colgaba
+la nota de una sobre el precio de la otra; "Mis aportes" duplicaba cada reporte
+y marcaba como vigente el de otra marca; el historial mezclaba las dos IPA en
+una serie que sube y baja porque son dos cervezas, no porque el precio se haya
+movido. `BarDetailTest` los cubre ahora.
+
+**La UI, igual en las dos plataformas:** dos filas de solapas, el estilo arriba
+y sus marcas abajo, una birra por vez. Cada una con su rótulo "IPA · Antares"
+sobre el precio — cuando el estilo era toda la identidad eso lo decía la
+solapa, pero un número suelto no dice de cuál de las dos IPA es. La carga de
+precio suma un desplegable de marca debajo del estilo, opcional, con alta de
+marcas que falten (queda pendiente de moderación).
+
+**Dashboard de usuarios y aportes**, en `/dashboard`, detrás del rol de
+moderador. Contesta "de los que se anotan, cuántos aportan": en una app que
+depende de que la gente releve precios gratis, esa es la métrica que decide si
+el mapa se mantiene solo, y es la que se pierde mirando el total de cuentas.
+Los precios se cuentan separando carga manual de "Sigue igual", y "aportaron en
+30 días" cuenta personas y no aportes.
+
+**Cambio de proceso:** desde ahora, una rama por feature, todas salen de `dev`,
+y a `main` se mergea cada tanto. Felipe corre varios agentes en paralelo sobre
+el repo y ya se pisaron: aparecieron cambios ajenos en el árbol de trabajo a
+mitad de esta feature. Queda escrito en `AGENTS.md`.
+
+37 tests en verde.
