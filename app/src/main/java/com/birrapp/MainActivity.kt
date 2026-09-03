@@ -59,6 +59,8 @@ import com.birrapp.ui.map.MapViewModel
 import com.birrapp.ui.moderation.ModerationScreen
 import com.birrapp.ui.moderation.ModerationViewModel
 import com.birrapp.ui.profile.AboutScreen
+import com.birrapp.ui.profile.ContributionsViewModel
+import com.birrapp.ui.profile.MyContributionsScreen
 import com.birrapp.ui.profile.ProfileScreen
 import com.birrapp.ui.theme.BirrappTheme
 
@@ -115,6 +117,7 @@ private object Routes {
     const val LIST = "list"
     const val PROFILE = "profile"
     const val MODERATION = "moderation"
+    const val CONTRIBUTIONS = "contributions"
     const val ABOUT = "about"
     const val BAR = "bar/{barId}"
     const val ADD_BAR = "addBar/{lat}/{lng}"
@@ -228,6 +231,23 @@ fun BirrappApp(
                     onSignInBrowser = authViewModel::signInWithBrowser,
                     onSignOut = { showSignOut = true },
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
+                    onOpenContributions = { navController.navigate(Routes.CONTRIBUTIONS) },
+                    avatarBusy = authState.avatarBusy,
+                    onPickAvatar = { uri ->
+                        activity?.let { authViewModel.setAvatar(it, uri) }
+                    },
+                    onRemoveAvatar = authViewModel::removeAvatar,
+                )
+            }
+
+            composable(Routes.CONTRIBUTIONS) {
+                val vm: ContributionsViewModel = viewModel(
+                    factory = factory { ContributionsViewModel(container.api) },
+                )
+                MyContributionsScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenBar = { navController.navigate(Routes.bar(it)) },
                 )
             }
 

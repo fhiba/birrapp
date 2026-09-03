@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.birrapp.auth.GoogleSignInClient
 import com.birrapp.auth.SessionStore
 import com.birrapp.auth.SignInResult
@@ -25,6 +27,7 @@ data class AuthUiState(
     /** true cuando Credential Manager no encontró ninguna cuenta en el equipo. */
     val stats: com.birrapp.data.model.UserStats? = null,
     val deleting: Boolean = false,
+    val avatarBusy: Boolean = false,
 )
 
 class AuthViewModel(
@@ -63,6 +66,42 @@ class AuthViewModel(
                         }
                     }
             }
+        }
+    }
+
+    /**
+     * Cambia la foto de perfil.
+     *
+     * La compresión va en un hilo de IO: decodificar y reescalar una foto de
+     * 12 MP en el hilo principal congela la pantalla el tiempo que tarde.
+     */
+    fun setAvatar(context: android.content.Context, uri: android.net.Uri) {
+        viewModelScope.launch {
+            _state.update { it.copy(avatarBusy = true, error = null) }
+            runCatching {
+                val bytes = withContext(Dispatchers.IO) {
+                    com.birrapp.data.compressImage(context, uri)
+                }
+                api.uploadAvatar(bytes)
+            }
+                .onSuccess { fresh ->
+                    _state.update { it.copy(avatarBusy = false, user = fresh) }
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(avatarBusy = false, error = e.message) }
+                }
+        }
+    }
+
+    /** Saca la foto propia. Vuelve la de Google, si la cuenta tenía. */
+    fun removeAvatar() {
+        viewModelScope.launch {
+            _state.update { it.copy(avatarBusy = true, error = null) }
+            runCatching { api.removeAvatar() }
+                .onSuccess { fresh -> _state.update { it.copy(avatarBusy = false, user = fresh) } }
+                .onFailure { e ->
+                    _state.update { it.copy(avatarBusy = false, error = e.message) }
+                }
         }
     }
 

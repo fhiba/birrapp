@@ -24,6 +24,16 @@ data class BarDetailUiState(
     /** Clave (estilo, marca) de la birra ocupada, no sólo su estilo. */
     val busyBeer: String? = null,
     val history: HistoryState? = null,
+    val photos: List<Photo> = emptyList(),
+    /** Los votos propios, para pintar las estrellas distinto. */
+    val myRatings: List<MyRating> = emptyList(),
+    /** La birra cuyos comentarios están abiertos, si hay alguno abierto. */
+    val commentsFor: StylePrice? = null,
+    /** null mientras cargan. */
+    val comments: List<RatingComment>? = null,
+    val commentsError: String? = null,
+    val commentsBusy: Boolean = false,
+    val uploadingPhoto: Boolean = false,
 )
 
 class BarDetailViewModel(
@@ -50,13 +60,18 @@ class BarDetailViewModel(
                 // lista, pero tiene que poder seguir usándola.
                 val brands = runCatching { api.brands() }
                     .getOrDefault(_state.value.brands)
-                BarLoad(bar, reviews, styles, brands)
+                val photos = runCatching { api.barPhotos(barId) }.getOrDefault(emptyList())
+                // Sin sesión no hay votos propios que pintar, y el endpoint
+                // pide token. Un fallo acá no puede tirar abajo la pantalla.
+                val mine = runCatching { api.myRatings(barId) }.getOrDefault(emptyList())
+                BarLoad(bar, reviews, styles, brands, photos, mine)
             }.onSuccess { loaded ->
                 _state.update {
                     it.copy(
                         bar = loaded.bar, reviews = loaded.reviews,
                         styles = loaded.styles,
                         brands = mergeBrands(loaded.brands, it.brands),
+                        photos = loaded.photos, myRatings = loaded.myRatings,
                         loading = false,
                     )
                 }
@@ -176,6 +191,106 @@ class BarDetailViewModel(
         }
     }
 
+    // ---------- nota, comentarios y fotos ----------
+
+    fun myRatingOf(beer: StylePrice): Int? = _state.value.myRatings
+        .firstOrNull { it.styleSlug == beer.styleSlug && it.brandSlug == beer.brandSlug }
+        ?.rating
+
+    fun openComments(beer: StylePrice, initialRating: Int? = null) {
+        _state.update { it.copy(commentsFor = beer, comments = null, commentsError = null) }
+        // Si se abrió tocando una estrella, ese toque ya es el voto: pedirle
+        // además que confirme sería agregarle un paso a la acción más barata
+        // que tiene la app.
+        if (initialRating != null && initialRating != myRatingOf(beer)) rate(beer, initialRating)
+        loadComments(beer)
+    }
+
+    fun closeComments() = _state.update {
+        it.copy(commentsFor = null, comments = null, commentsError = null)
+    }
+
+    private fun loadComments(beer: StylePrice) {
+        viewModelScope.launch {
+            runCatching { api.beerComments(barId, beer.styleSlug, beer.brandSlug) }
+                .onSuccess { list -> _state.update { it.copy(comments = list) } }
+                .onFailure { e ->
+                    _state.update { it.copy(comments = emptyList(), commentsError = e.message) }
+                }
+        }
+    }
+
+    /** La nota: una sola por birra. Volver a tocar una estrella la corrige. */
+    fun rate(beer: StylePrice, rating: Int) {
+        viewModelScope.launch {
+            // Optimista: la estrella se pinta al toque. Si el servidor la
+            // rechaza se vuelve atrás al recargar, y se avisa.
+            _state.update { st ->
+                val rest = st.myRatings.filterNot {
+                    it.styleSlug == beer.styleSlug && it.brandSlug == beer.brandSlug
+                }
+                st.copy(myRatings = rest + MyRating(beer.styleSlug, beer.brandSlug, rating))
+            }
+            runCatching {
+                api.rateBeer(NewRatingRequest(barId, beer.styleSlug, beer.brandSlug, rating))
+            }
+                .onSuccess { load() }
+                .onFailure { e -> _state.update { it.copy(commentsError = e.message) }; load() }
+        }
+    }
+
+    fun comment(beer: StylePrice, body: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(commentsBusy = true, commentsError = null) }
+            runCatching {
+                api.addComment(NewCommentRequest(barId, beer.styleSlug, beer.brandSlug, body))
+            }
+                .onSuccess { _state.update { it.copy(commentsBusy = false) }; loadComments(beer) }
+                .onFailure { e ->
+                    _state.update { it.copy(commentsBusy = false, commentsError = e.message) }
+                }
+        }
+    }
+
+    /** Propio o de moderación según de quién sea: son dos rutas distintas. */
+    fun deleteComment(beer: StylePrice, comment: RatingComment) {
+        viewModelScope.launch {
+            runCatching {
+                if (comment.mine) api.removeMyComment(comment.id)
+                else api.removeComment(comment.id)
+            }
+                .onSuccess { loadComments(beer) }
+                .onFailure { e -> _state.update { it.copy(commentsError = e.message) } }
+        }
+    }
+
+    fun uploadPhoto(beer: StylePrice, bytes: ByteArray) {
+        viewModelScope.launch {
+            _state.update { it.copy(uploadingPhoto = true) }
+            runCatching { api.uploadPhoto(barId, beer.styleSlug, beer.brandSlug, bytes) }
+                .onSuccess {
+                    val fresh = runCatching { api.barPhotos(barId) }.getOrDefault(emptyList())
+                    _state.update { it.copy(uploadingPhoto = false, photos = fresh) }
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(uploadingPhoto = false, toast = e.message) }
+                }
+        }
+    }
+
+    fun deletePhoto(photo: Photo) {
+        viewModelScope.launch {
+            runCatching {
+                if (photo.mine) api.removeMyPhoto(photo.id) else api.removePhoto(photo.id)
+            }
+                .onSuccess {
+                    val fresh = runCatching { api.barPhotos(barId) }.getOrDefault(emptyList())
+                    _state.update { it.copy(photos = fresh, toast = "Foto borrada") }
+                }
+                .onFailure { e -> _state.update { it.copy(toast = e.message) } }
+        }
+    }
+
     fun clearToast() = _state.update { it.copy(toast = null) }
 }
 
@@ -184,6 +299,8 @@ private data class BarLoad(
     val reviews: List<Review>,
     val styles: List<BeerStyle>,
     val brands: List<Brand>,
+    val photos: List<Photo>,
+    val myRatings: List<MyRating>,
 )
 
 /** Une dos listas de marcas sin repetir slugs, conservando el orden del server. */

@@ -35,6 +35,10 @@ fun ProfileScreen(
     onSignInBrowser: () -> Unit,
     onSignOut: () -> Unit,
     onOpenModeration: () -> Unit,
+    onOpenContributions: () -> Unit = {},
+    avatarBusy: Boolean = false,
+    onPickAvatar: (android.net.Uri) -> Unit = {},
+    onRemoveAvatar: () -> Unit = {},
 ) {
     Column(
         Modifier
@@ -141,7 +145,15 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(18.dp))
+            AvatarPicker(
+                user = user,
+                busy = avatarBusy,
+                onPick = { onPickAvatar(it) },
+                onRemove = onRemoveAvatar,
+            )
+
+            Spacer(Modifier.height(18.dp))
             Box(
                 Modifier
                     .clip(RoundedCornerShape(50))
@@ -171,9 +183,9 @@ fun ProfileScreen(
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile("Precios", stats?.prices, Modifier.weight(1f))
-                StatTile("Confirmados", stats?.confirmations, Modifier.weight(1f))
-                StatTile("Bares", stats?.bars, Modifier.weight(1f))
+                StatTile("Precios", stats?.prices, Modifier.weight(1f), onOpenContributions)
+                StatTile("Fotos", stats?.photos, Modifier.weight(1f), onOpenContributions)
+                StatTile("Bares", stats?.bars, Modifier.weight(1f), onOpenContributions)
             }
 
             Spacer(Modifier.height(28.dp))
@@ -212,11 +224,17 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun StatTile(label: String, value: Int?, modifier: Modifier = Modifier) {
+private fun StatTile(
+    label: String,
+    value: Int?,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
     Column(
         modifier
             .clip(RoundedCornerShape(14.dp))
             .background(Color.White.copy(alpha = 0.05f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
