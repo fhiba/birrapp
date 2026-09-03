@@ -220,7 +220,27 @@ irreversible (se borra el objeto del bucket). Un sistema de votos le sube el
 premio a subir fotos y va a subir el volumen, así que conviene tener la cola de
 moderación de fotos antes de encender los votos, y no después.
 
+### Retirar el voto, no sólo cambiarlo
+Hoy la nota se puede corregir tocando otra estrella, pero no sacar. Quedó así
+porque el pedido fue "el rating sólo puede ser modificable" y sacarlo no se
+mencionó. Si alguien vota una birra que después dejó de existir en ese bar, su
+voto queda contando para siempre. Es chico de hacer; falta decidir si se quiere.
+
 ## Deuda técnica detectada
+
+### El deploy del backend es a mano
+El frontend sale solo con un push —Vercel escucha el repo— pero el backend es
+construir el fat jar, copiarlo a `birrapp-deploy/` y reiniciar el servicio.
+
+Eso ya causó un problema real el 2026-09-02: se publicó una PWA que llamaba
+rutas que el backend desplegado todavía no tenía, y el dashboard devolvía 404
+sin que nada estuviera mal en el código. Cada vez que una feature toca los dos
+lados, hay una ventana en la que la app está rota y nadie se entera hasta
+usarla.
+
+Mientras el backend viva en la máquina propia alcanza con un script que
+construya, respalde la base y reinicie en un solo paso. Si se muda a Railway,
+esto desaparece solo.
 
 ### `/bars` no tiene límite de tasa
 Cualquiera se baja la base entera con un `curl`. Mientras el backend vivía
@@ -238,6 +258,14 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 
 ## Hecho
 
+- **Android a la par de la PWA** (2026-09-03, v0.5.0) — notas, comentarios,
+  fotos, foto de perfil y "Mis aportes". Antes Android era sólo un visor de
+  precios.
+- **Foto de perfil propia** (2026-09-03) — la de Google como punto de partida,
+  y volver atrás sin perderla. De paso, borrar la cuenta ahora borra las fotos
+  del bucket: se servían desde una URL pública y quedaban visibles.
+- **Comentarios separados de la nota** (2026-09-02) — varios comentarios por
+  persona, una sola nota editable, y cada uno puede borrar lo suyo.
 - **Dashboard de usuarios y aportes** (2026-09-02) — detrás del rol de
   moderador, en `/dashboard`. Contesta "de los que se anotan, cuántos
   aportan", que es la métrica que decide si el mapa se mantiene solo.
