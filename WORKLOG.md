@@ -816,4 +816,11 @@ baja la cobertura pasada. Y el último punto de esa serie *se aproxima* al
 `barsWithFreshPrice` del resumen, no coincide: uno corta a medianoche y el otro
 a la hora actual.
 
+**Dos correcciones después de verlo corriendo:** las confirmaciones pasaron de
+un oro apagado a violeta —el oro quedaba pegado al ámbar de precios, que es su
+vecino en la barra apilada— y el texto de los gráficos era ilegible: el viewBox
+de 600 dentro de una tarjeta de 320px escala a 0,53, así que la fuente de 9 se
+dibujaba a 5px. El SVG escala entero, texto incluido. viewBox a 360 y etiquetas
+a 11. Eso es lo que hace la 0.6.1.
+
 69 tests de backend en verde. Web y app compilan.
