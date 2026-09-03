@@ -56,16 +56,35 @@ export function clearSession() {
   emit()
 }
 
-let refreshing: Promise<boolean> | null = null
+/**
+ * `ok` renovó · `rejected` el servidor dijo que no · `failed` no se pudo ni preguntar.
+ *
+ * La diferencia entre los dos últimos es la que decide si al usuario se lo
+ * desloguea. Un rechazo explícito es una sesión muerta; un fallo de red no
+ * dice nada sobre la sesión, sólo que ahora no se puede confirmar.
+ */
+type RefreshResult = 'ok' | 'rejected' | 'failed'
+
+let refreshing: Promise<RefreshResult> | null = null
 
 /** Un solo refresh a la vez: si no, varias requests con 401 gastan cada una
  *  un refresh token distinto y se invalidan entre ellas. */
-async function refresh(): Promise<boolean> {
-  if (!session?.refreshToken) return false
+async function refresh(): Promise<RefreshResult> {
+  if (!session?.refreshToken) return 'rejected'
   if (!refreshing) {
     refreshing = (async () => {
       try {
-        const r = await fetch('/auth/refresh', {
+        // Va por la misma base que el resto de las llamadas.
+        //
+        // Acá había un `fetch('/auth/refresh')` relativo, y ese era el motivo
+        // de que la webapp deslogueara sola cada media hora. Servida desde
+        // Vercel, esa URL no pega contra el backend sino contra el propio
+        // frontend, y el rewrite del SPA contesta index.html con un 200. O
+        // sea: `r.ok` daba true, el `.json()` explotaba contra HTML, el
+        // catch devolvía false, y al vencer el access token la sesión se
+        // daba por muerta sin que el backend hubiera dicho nada.
+        const url = new URL(API_BASE + '/auth/refresh', API_BASE || location.origin)
+        const r = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: session!.refreshToken }),
@@ -73,12 +92,16 @@ async function refresh(): Promise<boolean> {
         // Sólo un rechazo explícito invalida la sesión. Un 500 o un backend
         // que está reiniciando no significan que el usuario deba salir.
         if (!r.ok) {
-          if (r.status === 401 || r.status === 403) clearSession()
-          return false
+          if (r.status === 401 || r.status === 403) { clearSession(); return 'rejected' }
+          return 'failed'
         }
-        saveSession(await r.json())
-        return true
-      } catch { return false } finally { refreshing = null }
+        const next = await r.json()
+        // Un 200 que no trae sesión no es un refresh: es otra cosa
+        // contestando en su lugar. Guardarlo rompería la sesión de verdad.
+        if (!next?.accessToken || !next?.refreshToken) return 'failed'
+        saveSession(next)
+        return 'ok'
+      } catch { return 'failed' } finally { refreshing = null }
     })()
   }
   return refreshing
@@ -103,7 +126,14 @@ async function req<T>(
   })
 
   let res = await send()
-  if (res.status === 401 && opts.auth && await refresh()) res = await send()
+  if (res.status === 401 && opts.auth) {
+    const r = await refresh()
+    if (r === 'ok') res = await send()
+    // No se pudo ni preguntar si la sesión sigue viva. Devolver el 401 tal
+    // cual haría que la pantalla la borre, y la sesión probablemente esté
+    // perfecta: lo único que pasó es que no hay red.
+    else if (r === 'failed') throw new Error('No se pudo conectar. Probá de nuevo.')
+  }
 
   if (!res.ok) {
     let message = `Error ${res.status}`
