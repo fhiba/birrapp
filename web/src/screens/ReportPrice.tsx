@@ -86,6 +86,10 @@ export function ReportPrice({
         ))}
       </div>
 
+      {/* La marca, chica y a la izquierda, debajo de los estilos.
+          Estaba como una barra de ancho completo y le comía la pantalla al
+          monto, que es lo único que acá tiene que ser grande. Es un atributo
+          del estilo que se acaba de elegir, no un campo del mismo peso. */}
       <div style={{ padding: '10px 14px 0' }}>
         <BrandPicker
           brands={brands} value={brand} onChange={setBrand}
