@@ -176,3 +176,49 @@ export interface DashboardSummary {
   barsWithFreshPrice: number
   bars: number
 }
+
+export interface PulseDay {
+  day: string
+  prices: number
+  confirmations: number
+  bars: number
+  photos: number
+  ratings: number
+}
+
+export interface WeeklyPoint { week: string; signups: number; contributors: number }
+
+export interface CoverageDay { day: string; bars: number; covered: number }
+
+export interface TrafficDay { day: string; anon: number; authed: number }
+
+export interface TopContributor {
+  userId: number
+  displayName: string
+  score: number
+  prices: number
+  confirmations: number
+  bars: number
+  photos: number
+  ratings: number
+}
+
+export interface Funnel {
+  /** Clientes distintos en 30 días. El escalón cero, sólo de la PWA. */
+  visitors30: number
+  accounts: number
+  everContributed: number
+  fiveOrMore: number
+  activeMonth: number
+}
+
+export interface DashboardAnalytics {
+  pulse: PulseDay[]
+  weekly: WeeklyPoint[]
+  coverage: CoverageDay[]
+  traffic: TrafficDay[]
+  topContributors: TopContributor[]
+  /** Fracción 0..1 del score total que concentran los cinco primeros. */
+  top5Share: number
+  funnel: Funnel
+}

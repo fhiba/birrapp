@@ -28,6 +28,7 @@ fun Route.apiRoutes(
     ratings: RatingRepo,
     photos: PhotoRepo,
     moderation: ModerationRepo,
+    analytics: AnalyticsRepo,
     users: UserRepo,
     traffic: TrafficRepo,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
@@ -337,6 +338,17 @@ fun Route.apiRoutes(
             get("/dashboard/summary") {
                 call.requireRole(Role.moderator)
                 call.respond(moderation.dashboardSummary())
+            }
+
+            /**
+             * Las mismas preguntas que el resumen, pero en el tiempo.
+             *
+             * Un contador sin tendencia no dice si 12 precios en la semana es
+             * bueno, malo o igual que siempre.
+             */
+            get("/dashboard/analytics") {
+                call.requireRole(Role.moderator)
+                call.respond(analytics.all())
             }
 
             get("/brands/pending") {

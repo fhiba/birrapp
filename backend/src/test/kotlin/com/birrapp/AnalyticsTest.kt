@@ -254,4 +254,15 @@ class AnalyticsTest {
         assertEquals(1, f.accounts)
         assertEquals(1, f.everContributed)
     }
+
+    @Test
+    fun `el paquete de analiticas trae todas las series juntas`() {
+        val a = analytics.all()
+        assertEquals(30, a.pulse.size)
+        assertEquals(12, a.weekly.size)
+        assertEquals(90, a.coverage.size)
+        assertEquals(30, a.traffic.size)
+        assertEquals(0, a.funnel.visitors30, "sin visitas el escalón cero es cero")
+        assertEquals(0.0, a.top5Share, "sin aportes no hay concentración, y no divide por cero")
+    }
 }

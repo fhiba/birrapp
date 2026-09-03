@@ -87,6 +87,18 @@ data class Funnel(
     val activeMonth: Int,
 )
 
+/** Todo lo que el dashboard pide de una sola vez. */
+@Serializable
+data class DashboardAnalytics(
+    val pulse: List<PulseDay>,
+    val weekly: List<WeeklyPoint>,
+    val coverage: List<CoverageDay>,
+    val traffic: List<TrafficDay>,
+    val topContributors: List<TopContributor>,
+    val top5Share: Double,
+    val funnel: Funnel,
+)
+
 /**
  * Las analíticas del dashboard: lo mismo que ya muestra, pero en el tiempo.
  *
@@ -347,4 +359,21 @@ class AnalyticsRepo(private val db: Db) {
             )
         }.first()
     }
+
+    /**
+     * Las métricas en una sola llamada.
+     *
+     * Van juntas y no en un endpoint por serie porque se muestran juntas: seis
+     * requests para pintar una pantalla es latencia regalada, y el dashboard ya
+     * hace un Promise.all.
+     */
+    fun all() = DashboardAnalytics(
+        pulse = pulse(),
+        weekly = weekly(),
+        coverage = coverage(),
+        traffic = traffic(),
+        topContributors = topContributors(),
+        top5Share = top5Share(),
+        funnel = funnel(),
+    )
 }

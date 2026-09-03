@@ -1,5 +1,5 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Brand, DashboardSummary, DashboardUser, Flag,
+  BarDetail, BarPin, BeerStyle, Brand, DashboardAnalytics, DashboardSummary, DashboardUser, Flag,
   ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
@@ -380,6 +380,8 @@ export const dashboardUsers = (limit = 200) =>
   })
 export const dashboardSummary = () =>
   req<DashboardSummary>('GET', '/moderation/dashboard/summary', { auth: true })
+export const dashboardAnalytics = () =>
+  req<DashboardAnalytics>('GET', '/moderation/dashboard/analytics', { auth: true })
 export const pendingBrands = () =>
   req<Brand[]>('GET', '/moderation/brands/pending', { auth: true })
 export const approveBrand = (slug: string) =>

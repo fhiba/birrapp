@@ -84,6 +84,7 @@ fun Application.module(cfg: Config, db: Db) {
         }
     }
     val moderation = ModerationRepo(db)
+    val analytics = com.birrapp.moderation.AnalyticsRepo(db)
     val traffic = com.birrapp.traffic.TrafficRepo(db)
 
     // CORS sólo si el frontend está en otro dominio. Con el frontend servido
@@ -198,7 +199,7 @@ fun Application.module(cfg: Config, db: Db) {
 
     routing {
         apiRoutes(
-            bars, prices, reviews, ratings, photos, moderation, users, traffic,
+            bars, prices, reviews, ratings, photos, moderation, analytics, users, traffic,
             // El borrado del objeto se hace acá y no en el repo: el repo habla
             // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
             deletePhotoObject = deletePhotoObject,
