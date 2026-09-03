@@ -27,11 +27,16 @@ export function DashboardScreen() {
   const load = useCallback(async () => {
     setError(null)
     try {
-      const [s, u, a] = await Promise.all([
-        api.dashboardSummary(), api.dashboardUsers(), api.dashboardAnalytics(),
-      ])
-      setSummary(s); setUsers(u); setAnalytics(a)
+      const [s, u] = await Promise.all([api.dashboardSummary(), api.dashboardUsers()])
+      setSummary(s); setUsers(u)
     } catch (e) { setError((e as Error).message) }
+    // Las analíticas van aparte: Vercel publica la web sola y el backend se
+    // sube a mano, así que el endpoint nuevo puede tirar 404 mientras el resto
+    // anda. Su fallo deja `analytics` en null —el render ya lo contempla— y no
+    // pisa el error que muestran las otras dos consultas.
+    try {
+      setAnalytics(await api.dashboardAnalytics())
+    } catch { /* sin gráficos y listo */ }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -205,7 +210,7 @@ const Chip = ({ n, what }: { n: number; what: string }) => (
 )
 
 /**
- * Los cinco gráficos.
+ * Los gráficos.
  *
  * En mobile queda sólo el pulso: en un teléfono el dashboard tiene que
  * contestar rápido, no ser un tablero. El resto va detrás de `.desk-only`.
