@@ -5,6 +5,7 @@ import com.birrapp.prices.PriceRepo
 import com.birrapp.ratings.NewRatingRequest
 import com.birrapp.ratings.RatingRepo
 import com.birrapp.core.query
+import com.birrapp.moderation.AnalyticsRepo
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +21,7 @@ class AnalyticsTest {
     private val lng = -58.3816
     private val prices by lazy { PriceRepo(TestDb.db) }
     private val ratings by lazy { RatingRepo(TestDb.db) }
+    private val analytics by lazy { AnalyticsRepo(TestDb.db) }
 
     @BeforeTest fun setup() = TestDb.reset()
 
@@ -89,5 +91,22 @@ class AnalyticsTest {
         }
 
         assertEquals(emptyList(), rows, "fotos sin usuario no deben aparecer en v_contributions")
+    }
+
+    @Test
+    fun `el pulso trae una fila por dia aunque no haya pasado nada`() {
+        assertEquals(30, analytics.pulse(30).size,
+            "un hueco sin fila obligaría al front a interpolar, que es mentir")
+    }
+
+    @Test
+    fun `el pulso de hoy separa precio de confirmacion`() {
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
+
+        val hoy = analytics.pulse(30).last()
+        assertEquals(1, hoy.prices)
+        assertEquals(0, hoy.confirmations)
     }
 }
