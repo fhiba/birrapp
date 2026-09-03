@@ -31,8 +31,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.birrapp.R
+import com.birrapp.data.compressImage
 import com.birrapp.data.model.Freshness
+import com.birrapp.data.model.Photo
+import com.birrapp.data.model.RatingComment
+import com.birrapp.ui.common.Stars
 import com.birrapp.data.model.StylePrice
 import com.birrapp.ui.common.FreshnessColors
 import com.birrapp.ui.common.ageLabel
@@ -54,11 +62,15 @@ fun BarDetailScreen(
     onBarDeleted: () -> Unit,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
+    var viewingPhoto by remember { mutableStateOf<Int?>(null) }
+    var killPhoto by remember { mutableStateOf<Photo?>(null) }
+    var killComment by remember { mutableStateOf<RatingComment?>(null) }
     var modMode by remember { mutableStateOf(false) }
     var badPrice by remember { mutableStateOf<StylePrice?>(null) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var reportingStyle by remember { mutableStateOf<String?>(null) }
     var reportingBrand by remember { mutableStateOf<String?>(null) }
     var showReportSheet by remember { mutableStateOf(false) }
@@ -251,8 +263,7 @@ fun BarDetailScreen(
                     // de existir.
                     val group = groups.firstOrNull { it.styleSlug == tab?.first }
                         ?: groups.first()
-                    val active = group.beers.firstOrNull { it.brandSlug == tab?.second }
-                        ?: group.beers.first()
+                    val active = activeBeerOf(bar.prices, tab)!!
 
                     item {
                         BeerTabs(
@@ -298,6 +309,49 @@ fun BarDetailScreen(
                                 if (isSignedIn) badPrice = active else onNeedSignIn()
                             },
                         )
+                    }
+
+                    // Nota, comentarios y fotos de la birra que se está
+                    // mirando. Van pegados al precio y no en una sección
+                    // aparte: son de esa birra, no del bar.
+                    item {
+                        val photos = state.photos.filter {
+                            it.styleSlug == active.styleSlug && it.brandSlug == active.brandSlug
+                        }
+                        Column(Modifier.padding(horizontal = 18.dp)) {
+                            BeerRatingRow(
+                                price = active,
+                                myRating = viewModel.myRatingOf(active),
+                                onRate = { n ->
+                                    if (isSignedIn) viewModel.openComments(active, n)
+                                    else onNeedSignIn()
+                                },
+                                onOpen = { viewModel.openComments(active) },
+                            )
+
+                            PhotoStrip(
+                                photos = photos,
+                                canAdd = isSignedIn,
+                                busy = state.uploadingPhoto,
+                                onAdd = { uri ->
+                                    scope.launch {
+                                        runCatching {
+                                            withContext(Dispatchers.IO) {
+                                                compressImage(context, uri)
+                                            }
+                                        }
+                                            .onSuccess { viewModel.uploadPhoto(active, it) }
+                                            .onFailure {
+                                                snackbar.showSnackbar(
+                                                    "No se pudo procesar la foto",
+                                                )
+                                            }
+                                    }
+                                },
+                                onOpen = { viewingPhoto = it },
+                            )
+                            Spacer(Modifier.height(6.dp))
+                        }
                         HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
                     }
                 }
@@ -412,6 +466,109 @@ fun BarDetailScreen(
         )
     }
 
+    state.commentsFor?.let { beer ->
+        BeerCommentsSheet(
+            title = beer.beerName,
+            comments = state.comments,
+            myRating = viewModel.myRatingOf(beer),
+            canWrite = isSignedIn,
+            modMode = modMode,
+            busy = state.commentsBusy,
+            error = state.commentsError,
+            onRate = { viewModel.rate(beer, it) },
+            onComment = { viewModel.comment(beer, it) },
+            onDelete = { killComment = it },
+            onDismiss = { viewModel.closeComments() },
+        )
+    }
+
+    viewingPhoto?.let { index ->
+        val active = activeBeerOf(state.bar?.prices.orEmpty(), tab)
+        val shown = state.photos.filter {
+            active != null && it.styleSlug == active.styleSlug &&
+                it.brandSlug == active.brandSlug
+        }
+        if (shown.isNotEmpty()) {
+            PhotoViewer(
+                photos = shown,
+                start = index,
+                modMode = modMode,
+                onClose = { viewingPhoto = null },
+                onRemove = { viewingPhoto = null; killPhoto = it },
+            )
+        }
+    }
+
+    killPhoto?.let { photo ->
+        AlertDialog(
+            onDismissRequest = { killPhoto = null },
+            containerColor = Ink.Raised,
+            title = {
+                Text(
+                    if (photo.mine) "¿Borrar tu foto?" else "¿Eliminar esta foto?",
+                    color = Ink.Cream,
+                )
+            },
+            text = {
+                Text(
+                    "Se borra el archivo del bucket, no sólo de la lista.\n\n" +
+                        "Las fotos se sirven desde una URL pública: mientras el " +
+                        "archivo exista, cualquiera con el link la sigue viendo. " +
+                        "Por eso hay que borrarlo, y por eso no se puede deshacer.",
+                    color = Ink.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deletePhoto(photo); killPhoto = null
+                }) { Text(if (photo.mine) "Borrar" else "Eliminar", color = Ink.Danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { killPhoto = null }) {
+                    Text(stringResource(R.string.cancel), color = Ink.Muted)
+                }
+            },
+        )
+    }
+
+    killComment?.let { comment ->
+        val beer = state.commentsFor
+        AlertDialog(
+            onDismissRequest = { killComment = null },
+            containerColor = Ink.Raised,
+            title = {
+                Text(
+                    if (comment.mine) "¿Borrar tu comentario?"
+                    else "¿Eliminar este comentario?",
+                    color = Ink.Cream,
+                )
+            },
+            text = {
+                Text(
+                    if (comment.mine)
+                        "Se borra sólo el texto. Tu puntaje de esta birra queda " +
+                            "como está: borrar lo que escribiste no es retirar tu voto."
+                    else
+                        "Se baja el comentario de ${comment.authorName}. Su puntaje " +
+                            "no se toca: bajar un texto no debería cambiar el " +
+                            "promedio de la birra.",
+                    color = Ink.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    beer?.let { viewModel.deleteComment(it, comment) }
+                    killComment = null
+                }) { Text(if (comment.mine) "Borrar" else "Eliminar", color = Ink.Danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { killComment = null }) {
+                    Text(stringResource(R.string.cancel), color = Ink.Muted)
+                }
+            },
+        )
+    }
+
     if (showReportSheet) {
         ReportPriceSheet(
             styles = state.styles,
@@ -433,6 +590,24 @@ fun BarDetailScreen(
             },
         )
     }
+}
+
+/**
+ * La birra que se está mirando: la solapa elegida, con dos repliegues.
+ *
+ * Vive acá y no dentro de la lista porque el visor de fotos y los diálogos
+ * están fuera de ella y necesitan la misma respuesta. Dos formas de calcular
+ * "cuál está seleccionada" es la manera segura de que un día devuelvan
+ * distinto.
+ */
+private fun activeBeerOf(
+    prices: List<StylePrice>,
+    tab: Pair<String, String?>?,
+): StylePrice? {
+    if (prices.isEmpty()) return null
+    val groups = groupByStyle(prices)
+    val group = groups.firstOrNull { it.styleSlug == tab?.first } ?: groups.first()
+    return group.beers.firstOrNull { it.brandSlug == tab?.second } ?: group.beers.first()
 }
 
 /** Un estilo con todas sus marcas en ese bar. */
@@ -583,6 +758,67 @@ private fun DashedPill(label: String, tint: Color, onClick: () -> Unit) {
             label, color = tint,
             style = MaterialTheme.typography.labelLarge, fontSize = 12.5.sp,
         )
+    }
+}
+
+/**
+ * Nota de una birra: estrellas, cuántos votaron y el ícono de comentarios.
+ *
+ * Las estrellas van en ámbar si ya votaste y en gris si no — de un vistazo se
+ * ve dónde falta tu voto. Tocar una la vota; antes eran decorativas y puntuar
+ * obligaba a encontrar el ícono de comentarios, que es lo último donde alguien
+ * lo busca.
+ *
+ * Se muestra `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage hacia la
+ * media global y sirve para ordenar, pero enseñarle 3,8 a alguien que acaba de
+ * poner cinco estrellas hace que el número parezca roto, y con razón.
+ */
+@Composable
+private fun BeerRatingRow(
+    price: StylePrice,
+    myRating: Int?,
+    onRate: (Int) -> Unit,
+    onOpen: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Stars(
+            value = myRating?.toDouble() ?: price.ratingRaw,
+            mine = myRating != null,
+            size = 19.sp,
+            onRate = onRate,
+        )
+        Spacer(Modifier.width(10.dp))
+
+        Text(
+            if (price.ratingCount > 0) {
+                buildString {
+                    append("%.1f".format(price.ratingRaw ?: 0.0))
+                    append(" · ")
+                    append(if (price.ratingCount == 1) "1 voto" else "${price.ratingCount} votos")
+                    // La nota tampoco se muestra sin su edad: una vieja sobre
+                    // una canilla que ya cambió dice menos de lo que aparenta.
+                    if ((price.ratingAgeDays ?: 0) > 45) append(" · sin votos nuevos")
+                }
+            } else "Sin votos",
+            color = Ink.Faint, fontSize = 12.5.sp,
+        )
+
+        Spacer(Modifier.weight(1f))
+        Box(
+            Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.07f))
+                .clickable(onClick = onOpen),
+        ) {
+            Text(
+                "💬", Modifier.align(Alignment.Center),
+                fontSize = 15.sp, textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
