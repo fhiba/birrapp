@@ -16,6 +16,46 @@ function parseRating(raw: string): number | null {
 }
 
 /**
+ * Campo para teclear la nota con decimal: la estrella sólo da enteras y para un
+ * 3,8 hace falta escribirlo.
+ *
+ * Controlado y con su propio texto, que se resincroniza contra `rating` al
+ * salir del foco. Antes iba sin control y se reseteaba con `key`, así que si
+ * tecleabas "abc" —o un valor que redondea a la nota ya guardada— el campo se
+ * quedaba mostrando eso y no se mandaba nada: parecía guardado y no lo estaba.
+ * Confirma con Enter o al salir del foco; `parseRating` hace clamp, redondeo y
+ * acepta coma.
+ */
+function RatingField({ rating, onCommit }: {
+  rating: number | null
+  onCommit: (n: number) => void
+}) {
+  const real = rating != null ? String(rating) : ''
+  const [text, setText] = useState(real)
+  useEffect(() => { setText(real) }, [real])
+
+  return (
+    <input
+      type="number" inputMode="decimal" min={0} max={5} step={0.1}
+      value={text}
+      aria-label="Puntaje de 0 a 5"
+      onChange={e => setText(e.currentTarget.value)}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+      onBlur={() => {
+        const n = parseRating(text)
+        if (n != null && n !== rating) onCommit(n)
+        setText(n != null ? String(n) : real)
+      }}
+      style={{
+        width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
+        background: 'transparent', border: '1px solid var(--hairline)',
+        color: 'inherit', fontFamily: 'inherit',
+      }}
+    />
+  )
+}
+
+/**
  * Nota y comentarios de una birra, detrás del ícono.
  *
  * No están nunca a la vista por defecto: el contenido de la pantalla es el
@@ -108,26 +148,7 @@ export function BeerComments({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Stars value={rating} mine={rating != null} size={26} onRate={rate} />
-            {/* La estrella redondea a la entera; para un 3,8 hace falta
-                teclearlo. Va sin control de React —`key` lo resetea cuando la
-                nota cambia por otro lado (guardado, o rollback tras un error)—
-                y confirma con Enter o al salir del campo. Acepta coma. */}
-            <input
-              key={rating ?? 'none'}
-              type="number" inputMode="decimal" min={0} max={5} step={0.1}
-              defaultValue={rating ?? ''}
-              aria-label="Puntaje de 0 a 5"
-              onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-              onBlur={e => {
-                const n = parseRating(e.currentTarget.value)
-                if (n != null && n !== rating) rate(n)
-              }}
-              style={{
-                width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
-                background: 'transparent', border: '1px solid var(--hairline)',
-                color: 'inherit', fontFamily: 'inherit',
-              }}
-            />
+            <RatingField rating={rating} onCommit={rate} />
             <span style={{ fontSize: 12, color: 'var(--faint)' }}>
               {savingStar ? 'Guardando…'
                 : rating != null ? 'Tu puntaje — tocá una estrella o escribilo'

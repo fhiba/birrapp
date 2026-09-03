@@ -363,9 +363,9 @@ class AnalyticsRepo(private val db: Db) {
     /**
      * Las métricas en una sola llamada.
      *
-     * Van juntas y no en un endpoint por serie porque se muestran juntas: seis
-     * requests para pintar una pantalla es latencia regalada, y el dashboard ya
-     * hace un Promise.all.
+     * Van juntas y no en un endpoint por serie porque se muestran juntas: un
+     * request por serie para pintar una pantalla es latencia regalada, y el
+     * dashboard ya las pide en paralelo.
      */
     fun all() = DashboardAnalytics(
         pulse = pulse(),
