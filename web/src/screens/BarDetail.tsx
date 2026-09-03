@@ -556,7 +556,7 @@ export function BarDetailScreen({
 
       {confirmPhoto && (
         <Confirm
-          title="¿Eliminar esta foto?"
+          title={confirmPhoto.mine ? '¿Borrar tu foto?' : '¿Eliminar esta foto?'}
           body={<>
             Se borra el archivo del bucket, no sólo de la lista.
             <br /><br />
@@ -565,15 +565,17 @@ export function BarDetailScreen({
             con el link la sigue viendo. Por eso hay que borrarlo, y por eso
             esto no se puede deshacer.
           </>}
-          confirmLabel="Eliminar" danger
+          confirmLabel={confirmPhoto.mine ? 'Borrar' : 'Eliminar'} danger
           onCancel={() => setConfirmPhoto(null)}
           onConfirm={async () => {
             const p = confirmPhoto
             setConfirmPhoto(null)
             try {
-              await api.removePhoto(p.id)
+              // Borrar lo propio no pasa por moderación: es otra ruta, que
+              // comprueba la pertenencia en el WHERE.
+              await (p.mine ? api.removeMyPhoto(p.id) : api.removePhoto(p.id))
               setPhotos(await api.barPhotos(barId))
-              setToast('Foto eliminada')
+              setToast('Foto borrada')
             } catch (e) { setToast((e as Error).message) }
           }}
         />
@@ -843,11 +845,14 @@ function PhotoViewer({
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
         </span>
-        {modMode && (
+        {/* Las propias se borran siempre, sin ser moderador. Hasta acá la
+            única forma de sacar una foto tuya era ir a "Mis aportes", que es
+            justo donde nadie la está mirando cuando se da cuenta. */}
+        {(photo.mine || modMode) && (
           <button onClick={() => onRemove(photo)} className="lbl" style={{
             padding: '8px 16px', borderRadius: 999, fontSize: 12.5,
             background: 'rgba(255,122,102,.16)', color: 'var(--danger)',
-          }}>Eliminar esta foto</button>
+          }}>{photo.mine ? 'Borrar tu foto' : 'Eliminar esta foto'}</button>
         )}
       </div>
 

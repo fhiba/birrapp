@@ -53,10 +53,11 @@ export interface Photo {
 export interface RatingComment {
   id: number
   authorName: string
-  rating: number
   body: string | null
   ageDays: number
   mine: boolean
+  /** La nota de quien escribió, sobre esta birra. Null si comentó sin votar. */
+  rating: number | null
 }
 
 export interface MyRating {
@@ -117,8 +118,13 @@ export interface MyPhoto {
   brandName: string | null
   url: string; ageDays: number
 }
+export interface MyComment {
+  id: number; barId: number; barName: string; styleName: string
+  brandName: string | null
+  body: string; ageDays: number
+}
 export interface MyContributions {
-  bars: MyBar[]; prices: MyPrice[]; photos: MyPhoto[]
+  bars: MyBar[]; prices: MyPrice[]; photos: MyPhoto[]; comments: MyComment[]
 }
 export interface Session {
   accessToken: string; refreshToken: string
