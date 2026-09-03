@@ -24,22 +24,70 @@ class AnalyticsTest {
     @BeforeTest fun setup() = TestDb.reset()
 
     @Test
-    fun `la vista separa precio de confirmacion y junta los cuatro tipos`() {
-        val u = TestDb.insertUser()
-        val bar = TestDb.insertBar("Prueba", lat, lng)
+    fun `la vista separa precio de confirmacion y junta los cinco tipos`() {
+        val u1 = TestDb.insertUser("user1")
+        val u2 = TestDb.insertUser("user2")
+        val bar = TestDb.insertBar("Prueba", lat, lng, createdBy = u2)
 
-        prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
-        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), u)
+        // Precio: lo reporta u1
+        prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u1)
 
-        val kinds = TestDb.db.conn { c ->
-            c.query("SELECT kind FROM v_contributions WHERE user_id = ?", u) {
+        // Confirmación: u2 confirma el precio (u1 no puede porque cooldown)
+        prices.confirm(bar, "ipa", "antares", u2)
+
+        // Bar: lo creó u2
+        // (ya está creado arriba)
+
+        // Foto: u1 la sube
+        TestDb.insertPhoto(bar, "ipa", u1)
+
+        // Nota: u1 la da
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), u1)
+
+        // u1 debe tener: price, photo, rating (3 aportes)
+        val u1Kinds = TestDb.db.conn { c ->
+            c.query("SELECT kind FROM v_contributions WHERE user_id = ?", u1) {
                 it.getString("kind")
             }
         }.sorted()
+        assertEquals(
+            listOf("photo", "price", "rating"),
+            u1Kinds,
+            "user1 debe tener exactamente: price (reportado), photo (subida), rating (dada)"
+        )
 
-        // `TestDb.insertBar` inserta con created_by NULL (TestDb.kt:74), así que
-        // el bar no se le atribuye a nadie y no aparece acá. Van el precio y la
-        // nota, cada uno con su kind.
-        assertEquals(listOf("price", "rating"), kinds)
+        // u2 debe tener: bar, confirmation (2 aportes)
+        val u2Kinds = TestDb.db.conn { c ->
+            c.query("SELECT kind FROM v_contributions WHERE user_id = ?", u2) {
+                it.getString("kind")
+            }
+        }.sorted()
+        assertEquals(
+            listOf("bar", "confirmation"),
+            u2Kinds,
+            "user2 debe tener exactamente: bar (creado), confirmation (confirmada)"
+        )
+    }
+
+    @Test
+    fun `fotos con user_id NULL no aparecen en la vista`() {
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        // Inserta una foto y luego la nulifica el user_id (como si se borrara el usuario)
+        TestDb.insertPhoto(bar, "ipa", u)
+        TestDb.db.conn { c ->
+            c.prepareStatement("UPDATE bar_photos SET user_id = NULL")
+                .use { it.execute() }
+        }
+
+        // La vista no debe tener ninguna fila para esa foto
+        val rows = TestDb.db.conn { c ->
+            c.query("SELECT * FROM v_contributions WHERE kind = 'photo'") {
+                it.getLong(1)
+            }
+        }
+
+        assertEquals(emptyList(), rows, "fotos sin usuario no deben aparecer en v_contributions")
     }
 }

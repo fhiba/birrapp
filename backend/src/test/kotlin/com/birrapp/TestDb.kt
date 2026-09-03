@@ -71,14 +71,17 @@ object TestDb {
         }
     }
 
-    fun insertBar(name: String, lat: Double, lng: Double, status: String = "approved"): Long =
+    fun insertBar(
+        name: String, lat: Double, lng: Double, status: String = "approved", createdBy: Long? = null
+    ): Long =
         db.conn { c ->
             c.prepareStatement(
-                "INSERT INTO bars (name, location, status) " +
-                    "VALUES (?, ST_MakePoint(?, ?)::geography, ?::moderation_status) RETURNING id"
+                "INSERT INTO bars (name, location, status, created_by) " +
+                    "VALUES (?, ST_MakePoint(?, ?)::geography, ?::moderation_status, ?) RETURNING id"
             ).use { st ->
                 st.setString(1, name); st.setDouble(2, lng); st.setDouble(3, lat)
                 st.setString(4, status)
+                if (createdBy != null) st.setLong(5, createdBy) else st.setNull(5, java.sql.Types.BIGINT)
                 st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
             }
         }
@@ -95,6 +98,19 @@ object TestDb {
         ).use { st ->
             st.setLong(1, barId); st.setLong(2, sid); st.setDouble(3, price)
             st.setInt(4, sizeMl); st.setLong(5, userId); st.setInt(6, daysAgo)
+            st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
+        }
+    }
+
+    /** Inserta una foto de bar. */
+    fun insertPhoto(barId: Long, styleSlug: String, userId: Long): Long = db.conn { c ->
+        val sid = styleId(c, styleSlug)
+        c.prepareStatement(
+            "INSERT INTO bar_photos (bar_id, style_id, user_id, object_key) " +
+                "VALUES (?, ?, ?, ?) RETURNING id"
+        ).use { st ->
+            st.setLong(1, barId); st.setLong(2, sid); st.setLong(3, userId)
+            st.setString(4, "test-photo-${System.nanoTime()}.jpg")
             st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
         }
     }
