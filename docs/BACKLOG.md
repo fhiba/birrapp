@@ -180,6 +180,46 @@ rejuvenecen la fecha; con consenso son peso detrás de un valor.
 Ojo con `AGENTS.md`: tocar `v_current_prices` obliga a correr `FreshnessTest` y
 `PriceReportTest`. Y hay que revisar `v_bar_headline`, que se construye encima.
 
+## Comunidad y reconocimiento
+
+Pedido el 2026-09-02, después de armar el dashboard de moderación. El hilo
+común es el mismo: hoy la app agradece los aportes en privado —"Mis aportes"
+lo ve sólo quien lo cargó— y no hay nada que devuelva estatus en público. En
+una app que depende de que la gente releve precios gratis, eso es la palanca
+de retención más barata que queda sin usar.
+
+### Página de colaboradores, con top del mes
+Pública, no detrás del rol. Ranking por aportes con el mes corriendo, así hay
+una carrera que se reinicia en vez de una tabla histórica que gana siempre el
+mismo y desalienta al que llega nuevo.
+
+Dos cosas a resolver antes de escribirla:
+
+- **Qué pesa cada aporte.** El dashboard ya usa una ponderación (precio y bar
+  3, foto y nota 2, confirmación 1). Sirve para ordenar una lista interna;
+  hecha pública se vuelve un incentivo, y la gente optimiza para el número. Un
+  ranking que premie el volumen sin mirar la calidad invita a cargar precios
+  inventados, que es exactamente el ataque contra el que el resto de la app se
+  defiende.
+- **Qué nombre se muestra.** Hoy `display_name` viene de Google y puede ser el
+  nombre real completo. Exponerlo en una página pública es un cambio de
+  privacidad, no una feature de UI: hace falta un alias elegible y, hasta que
+  exista, no publicar la página.
+
+### Votos en fotos y foto del mes
+Un pulgar por foto, y la más votada del mes destacada. Es lo mismo que las
+notas de cerveza pero sobre la foto, así que el modelo ya existe: una tabla
+`photo_votes` con única por (foto, usuario) y un agregado.
+
+Lo que hay que decidir es dónde se muestra la foto del mes. En la pantalla del
+bar compite con el precio, que es lo que la app viene a contestar; probablemente
+viva en la página de colaboradores o en un lugar propio.
+
+Ojo con una cosa: hoy las fotos se moderan de a una y borrarlas es
+irreversible (se borra el objeto del bucket). Un sistema de votos le sube el
+premio a subir fotos y va a subir el volumen, así que conviene tener la cola de
+moderación de fotos antes de encender los votos, y no después.
+
 ## Deuda técnica detectada
 
 ### `/bars` no tiene límite de tasa
@@ -198,6 +238,12 @@ Tiene costo por llamada, así que conviene correrlo una vez y no en vivo.
 
 ## Hecho
 
+- **Dashboard de usuarios y aportes** (2026-09-02) — detrás del rol de
+  moderador, en `/dashboard`. Contesta "de los que se anotan, cuántos
+  aportan", que es la métrica que decide si el mapa se mantiene solo.
+- **Marca de la cerveza** (2026-09-02) — la birra pasó a ser (estilo, marca).
+  Resuelve el caso de un bar con dos IPA a precios distintos, donde una pisaba
+  a la otra.
 - **Onboarding progresivo** (2026-09-01) — por pantalla y anclado a controles
   reales, no un carrusel de bienvenida. Se muestra sólo con sesión iniciada
   porque todo lo que enseña son cosas de aportar. Se puede volver a ver desde

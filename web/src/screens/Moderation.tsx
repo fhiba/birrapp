@@ -51,6 +51,21 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           )}
         </div>
         {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+
+        {/* El dashboard vive detrás de moderación y no en el perfil: es la
+            misma llave —hace falta el rol— y quien viene a moderar es quien
+            quiere saber si la cuenta que cargó algo raro es de ayer. */}
+        <button onClick={() => nav('/dashboard')} className="lbl" style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+          marginTop: 14, padding: '12px 14px', borderRadius: 13, fontSize: 13.5,
+          background: 'var(--elevated)', color: 'var(--cream)',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M3 13h4v8H3v-8Zm7-9h4v17h-4V4Zm7 5h4v12h-4V9Z" />
+          </svg>
+          <span style={{ flex: 1, textAlign: 'left' }}>Usuarios y aportes</span>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
       </div>
 
       {loading && <div className="spinner" style={{ margin: '30px auto' }} />}
