@@ -54,14 +54,10 @@ data class DashboardUserDto(
     /** Días desde su último aporte. Null = nunca aportó nada. */
     val lastActiveDays: Int?,
     /**
-     * Los aportes pesados: precio 3, bar 3, foto 2, nota 2, confirmación 1.
-     *
-     * Las confirmaciones pesan menos porque mantener fresco lo que ya está es
-     * un aporte real pero más barato que relevar un precio nuevo. Sin ese
-     * peso, el ranking lo gana quien aprieta "Sigue igual" en serie.
-     *
-     * Vive acá y no en el front porque la concentración del dashboard usa la
-     * misma fórmula, y dos copias se desincronizan.
+     * Los aportes pesados. La fórmula —y por qué las confirmaciones pesan
+     * menos— vive en [CONTRIBUTION_WEIGHT], única definición para las tres
+     * queries que la usan; este número sale de ahí. No vive en el front por lo
+     * mismo: dos copias se desincronizan.
      */
     val score: Int,
 )
@@ -171,11 +167,7 @@ class ModerationRepo(private val db: Db) {
                 FROM beer_ratings WHERE status = 'active' GROUP BY user_id
             ), sc AS (
                 SELECT user_id AS uid,
-                       sum(CASE kind WHEN 'price'  THEN 3
-                                     WHEN 'bar'    THEN 3
-                                     WHEN 'photo'  THEN 2
-                                     WHEN 'rating' THEN 2
-                                     ELSE 1 END)::int AS score
+                       sum($CONTRIBUTION_WEIGHT)::int AS score
                 FROM v_contributions GROUP BY user_id
             )
             SELECT u.id, u.display_name, u.email, u.role::text AS role,

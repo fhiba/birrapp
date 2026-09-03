@@ -4,6 +4,30 @@ import com.birrapp.core.Db
 import com.birrapp.core.query
 import kotlinx.serialization.Serializable
 
+/**
+ * El peso de cada tipo de aporte para rankear gente: precio 3, bar 3, foto 2,
+ * nota 2, confirmación 1.
+ *
+ * Las confirmaciones pesan menos porque mantener fresco lo que ya está es un
+ * aporte real, pero más barato que relevar un precio nuevo; sin ese descuento
+ * el ranking lo gana quien aprieta "Sigue igual" en serie.
+ *
+ * Hay una sola definición a propósito. La comparten tres queries —`recentUsers`
+ * en ModerationRepo, y acá `topContributors` y `top5Share`— y tres copias
+ * sueltas se desincronizan igual que se desincronizaban las dos que había entre
+ * el back y el front antes de centralizar el score.
+ *
+ * Se interpola cruda en el SQL, no es un parámetro: nunca armarla con texto de
+ * afuera. Nombra la columna `kind` sin calificar y resuelve en las tres porque
+ * `v_contributions` es la única tabla con esa columna en cada query.
+ */
+internal const val CONTRIBUTION_WEIGHT =
+    """CASE kind WHEN 'price'  THEN 3
+                 WHEN 'bar'    THEN 3
+                 WHEN 'photo'  THEN 2
+                 WHEN 'rating' THEN 2
+                 ELSE 1 END"""
+
 @Serializable
 data class PulseDay(
     val day: String,
@@ -32,7 +56,15 @@ data class TopContributor(
     val ratings: Int,
 )
 
-/** Cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días. */
+/**
+ * Cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días.
+ *
+ * Ojo: son cuatro conteos independientes sobre la misma población, no
+ * subconjuntos anidados. `activeMonth` no cae dentro de `fiveOrMore` —alguien
+ * con dos aportes esta semana suma en el primero y no en el segundo— así que
+ * dibujarlo como un embudo estricto de barras que sólo pueden achicarse sería
+ * una mentira gráfica.
+ */
 @Serializable
 data class Funnel(
     val accounts: Int,
@@ -180,19 +212,14 @@ class AnalyticsRepo(private val db: Db) {
     /**
      * Los que más aportan, por score.
      *
-     * El peso es el mismo que el de DashboardUserDto.score. Están escritos dos
-     * veces porque son dos queries distintas, no porque sean dos criterios:
-     * si cambia uno, cambian los dos.
+     * El peso sale de [CONTRIBUTION_WEIGHT], el mismo que usa
+     * DashboardUserDto.score.
      */
     fun topContributors(limit: Int = 10): List<TopContributor> = db.conn { c ->
         c.query(
             """
             SELECT u.id, u.display_name,
-                   sum(CASE c.kind WHEN 'price'  THEN 3
-                                   WHEN 'bar'    THEN 3
-                                   WHEN 'photo'  THEN 2
-                                   WHEN 'rating' THEN 2
-                                   ELSE 1 END)::int                 AS score,
+                   sum($CONTRIBUTION_WEIGHT)::int                      AS score,
                    count(*) FILTER (WHERE c.kind = 'price')::int        AS prices,
                    count(*) FILTER (WHERE c.kind = 'confirmation')::int AS confirmations,
                    count(*) FILTER (WHERE c.kind = 'bar')::int          AS bars,
@@ -230,15 +257,13 @@ class AnalyticsRepo(private val db: Db) {
         c.query(
             """
             WITH s AS (
-                SELECT sum(CASE kind WHEN 'price'  THEN 3
-                                     WHEN 'bar'    THEN 3
-                                     WHEN 'photo'  THEN 2
-                                     WHEN 'rating' THEN 2
-                                     ELSE 1 END) AS score
+                SELECT sum($CONTRIBUTION_WEIGHT) AS score
                 FROM v_contributions GROUP BY user_id
             )
+            -- El ::numeric fuerza división real: sin él, un ::int de más en la
+            -- CTE la volvería entera y toda fracción se truncaría a 0.
             SELECT coalesce(
-                (SELECT sum(score) FROM (SELECT score FROM s ORDER BY score DESC LIMIT 5) t)
+                (SELECT sum(score) FROM (SELECT score FROM s ORDER BY score DESC LIMIT 5) t)::numeric
                     / nullif((SELECT sum(score) FROM s), 0),
                 0)::float8 AS share
             """.trimIndent(),
