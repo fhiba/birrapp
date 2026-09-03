@@ -93,11 +93,94 @@ data class BarDetail(
 
 @Serializable data class UserStats(
     val prices: Int, val confirmations: Int, val bars: Int, val reviews: Int,
+    val photos: Int = 0,
 )
 
 @Serializable data class Review(
     val id: Long, val authorName: String, val rating: Int,
     val body: String? = null, val createdAt: String,
+)
+
+/** Una foto de una birra concreta. `mine` viene del servidor con la sesión. */
+@Serializable data class Photo(
+    val id: Long,
+    val styleSlug: String,
+    val brandSlug: String? = null,
+    val url: String,
+    val authorName: String? = null,
+    val ageDays: Int,
+    val mine: Boolean = false,
+)
+
+/**
+ * Un comentario. `rating` es la nota de quien escribió sobre ESA birra, y
+ * puede faltar: comentar y puntuar son dos acciones separadas.
+ */
+@Serializable data class RatingComment(
+    val id: Long,
+    val authorName: String,
+    val body: String? = null,
+    val ageDays: Int,
+    val mine: Boolean = false,
+    val rating: Int? = null,
+)
+
+/** Lo que votó el usuario en un bar, por birra. */
+@Serializable data class MyRating(
+    val styleSlug: String,
+    val brandSlug: String? = null,
+    val rating: Int,
+)
+
+@Serializable data class NewRatingRequest(
+    val barId: Long, val styleSlug: String, val brandSlug: String? = null, val rating: Int,
+)
+
+@Serializable data class NewCommentRequest(
+    val barId: Long, val styleSlug: String, val brandSlug: String? = null, val body: String,
+)
+
+@Serializable data class UploadUrlRequest(
+    val barId: Long, val styleSlug: String, val brandSlug: String? = null,
+)
+
+@Serializable data class UploadUrlResponse(val uploadUrl: String, val key: String)
+
+@Serializable data class ConfirmPhotoRequest(
+    val barId: Long, val styleSlug: String, val brandSlug: String? = null, val key: String,
+)
+
+@Serializable data class AvatarUploadUrl(val uploadUrl: String, val key: String)
+@Serializable data class AvatarConfirm(val key: String)
+
+@Serializable data class MyBar(
+    val id: Long, val name: String, val status: String, val ageDays: Int,
+)
+
+@Serializable data class MyPrice(
+    val id: Long, val barId: Long, val barName: String, val styleName: String,
+    val brandName: String? = null,
+    val price: Double, val sizeMl: Int, val ageDays: Int,
+    val isConfirmation: Boolean,
+    /** Es el precio que la app muestra hoy para esa birra. */
+    val isCurrent: Boolean,
+)
+
+@Serializable data class MyPhoto(
+    val id: Long, val barId: Long, val barName: String, val styleName: String,
+    val brandName: String? = null, val url: String, val ageDays: Int,
+)
+
+@Serializable data class MyComment(
+    val id: Long, val barId: Long, val barName: String, val styleName: String,
+    val brandName: String? = null, val body: String, val ageDays: Int,
+)
+
+@Serializable data class MyContributions(
+    val bars: List<MyBar> = emptyList(),
+    val prices: List<MyPrice> = emptyList(),
+    val photos: List<MyPhoto> = emptyList(),
+    val comments: List<MyComment> = emptyList(),
 )
 
 @Serializable data class NewPriceRequest(
