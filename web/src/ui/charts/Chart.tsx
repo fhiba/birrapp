@@ -26,16 +26,17 @@ export type Series = { label: string; color: string; points: number[] }
  *  - `confirmations` era `#8A7B6D` (el token `--faint`): croma casi nulo, el
  *    validador lo marca como "reads gray" —un color que no hace trabajo de
  *    identidad— y además colapsaba contra el verde de `bars` bajo daltonismo
- *    (ΔE 2.6 deutan, piso 15 de visión normal sin pasar). Ahora es el paso
- *    oscuro de amarillo de la paleta de referencia: sigue siendo el más
- *    apagado de los cinco (bajo en la escala de valor, misma familia que el
- *    ámbar de `prices`), pero ya separa bajo daltonismo. Va apagado a
- *    propósito: confirmar mantiene fresco un precio que ya existe, que vale,
- *    pero menos que relevar uno nuevo. El color lo dice sin leyenda.
+ *    (ΔE 2.6 deutan, piso 15 de visión normal sin pasar). Pasó por un oro
+ *    oscuro, que separaba bajo daltonismo pero quedaba en ΔE 15,6 contra el
+ *    ámbar de `prices` —apenas sobre el piso, y los dos son vecinos en la
+ *    barra apilada—. Ahora es el paso oscuro de violeta: hue propio, se
+ *    distingue de un vistazo, y el peor par adyacente sube a ΔE 20,9. Que
+ *    confirmar valga menos que relevar lo dice el score, no el color.
  *  - `bars` / `photos` / `ratings` eran tonos pastel demasiado claros para el
  *    fondo oscuro y `photos`↔`ratings` (azul↔violeta) eran indistinguibles
  *    bajo daltonismo (ΔE 0.8). Ahora son los pasos oscuros de aqua, azul y
- *    magenta de la paleta de referencia: el par peor ya queda en ΔE 8.4.
+ *    magenta de la paleta de referencia: el peor par adyacente bajo
+ *    daltonismo queda en ΔE 15,9.
  *
  * `prices` conserva el ámbar de la marca (`--amber: #FFB627`) a pesar de que
  * su luminosidad queda por encima de la banda que pide la skill: es el token
@@ -46,7 +47,12 @@ export type Series = { label: string; color: string; points: number[] }
  */
 export const KIND_COLORS = {
   prices:        '#FFB627', // ámbar de la marca (--amber): la serie protagonista
-  confirmations: '#c98500', // oro oscuro: presente pero recesivo, sin leyenda
+  // Violeta y no un oro apagado. El oro leía como "confirmación es un precio
+  // más flojo", que es la idea correcta, pero quedaba pegado al ámbar en la
+  // barra apilada: dos tonos de la misma familia con 2px de hueco en el medio.
+  // El hue distinto se distingue de un vistazo y el peso menor ya lo dice el
+  // score. Peor par adyacente en visión normal: ΔE 20,9 contra 15,6 del oro.
+  confirmations: '#9085e9',
   bars:          '#199e70',
   photos:        '#3987e5',
   ratings:       '#d55181',
