@@ -826,9 +826,10 @@ Métodos dentro de la clase. El peso está repetido literal del de `recentUsers(
     /**
      * Los que más aportan, por score.
      *
-     * El peso es el mismo que el de DashboardUserDto.score. Están escritos dos
-     * veces porque son dos queries distintas, no porque sean dos criterios:
-     * si cambia uno, cambian los dos.
+     * El peso sale de `CONTRIBUTION_WEIGHT`, la única definición del paquete.
+     * Tenerlo escrito una sola vez es el punto de toda esta feature: la Task 2
+     * lo sacó del frontend justamente para que tuviera un dueño, y tres copias
+     * en SQL serían la misma falla con otro disfraz.
      */
     fun topContributors(limit: Int = 10): List<TopContributor> = db.conn { c ->
         c.query(

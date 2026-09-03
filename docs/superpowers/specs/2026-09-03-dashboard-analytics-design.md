@@ -109,6 +109,11 @@ Las confirmaciones pesan menos porque mantener fresco lo que ya está es un
 aporte real pero más barato que relevar un precio nuevo. Sin ese peso, el
 ranking lo gana quien aprieta "Sigue igual" en serie.
 
+El `CASE` vive en **una sola constante** del paquete `moderation`, que usan las
+tres queries que lo necesitan (`recentUsers`, `topContributors`, `top5Share`).
+Sacarlo del frontend para después tener tres copias en SQL sería la misma falla
+con otro disfraz.
+
 ## Las cinco métricas
 
 ### 1. Pulso diario — aportes por día, 30 días, apilado por tipo
