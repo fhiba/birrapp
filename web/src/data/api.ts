@@ -71,6 +71,39 @@ export function clearSession() {
 }
 
 /**
+ * El id de cliente para contar visitas.
+ *
+ * Aleatorio, en localStorage, sin relación con la cuenta: sirve para no contar
+ * veinte veces a quien recarga, y para nada más. Si localStorage no está
+ * disponible se devuelve null y no se cuenta la visita — preferimos perder un
+ * número antes que romper la app por una métrica.
+ */
+const CLIENT_KEY = 'birrapp.client'
+function clientId(): string | null {
+  try {
+    let id = localStorage.getItem(CLIENT_KEY)
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem(CLIENT_KEY, id) }
+    return id
+  } catch { return null }
+}
+
+/**
+ * Avisa que alguien entró. Se llama una vez por carga, no por navegación.
+ *
+ * Va con `auth: true` a propósito aunque el endpoint sea público: así manda el
+ * token cuando hay sesión —y el backend puede contar la visita como con
+ * sesión— pero no falla cuando no la hay, porque `req` sólo agrega el header
+ * si `session` existe.
+ *
+ * Los errores se tragan: si el conteo falla, la app tiene que seguir andando.
+ */
+export function pingTraffic() {
+  const id = clientId()
+  if (!id) return
+  req('POST', '/traffic', { body: { clientId: id }, auth: true }).catch(() => {})
+}
+
+/**
  * `ok` renovó · `rejected` el servidor dijo que no · `failed` no se pudo ni preguntar.
  *
  * La diferencia entre los dos últimos es la que decide si al usuario se lo

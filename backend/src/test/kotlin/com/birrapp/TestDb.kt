@@ -52,6 +52,17 @@ object TestDb {
         }
     }
 
+    /**
+     * Limpia sólo el tráfico.
+     *
+     * Va aparte de `reset()` porque `traffic_sessions` no referencia a nadie:
+     * no la arrastra el TRUNCATE CASCADE de usuarios, y los tests de tráfico
+     * no necesitan resembrar vocabularios.
+     */
+    fun resetTraffic() {
+        db.conn { c -> c.createStatement().use { it.execute("TRUNCATE traffic_sessions") } }
+    }
+
     fun styleId(c: Connection, slug: String): Long =
         c.prepareStatement("SELECT id FROM beer_styles WHERE slug = ?").use { st ->
             st.setString(1, slug)

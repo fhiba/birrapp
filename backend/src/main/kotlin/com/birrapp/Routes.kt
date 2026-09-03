@@ -15,6 +15,8 @@ import com.birrapp.photos.*
 import com.birrapp.prices.*
 import com.birrapp.ratings.*
 import com.birrapp.reviews.*
+import com.birrapp.traffic.TrafficPing
+import com.birrapp.traffic.TrafficRepo
 
 @Serializable data class RoleChangeRequest(val role: String)
 @Serializable data class OkResponse(val ok: Boolean = true)
@@ -27,6 +29,7 @@ fun Route.apiRoutes(
     photos: PhotoRepo,
     moderation: ModerationRepo,
     users: UserRepo,
+    traffic: TrafficRepo,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
      *  alcanza con cambiarle el estado. */
     deletePhotoObject: suspend (String) -> Unit,
@@ -97,6 +100,21 @@ fun Route.apiRoutes(
         get("/bars/{id}/photos") {
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             call.respond(photos.forBar(id, viewerId = call.callerOrNull()?.userId))
+        }
+
+        /**
+         * El beacon de visita.
+         *
+         * Único endpoint de escritura sin sesión obligatoria, porque medir a
+         * los anónimos exige justamente eso. Lo acota el RateLimit global de
+         * 120 req/min por IP que ya está instalado.
+         */
+        post("/traffic") {
+            val body = call.receive<TrafficPing>()
+            val id = runCatching { java.util.UUID.fromString(body.clientId) }.getOrNull()
+                ?: badRequest("clientId inválido")
+            traffic.record(id, authed = call.callerOrNull() != null)
+            call.respond(OkResponse())
         }
     }
 

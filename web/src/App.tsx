@@ -25,6 +25,12 @@ import { MyContributionsScreen } from './screens/MyContributions'
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
 export default function App() {
+  // El beacon de visita: una sola vez por carga de la app. Va acá, en el
+  // componente raíz, y no en `Shell` ni en una pantalla, porque esto no se
+  // desmonta al navegar entre pestañas — que es justo lo que se quiere contar,
+  // una visita por carga y no una por cambio de ruta.
+  useEffect(() => { api.pingTraffic() }, [])
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <APIProvider apiKey={MAPS_KEY} libraries={['places']}>
