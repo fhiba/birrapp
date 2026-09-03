@@ -44,6 +44,10 @@ data class WeeklyPoint(val week: String, val signups: Int, val contributors: Int
 @Serializable
 data class CoverageDay(val day: String, val bars: Int, val covered: Int)
 
+/** Visitantes distintos de un día, partidos por si tenían sesión o no. */
+@Serializable
+data class TrafficDay(val day: String, val anon: Int, val authed: Int)
+
 @Serializable
 data class TopContributor(
     val userId: Long,
@@ -57,16 +61,26 @@ data class TopContributor(
 )
 
 /**
- * Cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días.
+ * Visitantes → cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días.
  *
- * Ojo: son cuatro conteos independientes sobre la misma población, no
- * subconjuntos anidados. `activeMonth` no cae dentro de `fiveOrMore` —alguien
- * con dos aportes esta semana suma en el primero y no en el segundo— así que
- * dibujarlo como un embudo estricto de barras que sólo pueden achicarse sería
- * una mentira gráfica.
+ * Ojo: son cinco conteos independientes, no subconjuntos anidados. Los cuatro
+ * últimos son sobre la misma población pero no encajan uno dentro de otro
+ * —`activeMonth` no cae dentro de `fiveOrMore`, alguien con dos aportes esta
+ * semana suma en el primero y no en el segundo—, y `visitors30` ni siquiera
+ * comparte población con el resto: cuenta clientes de la PWA, la mayoría sin
+ * cuenta. Dibujarlo como un embudo estricto de barras que sólo pueden
+ * achicarse sería una mentira gráfica.
  */
 @Serializable
 data class Funnel(
+    /**
+     * Clientes distintos en 30 días. Es el escalón cero: sin él el embudo
+     * arranca en "cuentas" y esconde la caída más grande, que es de los que
+     * miran a los que se anotan.
+     *
+     * Mide la PWA solamente: la app de Android no manda el beacon.
+     */
+    val visitors30: Int,
     val accounts: Int,
     val everContributed: Int,
     val fiveOrMore: Int,
@@ -210,6 +224,39 @@ class AnalyticsRepo(private val db: Db) {
     }
 
     /**
+     * Visitantes por día, anónimos contra con sesión.
+     *
+     * Una fila de `traffic_sessions` ya es un cliente distinto en un día —la
+     * clave primaria es (day, client_id)— así que acá alcanza con contar filas
+     * y no hace falta DISTINCT.
+     */
+    fun traffic(days: Int = 30): List<TrafficDay> = db.conn { c ->
+        c.query(
+            """
+            WITH d AS (
+                SELECT generate_series(
+                    date_trunc('day', now()) - make_interval(days => ? - 1),
+                    date_trunc('day', now()),
+                    interval '1 day')::date AS day
+            )
+            SELECT d.day,
+                   count(t.client_id) FILTER (WHERE NOT t.authed)::int AS anon,
+                   count(t.client_id) FILTER (WHERE t.authed)::int     AS authed
+            FROM d LEFT JOIN traffic_sessions t ON t.day = d.day
+            GROUP BY d.day
+            ORDER BY d.day
+            """.trimIndent(),
+            days,
+        ) { rs ->
+            TrafficDay(
+                day = rs.getDate("day").toString(),
+                anon = rs.getInt("anon"),
+                authed = rs.getInt("authed"),
+            )
+        }
+    }
+
+    /**
      * Los que más aportan, por score.
      *
      * El peso sale de [CONTRIBUTION_WEIGHT], el mismo que usa
@@ -280,7 +327,11 @@ class AnalyticsRepo(private val db: Db) {
                        max(at)  AS last_at
                 FROM v_contributions GROUP BY user_id
             )
-            SELECT (SELECT count(*) FROM users)::int                      AS accounts,
+            -- count(DISTINCT client_id) y no count(*): un cliente que vuelve
+            -- cinco días distintos tiene cinco filas y es una sola persona.
+            SELECT (SELECT count(DISTINCT client_id) FROM traffic_sessions
+                     WHERE day > current_date - 30)::int                  AS visitors,
+                   (SELECT count(*) FROM users)::int                      AS accounts,
                    (SELECT count(*) FROM per_user)::int                   AS ever,
                    (SELECT count(*) FROM per_user WHERE n >= 5)::int      AS five,
                    (SELECT count(*) FROM per_user
@@ -288,6 +339,7 @@ class AnalyticsRepo(private val db: Db) {
             """.trimIndent(),
         ) { rs ->
             Funnel(
+                visitors30 = rs.getInt("visitors"),
                 accounts = rs.getInt("accounts"),
                 everContributed = rs.getInt("ever"),
                 fiveOrMore = rs.getInt("five"),

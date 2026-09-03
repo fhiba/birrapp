@@ -6,6 +6,8 @@ import com.birrapp.ratings.NewRatingRequest
 import com.birrapp.ratings.RatingRepo
 import com.birrapp.core.query
 import com.birrapp.moderation.AnalyticsRepo
+import com.birrapp.traffic.TrafficRepo
+import java.util.UUID
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,8 +24,15 @@ class AnalyticsTest {
     private val prices by lazy { PriceRepo(TestDb.db) }
     private val ratings by lazy { RatingRepo(TestDb.db) }
     private val analytics by lazy { AnalyticsRepo(TestDb.db) }
+    private val trafficRepo by lazy { TrafficRepo(TestDb.db) }
 
-    @BeforeTest fun setup() = TestDb.reset()
+    // `reset()` no toca `traffic_sessions` (no la arrastra ningún CASCADE), así
+    // que sin este segundo truncate los tests de tráfico ven filas que dejó
+    // TrafficTest o una corrida anterior, y el fallo parece un bug de SQL.
+    @BeforeTest fun setup() {
+        TestDb.reset()
+        TestDb.resetTraffic()
+    }
 
     @Test
     fun `la vista separa precio de confirmacion y junta los cinco tipos`() {
@@ -212,5 +221,37 @@ class AnalyticsTest {
         assertEquals(1, f.everContributed)
         assertEquals(0, f.fiveOrMore, "cuatro no llega al escalón de cinco")
         assertEquals(1, f.activeMonth)
+    }
+
+    @Test
+    fun `la serie de trafico trae una fila por dia aunque no haya entrado nadie`() {
+        assertEquals(30, analytics.traffic(30).size)
+    }
+
+    @Test
+    fun `la serie separa visitantes anonimos de los que tienen sesion`() {
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = true)
+
+        val hoy = analytics.traffic(30).last()
+        assertEquals(2, hoy.anon)
+        assertEquals(1, hoy.authed)
+    }
+
+    @Test
+    fun `el embudo arranca en los visitantes`() {
+        val u = TestDb.insertUser("aporto")
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        TestDb.insertPrice(bar, "ipa", 8000.0, daysAgo = 0, userId = u)
+        // Tres visitantes distintos, uno de ellos con sesión.
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = true)
+
+        val f = analytics.funnel()
+        assertEquals(3, f.visitors30, "los visitantes son el escalón cero, antes de las cuentas")
+        assertEquals(1, f.accounts)
+        assertEquals(1, f.everContributed)
     }
 }
