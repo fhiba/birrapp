@@ -109,4 +109,25 @@ class AnalyticsTest {
         assertEquals(1, hoy.prices)
         assertEquals(0, hoy.confirmations)
     }
+
+    @Test
+    fun `los aportantes de la semana son personas distintas y no aportes`() {
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+
+        // Tres aportes de la misma persona en la misma semana.
+        prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), u)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), u)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "berlina", 3.0), u)
+
+        val semana = analytics.weekly(12).last()
+        assertEquals(1, semana.contributors,
+            "una persona muy activa no puede parecer tres personas")
+        assertEquals(1, semana.signups)
+    }
+
+    @Test
+    fun `la serie semanal trae una fila por semana aunque esten vacias`() {
+        assertEquals(12, analytics.weekly(12).size)
+    }
 }

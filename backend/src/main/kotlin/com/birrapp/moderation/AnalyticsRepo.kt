@@ -4,6 +4,19 @@ import com.birrapp.core.Db
 import com.birrapp.core.query
 import kotlinx.serialization.Serializable
 
+@Serializable
+data class PulseDay(
+    val day: String,
+    val prices: Int,
+    val confirmations: Int,
+    val bars: Int,
+    val photos: Int,
+    val ratings: Int,
+)
+
+@Serializable
+data class WeeklyPoint(val week: String, val signups: Int, val contributors: Int)
+
 /**
  * Las analíticas del dashboard: lo mismo que ya muestra, pero en el tiempo.
  *
@@ -15,16 +28,6 @@ import kotlinx.serialization.Serializable
  * el front dibuje como línea recta entre dos puntos lejanos es una mentira
  * gráfica, y el lugar barato de evitarla es el SQL.
  */
-@Serializable
-data class PulseDay(
-    val day: String,
-    val prices: Int,
-    val confirmations: Int,
-    val bars: Int,
-    val photos: Int,
-    val ratings: Int,
-)
-
 class AnalyticsRepo(private val db: Db) {
 
     /** Aportes por día, desglosados por tipo. El pulso de la app. */
@@ -56,6 +59,47 @@ class AnalyticsRepo(private val db: Db) {
                 bars = rs.getInt("bars"),
                 photos = rs.getInt("photos"),
                 ratings = rs.getInt("ratings"),
+            )
+        }
+    }
+
+    /**
+     * Altas de cuenta contra personas que aportaron, por semana.
+     *
+     * `contributors` cuenta personas distintas, no aportes: la pregunta es
+     * cuántos de los que se anotan hacen algo, y sumar aportes la contestaría
+     * mal porque una sola persona muy activa la infla sola.
+     */
+    fun weekly(weeks: Int = 12): List<WeeklyPoint> = db.conn { c ->
+        c.query(
+            """
+            WITH w AS (
+                SELECT generate_series(
+                    date_trunc('week', now()) - make_interval(weeks => ? - 1),
+                    date_trunc('week', now()),
+                    interval '1 week')::date AS week
+            ), s AS (
+                SELECT date_trunc('week', created_at)::date AS week, count(*)::int AS n
+                FROM users GROUP BY 1
+            ), k AS (
+                SELECT date_trunc('week', at)::date AS week,
+                       count(DISTINCT user_id)::int AS n
+                FROM v_contributions GROUP BY 1
+            )
+            SELECT w.week,
+                   coalesce(s.n, 0) AS signups,
+                   coalesce(k.n, 0) AS contributors
+            FROM w
+            LEFT JOIN s ON s.week = w.week
+            LEFT JOIN k ON k.week = w.week
+            ORDER BY w.week
+            """.trimIndent(),
+            weeks,
+        ) { rs ->
+            WeeklyPoint(
+                week = rs.getDate("week").toString(),
+                signups = rs.getInt("signups"),
+                contributors = rs.getInt("contributors"),
             )
         }
     }
