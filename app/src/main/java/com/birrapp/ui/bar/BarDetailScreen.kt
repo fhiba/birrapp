@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,7 +60,12 @@ fun BarDetailScreen(
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var reportingStyle by remember { mutableStateOf<String?>(null) }
+    var reportingBrand by remember { mutableStateOf<String?>(null) }
     var showReportSheet by remember { mutableStateOf(false) }
+    // La birra elegida se guarda como (estilo, marca) y no como un índice: al
+    // cargar un precio la lista se reordena y un índice apuntaría a otra
+    // cerveza.
+    var tab by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
     LaunchedEffect(state.toast) {
         state.toast?.let { snackbar.showSnackbar(it); viewModel.clearToast() }
@@ -231,37 +237,68 @@ fun BarDetailScreen(
                         }
                     }
                 } else {
-                    items(bar.prices, key = { it.styleSlug }) { price ->
+                    // Las birras vienen agrupadas por estilo desde la API, con
+                    // las marcas de un mismo estilo contiguas. Acá sólo se
+                    // parten en grupos: el orden lo decide el servidor y
+                    // duplicarlo del lado del cliente sería una segunda fuente
+                    // de verdad para lo mismo.
+                    val groups = groupByStyle(bar.prices)
+
+                    // Dos niveles de repliegue: la birra exacta, si no la
+                    // primera de ese estilo, si no la primera de todas. Hace
+                    // falta porque la lista cambia bajo los pies —se carga un
+                    // precio, se borra otro— y una marca elegida puede dejar
+                    // de existir.
+                    val group = groups.firstOrNull { it.styleSlug == tab?.first }
+                        ?: groups.first()
+                    val active = group.beers.firstOrNull { it.brandSlug == tab?.second }
+                        ?: group.beers.first()
+
+                    item {
+                        BeerTabs(
+                            groups = groups,
+                            group = group,
+                            active = active,
+                            onStyle = { g -> tab = g.styleSlug to g.beers.first().brandSlug },
+                            onBrand = { b -> tab = group.styleSlug to b.brandSlug },
+                            onAddBeer = {
+                                if (isSignedIn) {
+                                    reportingStyle = null; reportingBrand = null
+                                    showReportSheet = true
+                                } else onNeedSignIn()
+                            },
+                            onAddBrand = {
+                                if (isSignedIn) {
+                                    reportingStyle = group.styleSlug; reportingBrand = null
+                                    showReportSheet = true
+                                } else onNeedSignIn()
+                            },
+                        )
+                    }
+
+                    item {
                         PriceRow(
-                            price = price,
-                            busy = state.busyStyle == price.styleSlug,
+                            price = active,
+                            busy = state.busyBeer == active.key,
                             modMode = modMode,
-                            onRemove = { viewModel.removePrice(price.id) },
+                            onRemove = { active.id?.let { viewModel.removePrice(it) } },
                             onConfirm = {
-                                if (isSignedIn) viewModel.confirmPrice(price.styleSlug)
+                                if (isSignedIn) viewModel.confirmPrice(active)
                                 else onNeedSignIn()
                             },
                             onUpdate = {
                                 if (isSignedIn) {
-                                    reportingStyle = price.styleSlug; showReportSheet = true
+                                    reportingStyle = active.styleSlug
+                                    reportingBrand = active.brandSlug
+                                    showReportSheet = true
                                 } else onNeedSignIn()
                             },
-                            onHistory = {
-                                viewModel.openHistory(price.styleSlug, price.styleName)
-                            },
+                            onHistory = { viewModel.openHistory(active) },
                             onFlag = {
-                                if (isSignedIn) badPrice = price else onNeedSignIn()
+                                if (isSignedIn) badPrice = active else onNeedSignIn()
                             },
                         )
                         HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
-                    }
-                    item {
-                        Box(Modifier.padding(18.dp)) {
-                            PrimaryAction("+  " + stringResource(R.string.report_price)) {
-                                if (isSignedIn) { reportingStyle = null; showReportSheet = true }
-                                else onNeedSignIn()
-                            }
-                        }
                     }
                 }
 
@@ -350,7 +387,7 @@ fun BarDetailScreen(
             title = { Text("¿Reportar este precio?", color = Ink.Cream) },
             text = {
                 Text(
-                    "Vas a avisar que el precio de ${price.styleName} está mal " +
+                    "Vas a avisar que el precio de ${price.beerName} está mal " +
                         "cargado. Un moderador lo revisa.\n\n" +
                         "Si sólo cambió, es mejor usar Actualizar: reportar es para " +
                         "precios que nunca fueron ciertos.",
@@ -359,8 +396,10 @@ fun BarDetailScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    // Sólo se ofrece denunciar desde una fila con precio, así
+                    // que acá no puede faltar ninguno de los dos.
                     viewModel.reportBadPrice(
-                        price.id, "${price.styleName} a ${formatPrice(price.price)}",
+                        price.id!!, "${price.beerName} a ${formatPrice(price.price!!)}",
                     )
                     badPrice = null
                 }) { Text("Reportar", color = Ink.Amber) }
@@ -376,14 +415,213 @@ fun BarDetailScreen(
     if (showReportSheet) {
         ReportPriceSheet(
             styles = state.styles,
+            brands = state.brands,
             preselected = reportingStyle,
+            preselectedBrand = reportingBrand,
             barName = state.bar?.name,
             onDismiss = { showReportSheet = false },
-            onSubmit = { slug, price, sizeMl ->
-                viewModel.reportPrice(slug, price, sizeMl)
+            onCreateBrand = { name ->
+                viewModel.createBrand(name).also { viewModel.addBrand(it) }
+            },
+            onSubmit = { slug, brandSlug, price, sizeMl ->
+                // La birra cargada pasa a ser la que se mira: si no, se carga
+                // la segunda IPA y la pantalla se queda mostrando la primera,
+                // como si no hubiera pasado nada.
+                tab = slug to brandSlug
+                viewModel.reportPrice(slug, brandSlug, price, sizeMl)
                 showReportSheet = false
             },
         )
+    }
+}
+
+/** Un estilo con todas sus marcas en ese bar. */
+private data class BeerGroup(
+    val styleSlug: String,
+    val styleName: String,
+    val beers: List<StylePrice>,
+)
+
+/**
+ * Parte la lista en grupos por estilo.
+ *
+ * Las birras vienen ya ordenadas desde la API, con las marcas de un mismo
+ * estilo contiguas. Acá sólo se cortan: el orden lo decide el servidor y
+ * duplicarlo del lado del cliente sería una segunda fuente de verdad para lo
+ * mismo.
+ */
+private fun groupByStyle(prices: List<StylePrice>): List<BeerGroup> {
+    val out = mutableListOf<BeerGroup>()
+    prices.forEach { p ->
+        val last = out.lastOrNull()
+        if (last != null && last.styleSlug == p.styleSlug) {
+            out[out.size - 1] = last.copy(beers = last.beers + p)
+        } else {
+            out += BeerGroup(p.styleSlug, p.styleName, listOf(p))
+        }
+    }
+    return out
+}
+
+/**
+ * Las dos filas de solapas: el estilo arriba, sus marcas abajo.
+ *
+ * Se ve una birra por vez y se alterna entre ellas. Dos precios juntos bajo el
+ * rótulo "IPA" es exactamente lo que hacía que el número no significara nada:
+ * el bar tiene dos IPA distintas y el precio que mostraba no correspondía a
+ * ninguna de las dos.
+ *
+ * Las dos filas muestran su "+" aunque haya una sola opción. Un control que
+ * aparece y desaparece según cuántas haya es un control que no se encuentra
+ * cuando se lo necesita.
+ */
+@Composable
+private fun BeerTabs(
+    groups: List<BeerGroup>,
+    group: BeerGroup,
+    active: StylePrice,
+    onStyle: (BeerGroup) -> Unit,
+    onBrand: (StylePrice) -> Unit,
+    onAddBeer: () -> Unit,
+    onAddBrand: () -> Unit,
+) {
+    Column {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp),
+        ) {
+            items(groups, key = { it.styleSlug }) { g ->
+                val on = g.styleSlug == group.styleSlug
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (on) Ink.Amber else Color.White.copy(alpha = 0.07f))
+                        .clickable { onStyle(g) }
+                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        g.styleName,
+                        color = if (on) Ink.Base else Ink.Muted,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontSize = 13.sp,
+                    )
+                    // Cuántas marcas esconde esta solapa. Sin esto, que una
+                    // tenga tres cervezas y otra una sola no se ve hasta
+                    // entrar.
+                    if (g.beers.size > 1) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "${g.beers.size}",
+                            color = if (on) Ink.Base.copy(alpha = 0.6f) else Ink.Faint,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+            }
+
+            item {
+                DashedPill("Otra birra", Ink.Amber, onAddBeer)
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp),
+        ) {
+            items(group.beers, key = { it.brandSlug ?: "_" }) { beer ->
+                val on = beer.brandSlug == active.brandSlug
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (on) Ink.AmberSoft else Color.Transparent
+                        )
+                        .clickable { onBrand(beer) }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        beer.brandName ?: "Sin marca",
+                        color = if (on) Ink.Amber else Ink.Faint,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontSize = 12.5.sp,
+                    )
+                    beer.price?.let {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            formatPrice(it),
+                            color = if (on) Ink.Amber.copy(alpha = 0.75f) else Ink.Faint,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
+            }
+
+            item {
+                DashedPill("Otra marca", Ink.Muted, onAddBrand)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashedPill(label: String, tint: Color, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.04f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("+", color = tint, fontSize = 14.sp)
+        Spacer(Modifier.width(5.dp))
+        Text(
+            label, color = tint,
+            style = MaterialTheme.typography.labelLarge, fontSize = 12.5.sp,
+        )
+    }
+}
+
+/**
+ * El rótulo que dice qué birra es esta.
+ *
+ * El estilo en gris y la marca en ámbar: son dos datos de distinto peso, y
+ * leerlos como una sola frase ("IPA · Antares") es más rápido que buscar cuál
+ * de las dos solapas está encendida.
+ */
+@Composable
+private fun BeerLabel(price: StylePrice) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            price.styleName.uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            color = Ink.Faint, fontSize = 11.sp, letterSpacing = 1.2.sp,
+        )
+        Spacer(Modifier.width(7.dp))
+        Text(
+            // "Sin marca" se dice, no se omite: en un bar con dos IPA, una con
+            // marca y otra sin, el silencio se lee como que falta el dato.
+            price.brandName ?: "Sin marca",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (price.brandName != null) Ink.Amber else Ink.Muted,
+            fontSize = 13.sp,
+        )
+        if (price.brandCraft == true) {
+            Spacer(Modifier.width(7.dp))
+            Text(
+                "ARTESANAL",
+                Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.07f))
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = Ink.Faint, fontSize = 9.5.sp, letterSpacing = 0.8.sp,
+            )
+        }
     }
 }
 
@@ -405,20 +643,36 @@ private fun PriceRow(
     onHistory: () -> Unit,
     onFlag: () -> Unit,
 ) {
+    // Una birra puede tener nota y fotos sin precio vigente: pasa cuando un
+    // moderador baja el reporte. Antes esa birra desaparecía de la pantalla.
+    if (price.price == null) {
+        Column(Modifier.fillMaxWidth().padding(18.dp, 16.dp)) {
+            BeerLabel(price)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Esta birra no tiene precio cargado.",
+                color = Ink.Muted, style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(14.dp))
+            PrimaryAction("Cargar su precio", onUpdate)
+        }
+        return
+    }
+
     val accent = FreshnessColors.of(price.fresh)
     val dimmed = price.fresh == Freshness.stale
 
     Column(Modifier.fillMaxWidth().padding(18.dp, 16.dp)) {
+        // Estilo y marca sobre el precio.
+        // Cuando el estilo era toda la identidad esto lo decía la solapa de
+        // arriba, pero con dos IPA a precios distintos el número suelto no
+        // dice de cuál es, y las filas de solapas se pueden haber corrido de
+        // lado. Un precio sin su birra no significa nada.
+        BeerLabel(price)
+        Spacer(Modifier.height(8.dp))
+
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    price.styleName.uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Ink.Faint,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.2.sp,
-                )
-                Spacer(Modifier.height(6.dp))
                 Text(
                     formatPrice(price.price),
                     style = PriceLarge,
@@ -434,9 +688,12 @@ private fun PriceRow(
                             .background(accent)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(ageLabel(price.ageDays, price.fresh), fontSize = 12.sp, color = accent)
+                    Text(
+                        ageLabel(price.ageDays ?: 0, price.fresh),
+                        fontSize = 12.sp, color = accent,
+                    )
                 }
-                if (price.sizeMl != 473) {
+                if (price.sizeMl != null && price.sizeMl != 473) {
                     Spacer(Modifier.height(3.dp))
                     Text("${price.sizeMl} ml", fontSize = 11.sp, color = Ink.Faint)
                 }
@@ -558,7 +815,7 @@ private fun PriceHistoryDialog(state: HistoryState, onClose: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClose,
         containerColor = Ink.Raised,
-        title = { Text(state.styleName, color = Ink.Cream) },
+        title = { Text(state.title, color = Ink.Cream) },
         text = {
             val pts = state.points
             when {

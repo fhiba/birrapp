@@ -147,9 +147,30 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun styles(): List<BeerStyle> = request(HttpMethod.Get, "styles")
 
-    /** Histórico de un estilo en un bar. Sale gratis del modelo append-only. */
-    suspend fun priceHistory(barId: Long, style: String): List<PricePoint> =
-        request(HttpMethod.Get, "bars/$barId/history", params = mapOf("style" to style))
+    /**
+     * Marcas aprobadas. Vocabulario abierto, a diferencia de los estilos: cada
+     * cervecería chica es una marca, así que la lista crece con moderación.
+     */
+    suspend fun brands(): List<Brand> = request(HttpMethod.Get, "brands")
+
+    /** Alta de marca por un usuario. Queda pendiente hasta que la aprueben. */
+    suspend fun createBrand(name: String, craft: Boolean): Brand =
+        request(HttpMethod.Post, "brands", body = NewBrandRequest(name, craft), auth = true)
+
+    /**
+     * Histórico de una birra. Sale gratis del modelo append-only.
+     *
+     * Va por marca: mezclar las dos IPA de un bar da una serie que sube y baja
+     * porque son dos cervezas, no porque el precio se haya movido.
+     */
+    suspend fun priceHistory(barId: Long, style: String, brand: String?): List<PricePoint> =
+        request(
+            HttpMethod.Get, "bars/$barId/history",
+            params = buildMap {
+                put("style", style)
+                brand?.let { put("brand", it) }
+            },
+        )
 
     /** Busca entre los bares ya cargados, para no crear duplicados. */
     suspend fun searchBars(query: String, lat: Double?, lng: Double?): List<BarPin> =
@@ -169,8 +190,18 @@ class ApiClient(private val session: SessionStore) {
     suspend fun reportPrice(req: NewPriceRequest): PriceAccepted =
         request(HttpMethod.Post, "prices", body = req, auth = true)
 
-    suspend fun confirmPrice(barId: Long, styleSlug: String): PriceAccepted =
-        request(HttpMethod.Post, "bars/$barId/confirm/$styleSlug", auth = true)
+    /**
+     * "Sigue igual".
+     *
+     * Va con cuerpo y no con la marca en la URL: los slugs llevan acentos y
+     * guiones, y un `penon-del-aguila` en el path es una fuente de errores de
+     * encoding que no aporta nada.
+     */
+    suspend fun confirmPrice(barId: Long, styleSlug: String, brandSlug: String?): PriceAccepted =
+        request(
+            HttpMethod.Post, "bars/$barId/confirm",
+            body = ConfirmPriceRequest(styleSlug, brandSlug), auth = true,
+        )
 
     suspend fun addBar(req: NewBarRequest): Map<String, Long> =
         request(HttpMethod.Post, "bars", body = req, auth = true)
@@ -214,6 +245,15 @@ class ApiClient(private val session: SessionStore) {
 
     suspend fun rejectBar(id: Long): Map<String, Boolean> =
         request(HttpMethod.Post, "moderation/bars/$id/reject", auth = true)
+
+    suspend fun pendingBrands(): List<Brand> =
+        request(HttpMethod.Get, "moderation/brands/pending", auth = true)
+
+    suspend fun approveBrand(slug: String): Map<String, Boolean> =
+        request(HttpMethod.Post, "moderation/brands/$slug/approve", auth = true)
+
+    suspend fun rejectBrand(slug: String): Map<String, Boolean> =
+        request(HttpMethod.Post, "moderation/brands/$slug/reject", auth = true)
 
     suspend fun resolveFlag(id: Long): Map<String, Boolean> =
         request(HttpMethod.Post, "moderation/flags/$id/resolve", auth = true)

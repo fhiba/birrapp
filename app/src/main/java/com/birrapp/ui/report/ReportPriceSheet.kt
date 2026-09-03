@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.birrapp.R
 import com.birrapp.data.model.BeerStyle
+import com.birrapp.data.model.Brand
 import com.birrapp.ui.theme.Ink
 import com.birrapp.ui.theme.PriceLarge
 import java.text.NumberFormat
@@ -41,16 +42,32 @@ import java.util.Locale
  *  - **El tamaño escondido detrás de un toggle.** El 90% de los casos es una
  *    pinta de 473 ml. Cada campo visible de más es gente que abandona.
  *  - **Sin scroll.** Todo entra; no hay nada que buscar.
+ *  - **La marca debajo del estilo, y opcional.** Se sabe siempre si es rubia o
+ *    IPA, no siempre de qué marca. Sin ella el precio se carga igual, y esa
+ *    birra "sin marca" es una birra propia, no un dato a medio cargar.
  */
 @Composable
 fun ReportPriceSheet(
     styles: List<BeerStyle>,
+    brands: List<Brand>,
     preselected: String?,
+    preselectedBrand: String? = null,
     barName: String? = null,
     onDismiss: () -> Unit,
-    onSubmit: (styleSlug: String, price: Double, sizeMl: Int) -> Unit,
+    onCreateBrand: suspend (String) -> Brand,
+    onSubmit: (styleSlug: String, brandSlug: String?, price: Double, sizeMl: Int) -> Unit,
 ) {
     var selectedStyle by remember { mutableStateOf(preselected ?: styles.firstOrNull()?.slug) }
+    var selectedBrand by remember { mutableStateOf(preselectedBrand) }
+
+    // Cambiar de estilo limpia la marca: una IPA de Antares y una rubia de
+    // Antares son birras distintas, pero arrastrar la marca sin querer
+    // convierte un cambio de estilo en un precio cargado sobre otra cerveza.
+    // Se conserva sólo al volver al estilo que venía preseleccionado, que es
+    // el caso de "Actualizar" sobre una birra concreta.
+    LaunchedEffect(selectedStyle) {
+        selectedBrand = if (selectedStyle == preselected) preselectedBrand else null
+    }
     // El monto se guarda como dígitos crudos y se formatea al mostrar: así
     // no hay que parsear puntos ni pelear con el cursor.
     var digits by remember { mutableStateOf("") }
@@ -119,6 +136,16 @@ fun ReportPriceSheet(
                         )
                     }
                 }
+            }
+
+            // Marca
+            Box(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                BrandField(
+                    brands = brands,
+                    selected = selectedBrand,
+                    onSelect = { selectedBrand = it },
+                    onCreate = onCreateBrand,
+                )
             }
 
             // Monto: lo más grande de la pantalla.
@@ -206,7 +233,9 @@ fun ReportPriceSheet(
                     .padding(22.dp, 12.dp, 22.dp, 18.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (valid) Ink.Amber else Ink.Elevated)
-                    .clickable(enabled = valid) { onSubmit(selectedStyle!!, price, sizeMl) }
+                    .clickable(enabled = valid) {
+                        onSubmit(selectedStyle!!, selectedBrand, price, sizeMl)
+                    }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center,
             ) {

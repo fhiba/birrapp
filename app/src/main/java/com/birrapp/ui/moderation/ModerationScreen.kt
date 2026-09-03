@@ -24,11 +24,13 @@ import com.birrapp.R
 import com.birrapp.ui.theme.Ink
 import com.birrapp.data.api.ApiClient
 import com.birrapp.data.model.BarPin
+import com.birrapp.data.model.Brand
 import com.birrapp.data.model.Flag
 
 data class ModerationUiState(
     val pendingBars: List<BarPin> = emptyList(),
     val flags: List<Flag> = emptyList(),
+    val pendingBrands: List<Brand> = emptyList(),
     val loading: Boolean = true,
     val error: String? = null,
 )
@@ -42,10 +44,13 @@ class ModerationViewModel(private val api: ApiClient) : ViewModel() {
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
-            runCatching { api.pendingBars() to api.openFlags() }
-                .onSuccess { (bars, flags) ->
+            runCatching { Triple(api.pendingBars(), api.openFlags(), api.pendingBrands()) }
+                .onSuccess { (bars, flags, brands) ->
                     _state.update {
-                        it.copy(pendingBars = bars, flags = flags, loading = false)
+                        it.copy(
+                            pendingBars = bars, flags = flags, pendingBrands = brands,
+                            loading = false,
+                        )
                     }
                 }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.message) } }
@@ -57,6 +62,8 @@ class ModerationViewModel(private val api: ApiClient) : ViewModel() {
     fun resolveFlag(id: Long) = act { api.resolveFlag(id) }
     fun approvePrice(id: Long) = act { api.approvePrice(id) }
     fun removePrice(id: Long) = act { api.removePrice(id) }
+    fun approveBrand(slug: String) = act { api.approveBrand(slug) }
+    fun rejectBrand(slug: String) = act { api.rejectBrand(slug) }
 
     private fun act(block: suspend () -> Any) {
         viewModelScope.launch {
@@ -98,7 +105,9 @@ fun ModerationScreen(viewModel: ModerationViewModel, onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.error)
             }
 
-            if (!state.loading && state.pendingBars.isEmpty() && state.flags.isEmpty()) {
+            if (!state.loading && state.pendingBars.isEmpty() && state.flags.isEmpty() &&
+                state.pendingBrands.isEmpty()
+            ) {
                 Text(
                     stringResource(R.string.nothing_pending),
                     Modifier.align(Alignment.Center),
@@ -120,6 +129,34 @@ fun ModerationScreen(viewModel: ModerationViewModel, onBack: () -> Unit) {
                                     Text(stringResource(R.string.approve), fontSize = 13.sp)
                                 }
                                 OutlinedButton(onClick = { viewModel.rejectBar(bar.id) }) {
+                                    Text(stringResource(R.string.reject), fontSize = 13.sp)
+                                }
+                            }
+                        }
+                        HorizontalDivider()
+                    }
+                }
+
+                // Las marcas nuevas van antes que las denuncias: son lo más
+                // barato de resolver y lo que más traba a quien las cargó,
+                // porque hasta que se aprueben las ve sólo esa persona.
+                if (state.pendingBrands.isNotEmpty()) {
+                    item { SectionHeader("Marcas nuevas") }
+                    items(state.pendingBrands, key = { "brand-${it.slug}" }) { brand ->
+                        Column(Modifier.padding(16.dp, 8.dp)) {
+                            Text(brand.name, fontWeight = FontWeight.Medium)
+                            Text(
+                                (if (brand.craft) "artesanal" else "industrial") +
+                                    " · ${brand.slug}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = { viewModel.approveBrand(brand.slug) }) {
+                                    Text(stringResource(R.string.approve), fontSize = 13.sp)
+                                }
+                                OutlinedButton(onClick = { viewModel.rejectBrand(brand.slug) }) {
                                     Text(stringResource(R.string.reject), fontSize = 13.sp)
                                 }
                             }
