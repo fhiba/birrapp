@@ -1426,9 +1426,11 @@ Y **fuera** del media query (al final del archivo), lo que oculta los gráficos 
 
 - [ ] **Step 2: Load the analytics in the screen**
 
-En `web/src/screens/Dashboard.tsx`, agregá al import de tipos `DashboardAnalytics`, y al de `./ui/charts/Chart`:
+En `web/src/screens/Dashboard.tsx`, ajustá los imports. **Ojo:** el archivo importa nombrado (`import { useCallback, ... } from 'react'`) y no trae `React` al scope, así que `React.ReactNode` no compila — hay que importar el tipo:
 
 ```ts
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { HBars, KIND_COLORS, Legend, LineChart, StackedBars } from '../ui/charts/Chart'
 import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
 ```
@@ -1536,7 +1538,7 @@ function Charts({ a }: { a: DashboardAnalytics }) {
 }
 
 function Card({ title, hint, deskOnly, children }: {
-  title: string; hint?: string; deskOnly?: boolean; children: React.ReactNode
+  title: string; hint?: string; deskOnly?: boolean; children: ReactNode
 }) {
   return (
     <div className={deskOnly ? 'desk-only' : undefined} style={{
