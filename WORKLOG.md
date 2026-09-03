@@ -751,3 +751,69 @@ como parity pendiente.
 cosa y no se tocó.
 
 49 tests en verde (backend). Web y app compilan.
+
+## 2026-09-03 (cont.) — Dashboard con analíticas (BIR-20)
+
+El dashboard contestaba con seis números sueltos y sin tendencia: `pricesWeek`
+decía 12 y no había con qué compararlo, así que no se sabía si eso era bueno,
+malo o igual que siempre. Ahora hay seis gráficos.
+
+**Por qué no un script de Python con matplotlib.** Era la primera idea y se
+descartó por escrito: los PNG quedan congelados (haría falta un cron y el
+dashboard mostraría la última corrida), son una imagen —sin hover, sin cambiar
+el rango, sin adaptarse al tema ni al ancho del teléfono— y sumarían un tercer
+lenguaje con su propio camino de deploy a un proyecto cuyo item más urgente de
+backlog es que desplegar el backend ya es a mano. Lo que sí era correcto de esa
+intuición es que **la agregación va del lado de la base**: SQL agrupa, el
+backend devuelve JSON, el front dibuja.
+
+**Tampoco una librería de gráficos.** Un gráfico de líneas es un `<polyline>`
+con los valores escalados a la caja; las estrellas de `Stars.tsx` ya eran SVG a
+mano. Recharts pesa ~95kb gzip. Los seis gráficos, escritos a mano, costaron
+**2,13 kb** (120,02 → 122,15 kb gzip). El número solo justifica la decisión.
+
+**Una definición de qué es un aporte.** La unión de los cuatro tipos estaba
+escrita a mano y repetida en `recentUsers()` y `dashboardSummary()`. Salió a la
+vista `v_contributions` (V11), y de ahí cuelgan casi todas las métricas. La
+nota va por `updated_at` y no por `created_at` porque se pisa al corregirla.
+
+**Un dueño del peso.** `Dashboard.tsx` calculaba su propio `weight()`. Se mudó
+al backend como `DashboardUserDto.score`. Ojo con la trampa: sacarlo del front
+y después tener tres copias del `CASE` en SQL era la misma falla con otro
+disfraz, y por un rato el plan mandaba exactamente eso. Quedó en una constante,
+`CONTRIBUTION_WEIGHT`, que usan las tres queries.
+
+**Las seis métricas.** Pulso diario de aportes por tipo; altas contra
+aportantes por semana —la brecha es el problema de activación—; cobertura del
+mapa en el tiempo; visitantes por día; concentración (qué porción se lleva el
+top 5, porque si tres personas hacen el 80% el mapa tiene punto único de
+falla); y el embudo de activación.
+
+**Visitantes que no inician sesión** (pedido a mitad del trabajo). No era
+computable: no había tabla de visitas y `CallLogging` sólo escribe a stdout. La
+PWA ya mandaba pageviews a Vercel Analytics, pero eso vive fuera del Postgres.
+Se mide con `traffic_sessions` (V12) y un ID aleatorio en `localStorage`: **ni
+IP, ni user agent, ni una fila por request**, una fila por (día, cliente). El
+hash de IP se evitó porque en criterio europeo sigue siendo dato personal.
+`authed` sólo sube hacia `true`, así que quien entra anónimo y después se
+loguea es un visitante que convirtió y no dos personas. Eso le dio al embudo el
+escalón que le faltaba: de los que miran, cuántos se anotan.
+
+**Deuda que esto crea, y hay que pagarla antes de publicar:** esta recolección
+tiene que declararse en BIR-15 (política de privacidad) y BIR-16 (Data Safety /
+nutrition labels). Y los números miden **sólo la web**: la app de Android no
+manda el beacon, lo cual está dicho en el hint del gráfico para que nadie lo
+lea como tráfico total.
+
+**El dashboard es la excepción al ancho de 560px.** El resto de la app se acota
+porque se usa parado en un bar; el dashboard es lo único que se usa sentado.
+En mobile queda breve: los seis `Stat`, la cobertura, el pulso y la lista.
+
+**Dos aproximaciones que quedaron dichas y no escondidas.** La cobertura
+histórica usa "bares creados hasta esa fecha que hoy están aprobados" porque
+`bars` no guarda cuándo se aprobó uno; un bar que estuvo mucho tiempo pendiente
+baja la cobertura pasada. Y el último punto de esa serie *se aproxima* al
+`barsWithFreshPrice` del resumen, no coincide: uno corta a medianoche y el otro
+a la hora actual.
+
+69 tests de backend en verde. Web y app compilan.
