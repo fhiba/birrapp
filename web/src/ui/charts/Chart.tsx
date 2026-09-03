@@ -58,10 +58,19 @@ export const KIND_COLORS = {
   ratings:       '#d55181',
 } as const
 
-const W = 600
-const PAD = { l: 34, r: 8, t: 10, b: 20 }
+/**
+ * Ancho del viewBox, en unidades de usuario.
+ *
+ * Va cerca del ancho real al que se dibuja la tarjeta (~320px en la grilla de
+ * tres columnas) y no en un número redondo grande. Con `width: 100%` el SVG
+ * escala entero, texto incluido: con un viewBox de 600 dentro de una tarjeta de
+ * 320 el factor es 0,53 y una fuente de 9 termina dibujada a 5px, ilegible.
+ * Cerca de 1:1 el texto sale del tamaño que dice.
+ */
+const W = 360
+const PAD = { l: 30, r: 6, t: 10, b: 20 }
 const GRID = 'rgba(255,255,255,.08)'
-const LABEL = { fontSize: 9, fill: '#8A7B6D' } as const
+const LABEL = { fontSize: 11, fill: '#8A7B6D' } as const
 
 /** Las etiquetas del eje x: primera, del medio y última. Más se amontonan. */
 function xTicks(x: string[]) {
@@ -195,9 +204,9 @@ export function HBars({
   rows,
 }: { rows: { label: string; value: number; hint?: string; color?: string }[] }) {
   const max = Math.max(1, ...rows.map(r => r.value))
-  const rowH = 26
+  const rowH = 24
   const height = Math.max(rowH, rows.length * rowH)
-  const labelW = 118
+  const labelW = 108
 
   return (
     <svg viewBox={`0 0 ${W} ${height}`} style={{ width: '100%', height: 'auto' }}>
