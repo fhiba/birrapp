@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { DashboardSummary, DashboardUser } from '../data/types'
+import { HBars, KIND_COLORS, Legend, LineChart, StackedBars } from '../ui/charts/Chart'
+import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
 
 /**
  * Quién se anotó y qué aportó.
@@ -18,14 +20,17 @@ export function DashboardScreen() {
   const nav = useNavigate()
   const [users, setUsers] = useState<DashboardUser[] | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sort, setSort] = useState<'nuevos' | 'aportes'>('nuevos')
 
   const load = useCallback(async () => {
     setError(null)
     try {
-      const [s, u] = await Promise.all([api.dashboardSummary(), api.dashboardUsers()])
-      setSummary(s); setUsers(u)
+      const [s, u, a] = await Promise.all([
+        api.dashboardSummary(), api.dashboardUsers(), api.dashboardAnalytics(),
+      ])
+      setSummary(s); setUsers(u); setAnalytics(a)
     } catch (e) { setError((e as Error).message) }
   }, [])
 
@@ -41,7 +46,7 @@ export function DashboardScreen() {
       position: 'absolute', inset: 0, overflowY: 'auto',
       padding: `calc(10px + var(--safe-top)) 0 60px`,
     }}>
-      <div className="desk-narrow">
+      <div className="desk-wide">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} style={{
             width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
@@ -79,6 +84,8 @@ export function DashboardScreen() {
             </p>
           </>
         )}
+
+        {analytics && <Charts a={analytics} />}
 
         <div style={{ display: 'flex', gap: 7, padding: '20px 18px 4px' }}>
           {(['nuevos', 'aportes'] as const).map(k => (
@@ -196,3 +203,111 @@ function UserRow({ u }: { u: DashboardUser }) {
 const Chip = ({ n, what }: { n: number; what: string }) => (
   <span><span className="num" style={{ color: 'var(--cream)' }}>{n}</span> {what}</span>
 )
+
+/**
+ * Los cinco gráficos.
+ *
+ * En mobile queda sólo el pulso: en un teléfono el dashboard tiene que
+ * contestar rápido, no ser un tablero. El resto va detrás de `.desk-only`.
+ */
+function Charts({ a }: { a: DashboardAnalytics }) {
+  const pulseSeries = [
+    { label: 'precios',  color: KIND_COLORS.prices,        points: a.pulse.map(d => d.prices) },
+    { label: 'confirm.', color: KIND_COLORS.confirmations, points: a.pulse.map(d => d.confirmations) },
+    { label: 'bares',    color: KIND_COLORS.bars,          points: a.pulse.map(d => d.bars) },
+    { label: 'fotos',    color: KIND_COLORS.photos,        points: a.pulse.map(d => d.photos) },
+    { label: 'notas',    color: KIND_COLORS.ratings,       points: a.pulse.map(d => d.ratings) },
+  ]
+  const pulseX = a.pulse.map(d => d.day)
+
+  // Los que entran sin sesión van en gris y los que la tienen en ámbar: la
+  // brecha entre las dos líneas es lo que el gráfico viene a mostrar.
+  const trafficSeries = [
+    { label: 'sin sesión', color: '#8A7B6D', points: a.traffic.map(d => d.anon) },
+    { label: 'con sesión', color: '#FFB627', points: a.traffic.map(d => d.authed) },
+  ]
+
+  const coverPct = a.coverage.map(d => d.bars === 0 ? 0 : (d.covered / d.bars) * 100)
+  const f = a.funnel
+
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+      gap: 14, padding: '20px 18px 0',
+    }}>
+      <Card title="Aportes por día" hint="últimos 30 días">
+        <StackedBars x={pulseX} series={pulseSeries} />
+        <Legend series={pulseSeries} />
+      </Card>
+
+      <Card title="Altas contra aportantes" hint="por semana · 12 semanas" deskOnly>
+        <LineChart
+          x={a.weekly.map(w => w.week)}
+          series={[
+            { label: 'se anotaron', color: '#8A7B6D', points: a.weekly.map(w => w.signups) },
+            { label: 'aportaron',   color: '#FFB627', points: a.weekly.map(w => w.contributors) },
+          ]}
+        />
+        <Legend series={[
+          { label: 'se anotaron', color: '#8A7B6D', points: [] },
+          { label: 'aportaron',   color: '#FFB627', points: [] },
+        ]} />
+      </Card>
+
+      <Card title="Cobertura del mapa" hint="% con precio no vencido · 90 días" deskOnly>
+        <LineChart
+          x={a.coverage.map(d => d.day)} fill
+          format={n => `${Math.round(n)}%`}
+          series={[{ label: 'cobertura', color: '#6BC4A6', points: coverPct }]}
+        />
+      </Card>
+
+      <Card title="Quién entra" hint="visitantes por día · 30 días" deskOnly>
+        <LineChart
+          x={a.traffic.map(d => d.day)}
+          series={trafficSeries}
+        />
+        <Legend series={trafficSeries} />
+      </Card>
+
+      <Card
+        title="Quiénes sostienen esto"
+        hint={`el top 5 concentra el ${Math.round(a.top5Share * 100)}% de los aportes`}
+        deskOnly
+      >
+        <HBars rows={a.topContributors.map(t => ({
+          label: t.displayName, value: t.score, hint: String(t.score),
+        }))} />
+      </Card>
+
+      {/* El escalón de visitantes sólo mide la PWA: la app de Android no manda
+          el beacon. Va dicho en el hint para que nadie lea el número como si
+          fuera todo el tráfico. */}
+      <Card title="Activación" hint="dónde se cae la gente · visitantes sólo de la web" deskOnly>
+        <HBars rows={[
+          { label: 'visitantes',     value: f.visitors30 },
+          { label: 'cuentas',        value: f.accounts },
+          { label: 'aportó alguna',  value: f.everContributed },
+          { label: 'aportó 5 o más', value: f.fiveOrMore },
+          { label: 'activo · 30 d',  value: f.activeMonth },
+        ]} />
+      </Card>
+    </div>
+  )
+}
+
+function Card({ title, hint, deskOnly, children }: {
+  title: string; hint?: string; deskOnly?: boolean; children: ReactNode
+}) {
+  return (
+    <div className={deskOnly ? 'desk-only' : undefined} style={{
+      padding: 14, borderRadius: 14, background: 'rgba(255,255,255,.04)',
+    }}>
+      <div className="lbl" style={{ fontSize: 12.5 }}>{title}</div>
+      {hint && (
+        <div style={{ fontSize: 11, color: 'var(--faint)', margin: '2px 0 10px' }}>{hint}</div>
+      )}
+      {children}
+    </div>
+  )
+}

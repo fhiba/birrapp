@@ -180,6 +180,11 @@ a { color: var(--amber); }
     margin-inline: auto;
   }
 
+  /* El dashboard es la excepción al ancho angosto. El argumento del 560px es
+     que la app se usa parado en un bar; el dashboard es lo único que se usa
+     sentado, y son datos que piden espacio. */
+  .desk-wide { max-width: 1100px; margin-inline: auto; }
+
   /* La barra flotante se agranda un poco para no verse perdida. */
   nav.bottom-nav { transform: translateX(-50%) scale(1.06); }
 }
@@ -195,4 +200,11 @@ a { color: var(--amber); }
 @media (hover: hover) {
   button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
   .row-hover:hover { background: rgba(255,255,255,.04); }
+}
+
+/* Los gráficos de análisis: en un teléfono el dashboard tiene que contestar
+   rápido, no ser un tablero. Queda el pulso y los números. */
+.desk-only { display: none; }
+@media (min-width: 820px) {
+  .desk-only { display: block; }
 }
