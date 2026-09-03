@@ -280,3 +280,88 @@ cobertura histórica):
 - Filtros de rango de fecha en la UI. Los rangos van fijos en esta iteración
   (30 / 12 semanas / 90 días); si se piden, se agregan como query params.
 - Android. El dashboard es sólo web.
+
+---
+
+# Ampliación (2026-09-03): visitantes que no inician sesión
+
+Pedido después de aprobado el diseño original. **Nada de esto era computable
+con los datos que había:** no existe tabla de visitas y `CallLogging`
+(`Application.kt:108`) sólo escribe a stdout, que se pierde. La PWA ya manda
+pageviews a Vercel Analytics (`App.tsx:42`), pero eso vive en el panel de
+Vercel y no en el Postgres, así que no puede aparecer al lado de las métricas
+de aportes — que es justamente lo que se pidió.
+
+## Qué contesta
+
+**De los que miran, cuántos se anotan.** El embudo del diseño original arranca
+en "cuentas" y por eso esconde la caída más grande de todas. Este es el
+escalón cero.
+
+## Qué NO se guarda
+
+Ni IP, ni user agent, ni una fila por request. Sólo un identificador aleatorio
+que genera el cliente y **una fila por (día, cliente)**.
+
+El identificador lo genera el front con `crypto.randomUUID()` la primera vez y
+lo guarda en `localStorage`. No identifica a nadie, el usuario lo borra
+limpiando los datos del sitio, y evita el hash de IP — que en criterio europeo
+sigue siendo dato personal.
+
+> **Deuda que esto crea:** hay que declarar esta recolección en
+> [BIR-15](https://linear.app/birrapp/issue/BIR-15) (política de privacidad) y
+> [BIR-16](https://linear.app/birrapp/issue/BIR-16) (Data Safety / nutrition
+> labels) antes de publicar en las tiendas. Queda anotado acá porque es
+> consecuencia directa de esta ampliación.
+
+## La tabla
+
+```sql
+CREATE TABLE traffic_sessions (
+    day       date    NOT NULL,
+    client_id uuid    NOT NULL,
+    authed    boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (day, client_id)
+);
+```
+
+Una fila por cliente por día: repetir el beacon el mismo día no agrega filas.
+El `ON CONFLICT` sólo sube `authed` hacia `true` y nunca lo baja, para que
+alguien que entra anónimo y después inicia sesión cuente como convertido y no
+como dos personas distintas.
+
+`client_id` es `uuid` y no `text` a propósito: el tipo rechaza basura sin que
+haga falta validarla a mano.
+
+## El beacon
+
+`POST /traffic` con `{ "clientId": "<uuid>" }`, **público** — es el único
+endpoint de escritura sin sesión obligatoria, porque medir a los anónimos
+exige justamente eso. Si viene un JWT válido, `authed = true`; para eso la
+ruta va con `authenticate("jwt", optional = true)`.
+
+El front lo llama una vez por carga de la app, no por navegación. Con la clave
+`(day, client_id)` la escritura es idempotente, así que no hace falta
+throttling del lado del cliente.
+
+**Riesgo aceptado:** es un endpoint de escritura sin autenticar, así que
+alguien puede inflar la tabla con UUIDs random. Lo acota el `RateLimit` global
+de 120 req/min por IP que ya está instalado (`Application.kt:117`), y las
+filas son dos columnas chicas. Si algún día molesta, se le pone un límite
+propio más bajo.
+
+## Las métricas nuevas
+
+1. **Visitantes por día, 30 días, anónimos contra con sesión.** Dos líneas;
+   reusa el `LineChart` que ya define el diseño original.
+2. **El embudo gana el escalón cero:** `visitantes → cuentas → aportó alguna
+   vez → aportó ≥5 → activo en 30 días`. `visitors30` son los clientes
+   distintos de los últimos 30 días.
+
+## Fuera de alcance de esta ampliación
+
+- **Android no manda el beacon.** Coherente con el resto del plan: el
+  dashboard es sólo web. Los números van a medir la PWA, y eso hay que
+  recordarlo al leerlos.
+- **Purga de filas viejas.** No hace falta por privacidad (es un ID aleatorio
+  y una fecha), pero conviene por volumen. Cuando moleste.

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Agregar cinco analíticas con series en el tiempo al dashboard de admin, dibujadas en SVG a mano, a ancho completo en desktop y reducidas en mobile.
+**Goal:** Agregar seis analíticas con series en el tiempo al dashboard de admin —incluida la de visitantes que no inician sesión— dibujadas en SVG a mano, a ancho completo en desktop y reducidas en mobile.
 
-**Architecture:** Una vista `v_contributions` unifica los cuatro tipos de aporte y es la base de casi todas las métricas. Un `AnalyticsRepo` nuevo agrega en SQL y expone un único endpoint `GET /moderation/dashboard/analytics`. El front dibuja con tres primitivas SVG propias, sin librería de gráficos.
+**Architecture:** Una vista `v_contributions` unifica los cuatro tipos de aporte y es la base de casi todas las métricas. Una tabla `traffic_sessions` cuenta visitantes por día con un ID aleatorio de `localStorage`, sin IP ni user agent. Un `AnalyticsRepo` nuevo agrega en SQL y expone un único endpoint `GET /moderation/dashboard/analytics`. El front dibuja con tres primitivas SVG propias, sin librería de gráficos.
 
 **Tech Stack:** Kotlin · Ktor 3 · JDBC crudo · Flyway · PostGIS 16 · React 19 · TypeScript · Vite
 
@@ -22,6 +22,7 @@
 - **Ventana de frescura de precio: 45 días** (es el corte `stale` que define `v_current_prices` en `V2__views_and_seed.sql`).
 - **Peso de los aportes:** precio 3, bar 3, foto 2, nota 2, confirmación 1.
 - **El tema es oscuro y único** (no hay modo claro). Fondo `--base: #1A1410`, acento `--amber: #FFB627`.
+- **Del tráfico NO se guarda ni IP, ni user agent, ni una fila por request.** Sólo un ID aleatorio que genera el cliente y una fila por (día, cliente). Esto no es negociable: es la condición con la que se aceptó medir visitantes.
 
 ---
 
@@ -164,7 +165,7 @@ git commit -m "Vista v_contributions: una sola definición de qué es un aporte"
 **Interfaces:**
 - Consumes: `v_contributions` de la Task 1.
 - Produces:
-  - `DashboardUserDto.score: Int`, y en TS `DashboardUser.score: number`. Lo usa la Task 6 (misma fórmula) y la Task 9 (ordena por él).
+  - `DashboardUserDto.score: Int`, y en TS `DashboardUser.score: number`. Lo usa la Task 6 (misma fórmula) y la Task 11 (ordena por él).
   - `TestDb.insertPrice(barId, styleSlug, price, daysAgo, userId, sizeMl = 473, isConfirmation = false): Long`. La usan las tasks 5 y 6.
 
 - [ ] **Step 1: Let the test helper insert confirmations**
@@ -934,7 +935,463 @@ git commit -m "Concentración y embudo: cuánta gente sostiene esto y dónde se 
 
 ---
 
-### Task 7: El endpoint `/moderation/dashboard/analytics`
+### Task 7: La tabla de tráfico y el beacon
+
+Medir a los que entran sin iniciar sesión. Nada de esto era computable antes: no había tabla de visitas y `CallLogging` sólo escribe a stdout. Ver la sección "Ampliación (2026-09-03): visitantes que no inician sesión" del spec para el porqué y para lo que deliberadamente NO se guarda.
+
+**Files:**
+- Create: `backend/src/main/resources/db/migration/V12__traffic_sessions.sql`
+- Create: `backend/src/main/kotlin/com/birrapp/traffic/TrafficRepo.kt`
+- Modify: `backend/src/main/kotlin/com/birrapp/Routes.kt` (firma de `apiRoutes` en la línea ~22; ruta nueva dentro del bloque `authenticate("jwt", optional = true)` que ya existe en la ~87)
+- Modify: `backend/src/main/kotlin/com/birrapp/Application.kt` (instanciar el repo, pasarlo a `apiRoutes`)
+- Modify: `web/src/data/api.ts`
+- Modify: `web/src/App.tsx`
+- Test: `backend/src/test/kotlin/com/birrapp/TrafficTest.kt`
+
+**Interfaces:**
+- Consumes: nada de las tasks anteriores.
+- Produces:
+  - Tabla `traffic_sessions (day date, client_id uuid, authed boolean)`, PK `(day, client_id)`. La usa la Task 8.
+  - `class TrafficRepo(private val db: Db)` con `fun record(clientId: java.util.UUID, authed: Boolean)`.
+  - `POST /traffic` público, cuerpo `{ "clientId": "<uuid>" }`.
+  - En TS: `api.pingTraffic()`.
+
+- [ ] **Step 1: Write the failing test**
+
+Creá `backend/src/test/kotlin/com/birrapp/TrafficTest.kt`:
+
+```kotlin
+package com.birrapp
+
+import com.birrapp.core.query
+import com.birrapp.traffic.TrafficRepo
+import java.util.UUID
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/**
+ * El conteo de visitantes.
+ *
+ * Lo que se testea es que una visita repetida el mismo día no invente una
+ * persona nueva, y que alguien que entra anónimo y después inicia sesión
+ * cuente como convertido y no como dos.
+ */
+class TrafficTest {
+    private val repo by lazy { TrafficRepo(TestDb.db) }
+
+    @BeforeTest fun setup() = TestDb.resetTraffic()
+
+    private fun rows() = TestDb.db.conn { c ->
+        c.query("SELECT client_id, authed FROM traffic_sessions WHERE day = current_date") {
+            it.getString("client_id") to it.getBoolean("authed")
+        }
+    }
+
+    @Test
+    fun `varias visitas del mismo cliente en el dia son una sola fila`() {
+        val id = UUID.randomUUID()
+        repeat(3) { repo.record(id, authed = false) }
+
+        assertEquals(1, rows().size, "recargar la app no es una persona más")
+    }
+
+    @Test
+    fun `entrar anonimo y despues loguearse cuenta como convertido`() {
+        val id = UUID.randomUUID()
+        repo.record(id, authed = false)
+        repo.record(id, authed = true)
+
+        assertEquals(listOf(id.toString() to true), rows())
+    }
+
+    @Test
+    fun `una visita con sesion no vuelve a anonima al recargar`() {
+        val id = UUID.randomUUID()
+        repo.record(id, authed = true)
+        repo.record(id, authed = false)
+
+        assertTrue(rows().single().second, "authed sólo sube, nunca baja")
+    }
+
+    @Test
+    fun `dos clientes distintos son dos personas`() {
+        repo.record(UUID.randomUUID(), authed = false)
+        repo.record(UUID.randomUUID(), authed = false)
+
+        assertEquals(2, rows().size)
+    }
+}
+```
+
+`TestDb.reset()` no limpia `traffic_sessions` (la tabla no existe todavía y no cuelga de `users`), así que agregale a `backend/src/test/kotlin/com/birrapp/TestDb.kt` un helper propio:
+
+```kotlin
+    /**
+     * Limpia sólo el tráfico.
+     *
+     * Va aparte de `reset()` porque `traffic_sessions` no referencia a nadie:
+     * no la arrastra el TRUNCATE CASCADE de usuarios, y los tests de tráfico
+     * no necesitan resembrar vocabularios.
+     */
+    fun resetTraffic() {
+        db.conn { c -> c.createStatement().use { it.execute("TRUNCATE traffic_sessions") } }
+    }
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+cd backend && ./gradlew test --tests "com.birrapp.TrafficTest" 2>&1 | tail -20
+```
+
+Esperado: no compila — no existe `TrafficRepo`.
+
+- [ ] **Step 3: Write the migration**
+
+Creá `backend/src/main/resources/db/migration/V12__traffic_sessions.sql`:
+
+```sql
+-- Cuántos miran, para poder compararlo con cuántos aportan.
+--
+-- El embudo del dashboard arrancaba en "cuentas" y por eso escondía la caída
+-- más grande: de los que entran, cuántos se anotan. Esto es el escalón cero.
+--
+-- Deliberadamente NO se guarda: ni IP, ni user agent, ni una fila por request.
+-- Sólo un identificador aleatorio que genera el cliente (crypto.randomUUID en
+-- localStorage) y una fila por día. No identifica a nadie y el usuario lo borra
+-- limpiando los datos del sitio; el hash de IP se evitó porque en criterio
+-- europeo sigue siendo dato personal.
+--
+-- Hay que declarar esta recolección en BIR-15 (política de privacidad) y
+-- BIR-16 (Data Safety / nutrition labels) antes de publicar en las tiendas.
+--
+-- client_id es uuid y no text: el tipo rechaza basura sin validarla a mano, y
+-- el endpoint que escribe acá es público.
+CREATE TABLE traffic_sessions (
+    day       date    NOT NULL,
+    client_id uuid    NOT NULL,
+    authed    boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (day, client_id)
+);
+
+-- La consulta de la serie filtra por rango de día y agrupa por día.
+CREATE INDEX idx_traffic_day ON traffic_sessions (day);
+```
+
+- [ ] **Step 4: Write the repo**
+
+Creá `backend/src/main/kotlin/com/birrapp/traffic/TrafficRepo.kt`:
+
+```kotlin
+package com.birrapp.traffic
+
+import com.birrapp.core.Db
+import com.birrapp.core.update
+import kotlinx.serialization.Serializable
+import java.util.UUID
+
+/** El cuerpo del beacon. El id lo genera el cliente y no significa nada. */
+@Serializable
+data class TrafficPing(val clientId: String)
+
+class TrafficRepo(private val db: Db) {
+
+    /**
+     * Anota que este cliente estuvo hoy.
+     *
+     * Idempotente por (día, cliente): recargar la app veinte veces no inventa
+     * veinte personas, y por eso el front no necesita throttling.
+     *
+     * `authed` sólo sube hacia true y nunca baja. Alguien que entra anónimo y
+     * después inicia sesión es un visitante que convirtió, no dos personas; si
+     * se pisara con el último valor, un reload sin token lo devolvería a
+     * anónimo y la conversión desaparecería.
+     */
+    fun record(clientId: UUID, authed: Boolean) = db.conn { c ->
+        c.update(
+            """
+            INSERT INTO traffic_sessions (day, client_id, authed)
+            VALUES (current_date, ?, ?)
+            ON CONFLICT (day, client_id) DO UPDATE
+               SET authed = traffic_sessions.authed OR excluded.authed
+            """.trimIndent(),
+            clientId, authed,
+        )
+    }
+}
+```
+
+- [ ] **Step 5: Run test to verify it passes**
+
+```bash
+cd backend && ./gradlew test --tests "com.birrapp.TrafficTest" 2>&1 | tail -20
+```
+
+Esperado: PASA, los cuatro tests.
+
+- [ ] **Step 6: Wire the route**
+
+En `Routes.kt`, agregá el import `import com.birrapp.traffic.TrafficPing`, `import com.birrapp.traffic.TrafficRepo`, y el parámetro a `apiRoutes` después de `users: UserRepo,`:
+
+```kotlin
+    traffic: TrafficRepo,
+```
+
+Dentro del bloque `authenticate("jwt", optional = true)` que ya existe (línea ~87) — **ahí y no en otro lado**, porque el endpoint tiene que aceptar visitas sin sesión pero reconocer el token cuando está:
+
+```kotlin
+        /**
+         * El beacon de visita.
+         *
+         * Único endpoint de escritura sin sesión obligatoria, porque medir a
+         * los anónimos exige justamente eso. Lo acota el RateLimit global de
+         * 120 req/min por IP que ya está instalado.
+         */
+        post("/traffic") {
+            val body = call.receive<TrafficPing>()
+            val id = runCatching { java.util.UUID.fromString(body.clientId) }.getOrNull()
+                ?: badRequest("clientId inválido")
+            traffic.record(id, authed = call.callerOrNull() != null)
+            call.respond(OkResponse())
+        }
+```
+
+Verificá los nombres exactos que usa el archivo: `call.callerOrNull()` es el helper que ya se usa en las líneas ~93 y ~99 para el JWT opcional, `badRequest` viene de `core`, y `OkResponse()` es lo que devuelve `/health`. Si alguno se llama distinto, usá el del repo.
+
+En `Application.kt`, junto a los otros repos:
+
+```kotlin
+    val traffic = com.birrapp.traffic.TrafficRepo(db)
+```
+
+y agregalo a la llamada de `apiRoutes(...)` en la posición que corresponda a la firma.
+
+- [ ] **Step 7: Send the beacon from the PWA**
+
+En `web/src/data/api.ts`, agregá cerca del manejo de sesión:
+
+```ts
+/**
+ * El id de cliente para contar visitas.
+ *
+ * Aleatorio, en localStorage, sin relación con la cuenta: sirve para no contar
+ * veinte veces a quien recarga, y para nada más. Si localStorage no está
+ * disponible se devuelve null y no se cuenta la visita — preferimos perder un
+ * número antes que romper la app por una métrica.
+ */
+const CLIENT_KEY = 'birrapp.client'
+function clientId(): string | null {
+  try {
+    let id = localStorage.getItem(CLIENT_KEY)
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem(CLIENT_KEY, id) }
+    return id
+  } catch { return null }
+}
+
+/**
+ * Avisa que alguien entró. Se llama una vez por carga, no por navegación.
+ *
+ * Va con `auth: true` a propósito aunque el endpoint sea público: así manda el
+ * token cuando hay sesión —y el backend puede contar la visita como con
+ * sesión— pero no falla cuando no la hay, porque `req` sólo agrega el header
+ * si `session` existe.
+ *
+ * Los errores se tragan: si el conteo falla, la app tiene que seguir andando.
+ */
+export function pingTraffic() {
+  const id = clientId()
+  if (!id) return
+  req('POST', '/traffic', { body: { clientId: id }, auth: true }).catch(() => {})
+}
+```
+
+En `web/src/App.tsx`, llamalo una sola vez al montar la app:
+
+```tsx
+  useEffect(() => { api.pingTraffic() }, [])
+```
+
+Fijate cómo está armado `App.tsx` antes de editarlo: si no importa `api` ni `useEffect` todavía, agregalos; si el componente raíz no es el lugar natural, ponelo donde ya se monta una sola vez y explicá en un comentario por qué ahí.
+
+- [ ] **Step 8: Verify both sides**
+
+```bash
+cd backend && ./gradlew test 2>&1 | tail -6
+cd ../web && npm run build 2>&1 | tail -6 && git checkout -- tsconfig.tsbuildinfo
+```
+
+Esperado: backend `BUILD SUCCESSFUL`, web `built in ...`.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add backend/src/main/resources/db/migration/V12__traffic_sessions.sql backend/src/main/kotlin/com/birrapp/traffic/TrafficRepo.kt backend/src/main/kotlin/com/birrapp/Routes.kt backend/src/main/kotlin/com/birrapp/Application.kt backend/src/test/kotlin/com/birrapp/TrafficTest.kt backend/src/test/kotlin/com/birrapp/TestDb.kt web/src/data/api.ts web/src/App.tsx
+git commit -m "Contar a los que entran sin iniciar sesión, sin guardar IP ni user agent"
+```
+
+---
+
+### Task 8: Las métricas de tráfico
+
+La serie diaria de visitantes y el escalón cero del embudo.
+
+**Files:**
+- Modify: `backend/src/main/kotlin/com/birrapp/moderation/AnalyticsRepo.kt`
+- Test: `backend/src/test/kotlin/com/birrapp/AnalyticsTest.kt`
+
+**Interfaces:**
+- Consumes: la tabla `traffic_sessions` de la Task 7, y el `Funnel` de la Task 6.
+- Produces:
+  - `data class TrafficDay(val day: String, val anon: Int, val authed: Int)`
+  - `fun AnalyticsRepo.traffic(days: Int = 30): List<TrafficDay>`
+  - `Funnel` gana un campo **al principio**: `val visitors30: Int`. Las llamadas existentes a `Funnel(...)` usan argumentos nombrados o hay que actualizarlas.
+  - Los usa la Task 9 (el endpoint) y la Task 11 (los gráficos).
+
+- [ ] **Step 1: Write the failing test**
+
+Agregá a `AnalyticsTest.kt`. Necesita `import java.util.UUID` y `import com.birrapp.traffic.TrafficRepo`, más un campo `private val trafficRepo by lazy { TrafficRepo(TestDb.db) }`. **Ojo:** el `@BeforeTest setup()` de `AnalyticsTest` llama a `TestDb.reset()`, que no limpia `traffic_sessions`; agregale también la llamada a `TestDb.resetTraffic()` que creó la Task 7, o los tests se contaminan entre corridas.
+
+```kotlin
+    @Test
+    fun `la serie de trafico trae una fila por dia aunque no haya entrado nadie`() {
+        assertEquals(30, analytics.traffic(30).size)
+    }
+
+    @Test
+    fun `la serie separa visitantes anonimos de los que tienen sesion`() {
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = true)
+
+        val hoy = analytics.traffic(30).last()
+        assertEquals(2, hoy.anon)
+        assertEquals(1, hoy.authed)
+    }
+
+    @Test
+    fun `el embudo arranca en los visitantes`() {
+        val u = TestDb.insertUser("aporto")
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        TestDb.insertPrice(bar, "ipa", 8000.0, daysAgo = 0, userId = u)
+        // Tres visitantes distintos, uno de ellos con sesión.
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = false)
+        trafficRepo.record(UUID.randomUUID(), authed = true)
+
+        val f = analytics.funnel()
+        assertEquals(3, f.visitors30, "los visitantes son el escalón cero, antes de las cuentas")
+        assertEquals(1, f.accounts)
+        assertEquals(1, f.everContributed)
+    }
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+cd backend && ./gradlew test --tests "com.birrapp.AnalyticsTest" 2>&1 | tail -20
+```
+
+Esperado: no compila — no existen `traffic` ni `Funnel.visitors30`.
+
+- [ ] **Step 3: Implement**
+
+DTO arriba de la clase, junto a los otros:
+
+```kotlin
+/** Visitantes distintos de un día, partidos por si tenían sesión o no. */
+@Serializable
+data class TrafficDay(val day: String, val anon: Int, val authed: Int)
+```
+
+Agregá el campo al principio de `Funnel`, con su porqué:
+
+```kotlin
+/** Visitantes → cuentas → aportó alguna vez → aportó ≥5 veces → aportó en 30 días. */
+@Serializable
+data class Funnel(
+    /**
+     * Clientes distintos en 30 días. Es el escalón cero: sin él el embudo
+     * arranca en "cuentas" y esconde la caída más grande, que es de los que
+     * miran a los que se anotan.
+     *
+     * Mide la PWA solamente: la app de Android no manda el beacon.
+     */
+    val visitors30: Int,
+    val accounts: Int,
+    val everContributed: Int,
+    val fiveOrMore: Int,
+    val activeMonth: Int,
+)
+```
+
+El método de la serie:
+
+```kotlin
+    /**
+     * Visitantes por día, anónimos contra con sesión.
+     *
+     * Una fila de `traffic_sessions` ya es un cliente distinto en un día —la
+     * clave primaria es (day, client_id)— así que acá alcanza con contar filas
+     * y no hace falta DISTINCT.
+     */
+    fun traffic(days: Int = 30): List<TrafficDay> = db.conn { c ->
+        c.query(
+            """
+            WITH d AS (
+                SELECT generate_series(
+                    date_trunc('day', now()) - make_interval(days => ? - 1),
+                    date_trunc('day', now()),
+                    interval '1 day')::date AS day
+            )
+            SELECT d.day,
+                   count(t.client_id) FILTER (WHERE NOT t.authed)::int AS anon,
+                   count(t.client_id) FILTER (WHERE t.authed)::int     AS authed
+            FROM d LEFT JOIN traffic_sessions t ON t.day = d.day
+            GROUP BY d.day
+            ORDER BY d.day
+            """.trimIndent(),
+            days,
+        ) { rs ->
+            TrafficDay(
+                day = rs.getDate("day").toString(),
+                anon = rs.getInt("anon"),
+                authed = rs.getInt("authed"),
+            )
+        }
+    }
+```
+
+Y en `funnel()`, agregá la subconsulta del escalón cero y pasá el campo nuevo:
+
+```kotlin
+                   (SELECT count(DISTINCT client_id) FROM traffic_sessions
+                     WHERE day > current_date - 30)::int               AS visitors,
+```
+
+con el mapeo `visitors30 = rs.getInt("visitors")` como primer argumento de `Funnel(...)`.
+
+`count(DISTINCT client_id)` y no `count(*)`: un cliente que vuelve cinco días distintos tiene cinco filas y es una sola persona.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+```bash
+cd backend && ./gradlew test --tests "com.birrapp.AnalyticsTest" 2>&1 | tail -20
+```
+
+Esperado: PASA. Después corré la suite entera: `./gradlew test`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/main/kotlin/com/birrapp/moderation/AnalyticsRepo.kt backend/src/test/kotlin/com/birrapp/AnalyticsTest.kt
+git commit -m "Serie de visitantes y el escalón cero del embudo"
+```
+
+---
+
+### Task 9: El endpoint `/moderation/dashboard/analytics`
 
 **Files:**
 - Modify: `backend/src/main/kotlin/com/birrapp/moderation/AnalyticsRepo.kt` (agregar el DTO contenedor y el método que arma todo)
@@ -944,21 +1401,23 @@ git commit -m "Concentración y embudo: cuánta gente sostiene esto y dónde se 
 - Modify: `web/src/data/api.ts`
 
 **Interfaces:**
-- Consumes: todos los métodos de `AnalyticsRepo` (tasks 3-6).
+- Consumes: todos los métodos de `AnalyticsRepo` (tasks 3-6 y 8).
 - Produces:
-  - `data class DashboardAnalytics(val pulse: List<PulseDay>, val weekly: List<WeeklyPoint>, val coverage: List<CoverageDay>, val topContributors: List<TopContributor>, val top5Share: Double, val funnel: Funnel)`
+  - `data class DashboardAnalytics(val pulse: List<PulseDay>, val weekly: List<WeeklyPoint>, val coverage: List<CoverageDay>, val traffic: List<TrafficDay>, val topContributors: List<TopContributor>, val top5Share: Double, val funnel: Funnel)`
   - `fun AnalyticsRepo.all(): DashboardAnalytics`
-  - En TS: `interface DashboardAnalytics` con los mismos campos, y `api.dashboardAnalytics()`. Los usa la Task 9.
+  - En TS: `interface DashboardAnalytics` con los mismos campos, y `api.dashboardAnalytics()`. Los usa la Task 11.
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
     @Test
-    fun `el paquete de analiticas trae las cinco series juntas`() {
+    fun `el paquete de analiticas trae todas las series juntas`() {
         val a = analytics.all()
         assertEquals(30, a.pulse.size)
         assertEquals(12, a.weekly.size)
         assertEquals(90, a.coverage.size)
+        assertEquals(30, a.traffic.size)
+        assertEquals(0, a.funnel.visitors30, "sin visitas el escalón cero es cero")
         assertEquals(0.0, a.top5Share, "sin aportes no hay concentración, y no divide por cero")
     }
 ```
@@ -1002,6 +1461,7 @@ y dentro de la clase:
         pulse = pulse(),
         weekly = weekly(),
         coverage = coverage(),
+        traffic = traffic(),
         topContributors = topContributors(),
         top5Share = top5Share(),
         funnel = funnel(),
@@ -1081,6 +1541,8 @@ export interface WeeklyPoint { week: string; signups: number; contributors: numb
 
 export interface CoverageDay { day: string; bars: number; covered: number }
 
+export interface TrafficDay { day: string; anon: number; authed: number }
+
 export interface TopContributor {
   userId: number
   displayName: string
@@ -1093,6 +1555,8 @@ export interface TopContributor {
 }
 
 export interface Funnel {
+  /** Clientes distintos en 30 días. El escalón cero, sólo de la PWA. */
+  visitors30: number
   accounts: number
   everContributed: number
   fiveOrMore: number
@@ -1103,6 +1567,7 @@ export interface DashboardAnalytics {
   pulse: PulseDay[]
   weekly: WeeklyPoint[]
   coverage: CoverageDay[]
+  traffic: TrafficDay[]
   topContributors: TopContributor[]
   /** Fracción 0..1 del score total que concentran los cinco primeros. */
   top5Share: number
@@ -1136,7 +1601,7 @@ git commit -m "Endpoint /dashboard/analytics: las cinco métricas en una llamada
 
 ---
 
-### Task 8: Las primitivas de gráfico en SVG
+### Task 10: Las primitivas de gráfico en SVG
 
 **REQUIRED SUB-SKILL:** cargá la skill `dataviz` antes de escribir este task — define la paleta, el contraste y las reglas de eje/leyenda.
 
@@ -1145,7 +1610,7 @@ git commit -m "Endpoint /dashboard/analytics: las cinco métricas en una llamada
 
 **Interfaces:**
 - Consumes: nada del backend; recibe datos planos.
-- Produces (las usa la Task 9):
+- Produces (las usa la Task 11):
   - `type Series = { label: string; color: string; points: number[] }`
   - `function LineChart({ x, series, height, fill, format }): JSX.Element`
   - `function StackedBars({ x, series, height }): JSX.Element`
@@ -1391,14 +1856,14 @@ git commit -m "Primitivas de gráfico en SVG, sin librería"
 
 ---
 
-### Task 9: Los gráficos en el dashboard, ancho completo en desktop
+### Task 11: Los gráficos en el dashboard, ancho completo en desktop
 
 **Files:**
 - Modify: `web/src/theme.css` (agregar `.desk-wide` y `.desk-only` al bloque `@media (min-width: 820px)` de la línea ~176)
 - Modify: `web/src/screens/Dashboard.tsx`
 
 **Interfaces:**
-- Consumes: `api.dashboardAnalytics()` y los tipos de la Task 7; `LineChart`, `StackedBars`, `HBars`, `Legend`, `KIND_COLORS` de la Task 8.
+- Consumes: `api.dashboardAnalytics()` y los tipos de la Task 9; `LineChart`, `StackedBars`, `HBars`, `Legend`, `KIND_COLORS` de la Task 10.
 - Produces: nada que consuman otras tasks.
 
 - [ ] **Step 1: Add the CSS**
@@ -1480,6 +1945,13 @@ function Charts({ a }: { a: DashboardAnalytics }) {
   ]
   const pulseX = a.pulse.map(d => d.day)
 
+  // Los que entran sin sesión van en gris y los que la tienen en ámbar: la
+  // brecha entre las dos líneas es lo que el gráfico viene a mostrar.
+  const trafficSeries = [
+    { label: 'sin sesión', color: '#8A7B6D', points: a.traffic.map(d => d.anon) },
+    { label: 'con sesión', color: '#FFB627', points: a.traffic.map(d => d.authed) },
+  ]
+
   const coverPct = a.coverage.map(d => d.bars === 0 ? 0 : (d.covered / d.bars) * 100)
   const f = a.funnel
 
@@ -1515,6 +1987,14 @@ function Charts({ a }: { a: DashboardAnalytics }) {
         />
       </Card>
 
+      <Card title="Quién entra" hint="visitantes por día · 30 días" deskOnly>
+        <LineChart
+          x={a.traffic.map(d => d.day)}
+          series={trafficSeries}
+        />
+        <Legend series={trafficSeries} />
+      </Card>
+
       <Card
         title="Quiénes sostienen esto"
         hint={`el top 5 concentra el ${Math.round(a.top5Share * 100)}% de los aportes`}
@@ -1525,8 +2005,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
         }))} />
       </Card>
 
-      <Card title="Activación" hint="dónde se cae la gente" deskOnly>
+      {/* El escalón de visitantes sólo mide la PWA: la app de Android no manda
+          el beacon. Va dicho en el hint para que nadie lea el número como si
+          fuera todo el tráfico. */}
+      <Card title="Activación" hint="dónde se cae la gente · visitantes sólo de la web" deskOnly>
         <HBars rows={[
+          { label: 'visitantes',     value: f.visitors30 },
           { label: 'cuentas',        value: f.accounts },
           { label: 'aportó alguna',  value: f.everContributed },
           { label: 'aportó 5 o más', value: f.fiveOrMore },
@@ -1581,7 +2065,7 @@ git commit -m "Dashboard: cinco gráficos, ancho completo en desktop y breve en 
 
 ---
 
-### Task 10: Cerrar
+### Task 12: Cerrar
 
 - [ ] **Step 1: Run everything**
 
