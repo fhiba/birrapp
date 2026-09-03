@@ -167,8 +167,20 @@ FROM d ORDER BY d.day;
 
 Los 45 días son el corte de `stale` que ya define `v_current_prices` en `V2`;
 el numerador queda consistente con el `barsWithFreshPrice` que el dashboard ya
-muestra. El denominador son los bares aprobados **a esa fecha**, no los de hoy:
-con el total actual, la cobertura de hace tres meses se vería falsamente baja.
+muestra.
+
+El denominador son los bares **creados hasta esa fecha que hoy están
+aprobados**, no el total de hoy: con el total actual, la cobertura de hace tres
+meses se vería falsamente baja sólo porque después se cargaron más bares.
+
+Es un proxy, no la verdad: `bars` no guarda cuándo se aprobó un bar (sólo
+`created_at` y `updated_at`), así que uno que estuvo dos meses pendiente cuenta
+en el denominador desde que se creó, y uno aprobado y después rechazado no
+cuenta nunca. Se acepta porque el grueso de los bares entró por el import de
+OSM ya aprobado, la cola de moderación es de una persona y la latencia es
+corta, y esto es un gráfico de tendencia. Agregar `approved_at` obligaría a
+rellenar los bares viejos desde `updated_at`, que para esas filas no significa
+nada: quedaría igual de aproximado pero pareciendo exacto.
 
 Son 180 subconsultas correlacionadas sobre ~740 bares. Con esta base es
 instantáneo; si algún día molesta, se materializa.
