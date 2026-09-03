@@ -1,6 +1,6 @@
 # AGENTS.md — birrapp
 
-Actualizado: 2026-08-31. Historia: WORKLOG.md (append-only). Decisiones: docs/DECISIONS.md.
+Actualizado: 2026-09-02. Historia: WORKLOG.md (append-only). Decisiones: docs/DECISIONS.md.
 
 ## Proyecto
 Mapa comunitario de precios de la pinta en Buenos Aires. App Android + API.
@@ -36,6 +36,18 @@ Antes de tocar `v_current_prices`, `v_bar_headline` o `PriceRepo`: correr
 - Tests contra PostGIS real, nunca H2: no tiene PostGIS, ni `DISTINCT ON`, ni
   ENUM, ni `percentile_cont` — o sea, justo todo lo que hay que testear.
 - Cada sesión de trabajo → entrada nueva en WORKLOG.md. Decisiones con el "por qué".
+
+## Ramas — una por feature
+`feature branch` → `dev` → `main`. **Todas las ramas salen de `dev`**, nunca de
+`main`, y nunca se trabaja directo sobre `dev` ni sobre `main`.
+
+Existe porque Felipe corre varios agentes en paralelo sobre este mismo repo: sin
+una rama por feature se pisan entre ellos, y ya pasó. `dev` es donde él prueba;
+a `main` se mergea cada tanto, cuando lo probado anda.
+
+Al commitear, agregar **sólo los archivos propios por path**. Nada de `git add
+-A`: si aparecen cambios ajenos en el árbol son de otro agente, se dejan afuera
+y se avisa.
 
 ## Versionado — sin excepciones
 Todo cambio que se publica lleva versión nueva, y el commit se titula
