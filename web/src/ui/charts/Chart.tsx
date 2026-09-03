@@ -139,6 +139,15 @@ export function StackedBars({
   const ih = height - PAD.t - PAD.b
   const step = iw / Math.max(1, x.length)
   const bw = Math.max(1, step - 2)
+  // Hueco entre tramos apilados: 2px del color del fondo entre uno y el
+  // siguiente, para que dos tramos de tono cercano (precios y confirmaciones,
+  // los dos dorados) no se lean como una barra sola. El hueco se recorta del
+  // alto que se dibuja, no del acumulador que posiciona el tramo de arriba:
+  // la barra entera sigue midiendo el total real. Cada tramo se ancla a su
+  // base real y crece hacia arriba, así un valor chico que quedaría invertido
+  // al restarle el hueco se recorta a MIN_SEG y se sigue viendo en su lugar.
+  const GAP_Y = 2
+  const MIN_SEG = 1
 
   return (
     <svg viewBox={`0 0 ${W} ${height}`} style={{ width: '100%', height: 'auto' }}>
@@ -152,9 +161,11 @@ export function StackedBars({
               if (v === 0) return null
               const h = (v / max) * ih
               acc += h
+              const base = PAD.t + ih - (acc - h)
+              const drawH = Math.max(MIN_SEG, h - GAP_Y)
               return (
                 <rect key={s.label} x={PAD.l + i * step + 1} width={bw}
-                  y={PAD.t + ih - acc} height={h} fill={s.color}>
+                  y={base - drawH} height={drawH} fill={s.color}>
                   <title>{`${day} · ${s.label}: ${v}`}</title>
                 </rect>
               )
