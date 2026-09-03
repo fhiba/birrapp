@@ -181,10 +181,19 @@ export const beerComments = (barId: number, styleSlug: string, brandSlug: string
 export const myRatings = (barId: number) =>
   req<MyRating[]>('GET', `/bars/${barId}/my-ratings`, { auth: true })
 
+/** La nota: una sola por persona y por birra. Volver a llamar la pisa. */
 export const rateBeer = (b: {
-  barId: number; styleSlug: string; brandSlug: string | null
-  rating: number; body?: string | null
+  barId: number; styleSlug: string; brandSlug: string | null; rating: number
 }) => req<unknown>('POST', '/ratings', { body: b, auth: true })
+
+/** Un comentario más. Se pueden dejar varios sobre la misma birra. */
+export const addComment = (b: {
+  barId: number; styleSlug: string; brandSlug: string | null; body: string
+}) => req<{ id: number }>('POST', '/comments', { body: b, auth: true })
+
+/** Borra un comentario propio. No toca la nota: son cosas separadas. */
+export const removeMyComment = (id: number) =>
+  req<unknown>('POST', `/comments/${id}/remove`, { auth: true })
 
 /**
  * Sube una foto en tres pasos: pedir permiso, subir al bucket, confirmar.
@@ -218,6 +227,10 @@ export const removePhoto = (id: number) =>
 
 export const removeRating = (id: number) =>
   req<unknown>('POST', `/moderation/ratings/${id}/remove`, { auth: true })
+
+/** Moderación: baja el comentario de cualquiera. */
+export const removeComment = (id: number) =>
+  req<unknown>('POST', `/moderation/comments/${id}/remove`, { auth: true })
 
 /**
  * Histórico de una birra. Sale gratis del modelo append-only.

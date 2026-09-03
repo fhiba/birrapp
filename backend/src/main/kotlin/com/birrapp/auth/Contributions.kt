@@ -45,10 +45,22 @@ data class MyPhotoDto(
 )
 
 @Serializable
+data class MyCommentDto(
+    val id: Long,
+    val barId: Long,
+    val barName: String,
+    val styleName: String,
+    val brandName: String?,
+    val body: String,
+    val ageDays: Int,
+)
+
+@Serializable
 data class MyContributionsDto(
     val bars: List<MyBarDto>,
     val prices: List<MyPriceDto>,
     val photos: List<MyPhotoDto>,
+    val comments: List<MyCommentDto>,
 )
 
 /**
@@ -138,7 +150,34 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
             )
         }
 
-        MyContributionsDto(bars, prices, photos)
+        // Los comentarios también son un aporte propio, y hasta ahora la
+        // única forma de encontrar uno era acordarse en qué bar fue.
+        val comments = c.query(
+            """
+            SELECT cm.id, cm.bar_id, b.name AS bar_name, s.name_es AS style_name,
+                   br.name AS brand_name, cm.body,
+                   EXTRACT(DAY FROM (now() - cm.created_at))::int AS age_days
+            FROM beer_comments cm
+            JOIN bars b ON b.id = cm.bar_id
+            JOIN beer_styles s ON s.id = cm.style_id
+            LEFT JOIN brands br ON br.id = cm.brand_id
+            WHERE cm.user_id = ? AND cm.status = 'active'
+            ORDER BY cm.created_at DESC LIMIT ?
+            """.trimIndent(),
+            userId, limit,
+        ) { rs ->
+            MyCommentDto(
+                id = rs.getLong("id"),
+                barId = rs.getLong("bar_id"),
+                barName = rs.getString("bar_name"),
+                styleName = rs.getString("style_name"),
+                brandName = rs.getString("brand_name"),
+                body = rs.getString("body"),
+                ageDays = rs.getInt("age_days"),
+            )
+        }
+
+        MyContributionsDto(bars, prices, photos, comments)
     }
 
     /**

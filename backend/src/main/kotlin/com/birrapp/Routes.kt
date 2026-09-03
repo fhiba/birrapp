@@ -182,6 +182,29 @@ fun Route.apiRoutes(
         }
 
         /** Votar una birra. Pisa el voto anterior del mismo usuario. */
+        /**
+         * Comentar. Se pueden dejar varios sobre la misma birra.
+         *
+         * Aparte de la nota porque son reglas distintas: la nota es una sola
+         * por persona —si no, cinco votos propios inflan el promedio— y los
+         * comentarios no tienen ese problema.
+         */
+        post("/comments") {
+            val caller = call.caller()
+            val id = ratings.addComment(call.receive<NewCommentRequest>(), caller.userId)
+            call.respond(HttpStatusCode.Created, mapOf("id" to id))
+        }
+
+        /** Borrar un comentario propio. Cualquiera puede borrar lo que escribió. */
+        post("/comments/{id}/remove") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            if (!ratings.removeOwnComment(id, caller.userId)) {
+                notFound("no existe ese comentario tuyo")
+            }
+            call.respond(OkResponse())
+        }
+
         post("/ratings") {
             val caller = call.caller()
             ratings.upsert(call.receive<NewRatingRequest>(), caller.userId)
@@ -255,6 +278,15 @@ fun Route.apiRoutes(
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
                 val key = photos.remove(id) ?: notFound("no existe esa foto")
                 deletePhotoObject(key)
+                call.respond(OkResponse())
+            }
+
+            post("/comments/{id}/remove") {
+                call.requireRole(Role.moderator)
+                val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+                if (!ratings.setCommentStatus(id, "removed")) {
+                    notFound("no existe ese comentario")
+                }
                 call.respond(OkResponse())
             }
 
