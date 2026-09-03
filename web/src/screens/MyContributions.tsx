@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { MyContributions, MyPhoto, MyPrice } from '../data/types'
+import type { MyComment, MyContributions, MyPhoto, MyPrice } from '../data/types'
 import { formatPrice } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 
@@ -23,6 +23,7 @@ export function MyContributionsScreen() {
   const [toast, setToast] = useState<string | null>(null)
   const [killPrice, setKillPrice] = useState<MyPrice | null>(null)
   const [killPhoto, setKillPhoto] = useState<MyPhoto | null>(null)
+  const [killComment, setKillComment] = useState<MyComment | null>(null)
 
   const load = useCallback(async () => {
     try { setData(await api.myContributions()) }
@@ -48,7 +49,7 @@ export function MyContributionsScreen() {
         {!data && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
 
         {data && data.prices.length === 0 && data.bars.length === 0
-          && data.photos.length === 0 && (
+          && data.photos.length === 0 && data.comments.length === 0 && (
           <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
             Todavía no cargaste nada.
           </p>
@@ -79,6 +80,18 @@ export function MyContributionsScreen() {
             sub={f.barName}
             age={f.ageDays}
             thumb={f.url}
+          />
+        ))}
+
+        {data && data.comments.length > 0 && <H>Comentarios · {data.comments.length}</H>}
+        {data?.comments.map(c => (
+          <Item
+            key={c.id}
+            onOpen={() => nav(`/bar/${c.barId}`)}
+            onRemove={() => setKillComment(c)}
+            title={c.brandName ? `${c.styleName} · ${c.brandName}` : c.styleName}
+            sub={`${c.barName} — ${c.body}`}
+            age={c.ageDays}
           />
         ))}
 
@@ -143,6 +156,26 @@ export function MyContributionsScreen() {
             setKillPhoto(null)
             try { await api.removeMyPhoto(f.id); await load(); setToast('Foto borrada') }
             catch (e) { setToast((e as Error).message) }
+          }}
+        />
+      )}
+
+      {killComment && (
+        <Confirm
+          title="¿Borrar este comentario?"
+          body={<>
+            Se borra sólo el texto. Tu puntaje de esa birra queda como está:
+            borrar lo que escribiste no es retirar tu voto.
+            <br /><br />No se puede deshacer.
+          </>}
+          confirmLabel="Borrar" danger
+          onCancel={() => setKillComment(null)}
+          onConfirm={async () => {
+            const c = killComment
+            setKillComment(null)
+            try {
+              await api.removeMyComment(c.id); await load(); setToast('Comentario borrado')
+            } catch (e) { setToast((e as Error).message) }
           }}
         />
       )}
