@@ -251,6 +251,24 @@ fun Route.apiRoutes(
                 call.respond(moderation.summary())
             }
 
+            /**
+             * Dashboard: quién se anotó y qué aportó.
+             *
+             * Va detrás del rol de moderador y no del de admin: es lectura, y
+             * quien modera necesita saber si la persona que cargó un precio
+             * raro es alguien que aporta desde hace meses o una cuenta de ayer.
+             */
+            get("/dashboard/users") {
+                call.requireRole(Role.moderator)
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
+                call.respond(moderation.recentUsers(limit.coerceIn(1, 500)))
+            }
+
+            get("/dashboard/summary") {
+                call.requireRole(Role.moderator)
+                call.respond(moderation.dashboardSummary())
+            }
+
             get("/brands/pending") {
                 call.requireRole(Role.moderator)
                 call.respond(prices.pendingBrands())

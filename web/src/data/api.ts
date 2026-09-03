@@ -1,5 +1,6 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Brand, Flag, ModerationSummary, MyContributions,
+  BarDetail, BarPin, BeerStyle, Brand, DashboardSummary, DashboardUser, Flag,
+  ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -263,6 +264,12 @@ export const rejectBar = (id: number) => req<unknown>('POST', `/moderation/bars/
 export const deleteBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/delete`, { auth: true })
 export const resolveFlag = (id: number) => req<unknown>('POST', `/moderation/flags/${id}/resolve`, { auth: true })
 export const approvePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/approve`, { auth: true })
+export const dashboardUsers = (limit = 200) =>
+  req<DashboardUser[]>('GET', '/moderation/dashboard/users', {
+    auth: true, params: { limit },
+  })
+export const dashboardSummary = () =>
+  req<DashboardSummary>('GET', '/moderation/dashboard/summary', { auth: true })
 export const pendingBrands = () =>
   req<Brand[]>('GET', '/moderation/brands/pending', { auth: true })
 export const approveBrand = (slug: string) =>
