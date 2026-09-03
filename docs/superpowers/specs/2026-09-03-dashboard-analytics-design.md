@@ -66,7 +66,12 @@ SELECT reported_by AS user_id,
 UNION ALL
 SELECT created_by, 'bar',    created_at FROM bars       WHERE created_by IS NOT NULL
 UNION ALL
-SELECT user_id,    'photo',  created_at FROM bar_photos WHERE status = 'active'
+-- `bar_photos.user_id` es nullable con ON DELETE SET NULL: sin este guard, al
+-- borrarse un usuario sus fotos entran como (NULL, 'photo', at) y la
+-- concentración y el embudo, que agrupan por user_id, cuentan ese NULL como
+-- si fuera una persona.
+SELECT user_id,    'photo',  created_at FROM bar_photos
+ WHERE status = 'active' AND user_id IS NOT NULL
 UNION ALL
 SELECT user_id,    'rating', updated_at FROM beer_ratings WHERE status = 'active';
 ```

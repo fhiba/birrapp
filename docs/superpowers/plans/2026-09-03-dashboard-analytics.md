@@ -126,7 +126,7 @@ SELECT created_by, 'bar', created_at
 UNION ALL
 SELECT user_id, 'photo', created_at
   FROM bar_photos
- WHERE status = 'active'
+ WHERE status = 'active' AND user_id IS NOT NULL
 UNION ALL
 SELECT user_id, 'rating', updated_at
   FROM beer_ratings
