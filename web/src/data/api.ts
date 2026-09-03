@@ -50,6 +50,20 @@ export function saveSession(s: Session) {
   localStorage.setItem(KEY, JSON.stringify(s))
   emit()
 }
+/**
+ * Actualiza los datos del usuario dentro de la sesión guardada.
+ *
+ * Hace falta porque la sesión vive en localStorage con una copia del usuario
+ * de cuando se inició. Sin esto, cambiar la foto de perfil se ve hasta que
+ * recargás y ahí vuelve la vieja, que parece que no se guardó.
+ */
+export function updateSessionUser(user: User) {
+  if (!session) return
+  session = { ...session, user }
+  localStorage.setItem(KEY, JSON.stringify(session))
+  emit()
+}
+
 export function clearSession() {
   session = null
   localStorage.removeItem(KEY)
@@ -280,6 +294,26 @@ export const redeemHandoff = (code: string) =>
   req<Session>('POST', '/auth/handoff', { body: { code } })
 
 export const me = () => req<User>('GET', '/auth/me', { auth: true })
+
+/**
+ * Foto de perfil propia, en los mismos tres pasos que las fotos de birra:
+ * pedir permiso, subir al bucket, confirmar. Los bytes no pasan por el backend.
+ */
+export async function uploadAvatar(file: Blob): Promise<User> {
+  const { uploadUrl, key } = await req<{ uploadUrl: string; key: string }>(
+    'POST', '/auth/me/avatar/upload-url', { auth: true },
+  )
+  // El PUT va con `fetch` pelado: la URL ya está firmada y meterle el header
+  // de Authorization rompería la firma.
+  const put = await fetch(uploadUrl, {
+    method: 'PUT', body: file, headers: { 'Content-Type': 'image/webp' },
+  })
+  if (!put.ok) throw new ApiError(put.status, 'No se pudo subir la foto')
+  return req<User>('POST', '/auth/me/avatar', { body: { key }, auth: true })
+}
+
+/** Saca la foto propia. Vuelve la de Google, si la cuenta tenía. */
+export const removeAvatar = () => req<User>('DELETE', '/auth/me/avatar', { auth: true })
 export const myStats = () => req<UserStats>('GET', '/auth/me/stats', { auth: true })
 export const myContributions = () =>
   req<MyContributions>('GET', '/auth/me/contributions', { auth: true })

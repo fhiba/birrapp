@@ -34,6 +34,8 @@ private val authLog = org.slf4j.LoggerFactory.getLogger("birrapp.auth")
 
 @Serializable data class BrowserStartResponse(val authorizeUrl: String)
 @Serializable data class HandoffRequest(val code: String)
+@Serializable data class AvatarUploadUrl(val uploadUrl: String, val key: String)
+@Serializable data class AvatarConfirm(val key: String)
 
 fun Route.authRoutes(
     cfg: Config,
@@ -46,6 +48,8 @@ fun Route.authRoutes(
     contributions: ContributionRepo,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove. */
     deletePhotoObject: suspend (String) -> Unit,
+    /** El mismo bucket que las fotos de birra: la foto de perfil es una más. */
+    avatar: com.birrapp.photos.R2,
 ) = route("/auth") {
 
     // ---------- login por navegador ----------
@@ -239,8 +243,49 @@ fun Route.authRoutes(
         delete("/me") {
             val caller = call.caller()
             refreshTokens.revokeAllFor(caller.userId)
-            if (!users.deleteAccount(caller.userId)) notFound("no existe esa cuenta")
+            val deleted = users.deleteAccount(caller.userId) ?: notFound("no existe esa cuenta")
+            // Las fotos se sirven desde una URL pública: mientras el objeto
+            // exista, cualquiera con el link la sigue viendo. Borrar la fila no
+            // alcanza.
+            deleted.objectKeys.forEach { deletePhotoObject(it) }
             call.respond(HttpStatusCode.NoContent)
+        }
+
+        // ---------- foto de perfil ----------
+
+        /**
+         * Permiso para subir. Mismo camino de tres pasos que las fotos de
+         * birra: los bytes van del cliente al bucket sin pasar por el backend.
+         */
+        post("/me/avatar/upload-url") {
+            val caller = call.caller()
+            if (!avatar.isConfigured) {
+                badRequest("las fotos no están disponibles por ahora")
+            }
+            val key = "avatar/${caller.userId}/${java.util.UUID.randomUUID()}.webp"
+            call.respond(AvatarUploadUrl(avatar.presignPut(key), key))
+        }
+
+        /** Confirma la subida. Recién acá la foto pasa a ser la del perfil. */
+        post("/me/avatar") {
+            val caller = call.caller()
+            val key = call.receive<AvatarConfirm>().key
+            // La llave la genera el servidor arriba; se comprueba que la que
+            // vuelve sea de esta persona. Sin esto, mandando la llave de otro
+            // se le roba la foto —o peor, se apunta a un objeto ajeno.
+            if (!key.startsWith("avatar/${caller.userId}/") || key.contains("..")) {
+                badRequest("esa foto no es tuya")
+            }
+            val previous = users.setAvatar(caller.userId, key, avatar.publicUrl(key))
+            previous?.takeIf { it != key }?.let { deletePhotoObject(it) }
+            call.respond(users.findById(caller.userId)!!.toDto())
+        }
+
+        /** Saca la foto propia. Vuelve la de Google, si la cuenta tenía. */
+        delete("/me/avatar") {
+            val caller = call.caller()
+            users.clearAvatar(caller.userId)?.let { deletePhotoObject(it) }
+            call.respond(users.findById(caller.userId)!!.toDto())
         }
 
         post("/logout") {
