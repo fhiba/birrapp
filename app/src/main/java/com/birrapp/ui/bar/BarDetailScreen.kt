@@ -776,7 +776,7 @@ private fun DashedPill(label: String, tint: Color, onClick: () -> Unit) {
 @Composable
 private fun BeerRatingRow(
     price: StylePrice,
-    myRating: Int?,
+    myRating: Double?,
     onRate: (Int) -> Unit,
     onOpen: () -> Unit,
 ) {
@@ -785,7 +785,7 @@ private fun BeerRatingRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Stars(
-            value = myRating?.toDouble() ?: price.ratingRaw,
+            value = myRating ?: price.ratingRaw,
             mine = myRating != null,
             size = 19.sp,
             onRate = onRate,

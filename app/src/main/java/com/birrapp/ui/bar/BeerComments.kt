@@ -39,7 +39,7 @@ import com.birrapp.ui.theme.Ink
 fun BeerCommentsSheet(
     title: String,
     comments: List<RatingComment>?,
-    myRating: Int?,
+    myRating: Double?,
     canWrite: Boolean,
     modMode: Boolean,
     busy: Boolean,
@@ -76,7 +76,7 @@ fun BeerCommentsSheet(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Stars(
-                            value = myRating?.toDouble(),
+                            value = myRating,
                             mine = myRating != null,
                             size = 26.sp,
                             onRate = onRate,
@@ -173,7 +173,7 @@ private fun CommentRow(c: RatingComment, modMode: Boolean, onDelete: () -> Unit)
         Row(verticalAlignment = Alignment.CenterVertically) {
             // La nota puede faltar: se puede comentar sin votar.
             c.rating?.let {
-                Stars(value = it.toDouble(), mine = c.mine, size = 13.sp)
+                Stars(value = it, mine = c.mine, size = 13.sp)
                 Spacer(Modifier.width(8.dp))
             }
             Text(

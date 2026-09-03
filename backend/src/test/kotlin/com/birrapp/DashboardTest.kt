@@ -35,7 +35,7 @@ class DashboardTest {
 
         prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), activo)
         prices.report(NewPriceRequest(bar, "rubia", 5000.0), activo)
-        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4), activo)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), activo)
 
         val rows = repo.recentUsers().associateBy { it.displayName }
 
@@ -79,7 +79,7 @@ class DashboardTest {
         // Una sola persona con tres aportes no puede parecer tres personas.
         prices.report(NewPriceRequest(bar, "ipa", 8000.0, brandSlug = "antares"), a)
         prices.report(NewPriceRequest(bar, "rubia", 5000.0), a)
-        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4), a)
+        ratings.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), a)
 
         val s = repo.dashboardSummary()
         assertEquals(2, s.users)

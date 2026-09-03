@@ -5,6 +5,17 @@ import { Confirm, Sheet } from './Chrome'
 import { Stars } from './Stars'
 
 /**
+ * Convierte lo tecleado en un puntaje de 0 a 5 con un decimal, o null si no
+ * hay nada válido. Acepta coma (3,8), redondea y recorta al rango: el backend
+ * valida igual, esto es sólo para no mandarle basura.
+ */
+function parseRating(raw: string): number | null {
+  const n = parseFloat(raw.trim().replace(',', '.'))
+  if (Number.isNaN(n)) return null
+  return Math.min(5, Math.max(0, Math.round(n * 10) / 10))
+}
+
+/**
  * Nota y comentarios de una birra, detrás del ícono.
  *
  * No están nunca a la vista por defecto: el contenido de la pantalla es el
@@ -95,11 +106,31 @@ export function BeerComments({
         <div style={{
           padding: 12, borderRadius: 14, background: 'var(--base)', marginBottom: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Stars value={rating} mine={rating != null} size={26} onRate={rate} />
+            {/* La estrella redondea a la entera; para un 3,8 hace falta
+                teclearlo. Va sin control de React —`key` lo resetea cuando la
+                nota cambia por otro lado (guardado, o rollback tras un error)—
+                y confirma con Enter o al salir del campo. Acepta coma. */}
+            <input
+              key={rating ?? 'none'}
+              type="number" inputMode="decimal" min={0} max={5} step={0.1}
+              defaultValue={rating ?? ''}
+              aria-label="Puntaje de 0 a 5"
+              onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+              onBlur={e => {
+                const n = parseRating(e.currentTarget.value)
+                if (n != null && n !== rating) rate(n)
+              }}
+              style={{
+                width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
+                background: 'transparent', border: '1px solid var(--hairline)',
+                color: 'inherit', fontFamily: 'inherit',
+              }}
+            />
             <span style={{ fontSize: 12, color: 'var(--faint)' }}>
               {savingStar ? 'Guardando…'
-                : rating != null ? 'Tu puntaje — tocá otra estrella para cambiarlo'
+                : rating != null ? 'Tu puntaje — tocá una estrella o escribilo'
                 : 'Tu puntaje'}
             </span>
           </div>

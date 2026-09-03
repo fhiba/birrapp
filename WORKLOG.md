@@ -718,3 +718,36 @@ el repo y ya se pisaron: aparecieron cambios ajenos en el árbol de trabajo a
 mitad de esta feature. Queda escrito en `AGENTS.md`.
 
 37 tests en verde.
+
+## 2026-09-03 — La nota se puede cargar con un decimal (BIR-19)
+
+Hasta acá la nota de una birra se movía sólo con la estrella, y la estrella da
+enteros. Si querías ponerle un 3,8 no había cómo. El promedio de la comunidad
+ya se mostraba con decimales y `<Stars>` ya sabía pintar fracciones —lo único
+que faltaba era poder *ingresar* uno.
+
+**El piso baja de 1 a 0.** El 1 era piso sólo porque no se puede "tocar cero
+estrellas"; con carga numérica el 0 es un voto legítimo —"estuvo pésima"— y no
+se confunde con "no voté", que es la ausencia de fila, no un 0.
+
+**Backend:** `beer_ratings.rating` pasa de `smallint` a `numeric(2,1)`, CHECK
+de 0.0 a 5.0 (`V10`). La vista `v_style_ratings` hubo que bajarla y recrearla
+—Postgres no deja cambiar el tipo de una columna de la que depende una vista—
+pero su definición no cambia: `avg` y `round(...::numeric,2)` andan igual. El
+`upsert` valida el rango y redondea a un decimal antes de guardar, así el valor
+validado y el guardado son el mismo. Los DTOs (`NewRatingRequest`,
+`MyRatingDto`, `RatingCommentDto`) pasan a `Double`.
+
+**Web:** al lado de las estrellas, un campo numérico. Confirma con Enter o al
+salir del foco, acepta coma, redondea y recorta al rango antes de mandar. La
+estrella sigue funcionando igual para el que no quiere teclear.
+
+**Android sólo se puso a tolerar el decimal**, no lo carga todavía: los modelos
+que decodifican la nota (`MyRating`, `RatingComment`) pasan a `Double` para no
+crashear cuando llegue un 3,8 desde la web. El input numérico en la app queda
+como parity pendiente.
+
+**Fuera de alcance:** la reseña del bar (`ReviewRepo`, su propio `1..5`) es otra
+cosa y no se tocó.
+
+49 tests en verde (backend). Web y app compilan.

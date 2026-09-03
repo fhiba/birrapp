@@ -41,11 +41,11 @@ class CommentTest {
         val u = TestDb.insertUser()
         val bar = TestDb.insertBar("Prueba", lat, lng)
 
-        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 5), u)
-        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 2), u)
+        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 5.0), u)
+        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 2.0), u)
 
         assertEquals(
-            listOf(2), repo.mine(bar, u).map { it.rating },
+            listOf(2.0), repo.mine(bar, u).map { it.rating },
             "cinco votos propios inflarían el promedio: la nota se pisa, no se suma",
         )
     }
@@ -55,13 +55,13 @@ class CommentTest {
         val u = TestDb.insertUser()
         val bar = TestDb.insertBar("Prueba", lat, lng)
 
-        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 4), u)
+        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 4.0), u)
         val id = repo.addComment(NewCommentRequest(bar, "ipa", "antares", "Buena"), u)
 
         assertTrue(repo.removeOwnComment(id, u))
         assertEquals(0, repo.comments(bar, "ipa", "antares", viewerId = u).size)
         assertEquals(
-            listOf(4), repo.mine(bar, u).map { it.rating },
+            listOf(4.0), repo.mine(bar, u).map { it.rating },
             "borrar lo que escribiste no es retirar tu voto",
         )
     }
@@ -99,11 +99,11 @@ class CommentTest {
         val u = TestDb.insertUser()
         val bar = TestDb.insertBar("Prueba", lat, lng)
 
-        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 5), u)
-        repo.upsert(NewRatingRequest(bar, "ipa", "berlina", 1), u)
+        repo.upsert(NewRatingRequest(bar, "ipa", "antares", 5.0), u)
+        repo.upsert(NewRatingRequest(bar, "ipa", "berlina", 1.0), u)
         repo.addComment(NewCommentRequest(bar, "ipa", "antares", "Sobre la de Antares"), u)
 
-        assertEquals(5, repo.comments(bar, "ipa", "antares", viewerId = u).single().rating)
+        assertEquals(5.0, repo.comments(bar, "ipa", "antares", viewerId = u).single().rating)
     }
 
     @Test
