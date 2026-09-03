@@ -12,20 +12,53 @@ enum class Freshness { fresh, aging, stale;
     }
 }
 
+/**
+ * Una birra de un bar. La birra es (estilo, marca), no el estilo solo: una IPA
+ * de Antares y una de Juguetes Perdidos tienen precio, nota y fotos propias.
+ *
+ * Casi todo es nullable y no por prolijidad. `id` y `price` faltan cuando la
+ * birra no tiene precio vigente —pasa si un moderador bajó el reporte— y la
+ * birra sigue existiendo con sus notas y sus fotos. `brandSlug` null es "sin
+ * marca", que es una birra concreta y no un dato faltante.
+ */
 @Serializable
 data class StylePrice(
-    val id: Long,
+    val id: Long? = null,
     val styleSlug: String,
     val styleName: String,
-    val price: Double,
-    val sizeMl: Int,
-    val ageDays: Int,
-    val freshness: String,
+    val brandSlug: String? = null,
+    val brandName: String? = null,
+    val brandCraft: Boolean? = null,
+    val price: Double? = null,
+    val sizeMl: Int? = null,
+    val ageDays: Int? = null,
+    val freshness: String? = null,
+    /** Promedio real de la nota. Es el que se muestra. */
+    val ratingRaw: Double? = null,
+    /** Con shrinkage bayesiano: sirve para ordenar, nunca para mostrar. */
+    val ratingAvg: Double? = null,
+    val ratingCount: Int = 0,
+    val ratingAgeDays: Int? = null,
 ) {
     val fresh: Freshness get() = Freshness.from(freshness)
-    /** Precio por litro: la única forma honesta de comparar tamaños distintos. */
-    val perLitre: Double get() = price / sizeMl * 1000
+
+    /**
+     * Cómo se nombra esta birra en pantalla.
+     *
+     * El estilo solo dejó de alcanzar: decirle "IPA" a las dos IPA de un bar
+     * hace que alguien confirme un borrado sobre una cerveza distinta de la
+     * que está mirando.
+     */
+    val beerName: String
+        get() = brandName?.let { "$styleName · $it" } ?: styleName
+
+    /** Clave estable, para saber cuál fila está ocupada. */
+    val key: String get() = "$styleSlug|${brandSlug ?: ""}"
 }
+
+@Serializable data class Brand(val slug: String, val name: String, val craft: Boolean)
+
+@Serializable data class NewBrandRequest(val name: String, val craft: Boolean = true)
 
 @Serializable
 data class BarPin(
@@ -69,6 +102,12 @@ data class BarDetail(
 
 @Serializable data class NewPriceRequest(
     val barId: Long, val styleSlug: String, val price: Double, val sizeMl: Int = 473,
+    /** Opcional: no siempre se sabe, y obligarla frenaría la carga. */
+    val brandSlug: String? = null,
+)
+
+@Serializable data class ConfirmPriceRequest(
+    val styleSlug: String, val brandSlug: String? = null,
 )
 
 @Serializable data class PriceAccepted(

@@ -35,6 +35,38 @@ data class ModerationSummaryDto(
     val pendingBrands: Int,
 )
 
+/** Una persona y lo que aportó. Para el dashboard, no para la app. */
+@Serializable
+data class DashboardUserDto(
+    val id: Long,
+    val displayName: String,
+    val email: String,
+    val avatarUrl: String?,
+    val role: String,
+    /** Días desde que se registró. */
+    val ageDays: Int,
+    val banned: Boolean,
+    val prices: Int,
+    val confirmations: Int,
+    val bars: Int,
+    val photos: Int,
+    val ratings: Int,
+    /** Días desde su último aporte. Null = nunca aportó nada. */
+    val lastActiveDays: Int?,
+)
+
+@Serializable
+data class DashboardSummaryDto(
+    val users: Int,
+    val usersWeek: Int,
+    val usersMonth: Int,
+    /** Personas distintas que aportaron algo en 30 días, no cantidad de aportes. */
+    val contributorsMonth: Int,
+    val pricesWeek: Int,
+    val barsWithFreshPrice: Int,
+    val bars: Int,
+)
+
 class ModerationRepo(private val db: Db) {
 
     fun flag(req: NewFlagRequest, userId: Long) {
@@ -92,6 +124,131 @@ class ModerationRepo(private val db: Db) {
             pendingBrands = c.queryOne(
                 "SELECT count(*) AS n FROM brands WHERE status = 'pending'",
             ) { it.getInt("n") } ?: 0,
+        )
+    }
+
+    /**
+     * Quién se anotó y qué cargó, de lo más nuevo a lo más viejo.
+     *
+     * Los contadores salen de agregados por usuario y no de un `count(*)` por
+     * fila: con una subconsulta por columna, la pantalla hacía cinco consultas
+     * por cada persona de la lista.
+     *
+     * Los precios se cuentan separando carga manual de "Sigue igual". Sumarlos
+     * en un solo número haría que alguien que sólo confirma parezca tan activo
+     * como alguien que releva precios nuevos, y son dos aportes distintos:
+     * confirmar mantiene fresco lo que ya está, cargar agrega lo que no.
+     */
+    fun recentUsers(limit: Int = 100): List<DashboardUserDto> = db.conn {
+        it.query(
+            """
+            WITH p AS (
+                SELECT reported_by AS uid,
+                       count(*) FILTER (WHERE NOT is_confirmation) AS prices,
+                       count(*) FILTER (WHERE is_confirmation)     AS confirmations,
+                       max(created_at)                             AS last_at
+                FROM price_reports WHERE status = 'active' AND reported_by IS NOT NULL
+                GROUP BY reported_by
+            ), b AS (
+                SELECT created_by AS uid, count(*) AS bars, max(created_at) AS last_at
+                FROM bars WHERE created_by IS NOT NULL GROUP BY created_by
+            ), f AS (
+                SELECT user_id AS uid, count(*) AS photos, max(created_at) AS last_at
+                FROM bar_photos WHERE status = 'active' GROUP BY user_id
+            ), r AS (
+                SELECT user_id AS uid, count(*) AS ratings, max(updated_at) AS last_at
+                FROM beer_ratings WHERE status = 'active' GROUP BY user_id
+            )
+            SELECT u.id, u.display_name, u.email, u.role::text AS role,
+                   u.avatar_url,
+                   EXTRACT(DAY FROM (now() - u.created_at))::int AS age_days,
+                   u.banned_at IS NOT NULL AS banned,
+                   coalesce(p.prices, 0)        AS prices,
+                   coalesce(p.confirmations, 0) AS confirmations,
+                   coalesce(b.bars, 0)          AS bars,
+                   coalesce(f.photos, 0)        AS photos,
+                   coalesce(r.ratings, 0)       AS ratings,
+                   EXTRACT(DAY FROM (now() - GREATEST(
+                       p.last_at, b.last_at, f.last_at, r.last_at
+                   )))::int AS last_active_days
+            FROM users u
+            LEFT JOIN p ON p.uid = u.id
+            LEFT JOIN b ON b.uid = u.id
+            LEFT JOIN f ON f.uid = u.id
+            LEFT JOIN r ON r.uid = u.id
+            ORDER BY u.created_at DESC
+            LIMIT ?
+            """.trimIndent(),
+            limit,
+        ) { rs ->
+            DashboardUserDto(
+                id = rs.getLong("id"),
+                displayName = rs.getString("display_name"),
+                email = rs.getString("email"),
+                avatarUrl = rs.getString("avatar_url"),
+                role = rs.getString("role"),
+                ageDays = rs.getInt("age_days"),
+                banned = rs.getBoolean("banned"),
+                prices = rs.getInt("prices"),
+                confirmations = rs.getInt("confirmations"),
+                bars = rs.getInt("bars"),
+                photos = rs.getInt("photos"),
+                ratings = rs.getInt("ratings"),
+                lastActiveDays = rs.getInt("last_active_days").takeUnless { rs.wasNull() },
+            )
+        }
+    }
+
+    /**
+     * Los números de arriba del dashboard.
+     *
+     * "Aportaron" cuenta gente distinta que hizo algo, no aportes: es la
+     * pregunta que importa —cuántos de los que se anotaron volvieron a hacer
+     * algo— y sumar aportes la respondería mal, porque una sola persona muy
+     * activa la inflaría sola.
+     */
+    fun dashboardSummary(): DashboardSummaryDto = db.conn { c ->
+        val n = { sql: String -> c.queryOne(sql) { it.getInt("n") } ?: 0 }
+        DashboardSummaryDto(
+            users = n("SELECT count(*) AS n FROM users"),
+            usersWeek = n(
+                "SELECT count(*) AS n FROM users WHERE created_at > now() - interval '7 days'",
+            ),
+            usersMonth = n(
+                "SELECT count(*) AS n FROM users WHERE created_at > now() - interval '30 days'",
+            ),
+            contributorsMonth = n(
+                """
+                SELECT count(DISTINCT uid) AS n FROM (
+                    SELECT reported_by AS uid FROM price_reports
+                     WHERE status = 'active' AND created_at > now() - interval '30 days'
+                    UNION ALL
+                    SELECT created_by FROM bars WHERE created_at > now() - interval '30 days'
+                    UNION ALL
+                    SELECT user_id FROM bar_photos
+                     WHERE status = 'active' AND created_at > now() - interval '30 days'
+                    UNION ALL
+                    SELECT user_id FROM beer_ratings
+                     WHERE status = 'active' AND updated_at > now() - interval '30 days'
+                ) x WHERE uid IS NOT NULL
+                """.trimIndent(),
+            ),
+            pricesWeek = n(
+                """
+                SELECT count(*) AS n FROM price_reports
+                 WHERE status = 'active' AND created_at > now() - interval '7 days'
+                """.trimIndent(),
+            ),
+            // Bares con al menos un precio no vencido. Es la medida real de
+            // cobertura del mapa: un bar sin precio fresco es un pin que no
+            // responde la pregunta que la app viene a responder.
+            barsWithFreshPrice = n(
+                """
+                SELECT count(DISTINCT bar_id) AS n FROM v_current_prices
+                 WHERE freshness <> 'stale'
+                """.trimIndent(),
+            ),
+            bars = n("SELECT count(*) AS n FROM bars WHERE status = 'approved'"),
         )
     }
 

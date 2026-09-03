@@ -138,3 +138,33 @@ export interface ModerationSummary {
   openFlags: number
   pendingBrands: number
 }
+
+/** Una persona y lo que aportó. Sólo para el dashboard de moderación. */
+export interface DashboardUser {
+  id: number
+  displayName: string
+  email: string
+  avatarUrl: string | null
+  role: string
+  /** Días desde que se registró. */
+  ageDays: number
+  banned: boolean
+  prices: number
+  confirmations: number
+  bars: number
+  photos: number
+  ratings: number
+  /** Días desde su último aporte. Null = nunca aportó nada. */
+  lastActiveDays: number | null
+}
+
+export interface DashboardSummary {
+  users: number
+  usersWeek: number
+  usersMonth: number
+  /** Personas distintas que aportaron algo en 30 días, no cantidad de aportes. */
+  contributorsMonth: number
+  pricesWeek: number
+  barsWithFreshPrice: number
+  bars: number
+}
