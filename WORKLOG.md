@@ -1053,61 +1053,43 @@ harness, es lo primero que hay que agregarle.
 
 ---
 
-## 2026-09-04 (cont.) — Vincular los bares de OSM con Places (BIR-14)
+## 2026-09-04 (cont.) — v0.6.6: el precio cargado se ve en el mapa al toque (BIR-23)
 
-`scripts/link_place_ids.mjs`. Los 738 bares que sembró `seed_osm.mjs` no tienen
-`google_place_id`, así que la deduplicación exacta de `BarRepo.create` no aplica
-sobre ellos y alguien que carga un bar desde el autocompletado de Google crea un
-duplicado de uno que ya está. Queda la defensa de nombre + 100 m, pero es
-justamente la que falla cuando OSM y Google le dicen distinto al mismo lugar,
-que es el caso común — y es lo que pasó con "Venice Bar Acassuso".
+El reporte decía "tarda en actualizarse" y "tuve que poner buscar
+actualización". No tardaba: **nadie le avisaba al mapa**.
 
-**Guardar el `place_id` está permitido y no contradice la regla de la casa.**
-Los términos de Places prohíben guardar *contenido* de lugares más de 30 días,
-y el `place_id` está explícitamente exento. Ya estaba dicho en
-`V3__google_place_id.sql`. El script no guarda ninguna otra cosa de Google: el
-nombre y la ubicación que vuelven se usan para decidir si el match sirve y se
-descartan.
+`BarDetail.act()` es el embudo de las tres mutaciones de precio —confirmar,
+cargar y borrar— y sólo llamaba a `load()`, que recarga la ficha del bar. El
+`onChanged` que invalida la caché de `useBars` estaba cableado en un único
+lugar de todo el archivo: borrar el bar entero. Así que después de cargar un
+precio el pin se quedaba con el valor viejo hasta que `covered` se vencía sola
+por `MAX_AGE_MS` (cinco minutos), o hasta recargar la app —que es lo que
+"buscar actualización" termina haciendo—. Cargabas un precio, volvías al mapa y
+el bar seguía diciendo lo de antes: la app parecía haber perdido el reporte.
 
-**El match no se cree lo que le dicen.** Un `place_id` equivocado es *peor* que
-ninguno: haría que `create` rechace como duplicado un bar legítimo. Así que un
-candidato entra sólo si está a menos de 150 m y el nombre se parece 0,5 o más.
-Los 150 m no son generosos: OSM apunta al polígono del edificio y Google a la
-entrada, y en una esquina de Palermo eso ya son 40 m.
+El arreglo va en `act()` y no en cada botón. Los tres usos son precios y los
+tres mueven el pin; un cuarto uso que no lo moviera tendría que decirlo
+explícitamente, no al revés. Olvidarse de invalidar es justamente el bug.
 
-El parecido de nombres es solapamiento de tokens **sobre el más corto**, no
-Jaccard. Jaccard castiga que un lado tenga más palabras, y ése es el caso normal
-acá: OSM dice "Antares" y Google "Antares Cervecería Artesanal Palermo Soho".
-Sobre el más corto eso da 1, que es la respuesta correcta; Jaccard daría 0,25.
-Antes de comparar se sacan tildes y las palabras que no distinguen nada —"bar",
-"cervecería", "the"— porque aparecen en media base y sumaban parecido falso.
+**Dos sitios más con el mismo agujero, encontrados buscando el primero:**
 
-**El regalo.** `idx_bars_place_id` es UNIQUE, así que si dos filas matchean el
-mismo lugar el índice no las deja entrar a las dos. Pero eso no es un error del
-script: son dos filas que representan el mismo bar y **ya estaban duplicadas**.
-El script las reporta y vincula la de id más bajo; cuál sobrevive de verdad es
-una decisión de moderación, no de un script. O sea que el backfill sirve además
-como detector del problema que el issue quiere evitar hacia adelante.
+- `MyContributions` borra un reporte propio y no invalidaba nada. Si el borrado
+  era del precio vigente, el mapa seguía mostrando un precio que ya no existe
+  —peor que mostrarlo viejo—. Ahora recibe `onChanged` como el resto.
+- **Android tenía el bug idéntico.** `reloadAfterChange()` se llamaba sólo al
+  borrar un bar y al agregar uno, nunca tras un precio. Se resolvió igual pero
+  en el ViewModel y no en la pantalla: la UI no sabe cuándo terminó la
+  corrutina, así que el aviso sale de `confirmPrice`, `reportPrice` y
+  `removePrice`, al lado del `load()` que ya estaba.
 
-**Cuesta plata, así que está armado para no repagar.** Checkpoint en disco
-escrito en cada vuelta —no al final— para que un corte a mitad de camino no
-cueste dos veces; "consultado y sin match" se anota como `null`, distinto de
-"todavía no consultado", o cada corrida volvería a pagar por los bares que
-Google no reconoce; `--limit` para acotar la primera corrida y `--dry-run` que
-no llama a nada. Los errores de red no se anotan, para que se puedan reintentar.
+**Lo que NO era.** El primer sospechoso era el service worker sirviendo
+respuestas de la API cacheadas, que explicaría igual de bien los dos síntomas.
+No es: `runtimeCaching: []` en `vite.config.ts` y el `globPatterns` sólo toma
+assets. Queda dicho para que el próximo no vuelva a mirar ahí.
 
-La escritura va por el mismo camino que `seed_osm.mjs`: COPY a una tabla
-temporal y UPDATE desde ahí. `psql -c` no acepta parámetros, y concatenar SQL
-con algo que volvió de una API externa es exactamente donde aparecen los
-agujeros.
+Web compila. Android compila (`compileDebugKotlin`). Backend sin tocar.
 
-**Verificación.** `--self-test` corre las aserciones del matcher con
-`node:assert` (incluye el caso "Venice Bar", el de 4 km que no debe matchear y
-el del vecino de al lado que tampoco) — en verde. `--dry-run` corrido contra la
-base de dev: encuentra los 738 bares sin vincular, con nombres y coordenadas
-bien parseados. **Lo que NO se probó: la llamada a Places.** No tengo la API
-key, y son ~738 llamadas con costo real. Conviene la primera corrida con
-`--limit 25` y mirar el log antes de soltarlo entero.
-
-Sin cambio de versión: no se toca nada que se publique, sólo se agrega un script
-de mantenimiento.
+**Sin verificar a mano**: la extensión de Chrome no estuvo conectada en toda la
+sesión. La cadena de llamadas está leída de punta a punta —`act` → `onChanged`
+→ `afterChange` → `invalidate()` + `refresh(true)` → `load` con `force`, que
+saltea `covers()`— pero nadie cargó un precio y miró el mapa.

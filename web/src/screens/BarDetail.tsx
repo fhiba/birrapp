@@ -92,9 +92,27 @@ export function BarDetailScreen({
 
   useEffect(() => { load() }, [load])
 
+  /**
+   * El embudo de las tres mutaciones de precio: confirmar, cargar y borrar.
+   *
+   * `load()` sólo recarga ESTA ficha. Sin el `onChanged()` de abajo, el pin del
+   * mapa se quedaba con el precio viejo hasta que la caché de `useBars` se
+   * vencía sola a los cinco minutos —o hasta recargar la app entera, que fue lo
+   * que hubo que hacer para verlo—. Cargabas un precio, volvías al mapa y el
+   * bar seguía diciendo lo de antes: la app parecía haber perdido el reporte.
+   *
+   * Va acá y no en cada botón porque los tres usos de `act` son precios y todos
+   * mueven el pin. Un cuarto uso que no lo moviera tendría que decirlo, no al
+   * revés: olvidarse de invalidar es el bug que estamos arreglando.
+   */
   const act = async (fn: () => Promise<unknown>, slug?: string) => {
     setBusy(slug ?? '·')
-    try { const r = await fn() as { message?: string }; setToast(r?.message ?? 'Listo'); await load() }
+    try {
+      const r = await fn() as { message?: string }
+      setToast(r?.message ?? 'Listo')
+      await load()
+      onChanged()
+    }
     catch (e) { setToast((e as Error).message) }
     finally { setBusy(null) }
   }

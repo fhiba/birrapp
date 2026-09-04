@@ -206,7 +206,9 @@ function Shell() {
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
         <Route path="/info" element={<InfoScreen />} />
-        <Route path="/mis-aportes" element={<MyContributionsScreen />} />
+        <Route path="/mis-aportes" element={
+          <MyContributionsScreen onChanged={afterChange} />
+        } />
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
