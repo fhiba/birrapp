@@ -127,6 +127,33 @@ class CoverageBudgetTest {
         assertEquals(0, b.spent("b"), "la que no se tocó es la que se cae")
     }
 
+    // ---------- apagado, que es como sale por default ----------
+
+    @Test
+    fun `con presupuesto en cero no cobra nunca`() {
+        // Es como queda el servidor por default desde el incidente del
+        // 2026-09-04: `Config.coverageBudgetPerDay` es 0 y esto no puede
+        // devolver false por ningún camino. Un test acá y no sólo en Config
+        // porque lo que importa es que la RUTA nunca rechace.
+        val b = CoverageBudget(perDay = 0, today = { day })
+
+        assertFalse(b.enabled)
+        repeat(50) { i ->
+            assertTrue(
+                b.charge("ip", (i * 1000L until i * 1000L + 500L).toList()),
+                "apagado no puede rechazar ni con 25.000 bares distintos",
+            )
+        }
+        assertEquals(0, b.spent("ip"), "apagado tampoco recuerda: no gasta memoria")
+    }
+
+    @Test
+    fun `un presupuesto negativo se trata como apagado`() {
+        val b = CoverageBudget(perDay = -1, today = { day })
+        assertFalse(b.enabled)
+        assertTrue(b.charge("ip", (1L..10_000L).toList()))
+    }
+
     // ---------- el invariante que hace que el endpoint sea usable ----------
 
     @Test

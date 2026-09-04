@@ -1186,3 +1186,50 @@ tener hasta 7 días (`FIX_TTL_MS`). Es una posición donde la persona estuvo de
 verdad, así que es mucho menos grave que el Obelisco, pero sigue presentándose
 como "acá estás" sin decir de cuándo es. Mismo patrón que la regla de los
 precios: el dato sin su antigüedad al lado miente.
+
+---
+
+## 2026-09-04 (cont.) — v0.6.9: se apaga la cuota de cobertura, que rompió la app
+
+**Incidente.** Un usuario en otra ciudad y en otra red abrió el mapa y recibió
+`429` con el mensaje que escribí para BIR-13: "por hoy alcanzaste el límite de
+bares nuevos desde esta conexión". No vio bares viejos: `/bars` falla entero, y
+la pantalla queda vacía. Al lado, la misma zona y el mismo bar funcionaban
+perfecto desde otro teléfono.
+
+Estuvo prendido menos de un día.
+
+**Mi primer diagnóstico fue equivocado** y lo dije antes de verificarlo: supuse
+WiFi compartido, y no estaban ni en la misma red ni en la misma ciudad. Queda
+anotado porque el error de método importa más que el de contenido: tenía dos
+capturas y una hipótesis, y presenté la hipótesis como causa.
+
+**Las dos causas posibles, ninguna confirmada:**
+
+1. **El número.** Con `MAX_LIMIT` en 200, dos consultas de zonas distintas
+   gastan los 400. El cálculo que justificaba el 400 —"un barrio son doscientos
+   bares y repetirlos es gratis"— era correcto sobre repetir y equivocado sobre
+   explorar, que es exactamente lo que hace alguien que abre la app por primera
+   vez.
+2. **Que la clave no distinga a nadie.** Si detrás del proxy de Railway
+   `origin.remoteHost` devuelve siempre lo mismo, esto nunca fue una cuota por
+   IP: era una cuota global, y el primero que paseaba el mapa se la gastaba para
+   todos. Explicaría a alguien en otra red recibiendo el 429 sin haber pedido
+   casi nada.
+
+La segunda hipótesis tiene una consecuencia que sobrevive a este commit: **el
+`RateLimit` global de 120/min de `Application.kt` usa la misma clave y sigue
+encendido.** Si `remoteHost` colapsa, ese límite también es global, y a 120
+req/min entre todos los usuarios el mapa se rompe solo apenas haya tráfico. Hay
+que medirlo, y es más urgente que volver a prender la cuota.
+
+**Lo que se hizo.** `COVERAGE_BUDGET_PER_DAY`, default **0 = apagado**. Con 0,
+`charge()` devuelve `true` por todos los caminos y no guarda nada. Los topes de
+`limit` (200) y `radius` (20 km) se quedan: no le sacan nada a nadie, el cliente
+pide exactamente eso, y son la parte de BIR-13 que no rompió nada.
+
+Se conserva la clase y sus tests en vez de borrarlos, con la advertencia arriba
+de todo: **encenderla con un número más grande sin haber medido cuál de las dos
+causas era es repetir el incidente más tarde.**
+
+81 tests de backend en verde (79 + 2 nuevos, los del estado apagado).

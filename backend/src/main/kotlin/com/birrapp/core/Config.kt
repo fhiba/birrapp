@@ -31,6 +31,17 @@ data class Config(
     val accessMinutes: Long,
     val refreshDays: Long,
     val bootstrapAdminEmails: Set<String>,
+    /**
+     * Cuántos bares distintos puede descubrir una IP por día. **0 = apagado**,
+     * y ése es el default a propósito.
+     *
+     * Se prendió una vez (BIR-13) y rompió la app para gente real: dos personas
+     * en el mismo WiFi comparten el balde, así que la segunda entraba a una
+     * cuota ya gastada por la primera y recibía un 429 que le vaciaba el mapa
+     * entero. Ver el KDoc de CoverageBudget para por qué el número no se
+     * arregla subiéndolo.
+     */
+    val coverageBudgetPerDay: Int,
     /** Bucket de fotos en R2. Vacío = subir fotos queda deshabilitado. */
     val r2AccountId: String,
     val r2Bucket: String,
@@ -119,6 +130,7 @@ data class Config(
                     "R2_ACCOUNT_ID",
                     "id de cuenta de Cloudflare. Sin esto no se pueden subir fotos.",
                 ),
+                coverageBudgetPerDay = raw("COVERAGE_BUDGET_PER_DAY")?.toIntOrNull() ?: 0,
                 r2Bucket = raw("R2_BUCKET") ?: "",
                 r2AccessKeyId = raw("R2_ACCESS_KEY_ID") ?: "",
                 r2SecretAccessKey = raw("R2_SECRET_ACCESS_KEY") ?: "",

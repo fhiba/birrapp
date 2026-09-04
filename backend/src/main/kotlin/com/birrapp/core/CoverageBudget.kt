@@ -36,6 +36,33 @@ import java.time.ZoneOffset
  * defenderse de extracción sostenida da igual: quien quiera aprovecharlo tiene
  * que adivinar cuándo se reinicia el servidor.
  *
+ * ## APAGADO por defecto desde 2026-09-04
+ *
+ * Estuvo prendido menos de un día y rompió la app para gente real: alguien en
+ * otra ciudad, en otra red, abrió el mapa y recibió un 429 que se lo dejó
+ * vacío. No es que viera bares viejos: `/bars` falla entero y no queda nada.
+ *
+ * **Por qué falló no está confirmado, y eso es parte del problema.** Dos
+ * candidatos, y el segundo es peor:
+ *
+ * 1. El número. Con `MAX_LIMIT` en 200, **dos consultas de zonas distintas
+ *    gastan los 400**, y pasear el mapa por una ciudad densa son varias
+ *    consultas en el primer minuto. El cálculo que justificaba el 400 —"un
+ *    barrio son doscientos bares y repetirlos es gratis"— era correcto sobre
+ *    repetir y equivocado sobre explorar, que es lo que hace cualquiera que
+ *    abre la app por primera vez.
+ * 2. **Que la clave no distinga a nadie.** Si detrás del proxy de Railway
+ *    `origin.remoteHost` devuelve siempre lo mismo, esto no era una cuota por
+ *    IP sino una cuota global, y el primero que paseaba el mapa se la gastaba
+ *    para todos. Eso explicaría a alguien en otra red recibiendo el 429 sin
+ *    haber pedido casi nada — y, si es así, **el `RateLimit` de 120/min de
+ *    `Application.kt` tiene el mismo problema y sigue encendido**.
+ *
+ * Antes de volver a prender esto hay que medir cuál de las dos era. Encender
+ * con un número más grande sin saberlo es repetir el incidente más tarde.
+ *
+ * Se enciende con `COVERAGE_BUDGET_PER_DAY`.
+ *
  * ## Límites conocidos, dichos y no escondidos
  *
  * - **Una IP no es una persona.** Una oficina detrás de un NAT comparte
@@ -76,6 +103,9 @@ class CoverageBudget(
             size > maxKeys
     }
 
+    /** Con el presupuesto en 0 esto no hace nada: ni cobra ni recuerda. */
+    val enabled: Boolean get() = perDay > 0
+
     /**
      * Cobra el pedido y dice si entra en el presupuesto del día.
      *
@@ -90,6 +120,7 @@ class CoverageBudget(
      */
     @Synchronized
     fun charge(key: String, ids: Collection<Long>): Boolean {
+        if (!enabled) return true
         val seen = byKey.getOrPut(key) { Seen(today()) }
         // Corte de día: se reusa la entrada en vez de borrarla para no perder
         // su lugar en el LRU.
@@ -114,13 +145,12 @@ class CoverageBudget(
 
     companion object {
         /**
-         * Poco más de la mitad de la base (~738 bares al escribir esto).
+         * El número que se usó cuando esto estuvo encendido, conservado para
+         * los tests y para tener contra qué comparar cuando se revise.
          *
-         * El número sale de los dos lados a la vez: tiene que ser **más** que
-         * lo que ve un usuario real en un día —un barrio son doscientos bares y
-         * repetirlos es gratis— y **menos** que la base entera, o no separa
-         * nada. Que un scraper necesite varios días para completar el mapa es
-         * todo lo que este mecanismo puede prometer.
+         * **No es el default del servidor**: ése lo pone `Config` y es 0. Y no
+         * alcanzaba: dos consultas de 200 lo gastaban. Ver la sección
+         * "APAGADO" de arriba.
          */
         const val DEFAULT_PER_DAY = 400
 
