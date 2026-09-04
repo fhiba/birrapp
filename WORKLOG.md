@@ -1205,3 +1205,29 @@ que existe. Contra staging todavía no se corrió: el entorno no está creado.
 De paso, `DEPLOY.md` decía "`/bars` no tiene límite de tasa" en la lista de
 pendientes. Es falso desde BIR-13; corregido, con el matiz de que lo que hay es
 fricción y no prevención.
+
+---
+
+## 2026-09-04 (cont.) — El smoke test se estrena y encuentra algo (BIR-21)
+
+Corrido por primera vez contra la URL real del preview de Vercel, y encontró un
+bloqueante que no habíamos visto: **está detrás de Vercel Deployment
+Protection**. Responde `302` a `vercel.com/sso-api` a cualquiera sin sesión de
+Vercel en ese navegador. Con eso puesto el entorno de test no sirve: no se abre
+desde el celular —que es donde se usa la app— y el callback de OAuth de Google
+tampoco puede volver. Viene prendido por defecto en los Preview.
+
+El chequeo ahora lo detecta por nombre y dice qué tocar, en vez de fallar con
+"la respuesta no parece el index de la PWA", que manda a buscar al lugar
+equivocado. Va con `redirect: 'manual'`: siguiendo el 302 se termina en una
+página de login de Vercel que después falla por otro motivo, y el mensaje que
+sale no tiene nada que ver con la causa.
+
+**Y se arregló un defecto del propio reporte**: los chequeos salteados se
+pintaban con ✓. El de "la web no apunta al backend equivocado" decía que estaba
+bien cuando en realidad nunca se había podido mirar. Un salteo pintado de verde
+es peor que no chequear: ahora hay un estado propio (`–`) y el resumen los
+cuenta aparte. Un verificador en el que no se puede confiar no sirve para nada.
+
+Estado del entorno: `dev` ya despliega, la URL de Vercel existe, y faltan la
+protección de Vercel y el backend de staging en Railway.

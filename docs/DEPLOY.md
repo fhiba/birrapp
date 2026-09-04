@@ -278,6 +278,12 @@ valores: uno con scope *Production* (el backend de siempre) y otro con scope
 *Preview* (el de staging). Es la misma variable con dos alcances, no dos
 variables.
 
+**Desactivar Deployment Protection para los Preview.** Viene prendida por
+defecto y responde `302` a `vercel.com/sso-api` a cualquiera sin sesión de
+Vercel en ese navegador. Con eso puesto, el entorno de test no se puede abrir
+desde el celular —que es donde se usa la app— y el callback de OAuth de Google
+tampoco puede volver. Está en *Settings → Deployment Protection*.
+
 La URL estable de la rama es `https://<proyecto>-git-dev-<cuenta>.vercel.app`
 —no cambia con cada commit, a diferencia de la URL por deploy— y es la que va
 en `WEB_APP_URL` y `ALLOWED_ORIGINS`.
