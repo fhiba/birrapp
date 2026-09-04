@@ -20,6 +20,23 @@ interface Props {
 }
 
 /**
+ * Los dos órdenes, en el mismo orden en que se ven las píldoras.
+ *
+ * El swipe se apoya en esta lista: arrastrar a la izquierda va al siguiente,
+ * a la derecha al anterior. Si el array y las píldoras se desordenaran entre
+ * sí, el gesto llevaría al modo contrario del que muestra la pantalla.
+ */
+const SORTS: Sort[] = ['distance', 'cheapest']
+
+const SORT_LABEL: Record<Sort, string> = {
+  distance: 'Más cerca',
+  cheapest: 'Más barata',
+}
+
+/** Cuánto hay que arrastrar para que el gesto cuente, en píxeles. */
+const COMMIT = 55
+
+/**
  * La misma data del mapa, en lista. Sin tarjetas: una por bar mete dos bordes
  * y una sombra por fila y convierte una lista de precios en un muro de cajas.
  * Lo que tiene que saltar es el número.
@@ -65,6 +82,84 @@ export function ListScreen(p: Props) {
   const shown = isSearch ? (found ?? []) : p.bars
   const busy = isSearch ? searching : p.loading
 
+  /*
+   * Swipe horizontal para cambiar de orden.
+   *
+   * Las píldoras siguen estando: el gesto es el atajo, no el único camino.
+   * Con el teléfono en una mano y una birra en la otra, apuntarle a una
+   * píldora de 34px cuesta más que barrer la pantalla.
+   *
+   * Tres cosas que lo hacen convivir con el scroll vertical, que es el gesto
+   * dominante de esta pantalla:
+   *
+   * 1. El eje se decide una sola vez por gesto, a los 10px de recorrido, y no
+   *    se revisa más. Decidiéndolo en cada frame, un scroll con la mano un
+   *    poco torcida cambiaba de orden a mitad de camino.
+   * 2. Pide que el movimiento horizontal supere al vertical por 1.4x. Un
+   *    pulgar nunca traza una recta: sin el margen, cualquier scroll pasaba
+   *    por swipe.
+   * 3. No llama a `preventDefault` en ningún momento. No hace falta: no hay
+   *    desbordamiento horizontal que scrollear, así que el gesto no compite
+   *    con nada del navegador. Y como React escucha `touchmove` en modo
+   *    pasivo, un `preventDefault` acá sería una excepción en consola y nada
+   *    más.
+   *
+   * El arrastre se dibuja sobre `deck` de forma imperativa. Pasarlo por
+   * estado sería un re-render de la lista entera —hasta 400 filas— por cada
+   * frame de un dedo moviéndose.
+   */
+  const deck = useRef<HTMLDivElement>(null)
+  const swipe = useRef<{ x: number; y: number; dx: number; axis: 'none' | 'x' | 'y' } | null>(null)
+
+  const paint = (dx: number, snap: boolean) => {
+    const el = deck.current
+    if (!el) return
+    el.style.transition = snap ? 'transform .2s ease-out, opacity .2s ease-out' : 'none'
+    el.style.transform = dx === 0 ? '' : `translateX(${dx}px)`
+    el.style.opacity = dx === 0 ? '' : String(1 - Math.min(Math.abs(dx), 110) / 320)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    // Buscando no hay orden que cambiar: los resultados vienen del servidor
+    // por cercanía y las píldoras ni se muestran.
+    if (isSearch || e.touches.length !== 1) return
+    // El slider del radio y el campo de búsqueda usan el eje horizontal para
+    // lo suyo. Un swipe que arranca ahí es de ellos.
+    if ((e.target as HTMLElement).closest('input')) return
+    const t = e.touches[0]
+    swipe.current = { x: t.clientX, y: t.clientY, dx: 0, axis: 'none' }
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s = swipe.current
+    if (!s) return
+    const t = e.touches[0]
+    const dx = t.clientX - s.x
+    const dy = t.clientY - s.y
+
+    if (s.axis === 'none') {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+      s.axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y'
+    }
+    if (s.axis !== 'x') return
+
+    s.dx = dx
+    // En los extremos la lista se resiste en vez de moverse: no hay a dónde
+    // ir, y decirlo con el gesto es más claro que no reaccionar.
+    const i = SORTS.indexOf(p.sort)
+    const edge = (dx < 0 && i === SORTS.length - 1) || (dx > 0 && i === 0)
+    paint(Math.max(-110, Math.min(110, edge ? dx / 5 : dx)), false)
+  }
+
+  const onTouchEnd = () => {
+    const s = swipe.current
+    swipe.current = null
+    paint(0, true)
+    if (!s || s.axis !== 'x' || Math.abs(s.dx) < COMMIT) return
+    const next = SORTS[SORTS.indexOf(p.sort) + (s.dx < 0 ? 1 : -1)]
+    if (next) p.onSort(next)
+  }
+
   const pendingReset = useRef(false)
   useEffect(() => { pendingReset.current = true }, [p.sort, p.styleFilter])
   useEffect(() => {
@@ -75,7 +170,11 @@ export function ListScreen(p: Props) {
   }, [p.bars, p.loading])
 
   return (
-    <div ref={scroller} style={{
+    <div
+      ref={scroller}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+      style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
       // Sin padding arriba: lo lleva el propio encabezado pegajoso. Si el
       // padding viviera acá, `top: 0` pegaría el selector contra el borde de
@@ -144,12 +243,15 @@ export function ListScreen(p: Props) {
               styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
               tone="plain" size={34}
             />
-            {(['distance', 'cheapest'] as Sort[]).map(s => (
+            {/* Se recorre `SORTS` y no un array suelto: es la misma lista que
+                usa el swipe, así que el orden en pantalla y el del gesto no
+                se pueden separar. */}
+            {SORTS.map(s => (
               <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
                 padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
                 background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
                 color: p.sort === s ? 'var(--base)' : 'var(--muted)',
-              }}>{s === 'distance' ? 'Más cerca' : 'Más barata'}</button>
+              }}>{SORT_LABEL[s]}</button>
             ))}
             <span className="num" style={{
               marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
@@ -188,6 +290,12 @@ export function ListScreen(p: Props) {
         />
       </header>}
 
+      {/* El `deck` es lo único que se mueve con el swipe: el encabezado
+          pegajoso queda afuera a propósito. Un `transform` en un ancestro
+          rompe el `position: sticky` de lo que tenga adentro, y la barra de
+          búsqueda y orden es justamente lo que tiene que quedarse quieto
+          mientras la lista se corre. */}
+      <div ref={deck} style={{ willChange: 'transform' }}>
       {busy && <div style={{ height: 1, background: 'var(--amber)', margin: '8px 0' }} />}
 
       {!busy && shown.length === 0 && (
@@ -233,6 +341,7 @@ export function ListScreen(p: Props) {
           </li>
         ))}
       </ul>
+      </div>
       </div>
     </div>
   )

@@ -942,3 +942,51 @@ Dos detalles que se sienten:
   Desmontar en pleno arrastre hace aparecer el mapa de golpe.
 
 Backend sin tocar. `tsc -b` y `npm run build` en verde.
+
+---
+
+## 2026-09-04 (cont.) — v0.6.4: swipe para cambiar de orden en la lista (BIR-29)
+
+Arrastrar la lista al costado cambia entre "Más cerca" y "Más barata". Las
+píldoras siguen estando: el gesto es el atajo, no el único camino. Con el
+teléfono en una mano y una birra en la otra, apuntarle a una píldora de 34px
+cuesta más que barrer la pantalla.
+
+Todo el trabajo real está en convivir con el scroll vertical, que es el gesto
+dominante de esta pantalla. Tres decisiones:
+
+- **El eje se decide una sola vez por gesto**, a los 10px de recorrido, y no se
+  revisa más. Revisándolo en cada frame, un scroll con la mano un poco torcida
+  cambiaba de orden a mitad de camino.
+- **El horizontal tiene que superar al vertical por 1.4x.** Un pulgar nunca
+  traza una recta; sin el margen, cualquier scroll pasaba por swipe.
+- **No se llama a `preventDefault` en ningún momento**, y no hace falta: no hay
+  desbordamiento horizontal que scrollear, así que el gesto no compite con
+  nada del navegador. Además React escucha `touchmove` en modo pasivo, así que
+  un `preventDefault` ahí sería una excepción en consola y nada más. Tampoco se
+  toca `touch-action`: ponerle `pan-y` al contenedor le rompía el arrastre al
+  slider del radio, que vive adentro.
+
+Dos detalles que se ven:
+
+- **En los extremos la lista se resiste** (dx/5) en vez de moverse. No hay a
+  dónde ir, y decirlo con el gesto es más claro que no reaccionar.
+- **El arrastre se pinta sobre un `deck` de forma imperativa**, no por estado:
+  un re-render de hasta 400 filas por frame de dedo no es una animación, es un
+  tirón. Y ese `deck` envuelve sólo la lista, no el encabezado: un `transform`
+  en un ancestro rompe el `position: sticky` de lo que tenga adentro, y la
+  barra de búsqueda y orden es justamente lo que tiene que quedarse quieto.
+
+De paso, las píldoras pasaron a recorrer la misma constante `SORTS` que usa el
+swipe. Si el array y las píldoras se desordenaran entre sí, el gesto llevaría
+al modo contrario del que muestra la pantalla.
+
+Buscando el swipe no hace nada: los resultados vienen del servidor por
+cercanía y las píldoras ni se muestran.
+
+**Sin verificar en navegador.** La extensión de Chrome no estaba conectada en
+esta sesión, así que el gesto está razonado y compila, pero no probado con un
+dedo. Los umbrales (10px para decidir eje, 1.4x de margen, 55px para confirmar)
+son los primeros candidatos a retocar si en la mano se siente mal.
+
+Backend sin tocar. `npm run build` en verde.
