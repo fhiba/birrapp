@@ -130,20 +130,110 @@ export function useBars() {
   }
 }
 
-/** Ubicación del navegador. Igual que en la app: nunca bloquea la primera pintura. */
-export function useLocation() {
-  const [coords, setCoords] = useState<google.maps.LatLngLiteral | null>(null)
-  const [denied, setDenied] = useState(false)
+/**
+ * Ubicación del navegador. Igual que en la app: nunca bloquea la primera
+ * pintura.
+ *
+ * Tres reglas, todas para no vivir pidiendo permiso:
+ *
+ * 1. La última posición se guarda en localStorage. Al abrir se arranca de
+ *    ahí, así que la app ya sirve antes de que el navegador conteste —y si no
+ *    contesta nunca, sigue sirviendo.
+ * 2. Un solo pedido por carga. El doble montaje de StrictMode y cualquier
+ *    remontaje del árbol disparaban `getCurrentPosition` de nuevo, y cada
+ *    llamada es otro cartel de permiso encima del anterior.
+ * 3. Si el permiso todavía está en "preguntar" y hay una posición guardada,
+ *    no se pregunta al abrir: se espera al botón de centrar, que es el gesto
+ *    que de verdad quiere decir "dónde estoy". El cartel aparece cuando lo
+ *    pediste, no cada vez que entrás.
+ *
+ * Lo que no se puede arreglar desde acá: iOS no recuerda el permiso entre
+ * lanzamientos de una PWA instalada. Por eso importa el punto 1 — sin GPS la
+ * app abre igual, donde la dejaste.
+ */
+const LAST_FIX_KEY = 'birrapp.lastFix'
+/** Más viejo que esto y la posición guardada ya no sirve para centrar. */
+const FIX_TTL_MS = 7 * 24 * 60 * 60_000
+/** Con un fix más nuevo que esto, "centrar" no vuelve a molestar al GPS. */
+const FIX_FRESH_MS = 60_000
 
-  const request = useCallback(() => {
-    if (!navigator.geolocation) { setDenied(true); return }
+type Fix = { lat: number; lng: number; at: number }
+
+function readFix(): Fix | null {
+  try {
+    const raw = localStorage.getItem(LAST_FIX_KEY)
+    if (!raw) return null
+    const f = JSON.parse(raw) as Fix
+    if (typeof f?.lat !== 'number' || typeof f?.lng !== 'number') return null
+    return Date.now() - f.at > FIX_TTL_MS ? null : f
+  } catch { return null }
+}
+
+function writeFix(f: Fix) {
+  try { localStorage.setItem(LAST_FIX_KEY, JSON.stringify(f)) } catch { /* modo privado */ }
+}
+
+/**
+ * Por carga de la app, no por componente: es lo que impide que el doble
+ * montaje de StrictMode pida permiso dos veces seguidas.
+ */
+let askedThisLoad = false
+
+export function useLocation() {
+  const stored = useRef(readFix()).current
+  const [coords, setCoords] = useState<google.maps.LatLngLiteral | null>(
+    stored ? { lat: stored.lat, lng: stored.lng } : null,
+  )
+  const [denied, setDenied] = useState(false)
+  const lastAt = useRef(stored?.at ?? 0)
+
+  const locate = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
-      p => setCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => { setDenied(true); setCoords(BA_CENTER) },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
+      p => {
+        const f = { lat: p.coords.latitude, lng: p.coords.longitude, at: Date.now() }
+        lastAt.current = f.at
+        writeFix(f)
+        setCoords({ lat: f.lat, lng: f.lng })
+      },
+      () => {
+        setDenied(true)
+        // Sin permiso y sin nada guardado hay que mostrar algo: el centro.
+        setCoords(c => c ?? BA_CENTER)
+      },
+      // `maximumAge` alto a propósito: dentro de una misma sesión, dos pedidos
+      // seguidos reusan el fix del navegador en vez de encender el GPS.
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: FIX_FRESH_MS },
     )
   }, [])
 
-  useEffect(request, [request])
+  /** Pedido explícito —el botón de centrar—. Ahí sí vale mostrar el cartel. */
+  const request = useCallback(() => {
+    if (!navigator.geolocation) { setDenied(true); return }
+    // Ya sabemos dónde estás y es reciente: no hay nada que preguntar.
+    if (Date.now() - lastAt.current < FIX_FRESH_MS) return
+    locate()
+  }, [locate])
+
+  useEffect(() => {
+    if (askedThisLoad) return
+    askedThisLoad = true
+
+    if (!navigator.geolocation) { setDenied(true); setCoords(c => c ?? BA_CENTER); return }
+
+    const perms = navigator.permissions?.query?.({ name: 'geolocation' as PermissionName })
+    // Safari viejo no expone el permiso de geolocalización: no queda otra que
+    // preguntar, como antes.
+    if (!perms) { locate(); return }
+
+    perms.then(status => {
+      if (status.state === 'granted') { locate(); return }
+      if (status.state === 'denied') { setDenied(true); setCoords(c => c ?? BA_CENTER); return }
+      // 'prompt': con una posición guardada la app ya abre bien, así que el
+      // cartel espera al botón. Sin ella no hay alternativa: se pregunta.
+      if (stored) setDenied(false)
+      else locate()
+    }).catch(() => locate())
+  }, [locate, stored])
+
   return { coords, denied, request }
 }

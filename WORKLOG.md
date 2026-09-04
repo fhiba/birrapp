@@ -824,3 +824,121 @@ dibujaba a 5px. El SVG escala entero, texto incluido. viewBox a 360 y etiquetas
 a 11. Eso es lo que hace la 0.6.1.
 
 69 tests de backend en verde. Web y app compilan.
+
+---
+
+## 2026-09-04 — v0.7.0: el bar se abre sobre el mapa (BIR-26, 27, 25, 24)
+
+Cuatro cosas del mapa web, todas de la misma sesión porque todas viven en
+`MapScreen.tsx` y separarlas era pelearse con uno mismo por el mismo archivo.
+
+**El pin abre una preview y no la ficha completa (BIR-26).** Hasta ahora tocar
+un bar te sacaba del mapa. Comparar dos bares del barrio —que es *el* gesto de
+esta app— costaba entrar, volver, entrar, y en cada vuelta la cámara se
+rearmaba desde cero. Ahora sube una tarjeta desde abajo con nombre, distancia
+y el precio con su antigüedad al lado, y el mapa se queda donde estaba.
+
+La tarjeta **no hace ninguna llamada a la API**: todo lo que muestra ya venía
+en el `BarPin` del mapa. Por eso aparece en el mismo frame del toque. Con un
+fetch sería un esqueleto que se completa, y un esqueleto no es una preview: si
+tenés que esperar para saber si vale la pena entrar, entrás igual.
+
+Decisiones que no se ven pero se notan:
+
+- Se guarda **el bar entero, no su id**. La lista de bares se recarga sola al
+  moverse la cámara, y la preview mueve la cámara: buscando por id en `p.bars`,
+  un refresco que no devolviera ese bar vaciaba la tarjeta recién abierta.
+- El mapa **centra el bar arriba de la tarjeta**, no en el medio, donde la
+  tarjeta lo taparía. El corrimiento se calcula en coordenadas y va en un solo
+  `panTo`: encadenar `panTo` + `panBy` son dos animaciones que compiten.
+- El pin abierto lleva **aro crema y su precio siempre visible**, aunque el
+  descarte de etiquetas superpuestas lo hubiera dejado como punto. Perder el
+  precio justo del bar que estás mirando era el peor caso posible.
+- **Los dos flotantes desaparecen** mientras hay preview: ocupan exactamente la
+  franja donde entra la tarjeta. Mientras mirás un lugar, "agregar un bar" no
+  es lo que estás por hacer.
+- Arrastrar para abajo cierra, arrastrar para arriba abre la ficha completa.
+  El manijón promete un gesto; sin el gesto sería un adorno.
+- La guarda de `closest('button, a')` en el `pointerdown` no es cosmética:
+  `setPointerCapture` sobre el contenedor le roba el `click` al botón, así que
+  sin eso la X no cerraba nada.
+
+Las flechas para ciclar entre bares cercanos que menciona BIR-26 quedan afuera:
+el propio issue las deja "a debatir", y el mapa ya es el ciclador.
+
+**Frescura y precio suben a la fila del rango (BIR-27).** Eran dos filas de
+controles sobre el mapa para tres filtros. El modo apagado ahora muestra sólo
+sus tres colores, sin texto: con las dos etiquetas puestas la fila no entra en
+un teléfono angosto, y el nombre que importa es el del modo prendido. La
+leyenda de colores —que era la razón de ser del toggle— se conserva entera,
+porque los swatches siguen en los dos lados.
+
+**El botón de centrar vuelve al punto elegido (BIR-25).** Si hay punto
+secundario, centra ahí; antes lo borraba y se iba al GPS, o sea que perdías el
+punto por querer volver a él. Y ese punto es el que manda la consulta: el
+radio, la lista y los precios salen de ahí. Para volver a tu ubicación se borra
+el punto con un toque en el mapa, que es el mismo gesto con el que se puso. El
+ícono va crema cuando apunta al punto y ámbar cuando apunta a tu ubicación —
+los colores de cada uno de los dos puntos en el mapa.
+
+**El slider de rango deja de ser de 1900px (BIR-24).** `alignSelf: stretch` lo
+estiraba a todo el viewport en escritorio: arrastrar de punta a punta cambiaba
+el radio 8 metros por píxel. Tope de 420px.
+
+Sólo la web. La app de Android sigue con el flujo de siempre; si el sheet
+gusta, allá se hace con `ModalBottomSheet` y es otra sesión.
+
+Backend sin tocar. `npm run build` en verde.
+
+---
+
+## 2026-09-04 — v0.6.3: dejar de pedir permiso de ubicación en cada apertura
+
+Dos cosas de la PWA, las dos sobre gestos y permisos.
+
+**El cartel de ubicación aparecía al abrir, y a veces dos o tres veces
+seguidas.** Tres causas, tres arreglos, en `useBars.ts`:
+
+- *Se pedía más de una vez por carga.* `useLocation` disparaba
+  `getCurrentPosition` desde un `useEffect` sin ninguna guarda fuera del
+  componente: el doble montaje de StrictMode —y cualquier remontaje del
+  árbol— era otra llamada, y cada llamada es otro cartel encima del anterior.
+  Ahora la guarda es de módulo: un pedido por carga de la app.
+- *No se guardaba nada.* Cada apertura arrancaba sin saber dónde estás, así
+  que el permiso era condición para que la app sirviera —de ahí la pantalla
+  "Buscando dónde estás…" bloqueando la primera pintura—. El último fix se
+  guarda en `localStorage` con su timestamp y vale una semana. Al abrir se
+  arranca de ahí: la app abre donde la dejaste, sin preguntar nada.
+- *Se preguntaba aunque el navegador ya supiera la respuesta.* Ahora se
+  consulta la Permissions API primero. `granted` → ubica sin cartel. `denied`
+  → ni se llama al GPS, que era pedirle al usuario que vuelva a decir que no.
+  `prompt` con posición guardada → **no se pregunta al abrir**: el cartel
+  espera al botón de centrar, que es el gesto que quiere decir "dónde estoy".
+  Sólo la primera visita, sin nada guardado, ve el cartel al entrar.
+
+De paso, el botón de centrar no vuelve a molestar al GPS si el fix tiene menos
+de un minuto, y `maximumAge` pasó a ese mismo minuto para que dos pedidos
+seguidos reusen el fix del navegador en vez de encender la antena.
+
+Lo que **no** se arregla desde acá, y conviene tenerlo escrito: iOS no recuerda
+el permiso entre lanzamientos de una PWA instalada. No hay API para eso. Por eso
+importa la caché — sin GPS la app abre igual, y el permiso pasa a ser una
+mejora y no un peaje.
+
+**La ficha del bar se cierra arrastrando hacia abajo (`BarDetail.tsx`).** Es el
+gesto inverso al que la abre desde el mapa, y faltaba: se abría con el pulgar y
+se cerraba con la flechita de la esquina. Sólo cuenta desde el scroll arriba de
+todo —más abajo un arrastre vertical es scroll y nada más—, sólo si es
+claramente vertical, así que no le roba el swipe a las pestañas de birras ni a
+la tira de fotos, y se desactiva con un diálogo o el visor de fotos abierto:
+esos viven adentro del contenedor y sus toques burbujean hasta él.
+
+Dos detalles que se sienten:
+
+- El `transform` **no queda puesto en reposo**. Un transform crea bloque
+  contenedor y los `position: fixed` de los diálogos dejarían de medirse contra
+  el viewport.
+- Se navega *después* de la animación de salida, no en el `touchend`.
+  Desmontar en pleno arrastre hace aparecer el mapa de golpe.
+
+Backend sin tocar. `tsc -b` y `npm run build` en verde.

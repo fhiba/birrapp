@@ -63,6 +63,23 @@ export function BarDetailScreen({
   const [confirmPhoto, setConfirmPhoto] = useState<Photo | null>(null)
   const [confirmPrice, setConfirmPrice] = useState<StylePrice | null>(null)
 
+  // Cerrar arrastrando hacia abajo: el mismo gesto con el que la ficha se
+  // abrió desde el mapa, al revés. Sólo cuenta desde arriba de todo — más
+  // abajo un arrastre vertical es scroll y nada más.
+  const scroller = useRef<HTMLDivElement | null>(null)
+  const gesture = useRef<{ x: number; y: number; live: boolean } | null>(null)
+  const [pull, setPull] = useState(0)
+  const [pulling, setPulling] = useState(false)
+  const [closing, setClosing] = useState(false)
+
+  // Primero la ficha termina de irse, después se navega. Al revés se
+  // desmontaría en pleno arrastre y el mapa aparecería de golpe.
+  useEffect(() => {
+    if (!closing) return
+    const t = setTimeout(() => nav(-1), 180)
+    return () => clearTimeout(t)
+  }, [closing, nav])
+
   const load = useCallback(async () => {
     try {
       setBar(await api.barDetail(barId, center?.lat, center?.lng))
@@ -148,11 +165,66 @@ export function BarDetailScreen({
     ? photos.filter(f => f.styleSlug === active.styleSlug && f.brandSlug === active.brandSlug)
     : []
 
+  // Los diálogos y el visor de fotos son hijos de este contenedor, así que
+  // sus toques burbujean hasta acá. Con uno abierto el arrastre es de él.
+  const overlayOpen = !!(
+    reporting || confirmDelete || history || reportingBad || comments ||
+    viewing != null || confirmPhoto || confirmPrice
+  )
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    gesture.current = null
+    if (overlayOpen || closing) return
+    if ((scroller.current?.scrollTop ?? 0) > 0) return
+    const t = e.touches[0]
+    gesture.current = { x: t.clientX, y: t.clientY, live: false }
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const g = gesture.current
+    if (!g) return
+    const t = e.touches[0]
+    const dx = t.clientX - g.x
+    const dy = t.clientY - g.y
+    if (!g.live) {
+      // Hasta que el gesto no se define, nada se mueve: si arranca de costado
+      // —las pestañas de birras, la tira de fotos— o hacia arriba, es de otro.
+      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return
+      if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) { gesture.current = null; return }
+      g.live = true
+      setPulling(true)
+    }
+    // Sigue al dedo a media velocidad: se siente elástico y el umbral no se
+    // cruza sin querer al empezar a scrollear desde arriba.
+    setPull(Math.max(0, dy) * .55)
+  }
+
+  const onTouchEnd = () => {
+    const g = gesture.current
+    gesture.current = null
+    setPulling(false)
+    if (g?.live && pull > 70) setClosing(true)
+    else setPull(0)
+  }
+
   return (
-    <div style={{
-      position: 'absolute', inset: 0, overflowY: 'auto',
-      paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 40,
-    }}>
+    <div
+      ref={scroller}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+      style={{
+        position: 'absolute', inset: 0, overflowY: 'auto',
+        // Sin esto, arrastrar hacia abajo desde arriba dispara el
+        // pull-to-refresh del navegador antes de que la ficha se mueva.
+        overscrollBehaviorY: 'contain',
+        paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 40,
+        // Sin arrastre no se deja `transform` puesto: un transform crea
+        // bloque contenedor y los `position: fixed` de los diálogos dejarían
+        // de medirse contra el viewport.
+        transform: closing ? 'translateY(100%)'
+          : pull ? `translateY(${pull}px)` : undefined,
+        transition: pulling ? 'none' : 'transform .18s cubic-bezier(.2,.8,.3,1)',
+      }}>
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
