@@ -889,3 +889,56 @@ Sólo la web. La app de Android sigue con el flujo de siempre; si el sheet
 gusta, allá se hace con `ModalBottomSheet` y es otra sesión.
 
 Backend sin tocar. `npm run build` en verde.
+
+---
+
+## 2026-09-04 — v0.6.3: dejar de pedir permiso de ubicación en cada apertura
+
+Dos cosas de la PWA, las dos sobre gestos y permisos.
+
+**El cartel de ubicación aparecía al abrir, y a veces dos o tres veces
+seguidas.** Tres causas, tres arreglos, en `useBars.ts`:
+
+- *Se pedía más de una vez por carga.* `useLocation` disparaba
+  `getCurrentPosition` desde un `useEffect` sin ninguna guarda fuera del
+  componente: el doble montaje de StrictMode —y cualquier remontaje del
+  árbol— era otra llamada, y cada llamada es otro cartel encima del anterior.
+  Ahora la guarda es de módulo: un pedido por carga de la app.
+- *No se guardaba nada.* Cada apertura arrancaba sin saber dónde estás, así
+  que el permiso era condición para que la app sirviera —de ahí la pantalla
+  "Buscando dónde estás…" bloqueando la primera pintura—. El último fix se
+  guarda en `localStorage` con su timestamp y vale una semana. Al abrir se
+  arranca de ahí: la app abre donde la dejaste, sin preguntar nada.
+- *Se preguntaba aunque el navegador ya supiera la respuesta.* Ahora se
+  consulta la Permissions API primero. `granted` → ubica sin cartel. `denied`
+  → ni se llama al GPS, que era pedirle al usuario que vuelva a decir que no.
+  `prompt` con posición guardada → **no se pregunta al abrir**: el cartel
+  espera al botón de centrar, que es el gesto que quiere decir "dónde estoy".
+  Sólo la primera visita, sin nada guardado, ve el cartel al entrar.
+
+De paso, el botón de centrar no vuelve a molestar al GPS si el fix tiene menos
+de un minuto, y `maximumAge` pasó a ese mismo minuto para que dos pedidos
+seguidos reusen el fix del navegador en vez de encender la antena.
+
+Lo que **no** se arregla desde acá, y conviene tenerlo escrito: iOS no recuerda
+el permiso entre lanzamientos de una PWA instalada. No hay API para eso. Por eso
+importa la caché — sin GPS la app abre igual, y el permiso pasa a ser una
+mejora y no un peaje.
+
+**La ficha del bar se cierra arrastrando hacia abajo (`BarDetail.tsx`).** Es el
+gesto inverso al que la abre desde el mapa, y faltaba: se abría con el pulgar y
+se cerraba con la flechita de la esquina. Sólo cuenta desde el scroll arriba de
+todo —más abajo un arrastre vertical es scroll y nada más—, sólo si es
+claramente vertical, así que no le roba el swipe a las pestañas de birras ni a
+la tira de fotos, y se desactiva con un diálogo o el visor de fotos abierto:
+esos viven adentro del contenedor y sus toques burbujean hasta él.
+
+Dos detalles que se sienten:
+
+- El `transform` **no queda puesto en reposo**. Un transform crea bloque
+  contenedor y los `position: fixed` de los diálogos dejarían de medirse contra
+  el viewport.
+- Se navega *después* de la animación de salida, no en el `touchend`.
+  Desmontar en pleno arrastre hace aparecer el mapa de golpe.
+
+Backend sin tocar. `tsc -b` y `npm run build` en verde.
