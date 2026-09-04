@@ -31,6 +31,8 @@ interface Props {
   onRecenter: () => void
   camera: { center: google.maps.LatLngLiteral; zoom: number } | null
   myLocation: google.maps.LatLngLiteral | null
+  /** No se pudo ubicar a la persona: el mapa arranca en el centro y hay que decirlo. */
+  locationUnknown: boolean
   /** Cambia cuando se pide centrar: la cámara es imperativa, no reactiva. */
   panTo: { target: google.maps.LatLngLiteral; token: number } | null
 }
@@ -264,6 +266,23 @@ export function MapScreen(p: Props) {
             padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
             pointerEvents: 'auto',
           }}>Acercá el mapa para ver bares</div>
+        )}
+
+        {/* Sin esto, un mapa centrado en el Obelisco es indistinguible de un
+            mapa centrado en vos. Ya no hay punto azul mintiendo, pero el
+            encuadre solo sigue sugiriendo que estás ahí: hay que decirlo con
+            palabras. */}
+        {p.locationUnknown && (
+          <div className="glass pill" style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            pointerEvents: 'auto', maxWidth: 'calc(100% - 28px)',
+          }}>
+            <span>No pudimos ubicarte — esto es el centro</span>
+            <button onClick={p.onRecenter} className="lbl" style={{
+              color: 'var(--amber)', fontSize: 12, whiteSpace: 'nowrap',
+            }}>Reintentar</button>
+          </div>
         )}
       </div>
 

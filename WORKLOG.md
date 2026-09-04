@@ -1093,3 +1093,46 @@ Web compila. Android compila (`compileDebugKotlin`). Backend sin tocar.
 sesión. La cadena de llamadas está leída de punta a punta —`act` → `onChanged`
 → `afterChange` → `invalidate()` + `refresh(true)` → `load` con `force`, que
 saltea `covers()`— pero nadie cargó un precio y miró el mapa.
+
+---
+
+## 2026-09-04 (cont.) — v0.6.7: la app dejaba de decirte que estás en el Obelisco
+
+Reporte de varios usuarios: el mapa les marcaba que estaban en el Obelisco
+estando en otro lado.
+
+`useLocation` rellenaba `coords` con `BA_CENTER` en tres caminos —permiso
+negado, GPS con timeout, navegador sin geolocalización— con el comentario "sin
+permiso y sin nada guardado hay que mostrar algo: el centro". Y `App.tsx` pasa
+ese mismo `coords` como `myLocation`, que es lo que dibuja el punto azul de
+"acá estás". O sea: el valor puesto para encuadrar la cámara terminaba
+afirmando una posición.
+
+**La distinción que faltaba es entre "por dónde empezar a mirar" y "acá
+estás".** La primera admite un default; la segunda no admite ninguno. Ahora
+`coords` guarda sólo posiciones reales y puede quedarse en `null` para siempre;
+el centro sobrevive únicamente en `coords ?? BA_CENTER` de App.tsx, que es
+encuadre y no una afirmación. Sin posición no hay punto azul.
+
+Tres consecuencias que hubo que atar, porque `coords` estaba haciendo de dos
+cosas a la vez:
+
+- **`denied` corta la espera.** Sin él, negar el permiso dejaba la app colgada
+  para siempre en "Buscando dónde estás…", porque el valor inventado era lo que
+  la destrababa. `useLocation` ya lo exponía y nadie lo usaba.
+- **`queryPoint` cae al centro sólo si `denied`.** Es de dónde consultar bares,
+  no dónde está la persona. Sin esto, quien niega el permiso y abre la lista
+  antes que el mapa no veía ningún bar: nunca hubo cámara de la que sacar un
+  punto.
+- **Un cartel en el mapa.** Sacar el punto azul no alcanza: un mapa centrado en
+  el Obelisco sigue siendo indistinguible de un mapa centrado en vos. Dice "No
+  pudimos ubicarte — esto es el centro", con un "Reintentar" al lado.
+
+**Android no tiene el bug.** Usa `isMyLocationEnabled` del SDK de Maps, gateado
+por el permiso real: el punto azul lo dibuja el sistema desde la ubicación de
+verdad y la app no le pasa ninguna coordenada. `BUENOS_AIRES_CENTER` allá sólo
+encuadra la cámara, que es justamente la distinción que a la web le faltaba.
+
+Web compila. **Sin verificar a mano**: la extensión de Chrome no estuvo
+conectada en toda la sesión. Se prueba negando el permiso de ubicación en el
+navegador y mirando que no aparezca el punto azul y sí el cartel.

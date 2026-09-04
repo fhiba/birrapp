@@ -57,7 +57,7 @@ function Shell() {
   const [user, setUser] = useState<User | null>(api.currentUser())
   const [toast, setToast] = useState<string | null>(null)
 
-  const { coords, request } = useLocation()
+  const { coords, denied, request } = useLocation()
   const {
     bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
   } = useBars()
@@ -127,7 +127,11 @@ function Shell() {
   // lista y se volvía.
   const [colorBy, setColorBy] = useState<ColorBy>('freshness')
 
-  const queryPoint = simulated ?? camera?.center ?? coords
+  // El centro entra como último recurso SÓLO si ya sabemos que no vamos a
+  // tener ubicación. Es de dónde consultar bares, no dónde está la persona:
+  // sin esto, quien niega el permiso y abre la lista antes que el mapa no ve
+  // ningún bar, porque nunca hubo cámara de la que sacar un punto.
+  const queryPoint = simulated ?? camera?.center ?? coords ?? (denied ? BA_CENTER : null)
 
   const refresh = useCallback((force = false) => {
     if (!queryPoint) return
@@ -155,7 +159,10 @@ function Shell() {
       : route.pathname.startsWith('/bar/') ? 'bar'
       : null
 
-  if (!coords && !camera) return <PintLoader message="Buscando dónde estás…" />
+  // `denied` corta la espera: sin él, negar el permiso dejaba a la app
+  // colgada para siempre en "Buscando dónde estás…", porque `coords` ya no se
+  // rellena con un valor inventado.
+  if (!coords && !camera && !denied) return <PintLoader message="Buscando dónde estás…" />
 
   return (
     <>
@@ -169,7 +176,7 @@ function Shell() {
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
-            myLocation={coords} panTo={panTo}
+            myLocation={coords} locationUnknown={denied && !coords} panTo={panTo}
             onRecenter={() => {
               // Con un punto secundario puesto, el botón vuelve a ese punto y
               // no al GPS. Ese punto es el que manda la consulta —el radio, la
