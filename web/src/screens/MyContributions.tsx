@@ -16,7 +16,17 @@ import { Confirm, Toast } from '../ui/Chrome'
  * tu aporte sino borrar el de terceros. Para eso está la denuncia, que la
  * revisa un moderador.
  */
-export function MyContributionsScreen() {
+export function MyContributionsScreen(
+  {
+    /**
+     * Invalida la caché del mapa. Borrar un reporte propio puede cambiar el pin
+     * —si era el precio vigente, el bar pasa a mostrar otro o ninguno—, y sin
+     * esto el mapa seguía mostrando un precio que ya no existe. Es el mismo
+     * agujero que tenía la ficha del bar (BIR-23).
+     */
+    onChanged,
+  }: { onChanged: () => void },
+) {
   const nav = useNavigate()
   const [data, setData] = useState<MyContributions | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -137,7 +147,11 @@ export function MyContributionsScreen() {
           onConfirm={async () => {
             const p = killPrice
             setKillPrice(null)
-            try { await api.removeMyPrice(p.id); await load(); setToast('Precio borrado') }
+            try {
+              await api.removeMyPrice(p.id); await load()
+              onChanged()
+              setToast('Precio borrado')
+            }
             catch (e) { setToast((e as Error).message) }
           }}
         />
