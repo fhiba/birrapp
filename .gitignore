@@ -26,6 +26,9 @@ captures/
 # Scratch
 *.log
 scripts/out/
+# Qué bares ya se consultaron contra Places: es caché de gasto, no fuente de
+# verdad, y depende de la base de cada quien. Ver scripts/link_place_ids.mjs.
+scripts/.place-ids.checkpoint.json
 
 # Artefactos de build de IDEs (plugin de Kotlin en VS Code)
 bin/
