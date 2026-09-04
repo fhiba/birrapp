@@ -1093,3 +1093,115 @@ Web compila. Android compila (`compileDebugKotlin`). Backend sin tocar.
 sesión. La cadena de llamadas está leída de punta a punta —`act` → `onChanged`
 → `afterChange` → `invalidate()` + `refresh(true)` → `load` con `force`, que
 saltea `covers()`— pero nadie cargó un precio y miró el mapa.
+
+---
+
+## 2026-09-04 (cont.) — Vincular los bares de OSM con Places (BIR-14)
+
+`scripts/link_place_ids.mjs`. Los 738 bares que sembró `seed_osm.mjs` no tienen
+`google_place_id`, así que la deduplicación exacta de `BarRepo.create` no aplica
+sobre ellos y alguien que carga un bar desde el autocompletado de Google crea un
+duplicado de uno que ya está. Queda la defensa de nombre + 100 m, pero es
+justamente la que falla cuando OSM y Google le dicen distinto al mismo lugar,
+que es el caso común — y es lo que pasó con "Venice Bar Acassuso".
+
+**Guardar el `place_id` está permitido y no contradice la regla de la casa.**
+Los términos de Places prohíben guardar *contenido* de lugares más de 30 días,
+y el `place_id` está explícitamente exento. Ya estaba dicho en
+`V3__google_place_id.sql`. El script no guarda ninguna otra cosa de Google: el
+nombre y la ubicación que vuelven se usan para decidir si el match sirve y se
+descartan.
+
+**El match no se cree lo que le dicen.** Un `place_id` equivocado es *peor* que
+ninguno: haría que `create` rechace como duplicado un bar legítimo. Así que un
+candidato entra sólo si está a menos de 150 m y el nombre se parece 0,5 o más.
+Los 150 m no son generosos: OSM apunta al polígono del edificio y Google a la
+entrada, y en una esquina de Palermo eso ya son 40 m.
+
+El parecido de nombres es solapamiento de tokens **sobre el más corto**, no
+Jaccard. Jaccard castiga que un lado tenga más palabras, y ése es el caso normal
+acá: OSM dice "Antares" y Google "Antares Cervecería Artesanal Palermo Soho".
+Sobre el más corto eso da 1, que es la respuesta correcta; Jaccard daría 0,25.
+Antes de comparar se sacan tildes y las palabras que no distinguen nada —"bar",
+"cervecería", "the"— porque aparecen en media base y sumaban parecido falso.
+
+**El regalo.** `idx_bars_place_id` es UNIQUE, así que si dos filas matchean el
+mismo lugar el índice no las deja entrar a las dos. Pero eso no es un error del
+script: son dos filas que representan el mismo bar y **ya estaban duplicadas**.
+El script las reporta y vincula la de id más bajo; cuál sobrevive de verdad es
+una decisión de moderación, no de un script. O sea que el backfill sirve además
+como detector del problema que el issue quiere evitar hacia adelante.
+
+**Cuesta plata, así que está armado para no repagar.** Checkpoint en disco
+escrito en cada vuelta —no al final— para que un corte a mitad de camino no
+cueste dos veces; "consultado y sin match" se anota como `null`, distinto de
+"todavía no consultado", o cada corrida volvería a pagar por los bares que
+Google no reconoce; `--limit` para acotar la primera corrida y `--dry-run` que
+no llama a nada. Los errores de red no se anotan, para que se puedan reintentar.
+
+La escritura va por el mismo camino que `seed_osm.mjs`: COPY a una tabla
+temporal y UPDATE desde ahí. `psql -c` no acepta parámetros, y concatenar SQL
+con algo que volvió de una API externa es exactamente donde aparecen los
+agujeros.
+
+**Verificación.** `--self-test` corre las aserciones del matcher con
+`node:assert` (incluye el caso "Venice Bar", el de 4 km que no debe matchear y
+el del vecino de al lado que tampoco) — en verde. `--dry-run` corrido contra la
+base de dev: encuentra los 738 bares sin vincular, con nombres y coordenadas
+bien parseados. **Lo que NO se probó: la llamada a Places.** No tengo la API
+key, y son ~738 llamadas con costo real. Conviene la primera corrida con
+`--limit 25` y mirar el log antes de soltarlo entero.
+
+Sin cambio de versión: no se toca nada que se publique, sólo se agrega un script
+de mantenimiento.
+---
+
+## 2026-09-04 (cont.) — Entorno de test: la parte que vive en el repo (BIR-21)
+
+Hasta hoy todo salía derecho a `master`, o sea a producción, sin ningún lugar
+donde probarlo antes. Se notó en esta misma sesión: cuatro features y dos bugs
+mergeados a producción sin que nadie los viera andar.
+
+Lo que se puede hacer desde el repo es la mitad; la otra mitad son clics en
+Railway, Neon, Vercel y Google Cloud. Queda documentado paso a paso en
+`docs/DEPLOY.md` § "Entorno de test", con la forma: `dev` → staging,
+`master` → producción, y environment de Railway en vez de servicio aparte
+porque las variables se definen por environment, que es justo lo que hace falta.
+
+**La base de staging va vacía, sembrada desde OSM.** Neon clona una branch con
+los datos de un clic y es tentador, pero `users` tiene emails y `google_sub` de
+gente real. Copiarlos a un entorno con menos cuidado contradice la línea que
+sostiene el resto del proyecto —`traffic_sessions` sin IP ni user agent, el
+presupuesto de BIR-13 sin persistir la IP—. El costo es no tener precios reales
+para probar frescura; es barato al lado de arrastrar identidades.
+
+**`JWT_SECRET` distinto en staging, y no es capricho.** Con el mismo secreto, un
+token emitido por el entorno de pruebas vale en producción. Un entorno que
+emite credenciales para el entorno real no es un entorno de pruebas.
+
+**`scripts/smoke.mjs`** es lo que hace que el staging sirva de algo. Un entorno
+sin forma de verificarlo se prueba a ojo, y a ojo no se ve lo que importa.
+Chequea, en orden de qué tan seguido se rompe:
+
+1. **CORS entre la web y el backend** — la falla número uno de un entorno nuevo:
+   el backend levanta, `/health` contesta, y la app no muestra nada porque
+   `ALLOWED_ORIGINS` quedó con el dominio de producción.
+2. **Que la base esté conectada y sembrada** — `/health` no toca Postgres, así
+   que un backend con la `DATABASE_URL` mal apuntada pasa el health check.
+3. **Que los topes de BIR-13 estén desplegados** — la diferencia entre el
+   entorno que creés que desplegaste y el que desplegaste.
+4. **Que el bundle de la web apunte al backend de test.** El error más
+   silencioso de todos: staging se ve perfecto mientras escribe en la base de
+   producción, y mirando la pantalla no hay forma de darse cuenta.
+
+Sale con código 1 si algo falla, así que sirve de paso previo a un merge.
+
+**Verificado corriéndolo contra el backend local**, que resultó ser un caso de
+prueba mejor que uno inventado: pasó los cuatro chequeos de vida y **falló los
+dos de BIR-13**, porque el proceso local es un build anterior a ese merge. O
+sea que detectó una desincronización real de versión, que es exactamente para lo
+que existe. Contra staging todavía no se corrió: el entorno no está creado.
+
+De paso, `DEPLOY.md` decía "`/bars` no tiene límite de tasa" en la lista de
+pendientes. Es falso desde BIR-13; corregido, con el matiz de que lo que hay es
+fricción y no prevención.
