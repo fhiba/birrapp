@@ -6,6 +6,7 @@ import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../
 import { PintLoader } from '../ui/PintLoader'
 import { MAP_STYLE } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
+import { BarPreview } from '../ui/BarPreview'
 
 export type ColorBy = 'freshness' | 'price'
 
@@ -38,6 +39,12 @@ export function MapScreen(p: Props) {
   const nav = useNavigate()
   const [radiusOpen, setRadiusOpen] = useState(false)
 
+  // El bar de la preview se guarda entero y no por id: la lista de bares se
+  // recarga sola cada vez que se mueve la cámara —y la preview mueve la
+  // cámara—, así que buscarlo por id en `p.bars` dejaba la tarjeta vacía cada
+  // tanto, justo después de abrirla.
+  const [preview, setPreview] = useState<BarPin | null>(null)
+
   // Al soltar el dedo después de un long-press, el mapa emite igual un
   // 'click'. Sin este sello, ese click borraba el punto en el mismo gesto que
   // lo acababa de poner — y el long-press parecía no hacer nada.
@@ -59,10 +66,11 @@ export function MapScreen(p: Props) {
         styles={MAP_STYLE}
         onClick={() => {
           if (Date.now() - longPressAt.current < 600) return
-          // Un toque cierra primero el slider abierto; recién si no hay nada
-          // abierto borra el punto elegido. Si no, cerrar el radio te costaba
-          // el punto que estabas por ajustar.
+          // Un toque cierra lo que esté abierto, de arriba hacia abajo, y
+          // recién con todo cerrado borra el punto elegido. Si no, cerrar el
+          // radio o la preview te costaba el punto que estabas por ajustar.
           if (radiusOpen) setRadiusOpen(false)
+          else if (preview) setPreview(null)
           else p.onSimulate(null)
         }}
         style={{ width: '100%', height: '100%' }}
@@ -77,7 +85,8 @@ export function MapScreen(p: Props) {
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
-        <Pins bars={p.bars} colorBy={p.colorBy} onOpen={id => nav(`/bar/${id}`)} />
+        <Pins bars={p.bars} colorBy={p.colorBy} selectedId={preview?.id ?? null}
+          onOpen={setPreview} />
       </Map>
 
       {/* Blanco del tutorial para el paso del punto secundario.
@@ -162,6 +171,49 @@ export function MapScreen(p: Props) {
               {formatRadius(p.radius)}
             </span>
           </button>
+
+          {/*
+            El color del pin codifica una cosa u otra, y hasta ahora codificaba
+            la frescura sin decirlo en ninguna parte. Verde/ámbar/rojo es una
+            convención tan fuerte para barato/caro que ésa era la lectura por
+            defecto, incluso para quien escribió la app.
+
+            El toggle resuelve las dos mitades del problema: deja elegir qué
+            mirar, y al nombrar el modo activo dice qué significan los colores.
+
+            Va en la misma fila que el estilo y el radio, y no en un renglón
+            propio: son los tres filtros del mapa y tenerlos en dos filas se
+            comía una franja de mapa entera para tres botones. Por eso el modo
+            apagado muestra sólo sus tres colores, sin texto — la fila no entra
+            en un teléfono angosto con las dos etiquetas puestas, y el nombre
+            del modo que importa es el del que está prendido.
+          */}
+          <div className="glass pill" data-tour="map-color" style={{
+            display: 'flex', padding: 3, flexShrink: 0, alignItems: 'center',
+          }}>
+            {([
+              ['freshness', 'Frescura'],
+              ['price', 'Precio'],
+            ] as [ColorBy, string][]).map(([mode, label]) => {
+              const on = p.colorBy === mode
+              return (
+                <button
+                  key={mode} onClick={() => p.onColorBy(mode)} className="lbl"
+                  aria-pressed={on} aria-label={`Colorear por ${label.toLowerCase()}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, height: 38,
+                    padding: on ? '0 11px' : '0 9px', borderRadius: 999, fontSize: 12,
+                    whiteSpace: 'nowrap',
+                    background: on ? 'var(--amber)' : 'transparent',
+                    color: on ? 'var(--base)' : 'rgba(251,246,238,.7)',
+                  }}
+                >
+                  <Swatch mode={mode} />
+                  {on && <span>{label}</span>}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* El slider va acá, pegado a los controles: es el control que lo
@@ -171,7 +223,11 @@ export function MapScreen(p: Props) {
           <div
             className="glass"
             style={{
-              alignSelf: 'stretch', margin: '0 14px', pointerEvents: 'auto',
+              // Ancho tope: `alignSelf: stretch` lo estiraba a todo el
+              // viewport, y en un monitor eso son 1900px de slider para
+              // elegir entre 300 m y 15 km. Arrastrar de punta a punta
+              // cambiaba el radio 8 metros por píxel.
+              width: 'calc(100% - 28px)', maxWidth: 420, pointerEvents: 'auto',
               borderRadius: 18, padding: '10px 18px 8px',
             }}
           >
@@ -203,38 +259,6 @@ export function MapScreen(p: Props) {
           </div>
         )}
 
-        {/*
-          El color del pin codifica una cosa u otra, y hasta ahora codificaba
-          la frescura sin decirlo en ninguna parte. Verde/ámbar/rojo es una
-          convención tan fuerte para barato/caro que ésa era la lectura por
-          defecto, incluso para quien escribió la app.
-
-          El toggle resuelve las dos mitades del problema: deja elegir qué
-          mirar, y al nombrar el modo activo dice qué significan los colores.
-        */}
-        <div className="glass pill" data-tour="map-color" style={{
-          display: 'flex', padding: 3, pointerEvents: 'auto',
-        }}>
-          {([
-            ['freshness', 'Frescura'],
-            ['price', 'Precio'],
-          ] as [ColorBy, string][]).map(([mode, label]) => (
-            <button
-              key={mode} onClick={() => p.onColorBy(mode)} className="lbl"
-              aria-pressed={p.colorBy === mode}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 999, fontSize: 12,
-                background: p.colorBy === mode ? 'var(--amber)' : 'transparent',
-                color: p.colorBy === mode ? 'var(--base)' : 'rgba(251,246,238,.7)',
-              }}
-            >
-              <Swatch mode={mode} />
-              {label}
-            </button>
-          ))}
-        </div>
-
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
             padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
@@ -243,31 +267,54 @@ export function MapScreen(p: Props) {
         )}
       </div>
 
-      {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
-      <button onClick={p.onRecenter} className="glass" style={{
-        position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
-        width: 48, height: 48, borderRadius: '50%', zIndex: 10,
-        display: 'grid', placeItems: 'center',
-      }} aria-label="Centrar en mi ubicación">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="var(--amber)" aria-hidden>
-          <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
-        </svg>
-      </button>
+      {/*
+        Los dos flotantes se van mientras hay preview: ocupan exactamente la
+        franja donde entra la tarjeta. Google Maps hace lo mismo, y por la
+        misma razón — mientras mirás un lugar, "agregar un bar" no es lo que
+        estás por hacer.
+      */}
+      {!preview && (
+        <>
+          {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
+          <button onClick={p.onRecenter} className="glass" style={{
+            position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
+            width: 48, height: 48, borderRadius: '50%', zIndex: 10,
+            display: 'grid', placeItems: 'center',
+          }} aria-label={p.simulated ? 'Centrar en el punto elegido' : 'Centrar en mi ubicación'}>
+            {/* Crema cuando apunta al punto elegido, ámbar cuando apunta a tu
+                ubicación: es el color de cada uno de los dos puntos en el
+                mapa, así el botón dice a cuál va antes de tocarlo. */}
+            <svg width="21" height="21" viewBox="0 0 24 24"
+              fill={p.simulated ? 'var(--cream)' : 'var(--amber)'} aria-hidden>
+              <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
+            </svg>
+          </button>
 
-      {/* El "+" va dibujado, no como texto: un glifo se posiciona por
-          baseline y nunca queda centrado en un círculo, además de depender
-          de la fuente que tenga cada quien. */}
-      <button onClick={() => nav('/agregar')} style={{
-        position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
-        width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
-        zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
-      }} aria-label="Agregar un bar">
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
-          <path d="M12 4.5v15M4.5 12h15" stroke="var(--base)"
-            strokeWidth="2.6" strokeLinecap="round" />
-        </svg>
-      </button>
+          {/* El "+" va dibujado, no como texto: un glifo se posiciona por
+              baseline y nunca queda centrado en un círculo, además de depender
+              de la fuente que tenga cada quien. */}
+          <button onClick={() => nav('/agregar')} style={{
+            position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
+            width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
+            zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
+          }} aria-label="Agregar un bar">
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
+              <path d="M12 4.5v15M4.5 12h15" stroke="var(--base)"
+                strokeWidth="2.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {preview && (
+        <BarPreview
+          key={preview.id}
+          bar={preview}
+          onClose={() => setPreview(null)}
+          onOpen={() => nav(`/bar/${preview.id}`)}
+        />
+      )}
     </div>
   )
 }
@@ -301,8 +348,12 @@ function Swatch({ mode }: { mode: ColorBy }) {
  * decide quién gana, no evita que la cápsula de abajo quede cortada.
  */
 function Pins({
-  bars, colorBy, onOpen,
-}: { bars: BarPin[]; colorBy: ColorBy; onOpen: (id: number) => void }) {
+  bars, colorBy, selectedId, onOpen,
+}: {
+  bars: BarPin[]; colorBy: ColorBy
+  selectedId: number | null
+  onOpen: (b: BarPin) => void
+}) {
   const map = useMap()
   const [zoom, setZoom] = useState(15)
 
@@ -328,6 +379,20 @@ function Pins({
     ranks != null
       ? (ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)')
       : (b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)')
+
+  /**
+   * Centrar el bar tocado, pero arriba de la tarjeta y no debajo.
+   *
+   * `panTo` al bar lo dejaba justo en el medio, o sea tapado por la preview.
+   * El corrimiento se calcula en coordenadas y se manda en un solo `panTo`:
+   * encadenar `panTo` + `panBy` son dos animaciones que compiten y el mapa
+   * termina en cualquier lado.
+   */
+  const reveal = (b: BarPin) => {
+    const metersPerPx = 156543.03392 * Math.cos(b.lat * Math.PI / 180) / 2 ** zoom
+    const offsetPx = (map.getDiv().clientHeight || 640) * 0.18
+    map.panTo({ lat: b.lat - (offsetPx * metersPerPx) / 111_320, lng: b.lng })
+  }
 
   const showLabels = zoom >= 14.5
   const labelled = new Set<number>()
@@ -355,16 +420,20 @@ function Pins({
   return (
     <>
       {bars.map(b => {
-        const withLabel = b.fromPrice != null && labelled.has(b.id)
+        const on = b.id === selectedId
+        // El elegido siempre con su precio: es el que se está mirando, y que
+        // el descarte de etiquetas lo dejara como punto era perder el dato
+        // justo del bar que se abrió.
+        const withLabel = b.fromPrice != null && (on || labelled.has(b.id))
         return (
           <Marker
             key={b.id}
             position={{ lat: b.lat, lng: b.lng }}
-            onClick={() => onOpen(b.id)}
-            zIndex={withLabel ? 10 : 1}
+            onClick={() => { onOpen(b); reveal(b) }}
+            zIndex={on ? 30 : withLabel ? 10 : 1}
             icon={withLabel
-              ? priceIcon(formatPrice(b.fromPrice!), colorOf(b))
-              : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9)}
+              ? priceIcon(formatPrice(b.fromPrice!), colorOf(b), on)
+              : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9, on)}
           />
         )
       })}
@@ -382,27 +451,45 @@ function resolve(color: string) {
 const svgUrl = (svg: string) =>
   'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
 
-/** Cápsula con el precio, como marcador. */
-function priceIcon(label: string, color: string): google.maps.Icon {
+/**
+ * Cápsula con el precio, como marcador.
+ *
+ * `on` es el bar abierto en la preview. Se lo marca con un aro crema y un
+ * poco más grande: sin eso, con la tarjeta arriba no había forma de saber
+ * cuál de los treinta pines es el que se está leyendo.
+ */
+function priceIcon(label: string, color: string, on = false): google.maps.Icon {
   const fill = resolve(color)
-  const w = 20 + label.length * 8.6
-  const h = 26
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <rect x="0.5" y="0.5" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
-      fill="${fill}" stroke="rgba(255,255,255,.55)"/>
-    <text x="${w / 2}" y="${h / 2 + 4.5}" text-anchor="middle"
-      font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="13"
+  const s = on ? 1.16 : 1
+  const w = (20 + label.length * 8.6) * s
+  const h = 26 * s
+  // El aro se dibuja por dentro del borde, así que el lienzo tiene que
+  // agrandarse o WebKit lo recorta a la mitad.
+  const pad = on ? 4 : 0
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w + pad * 2}" height="${h + pad * 2}">
+    <rect x="${pad + 0.5}" y="${pad + 0.5}" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
+      fill="${fill}" stroke="${on ? '#FBF6EE' : 'rgba(255,255,255,.55)'}"
+      stroke-width="${on ? 2.5 : 1}"/>
+    <text x="${pad + w / 2}" y="${pad + h / 2 + 4.5 * s}" text-anchor="middle"
+      font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
       font-weight="700" fill="#1A1410">${label}</text>
   </svg>`
-  return { url: svgUrl(svg), anchor: new google.maps.Point(w / 2, h / 2) }
+  return {
+    url: svgUrl(svg),
+    anchor: new google.maps.Point(pad + w / 2, pad + h / 2),
+  }
 }
 
-function dotIcon(color: string, size: number): google.maps.Icon {
+function dotIcon(color: string, size: number, on = false): google.maps.Icon {
   const fill = resolve(color)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
+  const pad = on ? 5 : 0
+  const box = size + pad * 2
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}">
+    ${on ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 2.5}"
+      fill="none" stroke="#FBF6EE" stroke-width="2.5"/>` : ''}
+    <circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
   </svg>`
-  return { url: svgUrl(svg), anchor: new google.maps.Point(size / 2, size / 2) }
+  return { url: svgUrl(svg), anchor: new google.maps.Point(box / 2, box / 2) }
 }
 
 function simulatedIcon(): google.maps.Icon {
