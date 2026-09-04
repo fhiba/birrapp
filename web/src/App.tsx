@@ -171,11 +171,17 @@ function Shell() {
             onSimulate={setSimulated} onCamera={onCamera}
             myLocation={coords} panTo={panTo}
             onRecenter={() => {
-              request()
-              if (coords) {
-                setSimulated(null)
-                setPanTo(t => ({ target: coords, token: (t?.token ?? 0) + 1 }))
-              }
+              // Con un punto secundario puesto, el botón vuelve a ese punto y
+              // no al GPS. Ese punto es el que manda la consulta —el radio, la
+              // lista y los precios salen de ahí—, así que "centrar" tiene que
+              // devolverte a lo que estás mirando. Antes lo borraba y se iba a
+              // tu ubicación: perdías el punto por querer volver a él.
+              //
+              // Para volver a tu ubicación se borra el punto con un toque en
+              // el mapa, que es el mismo gesto con el que se puso.
+              const target = simulated ?? coords
+              if (!simulated) request()
+              if (target) setPanTo(t => ({ target, token: (t?.token ?? 0) + 1 }))
             }}
           />
         } />
