@@ -4,6 +4,19 @@ import type { BarPin, BeerStyle, Brand } from './types'
 
 export const BA_CENTER = { lat: -34.6037, lng: -58.3816 }
 const OVER_FETCH = 2.5
+
+/**
+ * Los techos de `/bars`, espejados del servidor (Routes.kt: MAX_RADIUS_M y
+ * MAX_LIMIT).
+ *
+ * Bajaron de 50 km / 500 filas por BIR-13: con ~738 bares cargados, un request
+ * de 500 era el 68% de la base y no había forma de distinguir a alguien que
+ * mira su barrio de alguien que se la lleva entera. Están acá y no sólo en el
+ * backend porque `covered` guarda lo que se pidió: si el cliente pidiera de más
+ * y el servidor recortara, la caché anotaría una cobertura que no tiene.
+ */
+const MAX_RADIUS = 20_000
+const MAX_LIMIT = 200
 const MAX_AGE_MS = 5 * 60_000
 const MIN_QUERY_ZOOM = 12
 
@@ -101,14 +114,29 @@ export function useBars() {
     const mine = ++seq.current
     setLoading(true); setError(null)
     try {
-      const big = Math.min(50_000, Math.max(1000, Math.round(radius * OVER_FETCH)))
+      // Los dos topes son los del servidor (Routes.kt: MAX_RADIUS_M y
+      // MAX_LIMIT). Pedir de más no rompe nada —el backend recorta— pero
+      // `covered` guardaría el radio pedido y no el servido, y a partir de ahí
+      // la caché diría que cubre una zona que en realidad no tiene.
+      const big = Math.min(MAX_RADIUS, Math.max(1000, Math.round(radius * OVER_FETCH)))
       // El estilo VA en el pedido. Antes iba `undefined` y el filtro no
       // llegaba nunca al servidor.
-      const fresh = await api.nearbyBars(c.lat, c.lng, big, 'distance', opts.style, 500)
+      const fresh = await api.nearbyBars(c.lat, c.lng, big, 'distance', opts.style, MAX_LIMIT)
       if (mine !== seq.current) return   // llegó una respuesta vieja, se descarta
       const k = keyOf(opts.style)
       known.current.set(k, new Map(fresh.map(b => [b.id, b])))
-      covered.current.set(k, { center: c, radius: big, at: Date.now() })
+      // Si la respuesta vino llena, el servidor recortó por `limit` y lo que
+      // realmente se cubrió no es `big` sino hasta el bar más lejano que llegó
+      // —vienen ordenados por distancia, así que es el último—.
+      //
+      // Anotar `big` cuando hubo recorte era una mentira que se pagaba después:
+      // `covers()` daba por cubierta una zona sin datos y no volvía a
+      // consultar, así que al panear hacia el borde el mapa se veía vacío. Ya
+      // pasaba con el tope viejo de 500; con 200 pasa más seguido.
+      const reached = fresh.length < MAX_LIMIT
+        ? big
+        : Math.max(1000, Math.round(fresh[fresh.length - 1]?.distanceMeters ?? big))
+      covered.current.set(k, { center: c, radius: reached, at: Date.now() })
       setBars(project(c, radius, sort, opts.style))
     } catch (e) {
       if (mine !== seq.current) return
