@@ -1050,3 +1050,55 @@ memoria pura y no toca la base). Web compila.
 `testApplication` y montarlo era más grande que la feature. El cableado en
 `Routes.kt` son cuatro líneas y quedó sin cubrir; si algún día se arma ese
 harness, es lo primero que hay que agregarle.
+
+---
+
+## 2026-09-04 (cont.) — Entorno de test: la parte que vive en el repo (BIR-21)
+
+Hasta hoy todo salía derecho a `master`, o sea a producción, sin ningún lugar
+donde probarlo antes. Se notó en esta misma sesión: cuatro features y dos bugs
+mergeados a producción sin que nadie los viera andar.
+
+Lo que se puede hacer desde el repo es la mitad; la otra mitad son clics en
+Railway, Neon, Vercel y Google Cloud. Queda documentado paso a paso en
+`docs/DEPLOY.md` § "Entorno de test", con la forma: `dev` → staging,
+`master` → producción, y environment de Railway en vez de servicio aparte
+porque las variables se definen por environment, que es justo lo que hace falta.
+
+**La base de staging va vacía, sembrada desde OSM.** Neon clona una branch con
+los datos de un clic y es tentador, pero `users` tiene emails y `google_sub` de
+gente real. Copiarlos a un entorno con menos cuidado contradice la línea que
+sostiene el resto del proyecto —`traffic_sessions` sin IP ni user agent, el
+presupuesto de BIR-13 sin persistir la IP—. El costo es no tener precios reales
+para probar frescura; es barato al lado de arrastrar identidades.
+
+**`JWT_SECRET` distinto en staging, y no es capricho.** Con el mismo secreto, un
+token emitido por el entorno de pruebas vale en producción. Un entorno que
+emite credenciales para el entorno real no es un entorno de pruebas.
+
+**`scripts/smoke.mjs`** es lo que hace que el staging sirva de algo. Un entorno
+sin forma de verificarlo se prueba a ojo, y a ojo no se ve lo que importa.
+Chequea, en orden de qué tan seguido se rompe:
+
+1. **CORS entre la web y el backend** — la falla número uno de un entorno nuevo:
+   el backend levanta, `/health` contesta, y la app no muestra nada porque
+   `ALLOWED_ORIGINS` quedó con el dominio de producción.
+2. **Que la base esté conectada y sembrada** — `/health` no toca Postgres, así
+   que un backend con la `DATABASE_URL` mal apuntada pasa el health check.
+3. **Que los topes de BIR-13 estén desplegados** — la diferencia entre el
+   entorno que creés que desplegaste y el que desplegaste.
+4. **Que el bundle de la web apunte al backend de test.** El error más
+   silencioso de todos: staging se ve perfecto mientras escribe en la base de
+   producción, y mirando la pantalla no hay forma de darse cuenta.
+
+Sale con código 1 si algo falla, así que sirve de paso previo a un merge.
+
+**Verificado corriéndolo contra el backend local**, que resultó ser un caso de
+prueba mejor que uno inventado: pasó los cuatro chequeos de vida y **falló los
+dos de BIR-13**, porque el proceso local es un build anterior a ese merge. O
+sea que detectó una desincronización real de versión, que es exactamente para lo
+que existe. Contra staging todavía no se corrió: el entorno no está creado.
+
+De paso, `DEPLOY.md` decía "`/bars` no tiene límite de tasa" en la lista de
+pendientes. Es falso desde BIR-13; corregido, con el matiz de que lo que hay es
+fricción y no prevención.
