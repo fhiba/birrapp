@@ -41,6 +41,16 @@ class BarDetailViewModel(
     private val barId: Long,
     private val fromLat: Double?,
     private val fromLng: Double?,
+    /**
+     * Avisa que el pin de este bar cambió: precio nuevo, confirmación o
+     * precio dado de baja.
+     *
+     * `load()` recarga sólo ESTA pantalla. Sin este aviso, el mapa se quedaba
+     * con el precio viejo hasta que la región cacheada de `BarRepository` se
+     * vencía sola — cargabas un precio, volvías al mapa y el bar seguía
+     * diciendo lo de antes (BIR-23). Lo mismo pasaba en la web.
+     */
+    private val onPricesChanged: () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BarDetailUiState())
@@ -95,6 +105,7 @@ class BarDetailViewModel(
                 .onSuccess { result ->
                     _state.update { it.copy(busyBeer = null, toast = result.message) }
                     load()
+                    onPricesChanged()
                 }
                 .onFailure { e ->
                     _state.update { it.copy(busyBeer = null, toast = e.message) }
@@ -110,6 +121,7 @@ class BarDetailViewModel(
             }.onSuccess { result ->
                 _state.update { it.copy(busyBeer = null, toast = result.message) }
                 load()
+                onPricesChanged()
             }.onFailure { e ->
                 _state.update { it.copy(busyBeer = null, toast = e.message) }
             }
@@ -150,7 +162,11 @@ class BarDetailViewModel(
     fun removePrice(priceId: Long) {
         viewModelScope.launch {
             runCatching { api.removePrice(priceId) }
-                .onSuccess { _state.update { it.copy(toast = "Precio eliminado") }; load() }
+                .onSuccess {
+                    _state.update { it.copy(toast = "Precio eliminado") }
+                    load()
+                    onPricesChanged()
+                }
                 .onFailure { e -> _state.update { it.copy(toast = e.message) } }
         }
     }

@@ -1053,6 +1053,49 @@ harness, es lo primero que hay que agregarle.
 
 ---
 
+## 2026-09-04 (cont.) — v0.6.6: el precio cargado se ve en el mapa al toque (BIR-23)
+
+El reporte decía "tarda en actualizarse" y "tuve que poner buscar
+actualización". No tardaba: **nadie le avisaba al mapa**.
+
+`BarDetail.act()` es el embudo de las tres mutaciones de precio —confirmar,
+cargar y borrar— y sólo llamaba a `load()`, que recarga la ficha del bar. El
+`onChanged` que invalida la caché de `useBars` estaba cableado en un único
+lugar de todo el archivo: borrar el bar entero. Así que después de cargar un
+precio el pin se quedaba con el valor viejo hasta que `covered` se vencía sola
+por `MAX_AGE_MS` (cinco minutos), o hasta recargar la app —que es lo que
+"buscar actualización" termina haciendo—. Cargabas un precio, volvías al mapa y
+el bar seguía diciendo lo de antes: la app parecía haber perdido el reporte.
+
+El arreglo va en `act()` y no en cada botón. Los tres usos son precios y los
+tres mueven el pin; un cuarto uso que no lo moviera tendría que decirlo
+explícitamente, no al revés. Olvidarse de invalidar es justamente el bug.
+
+**Dos sitios más con el mismo agujero, encontrados buscando el primero:**
+
+- `MyContributions` borra un reporte propio y no invalidaba nada. Si el borrado
+  era del precio vigente, el mapa seguía mostrando un precio que ya no existe
+  —peor que mostrarlo viejo—. Ahora recibe `onChanged` como el resto.
+- **Android tenía el bug idéntico.** `reloadAfterChange()` se llamaba sólo al
+  borrar un bar y al agregar uno, nunca tras un precio. Se resolvió igual pero
+  en el ViewModel y no en la pantalla: la UI no sabe cuándo terminó la
+  corrutina, así que el aviso sale de `confirmPrice`, `reportPrice` y
+  `removePrice`, al lado del `load()` que ya estaba.
+
+**Lo que NO era.** El primer sospechoso era el service worker sirviendo
+respuestas de la API cacheadas, que explicaría igual de bien los dos síntomas.
+No es: `runtimeCaching: []` en `vite.config.ts` y el `globPatterns` sólo toma
+assets. Queda dicho para que el próximo no vuelva a mirar ahí.
+
+Web compila. Android compila (`compileDebugKotlin`). Backend sin tocar.
+
+**Sin verificar a mano**: la extensión de Chrome no estuvo conectada en toda la
+sesión. La cadena de llamadas está leída de punta a punta —`act` → `onChanged`
+→ `afterChange` → `invalidate()` + `refresh(true)` → `load` con `force`, que
+saltea `covers()`— pero nadie cargó un precio y miró el mapa.
+
+---
+
 ## 2026-09-04 (cont.) — Entorno de test: la parte que vive en el repo (BIR-21)
 
 Hasta hoy todo salía derecho a `master`, o sea a producción, sin ningún lugar

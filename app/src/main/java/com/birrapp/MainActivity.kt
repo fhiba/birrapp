@@ -269,6 +269,9 @@ fun BirrappApp(
                         BarDetailViewModel(
                             container.api, barId,
                             mapState.center.first, mapState.center.second,
+                            // Un precio cargado acá tiene que verse en el mapa
+                            // al volver, no cinco minutos después (BIR-23).
+                            onPricesChanged = { mapViewModel.reloadAfterChange() },
                         )
                     },
                 )
