@@ -1,7 +1,9 @@
 package com.birrapp
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
@@ -10,8 +12,10 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import com.birrapp.auth.*
 import com.birrapp.bars.*
+import com.birrapp.core.CoverageBudget
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
+import com.birrapp.core.tooManyRequests
 import com.birrapp.moderation.*
 import com.birrapp.photos.*
 import com.birrapp.prices.*
@@ -23,6 +27,37 @@ import com.birrapp.traffic.TrafficRepo
 @Serializable data class RoleChangeRequest(val role: String)
 @Serializable data class OkResponse(val ok: Boolean = true)
 
+/**
+ * Techos de `/bars`. Ver [CoverageBudget] para por qué existen estos números.
+ *
+ * La relación que importa es **`MAX_LIMIT` < `CoverageBudget.DEFAULT_PER_DAY`**:
+ * si un solo request pudiera traer más bares que el presupuesto de todo el día,
+ * ese request sería irrespondible siempre y el endpoint quedaría roto para
+ * cualquiera. Con 200 contra 400 hay margen de dos pedidos completos de
+ * territorio nuevo antes de tocar el techo.
+ *
+ * El tope viejo era 500, y con ~738 bares cargados eso es el 68% de la base en
+ * una sola llamada: no había presupuesto de cobertura posible que sirviera.
+ */
+private const val MAX_LIMIT = 200
+
+/**
+ * 20 km. El slider del mapa llega a 15, y `useBars` sobre-pide 2.5x, así que el
+ * cliente real toca este techo sólo con el radio al máximo — donde igual está
+ * mirando media ciudad y el recorte de `project()` le deja 400 bares.
+ *
+ * El tope viejo era 50 km, que desde el Obelisco cubre hasta La Plata.
+ */
+private const val MAX_RADIUS_M = 20_000
+
+/**
+ * La clave del presupuesto: la misma que usa el `RateLimit` de `Application.kt`.
+ *
+ * Detrás de un proxy esto vale por `XForwardedHeaders`, que ya está instalado.
+ * No se guarda en ningún lado — ver [CoverageBudget].
+ */
+private fun ApplicationCall.clientKey(): String = request.origin.remoteHost
+
 fun Route.apiRoutes(
     bars: BarRepo,
     prices: PriceRepo,
@@ -33,6 +68,8 @@ fun Route.apiRoutes(
     analytics: AnalyticsRepo,
     users: UserRepo,
     traffic: TrafficRepo,
+    /** Cuántos bares distintos puede descubrir una IP por día. Ver BIR-13. */
+    budget: CoverageBudget,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
      *  alcanza con cambiarle el estado. */
     deletePhotoObject: suspend (String) -> Unit,
@@ -53,14 +90,25 @@ fun Route.apiRoutes(
         val lng = q["lng"]?.toDoubleOrNull() ?: badRequest("falta lng")
         if (lat !in -90.0..90.0 || lng !in -180.0..180.0) badRequest("coordenadas fuera de rango")
 
-        val radius = (q["radius"]?.toIntOrNull() ?: 2000).coerceIn(100, 50_000)
-        val limit = (q["limit"]?.toIntOrNull() ?: 200).coerceIn(1, 500)
+        val radius = (q["radius"]?.toIntOrNull() ?: 2000).coerceIn(100, MAX_RADIUS_M)
+        val limit = (q["limit"]?.toIntOrNull() ?: 200).coerceIn(1, MAX_LIMIT)
         val sort = when (q["sort"]) {
             null, "distance" -> BarSort.distance
             "cheapest" -> BarSort.cheapest
             else -> badRequest("sort inválido: usar distance o cheapest")
         }
-        call.respond(bars.nearby(lat, lng, radius, sort, limit, q["style"]))
+
+        val found = bars.nearby(lat, lng, radius, sort, limit, q["style"])
+        // Se cobra después de resolver, no antes: hasta no tener el resultado
+        // no se sabe qué bares son, y lo que se cuenta son bares distintos, no
+        // requests. Repetir una zona ya vista no cuesta nada.
+        if (!budget.charge(call.clientKey(), found.map { it.id })) {
+            tooManyRequests(
+                "por hoy alcanzaste el límite de bares nuevos desde esta conexión; " +
+                    "las zonas que ya miraste siguen andando"
+            )
+        }
+        call.respond(found)
     }
 
     /** Búsqueda por nombre entre los bares ya cargados. */
@@ -72,7 +120,17 @@ fun Route.apiRoutes(
         // lista larga estorba. El buscador de la lista pide más. Se acota a 50
         // igual: sin tope, un `q` de una letra devuelve la base entera.
         val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, 50) ?: 8
-        call.respond(bars.search(q, lat, lng, limit))
+
+        // La búsqueda también descubre base: recorriendo el abecedario se llega
+        // a lo mismo que paseando el mapa, así que paga del mismo presupuesto.
+        val hits = bars.search(q, lat, lng, limit)
+        if (!budget.charge(call.clientKey(), hits.map { it.id })) {
+            tooManyRequests(
+                "por hoy alcanzaste el límite de bares nuevos desde esta conexión; " +
+                    "las zonas que ya miraste siguen andando"
+            )
+        }
+        call.respond(hits)
     }
 
     get("/bars/{id}") {

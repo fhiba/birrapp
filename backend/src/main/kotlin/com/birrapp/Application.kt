@@ -211,6 +211,9 @@ fun Application.module(cfg: Config, db: Db) {
     routing {
         apiRoutes(
             bars, prices, reviews, ratings, photos, moderation, analytics, users, traffic,
+            // Vive tanto como el proceso y no se persiste: la clave es la IP.
+            // Ver CoverageBudget para por qué no hay tabla detrás.
+            budget = com.birrapp.core.CoverageBudget(),
             // El borrado del objeto se hace acá y no en el repo: el repo habla
             // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
             deletePhotoObject = deletePhotoObject,

@@ -990,3 +990,63 @@ dedo. Los umbrales (10px para decidir eje, 1.4x de margen, 55px para confirmar)
 son los primeros candidatos a retocar si en la mano se siente mal.
 
 Backend sin tocar. `npm run build` en verde.
+
+---
+
+## 2026-09-04 (cont.) — v0.6.5: `/bars` deja de regalar la base entera (BIR-13)
+
+El issue proponía tres caminos y ninguno de los tres sobrevivió al primer
+cálculo. Vale la pena dejar escrito por qué, porque la conclusión es
+contraintuitiva.
+
+**Una cuota de filas por día no sirve: el scraper es más eficiente que el
+usuario real.** Bajarse los ~738 bares eran dos requests de 500 filas, o sea
+~1.000 filas/día. Un usuario paseando el mapa pide entre 2.000 y 5.000, porque
+`useBars` sobre-pide 2.5x y vuelve a consultar con cada radio, cada estilo y
+cada zona nueva. Cualquier cuota holgada para el usuario le sobra al scraper
+varias veces. La intuición de "límite por volumen" está exactamente al revés
+acá.
+
+**Lo que sí los separa es la cobertura, no el volumen.** El usuario mira
+siempre los mismos doscientos bares de su barrio; el scraper quiere la unión de
+todos, por definición. Contando **bares distintos por IP y por día** la
+asimetría se da vuelta: repetir sale gratis para siempre y lo único que se paga
+es territorio nuevo. `CoverageBudget`, 400 bares distintos por día.
+
+**Pero eso obligaba a bajar `limit` igual.** Con el tope viejo de 500, un solo
+request cubría el 68% de la base y ningún presupuesto de cobertura razonable
+sobrevivía a una llamada. Así que `limit` 500 → 200 y `radius` 50 km → 20 km.
+El invariante que importa —y que tiene su propio test— es **`MAX_LIMIT` <
+`DEFAULT_PER_DAY`**: si un request lleno no entrara en el presupuesto de todo
+el día, el endpoint quedaría roto para cualquiera desde el primer toque.
+
+**En memoria, sin tabla.** La clave es la IP, y en `traffic_sessions` se
+decidió a propósito no guardar ni IP ni hash de IP (en criterio europeo un hash
+de IP sigue siendo dato personal). Esa decisión no se revisa por esto: la IP
+vive en un `LinkedHashMap` con desalojo LRU y no sobrevive a un reinicio, igual
+que el balde del `RateLimit` de Ktor que ya estaba instalado. El costo es que
+un redeploy le devuelve el presupuesto a todo el mundo; para defenderse de
+extracción sostenida da igual, porque hay que adivinar cuándo se reinicia.
+
+**Un bug de caché que salió a la luz al bajar los topes.** `useBars` anotaba en
+`covered` el radio *pedido*, no el *servido*. Cuando el servidor recorta por
+`limit`, lo que realmente se cubrió llega hasta el bar más lejano que volvió, no
+hasta `big`. Con el tope de 500 ya pasaba y se veía poco; con 200 iba a pasar
+seguido: `covers()` daba por cubierta una zona sin datos, no volvía a consultar,
+y al panear hacia el borde el mapa se veía vacío. Ahora, si la respuesta vino
+llena, la cobertura se anota hasta la distancia del último bar recibido.
+
+**Lo que esto NO es.** No es prevención, es fricción, y está dicho en el KDoc:
+una IP no es una persona (un NAT comparte presupuesto, por eso el número es
+varias veces la base), y rotar IPs lo saltea entero. En un mapa que se mira sin
+cuenta no hay nada mejor disponible sin romper el producto. Lo que sube de
+precio es la extracción *sostenida* —la serie temporal de precios, que es el
+activo de verdad; el snapshot envejece solo a los 45 días—.
+
+79 tests de backend en verde (69 + 10 nuevos, todos de `CoverageBudget`, que es
+memoria pura y no toca la base). Web compila.
+
+**No hay test por HTTP del 429**: en este repo no existe harness de
+`testApplication` y montarlo era más grande que la feature. El cableado en
+`Routes.kt` son cuatro líneas y quedó sin cubrir; si algún día se arma ese
+harness, es lo primero que hay que agregarle.

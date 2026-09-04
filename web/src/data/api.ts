@@ -192,7 +192,7 @@ async function req<T>(
 
 // ---------- lectura pública ----------
 export const nearbyBars = (
-  lat: number, lng: number, radius = 2000, sort = 'distance', style?: string, limit = 500,
+  lat: number, lng: number, radius = 2000, sort = 'distance', style?: string, limit = 200,
 ) => req<BarPin[]>('GET', '/bars', { params: { lat, lng, radius, sort, style, limit } })
 
 export const barDetail = (id: number, lat?: number, lng?: number) =>
