@@ -57,7 +57,7 @@ function Shell() {
   const [user, setUser] = useState<User | null>(api.currentUser())
   const [toast, setToast] = useState<string | null>(null)
 
-  const { coords, denied, request } = useLocation()
+  const { coords, denied, permission, request } = useLocation()
   const {
     bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
   } = useBars()
@@ -176,7 +176,9 @@ function Shell() {
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
-            myLocation={coords} locationUnknown={denied && !coords} panTo={panTo}
+            myLocation={coords} panTo={panTo}
+            locationUnknown={denied && !coords}
+            locationBlocked={permission === 'denied'}
             onRecenter={() => {
               // Con un punto secundario puesto, el botón vuelve a ese punto y
               // no al GPS. Ese punto es el que manda la consulta —el radio, la
