@@ -1136,3 +1136,53 @@ encuadra la cámara, que es justamente la distinción que a la web le faltaba.
 Web compila. **Sin verificar a mano**: la extensión de Chrome no estuvo
 conectada en toda la sesión. Se prueba negando el permiso de ubicación en el
 navegador y mirando que no aparezca el punto azul y sí el cartel.
+
+---
+
+## 2026-09-04 (cont.) — v0.6.8: el "Reintentar" que no podía reintentar
+
+Pregunta de Felipe sobre la 0.6.7: "¿entonces ahora te muestra un botón para
+darle permisos si no le diste?". Mirando el código, la respuesta era a medias, y
+la mitad mala era un botón muerto.
+
+El cartel traía un "Reintentar" que llama a `getCurrentPosition`. Eso funciona
+si el permiso está en `prompt` —ahí el navegador sí abre el pedido— o si está
+`granted` pero no hubo fix. **Pero si la persona bloqueó la ubicación para el
+sitio, no hace absolutamente nada**: el navegador contesta el error al instante
+y no vuelve a preguntar nunca. Desde JavaScript no hay forma de reabrir el
+pedido. Y ése es justamente el caso más común detrás de "no me ubica".
+
+Un botón que promete una acción que no puede cumplir es la misma clase de
+mentira que el punto azul en el Obelisco, que es lo que arreglaba la 0.6.7. Por
+eso va en la misma tanda y no en el backlog.
+
+**`denied` era un booleano que colapsaba dos situaciones opuestas.** Ahora
+`useLocation` expone `permission` (`granted` / `prompt` / `denied` / `unknown`)
+y el cartel dice una cosa u otra:
+
+- Sin bloqueo → "No pudimos ubicarte — esto es el centro" + Reintentar, que sirve.
+- Bloqueado → se dice que está bloqueado y **dónde se destraba** (el candado de
+  la barra de direcciones), sin ofrecer un botón que no puede funcionar. Es lo
+  único accionable que queda.
+
+**De dónde sale el estado.** De la Permissions API cuando existe, y del código
+`PERMISSION_DENIED` del error sólo cuando NO existe —Safari viejo—. El orden
+importa: un prompt que la persona cierra sin decidir también llega como código
+1, pero el permiso sigue en `prompt` y ahí reintentar todavía sirve. Fiarse del
+código del error en un navegador que tiene Permissions API haría aparecer el
+mensaje de bloqueo a alguien que sólo cerró el cartel.
+
+**Y se escucha `status.onchange`.** Si la persona lo destraba desde la
+configuración del sitio, el estado cambia sin recargar y la app se ubica sola.
+Sin eso habría que terminar el mensaje con "y ahora recargá", que es un paso más
+para algo que el navegador ya nos está avisando.
+
+Web compila. Sin verificar a mano, por lo mismo de siempre: la extensión de
+Chrome no conectó en toda la sesión.
+
+**Queda anotado, no arreglado:** con el permiso bloqueado pero una posición
+guardada en `localStorage`, el punto azul se dibuja ahí, y esa posición puede
+tener hasta 7 días (`FIX_TTL_MS`). Es una posición donde la persona estuvo de
+verdad, así que es mucho menos grave que el Obelisco, pero sigue presentándose
+como "acá estás" sin decir de cuándo es. Mismo patrón que la regla de los
+precios: el dato sin su antigüedad al lado miente.

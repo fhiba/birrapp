@@ -33,6 +33,8 @@ interface Props {
   myLocation: google.maps.LatLngLiteral | null
   /** No se pudo ubicar a la persona: el mapa arranca en el centro y hay que decirlo. */
   locationUnknown: boolean
+  /** El permiso está bloqueado para el sitio: reintentar no puede funcionar. */
+  locationBlocked: boolean
   /** Cambia cuando se pide centrar: la cámara es imperativa, no reactiva. */
   panTo: { target: google.maps.LatLngLiteral; token: number } | null
 }
@@ -268,20 +270,39 @@ export function MapScreen(p: Props) {
           }}>Acercá el mapa para ver bares</div>
         )}
 
-        {/* Sin esto, un mapa centrado en el Obelisco es indistinguible de un
-            mapa centrado en vos. Ya no hay punto azul mintiendo, pero el
-            encuadre solo sigue sugiriendo que estás ahí: hay que decirlo con
-            palabras. */}
+        {/*
+          Sin esto, un mapa centrado en el Obelisco es indistinguible de un
+          mapa centrado en vos. Ya no hay punto azul mintiendo, pero el
+          encuadre solo sigue sugiriendo que estás ahí: hay que decirlo con
+          palabras.
+
+          Y hay DOS mensajes, no uno, porque hay dos situaciones que se
+          arreglan de formas opuestas. Con el permiso bloqueado, "Reintentar"
+          es un botón que no puede funcionar: el navegador contesta el error al
+          instante y no vuelve a preguntar nunca. Desde JavaScript no se puede
+          reabrir el pedido, así que lo único accionable es decir dónde se
+          destraba. Un botón muerto es la misma clase de mentira que el punto
+          azul en el Obelisco.
+        */}
         {p.locationUnknown && (
           <div className="glass pill" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
             pointerEvents: 'auto', maxWidth: 'calc(100% - 28px)',
           }}>
-            <span>No pudimos ubicarte — esto es el centro</span>
-            <button onClick={p.onRecenter} className="lbl" style={{
-              color: 'var(--amber)', fontSize: 12, whiteSpace: 'nowrap',
-            }}>Reintentar</button>
+            {p.locationBlocked ? (
+              <span>
+                Bloqueaste la ubicación para este sitio — esto es el centro.
+                Se destraba desde el candado <span aria-hidden>🔒</span> de la barra de direcciones.
+              </span>
+            ) : (
+              <>
+                <span>No pudimos ubicarte — esto es el centro</span>
+                <button onClick={p.onRecenter} className="lbl" style={{
+                  color: 'var(--amber)', fontSize: 12, whiteSpace: 'nowrap',
+                }}>Reintentar</button>
+              </>
+            )}
           </div>
         )}
       </div>
