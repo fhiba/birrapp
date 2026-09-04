@@ -1050,3 +1050,64 @@ memoria pura y no toca la base). Web compila.
 `testApplication` y montarlo era más grande que la feature. El cableado en
 `Routes.kt` son cuatro líneas y quedó sin cubrir; si algún día se arma ese
 harness, es lo primero que hay que agregarle.
+
+---
+
+## 2026-09-04 (cont.) — Vincular los bares de OSM con Places (BIR-14)
+
+`scripts/link_place_ids.mjs`. Los 738 bares que sembró `seed_osm.mjs` no tienen
+`google_place_id`, así que la deduplicación exacta de `BarRepo.create` no aplica
+sobre ellos y alguien que carga un bar desde el autocompletado de Google crea un
+duplicado de uno que ya está. Queda la defensa de nombre + 100 m, pero es
+justamente la que falla cuando OSM y Google le dicen distinto al mismo lugar,
+que es el caso común — y es lo que pasó con "Venice Bar Acassuso".
+
+**Guardar el `place_id` está permitido y no contradice la regla de la casa.**
+Los términos de Places prohíben guardar *contenido* de lugares más de 30 días,
+y el `place_id` está explícitamente exento. Ya estaba dicho en
+`V3__google_place_id.sql`. El script no guarda ninguna otra cosa de Google: el
+nombre y la ubicación que vuelven se usan para decidir si el match sirve y se
+descartan.
+
+**El match no se cree lo que le dicen.** Un `place_id` equivocado es *peor* que
+ninguno: haría que `create` rechace como duplicado un bar legítimo. Así que un
+candidato entra sólo si está a menos de 150 m y el nombre se parece 0,5 o más.
+Los 150 m no son generosos: OSM apunta al polígono del edificio y Google a la
+entrada, y en una esquina de Palermo eso ya son 40 m.
+
+El parecido de nombres es solapamiento de tokens **sobre el más corto**, no
+Jaccard. Jaccard castiga que un lado tenga más palabras, y ése es el caso normal
+acá: OSM dice "Antares" y Google "Antares Cervecería Artesanal Palermo Soho".
+Sobre el más corto eso da 1, que es la respuesta correcta; Jaccard daría 0,25.
+Antes de comparar se sacan tildes y las palabras que no distinguen nada —"bar",
+"cervecería", "the"— porque aparecen en media base y sumaban parecido falso.
+
+**El regalo.** `idx_bars_place_id` es UNIQUE, así que si dos filas matchean el
+mismo lugar el índice no las deja entrar a las dos. Pero eso no es un error del
+script: son dos filas que representan el mismo bar y **ya estaban duplicadas**.
+El script las reporta y vincula la de id más bajo; cuál sobrevive de verdad es
+una decisión de moderación, no de un script. O sea que el backfill sirve además
+como detector del problema que el issue quiere evitar hacia adelante.
+
+**Cuesta plata, así que está armado para no repagar.** Checkpoint en disco
+escrito en cada vuelta —no al final— para que un corte a mitad de camino no
+cueste dos veces; "consultado y sin match" se anota como `null`, distinto de
+"todavía no consultado", o cada corrida volvería a pagar por los bares que
+Google no reconoce; `--limit` para acotar la primera corrida y `--dry-run` que
+no llama a nada. Los errores de red no se anotan, para que se puedan reintentar.
+
+La escritura va por el mismo camino que `seed_osm.mjs`: COPY a una tabla
+temporal y UPDATE desde ahí. `psql -c` no acepta parámetros, y concatenar SQL
+con algo que volvió de una API externa es exactamente donde aparecen los
+agujeros.
+
+**Verificación.** `--self-test` corre las aserciones del matcher con
+`node:assert` (incluye el caso "Venice Bar", el de 4 km que no debe matchear y
+el del vecino de al lado que tampoco) — en verde. `--dry-run` corrido contra la
+base de dev: encuentra los 738 bares sin vincular, con nombres y coordenadas
+bien parseados. **Lo que NO se probó: la llamada a Places.** No tengo la API
+key, y son ~738 llamadas con costo real. Conviene la primera corrida con
+`--limit 25` y mirar el log antes de soltarlo entero.
+
+Sin cambio de versión: no se toca nada que se publique, sólo se agrega un script
+de mantenimiento.
