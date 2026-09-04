@@ -215,12 +215,25 @@ function writeFix(f: Fix) {
  */
 let askedThisLoad = false
 
+/**
+ * En qué estado está el permiso de ubicación.
+ *
+ * `denied` era un booleano y colapsaba dos situaciones que se arreglan de
+ * formas opuestas: "el GPS no pudo darnos una posición", donde reintentar
+ * sirve, y "la persona bloqueó la ubicación para el sitio", donde reintentar
+ * **no puede funcionar** — el navegador contesta el error al instante y no
+ * vuelve a preguntar nunca. Ofrecer un botón que no puede cumplir es la misma
+ * clase de mentira que decirle a alguien que está en el Obelisco.
+ */
+export type LocationPermission = 'granted' | 'prompt' | 'denied' | 'unknown'
+
 export function useLocation() {
   const stored = useRef(readFix()).current
   const [coords, setCoords] = useState<google.maps.LatLngLiteral | null>(
     stored ? { lat: stored.lat, lng: stored.lng } : null,
   )
   const [denied, setDenied] = useState(false)
+  const [permission, setPermission] = useState<LocationPermission>('unknown')
   const lastAt = useRef(stored?.at ?? 0)
 
   const locate = useCallback(() => {
@@ -231,7 +244,15 @@ export function useLocation() {
         writeFix(f)
         setCoords({ lat: f.lat, lng: f.lng })
       },
-      () => {
+      (err) => {
+        // Bloqueo contra fallo. El código 1 es PERMISSION_DENIED, y es la
+        // única señal que hay en Safari viejo, donde no existe la Permissions
+        // API. Donde SÍ existe se prefiere aquélla: un prompt que la persona
+        // cierra sin decidir también llega acá como código 1, pero el permiso
+        // sigue en 'prompt' y reintentar todavía sirve.
+        if (err.code === err.PERMISSION_DENIED && !navigator.permissions?.query) {
+          setPermission('denied')
+        }
         // Acá NO se rellena `coords` con nada.
         //
         // Antes caía en el Obelisco para "mostrar algo", y eso es lo que
@@ -272,6 +293,15 @@ export function useLocation() {
     if (!perms) { locate(); return }
 
     perms.then(status => {
+      setPermission(status.state as LocationPermission)
+      // Si la persona lo destraba desde la configuración del sitio, el estado
+      // cambia sin recargar. Sin esto habría que decirle "y ahora recargá",
+      // que es un paso más para algo que el navegador ya nos está avisando.
+      status.onchange = () => {
+        const next = status.state as LocationPermission
+        setPermission(next)
+        if (next === 'granted') { setDenied(false); locate() }
+      }
       if (status.state === 'granted') { locate(); return }
       if (status.state === 'denied') { setDenied(true); return }
       // 'prompt': con una posición guardada la app ya abre bien, así que el
@@ -281,5 +311,5 @@ export function useLocation() {
     }).catch(() => locate())
   }, [locate, stored])
 
-  return { coords, denied, request }
+  return { coords, denied, permission, request }
 }
