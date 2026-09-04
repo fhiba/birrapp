@@ -162,6 +162,14 @@ export function useBars() {
  * Ubicación del navegador. Igual que en la app: nunca bloquea la primera
  * pintura.
  *
+ * **`coords` es null hasta que haya una posición real, y puede quedarse en
+ * null para siempre.** Nunca se rellena con un valor por defecto: un punto
+ * inventado ahí termina dibujado como el punto azul de "acá estás", y decirle
+ * a alguien que está en el Obelisco cuando está en Quilmes es peor que no
+ * decirle nada. Quien necesite un lugar donde apuntar la cámara resuelve el
+ * defecto en su propio código —eso es encuadre, no una afirmación sobre dónde
+ * está la persona— y mira `denied` para avisar que no se pudo ubicar.
+ *
  * Tres reglas, todas para no vivir pidiendo permiso:
  *
  * 1. La última posición se guarda en localStorage. Al abrir se arranca de
@@ -224,9 +232,19 @@ export function useLocation() {
         setCoords({ lat: f.lat, lng: f.lng })
       },
       () => {
+        // Acá NO se rellena `coords` con nada.
+        //
+        // Antes caía en el Obelisco para "mostrar algo", y eso es lo que
+        // dibujaba el punto azul de "acá estás" en pleno centro a todo el que
+        // negara el permiso o cuyo GPS diera timeout. La app le decía a la
+        // gente que estaba en un lugar donde no estaba, con la misma
+        // confianza con la que muestra una ubicación real.
+        //
+        // El centro sigue sirviendo para APUNTAR LA CÁMARA —lo hace App.tsx—
+        // pero eso es "por dónde empezar a mirar", que no es lo mismo que
+        // "acá estás". `coords` guarda sólo posiciones reales; cuando no hay,
+        // no hay punto azul.
         setDenied(true)
-        // Sin permiso y sin nada guardado hay que mostrar algo: el centro.
-        setCoords(c => c ?? BA_CENTER)
       },
       // `maximumAge` alto a propósito: dentro de una misma sesión, dos pedidos
       // seguidos reusan el fix del navegador en vez de encender el GPS.
@@ -246,7 +264,7 @@ export function useLocation() {
     if (askedThisLoad) return
     askedThisLoad = true
 
-    if (!navigator.geolocation) { setDenied(true); setCoords(c => c ?? BA_CENTER); return }
+    if (!navigator.geolocation) { setDenied(true); return }
 
     const perms = navigator.permissions?.query?.({ name: 'geolocation' as PermissionName })
     // Safari viejo no expone el permiso de geolocalización: no queda otra que
@@ -255,7 +273,7 @@ export function useLocation() {
 
     perms.then(status => {
       if (status.state === 'granted') { locate(); return }
-      if (status.state === 'denied') { setDenied(true); setCoords(c => c ?? BA_CENTER); return }
+      if (status.state === 'denied') { setDenied(true); return }
       // 'prompt': con una posición guardada la app ya abre bien, así que el
       // cartel espera al botón. Sin ella no hay alternativa: se pregunta.
       if (stored) setDenied(false)
