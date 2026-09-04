@@ -46,13 +46,26 @@ const LAT = -34.6037, LNG = -58.3816;
 let failed = 0;
 const results = [];
 
+/**
+ * Marca un chequeo como no ejecutado.
+ *
+ * Existe porque un salteo pintado de ✓ es peor que no chequear nada: el
+ * reporte diría que la web apunta al backend correcto cuando en realidad nunca
+ * se pudo mirar. Un verificador en el que no se puede confiar no sirve.
+ */
+const skip = (why) => ({ __skip: why });
+
 async function check(name, fn) {
   try {
     const detail = await fn();
-    results.push({ ok: true, name, detail });
+    if (detail && detail.__skip) {
+      results.push({ state: 'skip', name, detail: detail.__skip });
+      return;
+    }
+    results.push({ state: 'ok', name, detail });
   } catch (e) {
     failed++;
-    results.push({ ok: false, name, detail: e.message });
+    results.push({ state: 'fail', name, detail: e.message });
   }
 }
 
@@ -153,9 +166,26 @@ if (WEB) {
 
   // ----------------------------------------------------------------- web
 
-  await check('la web responde', async () => {
-    const res = await get(`${WEB}/`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  await check('la web responde y es alcanzable sin sesión', async () => {
+    // `redirect: manual` a propósito: seguir el 302 esconde el problema
+    // detrás de una página de login de Vercel que después falla por otro
+    // motivo, y el mensaje que sale no tiene nada que ver con la causa.
+    const res = await get(`${WEB}/`, { redirect: 'manual' });
+
+    // Vercel Deployment Protection. Es el default en los Preview de las
+    // cuentas nuevas, y convierte al entorno de test en algo que sólo abre
+    // quien tenga sesión de Vercel en ese navegador: no sirve desde el
+    // celular, y el callback de OAuth de Google tampoco puede volver.
+    const to = res.headers.get('location') || '';
+    if (res.status === 302 && /vercel\.com\/sso-api/.test(to)) {
+      throw new Error(
+        'protegida por Vercel Deployment Protection: 302 a vercel.com/sso-api. ' +
+        'Settings → Deployment Protection → desactivar para Preview, o el entorno ' +
+        'de test no se puede abrir desde el celular ni recibir el callback de OAuth',
+      );
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}${to ? ` → ${to}` : ''}`);
+
     const html = await res.text();
     if (!/<div id="root"/.test(html)) throw new Error('la respuesta no parece el index de la PWA');
     return `HTTP ${res.status}`;
@@ -165,9 +195,11 @@ if (WEB) {
     // `VITE_API_BASE` queda horneada en el bundle. Es el error más silencioso
     // de todos: staging anda perfecto pero escribiendo en la base de
     // producción, y no hay forma de darse cuenta mirando la pantalla.
-    const html = await get(`${WEB}/`).then(r => r.text());
+    const page = await get(`${WEB}/`, { redirect: 'manual' });
+    if (!page.ok) return skip('la web no es alcanzable — ver el chequeo de arriba');
+    const html = await page.text();
     const src = html.match(/src="([^"]*\/assets\/index-[^"]+\.js)"/)?.[1];
-    if (!src) return 'no se encontró el bundle: se saltea';
+    if (!src) return skip('no se encontró el bundle en el HTML');
     const bundle = await get(`${WEB}${src.startsWith('/') ? '' : '/'}${src}`).then(r => r.text());
     const host = new URL(API).host;
     if (!bundle.includes(host)) {
@@ -181,15 +213,17 @@ if (WEB) {
 
 // ---------------------------------------------------------------- reporte
 
+const MARK = { ok: '\u2713', fail: '\u2717', skip: '\u2013' };
 const pad = Math.max(...results.map(r => r.name.length));
 for (const r of results) {
-  process.stdout.write(
-    `${r.ok ? '✓' : '✗'} ${r.name.padEnd(pad)}  ${r.detail}\n`,
-  );
+  process.stdout.write(`${MARK[r.state]} ${r.name.padEnd(pad)}  ${r.detail}\n`);
 }
 
+const passed = results.filter(r => r.state === 'ok').length;
+const skipped = results.filter(r => r.state === 'skip').length;
 process.stdout.write(
-  `\n${results.length - failed}/${results.length} · api=${API}${WEB ? ` web=${WEB}` : ''}\n`,
+  `\n${passed} ok · ${failed} fallan${skipped ? ` · ${skipped} sin correr` : ''}` +
+  ` · api=${API}${WEB ? ` web=${WEB}` : ''}\n`,
 );
 if (!WEB) {
   process.stdout.write('(sin --web se saltean los chequeos de CORS y del bundle)\n');
