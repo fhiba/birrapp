@@ -1,6 +1,6 @@
 import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
-  DashboardAnalytics, DashboardSummary, DashboardUser, Flag,
+  DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
   ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
@@ -245,6 +245,18 @@ export const beerSummary = (month?: string) =>
 export const removeBeerLog = (id: number) =>
   req<unknown>('DELETE', `/beers/${id}`, { auth: true })
 
+// ---------- personas: perfil ajeno y bloqueo (BIR-6 / BIR-17) ----------
+
+/** `auth: true` con sesión opcional: sin cuenta se ve igual, sin el bloqueo. */
+export const person = (id: number) =>
+  req<Person>('GET', `/users/${id}`, { auth: true })
+
+export const blockPerson = (id: number) =>
+  req<unknown>('POST', `/blocks/${id}`, { auth: true })
+export const unblockPerson = (id: number) =>
+  req<unknown>('DELETE', `/blocks/${id}`, { auth: true })
+export const blockedPeople = () => req<Person[]>('GET', '/blocks', { auth: true })
+
 // ---------- favoritos (BIR-37 / BIR-5) ----------
 export const favorites = (lat?: number, lng?: number) =>
   req<BarPin[]>('GET', '/favorites', { params: { lat, lng }, auth: true })
@@ -443,3 +455,13 @@ export const approveStyle = (slug: string) =>
 export const rejectStyle = (slug: string) =>
   req<unknown>('POST', `/moderation/styles/${encodeURIComponent(slug)}/reject`, { auth: true })
 export const removePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/remove`, { auth: true })
+
+/**
+ * Ban y su reverso. Existían en el servidor desde el principio y no había
+ * pantalla que los llamara (BIR-6): la moderación llegaba hasta la fila y no
+ * hasta quién la cargó.
+ */
+export const banUser = (id: number) =>
+  req<unknown>('POST', `/moderation/users/${id}/ban`, { auth: true })
+export const unbanUser = (id: number) =>
+  req<unknown>('POST', `/moderation/users/${id}/unban`, { auth: true })

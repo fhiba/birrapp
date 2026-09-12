@@ -904,6 +904,7 @@ function PhotoViewer({
   onClose: () => void
   onRemove: (p: Photo) => void
 }) {
+  const nav = useNavigate()
   const [i, setI] = useState(start)
   const touch = useRef<{ x: number; y: number } | null>(null)
 
@@ -978,7 +979,22 @@ function PhotoViewer({
         }}
       >
         <span>
-          {photo.authorName && <>{photo.mine ? 'Tu foto' : photo.authorName} · </>}
+          {photo.authorName && (
+            photo.mine ? <>Tu foto · </>
+              : photo.authorId != null ? (
+                <>
+                  {/* Abre su perfil: es el otro lugar donde aparece contenido
+                      firmado y desde donde hace falta poder actuar sobre la
+                      persona (BIR-6). */}
+                  <button onClick={() => nav(`/usuario/${photo.authorId}`)} className="lbl"
+                    style={{
+                      color: 'var(--muted)', fontSize: 12.5, textDecoration: 'underline',
+                      textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                    }}>{photo.authorName}</button>
+                  {' · '}
+                </>
+              ) : <>{photo.authorName} · </>
+          )}
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
         </span>
