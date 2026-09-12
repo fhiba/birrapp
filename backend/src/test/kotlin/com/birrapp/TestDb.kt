@@ -28,6 +28,11 @@ object TestDb {
      * se la lleva puesta aunque no esté en la lista. Por eso se vuelve a
      * sembrar acá: si no, los tests que usan marcas fallan con "marca
      * desconocida" y el motivo no es evidente.
+     *
+     * Desde V14 `beer_styles` también tiene `created_by`, así que cae por lo
+     * mismo y se resiembra igual. Si una migración agrega un estilo nuevo hay
+     * que agregarlo acá: es el precio de resembrar a mano, el mismo que ya se
+     * paga con las marcas.
      */
     fun reset() {
         db.conn { c ->
@@ -35,6 +40,21 @@ object TestDb {
                 it.execute(
                     "TRUNCATE flags, reviews, price_reports, refresh_tokens, bars, users " +
                         "RESTART IDENTITY CASCADE"
+                )
+            }
+            c.createStatement().use {
+                it.execute(
+                    """
+                    INSERT INTO beer_styles (slug, name_es, sort_order) VALUES
+                        ('rubia','Rubia / Golden',10), ('ipa','IPA',20),
+                        ('apa','APA',30), ('roja','Roja / Irish Red',40),
+                        ('negra','Negra',50), ('stout','Stout',60),
+                        ('porter','Porter',70), ('honey','Honey',80),
+                        ('scottish','Scottish',90), ('kolsch','Kölsch',100),
+                        ('trigo','Trigo / Weisse',110), ('lager','Lager',120),
+                        ('ipa-negra','IPA Negra',130), ('sin-alcohol','Sin alcohol',200)
+                    ON CONFLICT (slug) DO UPDATE SET status = 'approved', active = true
+                    """.trimIndent()
                 )
             }
             c.createStatement().use {

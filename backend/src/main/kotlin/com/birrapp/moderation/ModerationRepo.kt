@@ -33,6 +33,8 @@ data class ModerationSummaryDto(
     val openFlags: Int,
     /** Marcas que cargó un usuario y todavía nadie aprobó. */
     val pendingBrands: Int,
+    /** Estilos propuestos por un usuario, sin revisar. Ver BIR-35. */
+    val pendingStyles: Int = 0,
 )
 
 /** Una persona y lo que aportó. Para el dashboard, no para la app. */
@@ -130,6 +132,9 @@ class ModerationRepo(private val db: Db) {
             ) { it.getInt("n") } ?: 0,
             pendingBrands = c.queryOne(
                 "SELECT count(*) AS n FROM brands WHERE status = 'pending'",
+            ) { it.getInt("n") } ?: 0,
+            pendingStyles = c.queryOne(
+                "SELECT count(*) AS n FROM beer_styles WHERE status = 'pending'",
             ) { it.getInt("n") } ?: 0,
         )
     }

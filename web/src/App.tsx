@@ -21,6 +21,8 @@ import { InfoScreen } from './screens/Info'
 import { ModerationScreen } from './screens/Moderation'
 import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
+import { MyBeersScreen } from './screens/MyBeers'
+import { useFavorites } from './data/useFavorites'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
@@ -59,8 +61,9 @@ function Shell() {
 
   const { coords, denied, permission, request } = useLocation()
   const {
-    bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
+    bars, styles, brands, addBrand, addStyle, loading, error, load, invalidate, MIN_QUERY_ZOOM,
   } = useBars()
+  const favorites = useFavorites(user)
 
   const [sort, setSort] = useState<Sort>('distance')
   const [radius, setRadius] = useState(2000)
@@ -170,6 +173,8 @@ function Shell() {
         <Route path="/" element={
           <MapScreen
             bars={bars} styles={styles} loading={loading}
+            user={user} brands={brands}
+            onBrandCreated={addBrand} onStyleCreated={addStyle}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
             colorBy={colorBy} onColorBy={setColorBy}
@@ -199,14 +204,16 @@ function Shell() {
             bars={bars} loading={loading} sort={sort} radius={radius}
             center={queryPoint ?? null}
             styles={styles} styleFilter={styleFilter} onStyle={setStyleFilter}
-            simulated={simulated}
+            simulated={simulated} favorites={favorites.ids}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />
         } />
         <Route path="/bar/:id" element={
           <BarDetailScreen user={user} center={queryPoint ?? null}
-            styles={styles} brands={brands} onBrandCreated={addBrand}
-            onChanged={afterChange} />
+            styles={styles} brands={brands}
+            onBrandCreated={addBrand} onStyleCreated={addStyle}
+            onChanged={afterChange}
+            favorites={favorites} />
         } />
         <Route path="/agregar" element={
           <AddBarScreen user={user} center={queryPoint ?? null} onAdded={afterChange} />
@@ -215,6 +222,7 @@ function Shell() {
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
         <Route path="/info" element={<InfoScreen />} />
+        <Route path="/mis-birras" element={<MyBeersScreen />} />
         <Route path="/mis-aportes" element={
           <MyContributionsScreen onChanged={afterChange} />
         } />

@@ -1,5 +1,6 @@
 import type {
-  BarDetail, BarPin, BeerStyle, Brand, DashboardAnalytics, DashboardSummary, DashboardUser, Flag,
+  AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
+  DashboardAnalytics, DashboardSummary, DashboardUser, Flag,
   ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
@@ -214,6 +215,44 @@ export const createBrand = (name: string, craft: boolean) =>
   req<Brand>('POST', '/brands', { body: { name, craft }, auth: true })
 export const reviews = (barId: number) => req<Review[]>('GET', `/bars/${barId}/reviews`)
 
+/**
+ * Alta de estilo por un usuario (BIR-35). Queda pendiente, igual que las
+ * marcas, y quien lo propuso puede usarlo enseguida.
+ */
+export const createStyle = (name: string) =>
+  req<BeerStyle>('POST', '/styles', { body: { name }, auth: true })
+
+/**
+ * Resumen de precios de un radio (BIR-33). Público: es lo mismo que se ve
+ * recorriendo el mapa, sumado.
+ */
+export const areaStats = (
+  lat: number, lng: number, radius: number, style?: string, brand?: string,
+) => req<AreaStats>('GET', '/stats/prices', { params: { lat, lng, radius, style, brand } })
+
+// ---------- contador de birras (BIR-34) ----------
+
+/** Anotar una birra. Sin argumentos es "una, ahora, acá no sé". */
+export const logBeer = (b: {
+  barId?: number; styleSlug?: string; brandSlug?: string | null
+  qty?: number; drankAt?: string
+} = {}) => req<BeerLog>('POST', '/beers', { body: b, auth: true })
+
+/** Todo lo que dibuja "Mis birras", en una sola llamada. */
+export const beerSummary = (month?: string) =>
+  req<BeerSummary>('GET', '/beers/summary', { params: { month }, auth: true })
+
+export const removeBeerLog = (id: number) =>
+  req<unknown>('DELETE', `/beers/${id}`, { auth: true })
+
+// ---------- favoritos (BIR-37 / BIR-5) ----------
+export const favorites = (lat?: number, lng?: number) =>
+  req<BarPin[]>('GET', '/favorites', { params: { lat, lng }, auth: true })
+export const addFavorite = (barId: number) =>
+  req<unknown>('POST', `/favorites/${barId}`, { auth: true })
+export const removeFavorite = (barId: number) =>
+  req<unknown>('DELETE', `/favorites/${barId}`, { auth: true })
+
 // ---------- notas y fotos por birra ----------
 // `auth: true` con sesión opcional del lado del servidor: sin cuenta se leen
 // igual, y con token vienen marcados los propios para mostrarlos como "Vos".
@@ -388,4 +427,10 @@ export const approveBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/reject`, { auth: true })
+export const pendingStyles = () =>
+  req<BeerStyle[]>('GET', '/moderation/styles/pending', { auth: true })
+export const approveStyle = (slug: string) =>
+  req<unknown>('POST', `/moderation/styles/${encodeURIComponent(slug)}/approve`, { auth: true })
+export const rejectStyle = (slug: string) =>
+  req<unknown>('POST', `/moderation/styles/${encodeURIComponent(slug)}/reject`, { auth: true })
 export const removePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/remove`, { auth: true })

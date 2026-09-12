@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
-import type { BarPin, BeerStyle } from '../data/types'
+import type { BarPin, BeerStyle, Brand, User } from '../data/types'
 import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
 import { MAP_STYLE } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
+import { AddMenu, type AddAction } from '../ui/AddMenu'
+import { PickBarSheet } from '../ui/PickBar'
+import { LogBeerSheet } from './LogBeer'
+import { Toast } from '../ui/Chrome'
 
 export type ColorBy = 'freshness' | 'price'
 
@@ -17,6 +21,11 @@ const RADIUS_MAX = 15_000
 
 interface Props {
   bars: BarPin[]; styles: BeerStyle[]; loading: boolean
+  /** Anotar birras y cargar precios pide sesión; mirar el mapa no. */
+  user: User | null
+  brands: Brand[]
+  onBrandCreated: (b: Brand) => void
+  onStyleCreated: (s: BeerStyle) => void
   center: google.maps.LatLngLiteral | null
   simulated: google.maps.LatLngLiteral | null
   radius: number; styleFilter?: string
@@ -48,6 +57,20 @@ export function MapScreen(p: Props) {
   // cámara—, así que buscarlo por id en `p.bars` dejaba la tarjeta vacía cada
   // tanto, justo después de abrirla.
   const [preview, setPreview] = useState<BarPin | null>(null)
+
+  // Qué eligió la persona en el menú del "+". Null = el menú está cerrado o
+  // no eligió nada.
+  const [action, setAction] = useState<AddAction | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const onPick = (a: AddAction) => {
+    // Agregar un bar se puede sin cuenta hasta el formulario, que ya avisa.
+    // Las otras dos escriben en nombre de la persona, así que sin sesión no
+    // hay nada que hacer más que ofrecerle entrar.
+    if (a !== 'bar' && !p.user) { nav('/perfil'); return }
+    if (a === 'bar') { nav('/agregar'); return }
+    setAction(a)
+  }
 
   // Al soltar el dedo después de un long-press, el mapa emite igual un
   // 'click'. Sin este sello, ese click borraba el punto en el mismo gesto que
@@ -330,22 +353,35 @@ export function MapScreen(p: Props) {
             </svg>
           </button>
 
-          {/* El "+" va dibujado, no como texto: un glifo se posiciona por
-              baseline y nunca queda centrado en un círculo, además de depender
-              de la fuente que tenga cada quien. */}
-          <button onClick={() => nav('/agregar')} style={{
-            position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
-            width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
-            zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
-          }} aria-label="Agregar un bar">
-            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
-              <path d="M12 4.5v15M4.5 12h15" stroke="var(--base)"
-                strokeWidth="2.6" strokeLinecap="round" />
-            </svg>
-          </button>
+          {/* Antes iba derecho a "agregar un bar". Ahora pregunta qué, que
+              es lo que pedía BIR-36: cargar un precio y anotar una birra
+              tomada son acciones tanto o más frecuentes que dar de alta un
+              bar, y no tenían por dónde entrar desde el mapa. */}
+          <AddMenu onPick={onPick} />
         </>
       )}
+
+      {action === 'beer' && (
+        <LogBeerSheet
+          nearby={p.bars} styles={p.styles} brands={p.brands}
+          onBrandCreated={p.onBrandCreated} onStyleCreated={p.onStyleCreated}
+          onClose={() => setAction(null)}
+          onDone={m => { setAction(null); setToast(m) }}
+        />
+      )}
+
+      {action === 'price' && (
+        <PickBarSheet
+          title="¿En qué bar?" nearby={p.bars} center={p.myLocation ?? p.camera?.center ?? null}
+          onClose={() => setAction(null)}
+          // `precio=1` abre la carga de precio apenas entra al bar: quien
+          // eligió "cargar un precio" ya dijo lo que venía a hacer, y dejarlo
+          // en la pantalla del bar sería pedírselo de nuevo.
+          onPick={b => { setAction(null); nav(`/bar/${b.id}?precio=1`) }}
+        />
+      )}
+
+      {toast && <Toast text={toast} onDone={() => setToast(null)} />}
 
       {preview && (
         <BarPreview
