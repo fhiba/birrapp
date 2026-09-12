@@ -1685,3 +1685,33 @@ La entrada a `/config` era un renglón más en la lista del perfil, entre "cómo
 funcionan los precios" y el tutorial. Nadie lee una lista para encontrar la
 configuración: la busca arriba a la derecha, en la tuerca. Ahí está, al lado
 de cerrar sesión.
+
+---
+
+## 2026-09-12 (cont.) — v0.8.2: los filtros flanqueando la búsqueda, y el corazón en el mapa
+
+**El filtro de favoritos estaba escondido.** Había quedado al final de una
+franja que scrollea en horizontal, detrás del filtro de estilo y del
+interruptor de orden: en un teléfono quedaba fuera de pantalla y había que
+descubrir que se podía arrastrar para encontrarlo. Un filtro que no se ve es un
+filtro que no existe.
+
+Ahora los dos filtros flanquean el buscador —estilo a la izquierda, corazón a
+la derecha— y abajo queda sólo el orden con el conteo. La división es la que
+tiene sentido: arriba se elige QUÉ bares se ven, abajo en qué ORDEN. La franja
+que scrollea desapareció, y con ella el `[data-hscroll]` que evitaba que el
+swipe de orden peleara con arrastrarla.
+
+**Los favoritos se ven en el mapa.** Un corazón al lado del precio en la
+cápsula del pin, dibujado en el SVG y no como emoji: un emoji dentro de un
+`data:` URI depende de la fuente de cada sistema y en Android sale de otro
+color y otro tamaño. La cápsula crece 13px para hacerle lugar — sin eso el
+corazón se monta sobre el último dígito del precio, que es justo el que no se
+puede perder.
+
+Los bares cuya etiqueta no entró se dibujan como punto, y ahí el favorito va
+con un aro ámbar en vez de un corazón: a nueve píxeles, un corazón es una
+mancha.
+
+De paso, el paso del tutorial sobre el orden de la lista decía "Más cerca o más
+barata" desde antes de que existiera "Mejor puntuada".

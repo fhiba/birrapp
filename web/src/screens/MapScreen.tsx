@@ -24,6 +24,8 @@ interface Props {
   bars: BarPin[]; styles: BeerStyle[]; loading: boolean
   /** Anotar birras y cargar precios pide sesión; mirar el mapa no. */
   user: User | null
+  /** Ids favoritos: los pines de esos bares llevan un corazón. */
+  favorites: Set<number>
   brands: Brand[]
   onBrandCreated: (b: Brand) => void
   onStyleCreated: (s: BeerStyle) => void
@@ -114,7 +116,7 @@ export function MapScreen(p: Props) {
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
         <Pins bars={p.bars} colorBy={p.colorBy} selectedId={preview?.id ?? null}
-          onOpen={setPreview} />
+          favorites={p.favorites} onOpen={setPreview} />
       </Map>
 
       {/* Blanco del tutorial para el paso del punto secundario.
@@ -408,10 +410,11 @@ function Swatch({ mode }: { mode: ColorBy }) {
  * decide quién gana, no evita que la cápsula de abajo quede cortada.
  */
 function Pins({
-  bars, colorBy, selectedId, onOpen,
+  bars, colorBy, selectedId, favorites, onOpen,
 }: {
   bars: BarPin[]; colorBy: ColorBy
   selectedId: number | null
+  favorites: Set<number>
   onOpen: (b: BarPin) => void
 }) {
   const map = useMap()
@@ -492,8 +495,12 @@ function Pins({
             onClick={() => { onOpen(b); reveal(b) }}
             zIndex={on ? 30 : withLabel ? 10 : 1}
             icon={withLabel
-              ? priceIcon(formatPrice(b.fromPrice!, b.currency), colorOf(b), on)
-              : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9, on)}
+              ? priceIcon(
+                  formatPrice(b.fromPrice!, b.currency), colorOf(b), on,
+                  favorites.has(b.id),
+                )
+              : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9, on,
+                  favorites.has(b.id))}
           />
         )
       })}
@@ -518,10 +525,14 @@ const svgUrl = (svg: string) =>
  * poco más grande: sin eso, con la tarjeta arriba no había forma de saber
  * cuál de los treinta pines es el que se está leyendo.
  */
-function priceIcon(label: string, color: string, on = false): google.maps.Icon {
+function priceIcon(
+  label: string, color: string, on = false, fav = false,
+): google.maps.Icon {
   const fill = resolve(color)
   const s = on ? 1.16 : 1
-  const w = (20 + label.length * 8.6) * s
+  // El corazón se lleva su ancho: sin esto se monta sobre el último dígito
+  // del precio, que es justo el que no se puede perder.
+  const w = (20 + label.length * 8.6 + (fav ? 13 : 0)) * s
   const h = 26 * s
   // El aro se dibuja por dentro del borde, así que el lienzo tiene que
   // agrandarse o WebKit lo recorta a la mitad.
@@ -530,9 +541,11 @@ function priceIcon(label: string, color: string, on = false): google.maps.Icon {
     <rect x="${pad + 0.5}" y="${pad + 0.5}" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
       fill="${fill}" stroke="${on ? '#FBF6EE' : 'rgba(255,255,255,.55)'}"
       stroke-width="${on ? 2.5 : 1}"/>
-    <text x="${pad + w / 2}" y="${pad + h / 2 + 4.5 * s}" text-anchor="middle"
+    <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
+      text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
       font-weight="700" fill="#1A1410">${label}</text>
+    ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
   </svg>`
   return {
     url: svgUrl(svg),
@@ -540,13 +553,37 @@ function priceIcon(label: string, color: string, on = false): google.maps.Icon {
   }
 }
 
-function dotIcon(color: string, size: number, on = false): google.maps.Icon {
+/**
+ * Un corazón chiquito, en coordenadas absolutas dentro del SVG del pin.
+ *
+ * Dibujado y no un emoji: un emoji dentro de un `data:` URI depende de la
+ * fuente de cada sistema y en Android sale de otro color y otro tamaño.
+ */
+function heartPath(x: number, y: number, size: number) {
+  const k = size / 24
+  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#1A1410">
+    <path d="M12 21 3.2 12.2a5.6 5.6 0 0 1 7.9-7.9l.9.9.9-.9a5.6 5.6 0 0 1 7.9 7.9L12 21Z"/>
+  </g>`
+}
+
+/**
+ * El punto, para los bares cuya etiqueta no entró.
+ *
+ * El favorito se marca con un aro ámbar y no con un corazón: a 9 píxeles, un
+ * corazón es una mancha. El aro se distingue igual y no pretende ser un
+ * dibujo.
+ */
+function dotIcon(
+  color: string, size: number, on = false, fav = false,
+): google.maps.Icon {
   const fill = resolve(color)
-  const pad = on ? 5 : 0
+  const pad = on ? 5 : fav ? 3 : 0
   const box = size + pad * 2
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}">
     ${on ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 2.5}"
-      fill="none" stroke="#FBF6EE" stroke-width="2.5"/>` : ''}
+      fill="none" stroke="#FBF6EE" stroke-width="2.5"/>`
+      : fav ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 1.5}"
+      fill="none" stroke="#FFB627" stroke-width="2"/>` : ''}
     <circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(box / 2, box / 2) }
