@@ -1,6 +1,7 @@
 package com.birrapp
 
 import com.birrapp.core.Db
+import com.birrapp.core.update
 import java.sql.Connection
 
 /**
@@ -117,7 +118,26 @@ object TestDb {
             }
         }
 
-    /** Inserta un precio con fecha retroactiva, para poder probar la frescura. */
+    /**
+     * Fuerza la moneda de un bar ya insertado.
+     *
+     * `insertBar` escribe la fila a mano y no pasa por `BarRepo.create`, así
+     * que se queda con el default 'ARS'. Para los tests de moneda hace falta
+     * poder decir "este bar cobra en euros" sin simular el alta entera.
+     */
+    fun setCurrency(barId: Long, currency: String) = db.conn {
+        it.update("UPDATE bars SET currency = ? WHERE id = ?", currency, barId)
+    }
+
+    /**
+     * Inserta un precio con fecha retroactiva, para poder probar la frescura.
+     *
+     * La moneda se copia del bar, igual que hace `PriceRepo.report`. Si acá se
+     * dejara el default de la columna, un bar en libras tendría precios
+     * guardados en pesos: los tests estarían probando un estado que la app no
+     * puede producir, y todo lo que filtra por moneda —outliers, stats— daría
+     * resultados que no significan nada.
+     */
     fun insertPrice(
         barId: Long, styleSlug: String, price: Double, daysAgo: Int,
         userId: Long, sizeMl: Int = 473, isConfirmation: Boolean = false,
@@ -125,12 +145,14 @@ object TestDb {
         val sid = styleId(c, styleSlug)
         c.prepareStatement(
             "INSERT INTO price_reports " +
-                "(bar_id, style_id, price, size_ml, reported_by, created_at, is_confirmation) " +
-                "VALUES (?, ?, ?, ?, ?, now() - make_interval(days => ?), ?) RETURNING id"
+                "(bar_id, style_id, price, size_ml, currency, reported_by, created_at, " +
+                " is_confirmation) " +
+                "VALUES (?, ?, ?, ?, (SELECT currency FROM bars WHERE id = ?), ?, " +
+                "        now() - make_interval(days => ?), ?) RETURNING id"
         ).use { st ->
             st.setLong(1, barId); st.setLong(2, sid); st.setDouble(3, price)
-            st.setInt(4, sizeMl); st.setLong(5, userId); st.setInt(6, daysAgo)
-            st.setBoolean(7, isConfirmation)
+            st.setInt(4, sizeMl); st.setLong(5, barId); st.setLong(6, userId)
+            st.setInt(7, daysAgo); st.setBoolean(8, isConfirmation)
             st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
         }
     }
