@@ -223,7 +223,10 @@ function Shell() {
         } />
         <Route path="/info" element={<InfoScreen />} />
         <Route path="/mis-birras" element={<MyBeersScreen />} />
-        <Route path="/mis-aportes" element={
+        {/* Una pantalla por tipo de aporte. Sin `:tipo` se cae en precios,
+            que es el aporte que todo el mundo tiene. */}
+        <Route path="/mis-aportes" element={<Navigate to="/mis-aportes/precios" replace />} />
+        <Route path="/mis-aportes/:tipo" element={
           <MyContributionsScreen onChanged={afterChange} />
         } />
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />

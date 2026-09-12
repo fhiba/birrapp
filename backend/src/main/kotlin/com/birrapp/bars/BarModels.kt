@@ -55,6 +55,17 @@ data class BarPinDto(
     val fromPrice: Double?,
     val freshestAgeDays: Int?,
     val distanceMeters: Double?,
+    /**
+     * Promedio real de las birras del bar, ponderado por votos. El que se
+     * muestra. Null = nadie votó nada ahí todavía.
+     *
+     * Viaja siempre y no sólo con `sort=rated`: ordenar por algo que no se ve
+     * es pedirle a la gente que confíe en un ranking sin mostrarle el número
+     * que lo arma. Son dos campos más por pin — con el tope de 200 de BIR-13,
+     * unos pocos KB.
+     */
+    val rating: Double? = null,
+    val ratingCount: Int = 0,
 )
 
 @Serializable
@@ -87,4 +98,9 @@ data class NewBarRequest(
     val googlePlaceId: String? = null,
 )
 
-enum class BarSort { distance, cheapest }
+enum class BarSort {
+    distance,
+    cheapest,
+    /** Mejor puntuada. Ordena por la nota con shrinkage, no por la que se ve. */
+    rated,
+}

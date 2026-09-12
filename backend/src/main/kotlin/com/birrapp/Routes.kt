@@ -120,7 +120,8 @@ fun Route.apiRoutes(
         val sort = when (q["sort"]) {
             null, "distance" -> BarSort.distance
             "cheapest" -> BarSort.cheapest
-            else -> badRequest("sort inválido: usar distance o cheapest")
+            "rated" -> BarSort.rated
+            else -> badRequest("sort inválido: usar distance, cheapest o rated")
         }
 
         val found = bars.nearby(lat, lng, radius, sort, limit, q["style"])

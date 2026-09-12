@@ -6,6 +6,7 @@ import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '.
 import type { Sort } from '../data/useBars'
 import { StyleFilter } from '../ui/StyleFilter'
 import { AreaStatsCard } from '../ui/AreaStatsCard'
+import { Segmented } from '../ui/Segmented'
 
 interface Props {
   bars: BarPin[]; loading: boolean
@@ -29,11 +30,15 @@ interface Props {
  * a la derecha al anterior. Si el array y las píldoras se desordenaran entre
  * sí, el gesto llevaría al modo contrario del que muestra la pantalla.
  */
-const SORTS: Sort[] = ['distance', 'cheapest']
+const SORTS: Sort[] = ['distance', 'cheapest', 'rated']
 
 const SORT_LABEL: Record<Sort, string> = {
   distance: 'Más cerca',
   cheapest: 'Más barata',
+  // "Mejor puntuada" y no "mejor": la nota es de las birras del bar, que es
+  // lo único que esta app sabe puntuar. El bar puede ser un antro con una IPA
+  // excelente.
+  rated: 'Mejor puntuada',
 }
 
 /** Cuánto hay que arrastrar para que el gesto cuente, en píxeles. */
@@ -150,8 +155,12 @@ export function ListScreen(p: Props) {
     // por cercanía y las píldoras ni se muestran.
     if (isSearch || e.touches.length !== 1) return
     // El slider del radio y el campo de búsqueda usan el eje horizontal para
-    // lo suyo. Un swipe que arranca ahí es de ellos.
-    if ((e.target as HTMLElement).closest('input')) return
+    // lo suyo. Un swipe que arranca ahí es de ellos. Lo mismo la franja de
+    // filtros, que scrollea en horizontal desde que entró la píldora de
+    // favoritos: sin esto, arrastrarla para ver el último filtro cambiaba el
+    // orden de la lista al mismo tiempo.
+    const from = e.target as HTMLElement
+    if (from.closest('input') || from.closest('[data-hscroll]')) return
     const t = e.touches[0]
     swipe.current = { x: t.clientX, y: t.clientY, dx: 0, axis: 'none' }
   }
@@ -260,43 +269,72 @@ export function ListScreen(p: Props) {
             }}>Volver a la lista</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-tour="list-sort">
-            {/* El mismo componente que el mapa, en sólido en vez de vidrio.
-                Acá el filtro importa más todavía: la lista muestra el precio
-                de cada bar, y sin filtrar cada fila puede ser un estilo
-                distinto, así que la columna de precios no compara nada. */}
-            <StyleFilter
-              styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
-              tone="plain" size={34}
-            />
-            {/* Se recorre `SORTS` y no un array suelto: es la misma lista que
-                usa el swipe, así que el orden en pantalla y el del gesto no
-                se pueden separar. */}
-            {SORTS.map(s => (
-              <button key={s} onClick={() => p.onSort(s)} className="lbl pill" style={{
-                padding: '8px 15px', fontSize: 13, whiteSpace: 'nowrap',
-                background: p.sort === s ? 'var(--cream)' : 'rgba(255,255,255,.07)',
-                color: p.sort === s ? 'var(--base)' : 'var(--muted)',
-              }}>{SORT_LABEL[s]}</button>
-            ))}
-            {/* Sin favoritos marcados no aparece: una píldora que siempre
-                devuelve una lista vacía sólo ocupa lugar. */}
-            {(p.favorites.size > 0 || favOnly) && (
-              <button onClick={() => setFavOnly(f => !f)} className="lbl pill"
-                aria-pressed={favOnly} style={{
-                  padding: '8px 13px', fontSize: 13, whiteSpace: 'nowrap',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: favOnly ? 'var(--amber)' : 'rgba(255,255,255,.07)',
-                  color: favOnly ? 'var(--base)' : 'var(--muted)',
-                }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
-                </svg>
-                Favoritos
-              </button>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            {/*
+              Los controles scrollean; el conteo no.
+
+              Antes era una fila sola con `marginLeft: auto` en el número. Al
+              sumarse la píldora de favoritos dejó de entrar en un teléfono
+              angosto, y lo que se salía de pantalla era justamente el número
+              de bares — el dato, no el cromo. Ahora los filtros viven en una
+              franja que se arrastra y el conteo queda anclado afuera.
+            */}
+            <div
+              data-tour="list-sort"
+              data-hscroll
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                overflowX: 'auto', scrollbarWidth: 'none', flex: 1, minWidth: 0,
+                // Un poco de aire vertical: sin esto, el anillo de foco de una
+                // píldora a medio entrar queda recortado contra el scroller.
+                padding: '2px 0',
+              }}
+            >
+              {/* El mismo componente que el mapa, en sólido en vez de vidrio.
+                  Acá el filtro importa más todavía: la lista muestra el precio
+                  de cada bar, y sin filtrar cada fila puede ser un estilo
+                  distinto, así que la columna de precios no compara nada. */}
+              <StyleFilter
+                styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
+                tone="plain" size={34}
+              />
+
+              {/* Un interruptor y no dos píldoras sueltas: el orden es uno o
+                  el otro, nunca los dos, y es el mismo gesto que el toggle de
+                  color del mapa. Se recorre `SORTS`, que es la misma lista que
+                  usa el swipe: lo que se ve y lo que hace el gesto no se
+                  pueden separar. */}
+              <Segmented<Sort>
+                options={SORTS.map(s => ({ value: s, label: SORT_LABEL[s] }))}
+                value={p.sort} onChange={p.onSort}
+                tone="plain" height={28}
+                label={o => `Ordenar por ${o.label.toLowerCase()}`}
+              />
+
+              {/* Sin favoritos marcados no aparece: una píldora que siempre
+                  devuelve una lista vacía sólo ocupa lugar. */}
+              {(p.favorites.size > 0 || favOnly) && (
+                <button onClick={() => setFavOnly(f => !f)} className="lbl pill"
+                  aria-pressed={favOnly} style={{
+                    padding: '8px 13px', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: favOnly ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                    color: favOnly ? 'var(--base)' : 'var(--muted)',
+                  }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+                  </svg>
+                  Favoritos
+                </button>
+              )}
+            </div>
+
+            {/* Fuera del scroller y sin encogerse: es el dato de la pantalla,
+                no un control. Cifras tabulares para que no baile al pasar de
+                9 a 10. */}
             <span className="num" style={{
-              marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
+              flexShrink: 0, fontSize: 17, color: 'var(--faint)',
+              fontVariantNumeric: 'tabular-nums',
             }}>{shown.length}</span>
           </div>
         )}
@@ -384,6 +422,17 @@ export function ListScreen(p: Props) {
                     <> · <span style={{ color: ageColor(b.freshestAgeDays) }}>
                       {shortAge(b.freshestAgeDays)}
                     </span></>
+                  )}
+                  {/* La nota se ve siempre, no sólo ordenando por ella:
+                      ordenar por algo invisible es pedir que se confíe en un
+                      ranking sin mostrar de dónde sale. Va con la cantidad de
+                      votos al lado por lo mismo que los precios van con su
+                      antigüedad — un 5,0 de un voto no es un 5,0. */}
+                  {b.rating != null && (
+                    <> · <span style={{ color: 'var(--amber)' }}>
+                      ★ {b.rating.toFixed(1).replace('.', ',')}
+                    </span>
+                    <span style={{ opacity: .8 }}> ({b.ratingCount})</span></>
                   )}
                 </span>
               </span>

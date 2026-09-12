@@ -20,7 +20,7 @@ const MAX_LIMIT = 200
 const MAX_AGE_MS = 5 * 60_000
 const MIN_QUERY_ZOOM = 12
 
-export type Sort = 'distance' | 'cheapest'
+export type Sort = 'distance' | 'cheapest' | 'rated'
 
 function haversine(a: google.maps.LatLngLiteral, b: google.maps.LatLngLiteral) {
   const R = 6_371_000, rad = Math.PI / 180
@@ -98,11 +98,23 @@ export function useBars() {
     const out = [...(known.current.get(style ?? '') ?? new Map<number, BarPin>()).values()]
       .map(b => ({ ...b, distanceMeters: haversine(c, { lat: b.lat, lng: b.lng }) }))
       .filter(b => b.distanceMeters! <= radius)
-    out.sort(sort === 'cheapest'
-      // NULLS LAST igual que el servidor: un bar sin precio fresco no puede
-      // encabezar el ranking de más barata.
-      ? (a, b) => (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity)
-      : (a, b) => a.distanceMeters! - b.distanceMeters!)
+    // NULLS LAST igual que el servidor, en los dos rankings: ni un bar sin
+    // precio fresco puede encabezar "más barata", ni uno sin votos "mejor
+    // puntuada". No saber no es ser el mejor.
+    //
+    // Ojo: acá se ordena por la nota REAL y el servidor lo hace por la que
+    // lleva shrinkage, que no viaja. Es una diferencia chica y sólo en los
+    // empates de arriba, pero está anotada porque el día que se note, la
+    // respuesta es mandar también la nota de ordenar, no replicar la fórmula
+    // en el cliente.
+    out.sort(
+      sort === 'cheapest'
+        ? (a, b) => (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity)
+        : sort === 'rated'
+          ? (a, b) => (b.rating ?? -1) - (a.rating ?? -1) ||
+              a.distanceMeters! - b.distanceMeters!
+          : (a, b) => a.distanceMeters! - b.distanceMeters!,
+    )
     return out.slice(0, 400)
   }, [])
 

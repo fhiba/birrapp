@@ -1534,3 +1534,66 @@ La rama `dev` queda como estaba —`feature` → `dev` → `master`—, sólo qu
 despliega nada. `docs/DEPLOY.md` conserva la sección del entorno desplegado:
 sigue haciendo falta para lo que en local no se puede probar de verdad
 (migraciones grandes, R2, el comportamiento detrás del proxy).
+
+---
+
+## 2026-09-12 (cont.) — v0.7.1: lo que Felipe marcó de la 0.7.0, más BIR-30
+
+Tres devoluciones sobre la tanda anterior y un ticket nuevo.
+
+**El contador sube a los cuadrados del perfil, y cada aporte tiene su
+pantalla.** Los tres cuadrados —precios, fotos, bares— llevaban todos a la
+misma vista con los cuatro tipos apilados. Eso tenía el problema de siempre de
+las vistas compartidas: tocabas "Fotos" y caías arriba de todo, con los precios
+por delante. El número que tocás tiene que ser el que te recibe. Ahora la ruta
+es `/mis-aportes/:tipo` y cada cuadrado abre su lista. La consulta sigue siendo
+una sola —el endpoint devuelve todo junto y cada pantalla muestra su parte—:
+partirlo serían cuatro viajes para el mismo dato.
+
+"Birras tomadas" entra como cuarto cuadrado. No es un aporte a la comunidad
+como los otros tres, pero es donde uno lo busca, así que la sección pasó a
+llamarse "Lo tuyo". Los comentarios quedan como fila y no como cuadrado:
+`UserStats` no los cuenta, y pedir la lista entera de aportes para dibujar un
+número sería traerse todo cada vez que alguien abre el perfil.
+
+**El orden de la lista pasa a ser un interruptor**, el mismo que el toggle de
+color del mapa. Dos píldoras sueltas no dicen "uno o el otro", y con la de
+favoritos sumada la fila dejó de entrar en un teléfono: lo que se salía de
+pantalla era el número de bares, o sea el dato y no el cromo. Ahora los filtros
+viven en una franja que se arrastra y el conteo queda anclado afuera.
+
+El interruptor salió a `ui/Segmented.tsx` y lo usan las dos pantallas. Era
+copiarlo o compartirlo, y ya sabemos cómo termina copiarlo: `StyleFilter`
+empezó duplicado y los dos filtros se fueron separando con cada retoque.
+
+Efecto secundario del scroll horizontal: el swipe que cambia de orden competía
+con arrastrar la franja de filtros. Se excluye por `[data-hscroll]`, igual que
+ya se excluía el `input` del buscador.
+
+**BIR-30 — orden "mejor puntuada".** Vista nueva `v_bar_ratings` (V15): la nota
+del bar ponderada por cantidad de votos entre sus birras. No es una nota nueva,
+es exactamente la que la ficha del bar ya calculaba en el cliente; tenerla en
+dos lados era garantía de que un día dijeran cosas distintas.
+
+Dos números y no uno, por lo de siempre: `rating_raw` es el que se muestra
+—con un solo voto de 5 dice 5,0, que es lo que esa persona votó— y
+`rating_sort`, con el shrinkage de `v_style_ratings`, es el que ordena. Un bar
+con un voto de 5 no puede encabezar el ranking por encima de uno con 4,6 y
+cuarenta votos. Hay test, y se verificó que falla si se ordena por la nota
+cruda. Los bares sin votos van al final: no saber no es ser el mejor, el mismo
+criterio que los precios stale en "más barata".
+
+La nota viaja en cada pin y se muestra en la fila con su cantidad de votos al
+lado. Ordenar por algo invisible es pedirle a alguien que confíe en un ranking
+sin mostrarle de dónde sale, y un 5,0 de un voto no es un 5,0.
+
+**Anotado, no arreglado:** el cliente ordena su caché por la nota real y el
+servidor por la del shrinkage, que no viaja. La diferencia sólo se nota en
+empates de los primeros puestos. El día que moleste, la respuesta es mandar
+también la nota de ordenar, no replicar la fórmula bayesiana en el front.
+
+113 tests de backend en verde (107 + 6). La segunda mitad de BIR-30 —"la mejor
+opción de la zona"— ya está hecha: es el `bestValue` de la tarjeta de BIR-33.
+
+Emblemas: Felipe pidió revisitarlos. Queda en BIR-39, con lo que no cierra de
+los seis actuales anotado ahí.
