@@ -41,6 +41,8 @@ data class NewCommentRequest(
 @Serializable
 data class RatingCommentDto(
     val id: Long,
+    /** Para poder abrir su perfil desde el comentario (BIR-6). */
+    val authorId: Long,
     val authorName: String,
     val body: String?,
     val ageDays: Int,
@@ -173,12 +175,14 @@ class RatingRepo(private val db: Db) {
                   AND r.user_id = cm.user_id AND r.status = 'active'
             WHERE cm.bar_id = ? AND s.slug = ? AND cm.status = 'active'
               AND b.slug IS NOT DISTINCT FROM ?
+              ${com.birrapp.auth.notBlocked("cm.user_id")}
             ORDER BY cm.created_at DESC LIMIT ?
             """.trimIndent(),
-            barId, styleSlug, brandSlug, limit,
+            barId, styleSlug, brandSlug, viewerId, viewerId, limit,
         ) { rs ->
             RatingCommentDto(
                 id = rs.getLong("id"),
+                authorId = rs.getLong("user_id"),
                 authorName = rs.getString("display_name"),
                 body = rs.getString("body"),
                 ageDays = rs.getInt("age_days"),

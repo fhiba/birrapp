@@ -1765,3 +1765,64 @@ antigüedad al lado y lo puede denunciar cualquiera.
 se comparó y en qué radio. Un moderador que ve "auto: 12000/L contra una
 mediana de 3000/L (ARS) entre los bares a menos de 25 km" puede decidir; con el
 mensaje viejo tenía que adivinar de dónde salía el número.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.0: la persona detrás del contenido (BIR-6 + BIR-17)
+
+Los dos tickets juntos porque son la misma cosa vista de los dos lados, y lo
+dice el propio BIR-17: **el ban es la herramienta del moderador y el bloqueo la
+del usuario**. Hacen falta las dos, y las dos necesitaban lo mismo que no
+existía — una pantalla de la persona.
+
+### Perfil ajeno (BIR-6)
+
+`GET /users/{id}`, y `/usuario/:id` en la PWA. Se llega tocando el nombre en un
+comentario o en el visor de fotos, que es desde donde hace falta: la moderación
+llegaba hasta la fila —bajar el comentario— y no había forma de llegar a quién
+lo escribió. Bajar la fila no alcanza porque el autor la vuelve a mandar.
+
+Muestra nombre, foto, desde cuándo está y qué aportó. **No muestra el email**, y
+no por un `if` en la consulta: el DTO no tiene el campo, así que es una garantía
+de tipo. `banned` y `role` viajan sólo para moderadores — que una cuenta esté
+suspendida no es información pública, sería una lista de escarmiento.
+
+**El ban ahora corta al toque.** Era el "a decidir" del ticket: el rol y la
+identidad viajan en el JWT para no ir a la base en cada request, y para el rol
+el precio es aceptable, pero para el ban son hasta dos horas
+(`JWT_ACCESS_MINUTES`) de abuso sostenido *después* de haber apretado el botón —
+justo lo que la herramienta viene a cortar. Ahora hay un interceptor sobre el
+bloque entero de escritura que consulta `banned_at`. Va como interceptor y no
+como línea al principio de cada handler porque hay una docena, y el endpoint
+número trece se va a olvidar de ponerla.
+
+### Bloqueo (BIR-17)
+
+Tabla `user_blocks` con clave compuesta —bloquear dos veces no es un bloqueo
+nuevo— y **oculta en las dos direcciones**. Si A bloquea a B, A no ve los
+comentarios de B y B tampoco los de A. Una sola dirección deja a quien bloqueó
+igual de expuesto: el otro sigue leyendo lo que escribe y sigue teniendo a quién
+responderle, que es el problema que el bloqueo viene a cortar. Y la regla es más
+fácil de explicar: se dejan de ver, punto.
+
+El filtro vive en una constante con nombre (`notBlocked(columna)`) y no copiado
+en cada consulta: el día que se agregue otra lista de contenido firmado hay que
+acordarse de filtrarla, y tener un nombre para esto es la única pista de que
+hace falta. Hoy la usan comentarios y fotos.
+
+Los precios **no** se esconden: son datos sobre bares, no sobre personas.
+Esconderlos dejaría el mapa peor informado como efecto de un conflicto entre dos
+usuarios, y es la misma razón por la que borrar la cuenta tampoco se los lleva.
+
+La lista de bloqueados está en Configuración, que es el único lugar desde donde
+se puede deshacer: un bloqueo que no se puede levantar es una decisión que
+quedó para siempre por un toque.
+
+### Verificación
+
+134 tests de backend en verde (124 + 10). El filtro de bloqueo se verificó por
+mutación: desactivándolo caen tres tests, no cero.
+
+Un assert que había escrito mal —una cadena de `sorted().reversed()` sin
+sentido que pasaba igual— quedó corregido antes de commitear. Pasaba, pero no
+probaba lo que decía probar.

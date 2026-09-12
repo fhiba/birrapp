@@ -8,12 +8,14 @@ import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import com.birrapp.auth.*
 import com.birrapp.bars.*
 import com.birrapp.beers.*
 import com.birrapp.core.CoverageBudget
+import com.birrapp.core.ApiError
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
 import com.birrapp.core.tooManyRequests
@@ -63,6 +65,7 @@ fun Route.apiRoutes(
     bars: BarRepo,
     prices: PriceRepo,
     beers: BeerRepo,
+    people: PeopleRepo,
     reviews: ReviewRepo,
     ratings: RatingRepo,
     photos: PhotoRepo,
@@ -159,6 +162,26 @@ fun Route.apiRoutes(
         call.respond(hits)
     }
 
+    /**
+     * El perfil de otra persona (BIR-6).
+     *
+     * Sesión opcional: se puede mirar sin cuenta —lo que aportó alguien es
+     * público, está firmado con su nombre en el mapa— pero con token viaja si
+     * la bloqueaste, y si quien mira modera, también si está baneada.
+     */
+    authenticate("jwt", optional = true) {
+        get("/users/{id}") {
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            val who = call.callerOrNull()
+            call.respond(
+                people.profile(
+                    id, who?.userId,
+                    asModerator = who?.role?.atLeast(Role.moderator) == true,
+                ),
+            )
+        }
+    }
+
     get("/bars/{id}") {
         val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
         val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
@@ -227,6 +250,33 @@ fun Route.apiRoutes(
     // ---------- aportes (requiere sesión) ----------
     authenticate("jwt") {
 
+        /**
+         * Un ban corta acá, no cuando expira el token.
+         *
+         * El rol y la identidad viajan en el JWT justamente para no ir a la
+         * base en cada request, y para el rol el precio es aceptable: degradar
+         * a alguien tarda como mucho una expiración. Para el ban no: son hasta
+         * dos horas de abuso sostenido después de haber apretado el botón, que
+         * es exactamente lo que la herramienta viene a cortar (el "a decidir"
+         * de BIR-6).
+         *
+         * Va como interceptor del bloque entero y no como línea al principio de
+         * cada handler: hay una docena, y el endpoint número trece se va a
+         * olvidar de ponerla.
+         */
+        intercept(ApplicationCallPipeline.Plugins) {
+            // `context` y no `call`: en un interceptor de pipeline el call es
+            // el contexto, no una propiedad del receptor.
+            val who = context.callerOrNull() ?: return@intercept
+            if (users.isBanned(who.userId)) {
+                context.respond(
+                    HttpStatusCode.Forbidden,
+                    ApiError("banned", "tu cuenta está suspendida"),
+                )
+                finish()
+            }
+        }
+
         post("/prices") {
             val caller = call.caller()
             call.respond(prices.report(call.receive<NewPriceRequest>(), caller.userId))
@@ -294,6 +344,30 @@ fun Route.apiRoutes(
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             if (!beers.remove(id, caller.userId)) notFound("no existe esa birra tuya")
             call.respond(OkResponse())
+        }
+
+        /**
+         * Bloquear a alguien (BIR-17). Herramienta del usuario, distinta del
+         * ban: el ban saca a alguien de la comunidad y lo aplica un moderador;
+         * esto sólo decide qué ve quien bloquea.
+         */
+        post("/blocks/{id}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            people.setBlocked(caller.userId, id, on = true)
+            call.respond(OkResponse())
+        }
+
+        delete("/blocks/{id}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            people.setBlocked(caller.userId, id, on = false)
+            call.respond(OkResponse())
+        }
+
+        /** A quiénes bloqueaste, para poder deshacerlo. */
+        get("/blocks") {
+            call.respond(people.blocked(call.caller().userId))
         }
 
         /** Los bares favoritos de quien mira (BIR-37 / BIR-5). */
