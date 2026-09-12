@@ -72,6 +72,20 @@ export function ProfileScreen({ user, onSession }: {
           <h1 className="ttl" style={{ fontSize: 28, margin: 0 }}>{user.displayName}</h1>
           <p style={{ color: 'var(--faint)', fontSize: 13, margin: '4px 0 0' }}>{user.email}</p>
         </div>
+        {/* La tuerca, donde se la busca. Era un renglón más en la lista de
+            abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
+            leer una lista para encontrar la configuración, la busca arriba a
+            la derecha. */}
+        <button onClick={() => nav('/config')} aria-label="Configuración" style={{
+          width: 42, height: 42, borderRadius: '50%', marginRight: 8,
+          display: 'grid', placeItems: 'center',
+          background: 'rgba(255,255,255,.07)', color: 'var(--muted)',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2L1.1 8.9a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
+          </svg>
+        </button>
+
         {/* Salir arriba a la derecha, con su color: es una acción de sesión,
             no una opción más de la lista. */}
         <button onClick={() => setConfirm('out')} aria-label="Cerrar sesión" style={{
@@ -118,10 +132,6 @@ export function ProfileScreen({ user, onSession }: {
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
         <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
-        {/* La configuración se lleva el nombre, la foto y el borrado de
-            cuenta, que estaban sueltos acá. El perfil es lo que mostrás; la
-            configuración, lo que elegís. */}
-        <Row label="Configuración" onClick={() => nav('/config')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}

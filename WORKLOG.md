@@ -1676,3 +1676,12 @@ lindo y saber de qué moneda se habla, gana lo segundo.
 **Android queda atrás otra vez:** los campos nuevos viajan con default, así
 que la app vieja no se rompe, pero sigue mostrando todo con el "$" de pesos.
 Va al ticket de Android junto con el resto.
+
+---
+
+## 2026-09-12 (cont.) — v0.8.1: la configuración va en la tuerca
+
+La entrada a `/config` era un renglón más en la lista del perfil, entre "cómo
+funcionan los precios" y el tutorial. Nadie lee una lista para encontrar la
+configuración: la busca arriba a la derecha, en la tuerca. Ahí está, al lado
+de cerrar sesión.
