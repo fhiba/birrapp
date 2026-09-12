@@ -127,14 +127,15 @@ class CurrencyTest {
             val bar = TestDb.insertBar("Lisboa $i", lisboa.first + i * 0.001, lisboa.second)
             // Se fuerza la moneda del bar: el insert directo no pasa por create().
             TestDb.setCurrency(bar, "EUR")
-            TestDb.insertPrice(bar, "ipa", 3.0, daysAgo = 1, userId = u)
+            TestDb.insertPrice(bar, "ipa", 2.5, daysAgo = 1, userId = u)
         }
 
-        // Una pinta en Dublín cuesta el doble, y es un precio perfectamente
-        // real. Con la mediana del euro entero se iba a moderación.
+        // Una pinta en Dublín sale tres veces y media una de Lisboa, y las dos
+        // son precios perfectamente reales. Contra la mediana del euro entero,
+        // ésta pasaba el factor de outlier y se iba derecho a moderación.
         val dublin = 53.3498 to -6.2603
         val bar = crearBar("The Dublin Pub", dublin, "IE", quien = u)
-        val ok = prices.report(NewPriceRequest(bar, "ipa", 8.0), u)
+        val ok = prices.report(NewPriceRequest(bar, "ipa", 8.5), u)
 
         assertFalse(ok.heldForReview, "Dublín no se compara contra Lisboa")
     }

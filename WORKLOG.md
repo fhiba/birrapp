@@ -1715,3 +1715,53 @@ mancha.
 
 De paso, el paso del tutorial sobre el orden de la lista decía "Más cerca o más
 barata" desde antes de que existiera "Mejor puntuada".
+
+---
+
+## 2026-09-12 (cont.) — v0.8.3: los outliers se comparan con el barrio, no con el mundo
+
+Felipe marcó el agujero que dejó la 0.8.0: con bares de otros países, la
+detección de precios atípicos iba a mandar todo a moderación por el tipo de
+cambio. Tenía razón, y el problema era más hondo que las monedas.
+
+**Filtrar por moneda no alcanzaba.** Una misma moneda cubre lugares con
+precios muy distintos: una pinta en Dublín y una en Lisboa son las dos en
+euros y no se parecen en nada. Contra la mediana del euro entero, media Irlanda
+entra como "cara" y medio Portugal como "sospechosamente barata". Lo mismo con
+el dólar entre Estados Unidos, Ecuador y Panamá.
+
+**Ahora la referencia son los bares de al lado**: la mediana del mismo estilo,
+en la misma moneda, entre los bares a menos de 25 km. Veinticinco kilómetros
+es una ciudad y su alrededor — el área dentro de la cual tiene sentido decir
+"acá la pinta sale más o menos esto".
+
+Y funciona en las dos direcciones. La mediana global no sólo generaba falsos
+positivos: también tapaba la variación local, que es justo donde vive el precio
+raro que queremos encontrar — un bar cobrando el triple que los tres de la
+misma cuadra se perdía en el promedio de la ciudad entera.
+
+**Sin vecinos suficientes no se compara contra nada y se deja pasar.** Retener
+el precio legítimo de alguien que acaba de descubrir la app en una ciudad nueva
+es mucho peor que dejar entrar uno raro, que además se muestra con su
+antigüedad al lado y lo puede denunciar cualquiera.
+
+**Dos cosas que salieron de probarlo, y que importan más que el cambio:**
+
+1. **El helper de tests mentía.** `TestDb.insertPrice` escribía los precios con
+   el default de la columna —pesos— aunque el bar cobrara en libras. En
+   producción no puede pasar, porque `report()` copia la moneda del bar, así
+   que los tests estaban probando un estado que la app no puede producir. Ahora
+   el helper copia la moneda del bar, igual que el código de verdad.
+2. **El primer test de Dublín no probaba nada.** Lo puse con 8 euros contra una
+   mediana de 3: son 2,67 veces, por debajo del factor de 3 que dispara la
+   retención. O sea que pasaba con el arreglo y sin él. Se vio al mutar el
+   código a propósito —sacando el filtro geográfico— y ver que los tests
+   seguían en verde. Con precios igual de reales (2,50 en Lisboa contra 8,50 en
+   Dublín) el test discrimina, y la mutación lo rompe.
+
+124 tests de backend en verde.
+
+**Anotado:** el mensaje de la denuncia automática ahora dice contra qué mediana
+se comparó y en qué radio. Un moderador que ve "auto: 12000/L contra una
+mediana de 3000/L (ARS) entre los bares a menos de 25 km" puede decidir; con el
+mensaje viejo tenía que adivinar de dónde salía el número.
