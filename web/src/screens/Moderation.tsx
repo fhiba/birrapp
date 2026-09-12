@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { BarPin, Brand, Flag } from '../data/types'
+import type { BarPin, BeerStyle, Brand, Flag } from '../data/types'
 
 export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   const nav = useNavigate()
   const [pending, setPending] = useState<BarPin[]>([])
   const [flags, setFlags] = useState<Flag[]>([])
   const [newBrands, setNewBrands] = useState<Brand[]>([])
+  const [newStyles, setNewStyles] = useState<BeerStyle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [p, f, b] = await Promise.all([
-        api.pendingBars(), api.openFlags(), api.pendingBrands(),
+      const [p, f, b, st] = await Promise.all([
+        api.pendingBars(), api.openFlags(), api.pendingBrands(), api.pendingStyles(),
       ])
-      setPending(p); setFlags(f); setNewBrands(b)
+      setPending(p); setFlags(f); setNewBrands(b); setNewStyles(st)
     } catch (e) { setError((e as Error).message) } finally { setLoading(false) }
   }, [])
 
@@ -28,7 +29,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     catch (e) { setError((e as Error).message) }
   }
 
-  const total = pending.length + flags.length + newBrands.length
+  const total = pending.length + flags.length + newBrands.length + newStyles.length
 
   return (
     <div style={{
@@ -71,7 +72,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       {loading && <div className="spinner" style={{ margin: '30px auto' }} />}
 
       {!loading && pending.length === 0 && flags.length === 0
-        && newBrands.length === 0 && (
+        && newBrands.length === 0 && newStyles.length === 0 && (
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
           Nada pendiente. Todo en orden.
         </p>
@@ -110,6 +111,24 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
+          </div>
+        </div>
+      ))}
+
+      {/* Estilos nuevos (BIR-35). Mismo trato que las marcas y por lo mismo:
+          hasta que se apruebe, el estilo lo ve sólo quien lo propuso.
+          Rechazar no lo borra —puede haber precios colgando— sólo lo saca de
+          la lista. */}
+      {newStyles.length > 0 && <H>Estilos nuevos · {newStyles.length}</H>}
+      {newStyles.map(st => (
+        <div key={st.slug} style={{
+          padding: '10px 18px', borderBottom: '1px solid var(--hairline)',
+        }}>
+          <div className="lbl">{st.name}</div>
+          <div style={{ color: 'var(--faint)', fontSize: 11 }}>{st.slug}</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>Aprobar</Btn>
+            <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>Rechazar</Btn>
           </div>
         </div>
       ))}

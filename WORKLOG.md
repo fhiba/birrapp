@@ -1096,6 +1096,144 @@ saltea `covers()`— pero nadie cargó un precio y miró el mapa.
 
 ---
 
+## 2026-09-04 (cont.) — Vincular los bares de OSM con Places (BIR-14)
+
+`scripts/link_place_ids.mjs`. Los 738 bares que sembró `seed_osm.mjs` no tienen
+`google_place_id`, así que la deduplicación exacta de `BarRepo.create` no aplica
+sobre ellos y alguien que carga un bar desde el autocompletado de Google crea un
+duplicado de uno que ya está. Queda la defensa de nombre + 100 m, pero es
+justamente la que falla cuando OSM y Google le dicen distinto al mismo lugar,
+que es el caso común — y es lo que pasó con "Venice Bar Acassuso".
+
+**Guardar el `place_id` está permitido y no contradice la regla de la casa.**
+Los términos de Places prohíben guardar *contenido* de lugares más de 30 días,
+y el `place_id` está explícitamente exento. Ya estaba dicho en
+`V3__google_place_id.sql`. El script no guarda ninguna otra cosa de Google: el
+nombre y la ubicación que vuelven se usan para decidir si el match sirve y se
+descartan.
+
+**El match no se cree lo que le dicen.** Un `place_id` equivocado es *peor* que
+ninguno: haría que `create` rechace como duplicado un bar legítimo. Así que un
+candidato entra sólo si está a menos de 150 m y el nombre se parece 0,5 o más.
+Los 150 m no son generosos: OSM apunta al polígono del edificio y Google a la
+entrada, y en una esquina de Palermo eso ya son 40 m.
+
+El parecido de nombres es solapamiento de tokens **sobre el más corto**, no
+Jaccard. Jaccard castiga que un lado tenga más palabras, y ése es el caso normal
+acá: OSM dice "Antares" y Google "Antares Cervecería Artesanal Palermo Soho".
+Sobre el más corto eso da 1, que es la respuesta correcta; Jaccard daría 0,25.
+Antes de comparar se sacan tildes y las palabras que no distinguen nada —"bar",
+"cervecería", "the"— porque aparecen en media base y sumaban parecido falso.
+
+**El regalo.** `idx_bars_place_id` es UNIQUE, así que si dos filas matchean el
+mismo lugar el índice no las deja entrar a las dos. Pero eso no es un error del
+script: son dos filas que representan el mismo bar y **ya estaban duplicadas**.
+El script las reporta y vincula la de id más bajo; cuál sobrevive de verdad es
+una decisión de moderación, no de un script. O sea que el backfill sirve además
+como detector del problema que el issue quiere evitar hacia adelante.
+
+**Cuesta plata, así que está armado para no repagar.** Checkpoint en disco
+escrito en cada vuelta —no al final— para que un corte a mitad de camino no
+cueste dos veces; "consultado y sin match" se anota como `null`, distinto de
+"todavía no consultado", o cada corrida volvería a pagar por los bares que
+Google no reconoce; `--limit` para acotar la primera corrida y `--dry-run` que
+no llama a nada. Los errores de red no se anotan, para que se puedan reintentar.
+
+La escritura va por el mismo camino que `seed_osm.mjs`: COPY a una tabla
+temporal y UPDATE desde ahí. `psql -c` no acepta parámetros, y concatenar SQL
+con algo que volvió de una API externa es exactamente donde aparecen los
+agujeros.
+
+**Verificación.** `--self-test` corre las aserciones del matcher con
+`node:assert` (incluye el caso "Venice Bar", el de 4 km que no debe matchear y
+el del vecino de al lado que tampoco) — en verde. `--dry-run` corrido contra la
+base de dev: encuentra los 738 bares sin vincular, con nombres y coordenadas
+bien parseados. **Lo que NO se probó: la llamada a Places.** No tengo la API
+key, y son ~738 llamadas con costo real. Conviene la primera corrida con
+`--limit 25` y mirar el log antes de soltarlo entero.
+
+Sin cambio de versión: no se toca nada que se publique, sólo se agrega un script
+de mantenimiento.
+---
+
+## 2026-09-04 (cont.) — Entorno de test: la parte que vive en el repo (BIR-21)
+
+Hasta hoy todo salía derecho a `master`, o sea a producción, sin ningún lugar
+donde probarlo antes. Se notó en esta misma sesión: cuatro features y dos bugs
+mergeados a producción sin que nadie los viera andar.
+
+Lo que se puede hacer desde el repo es la mitad; la otra mitad son clics en
+Railway, Neon, Vercel y Google Cloud. Queda documentado paso a paso en
+`docs/DEPLOY.md` § "Entorno de test", con la forma: `dev` → staging,
+`master` → producción, y environment de Railway en vez de servicio aparte
+porque las variables se definen por environment, que es justo lo que hace falta.
+
+**La base de staging va vacía, sembrada desde OSM.** Neon clona una branch con
+los datos de un clic y es tentador, pero `users` tiene emails y `google_sub` de
+gente real. Copiarlos a un entorno con menos cuidado contradice la línea que
+sostiene el resto del proyecto —`traffic_sessions` sin IP ni user agent, el
+presupuesto de BIR-13 sin persistir la IP—. El costo es no tener precios reales
+para probar frescura; es barato al lado de arrastrar identidades.
+
+**`JWT_SECRET` distinto en staging, y no es capricho.** Con el mismo secreto, un
+token emitido por el entorno de pruebas vale en producción. Un entorno que
+emite credenciales para el entorno real no es un entorno de pruebas.
+
+**`scripts/smoke.mjs`** es lo que hace que el staging sirva de algo. Un entorno
+sin forma de verificarlo se prueba a ojo, y a ojo no se ve lo que importa.
+Chequea, en orden de qué tan seguido se rompe:
+
+1. **CORS entre la web y el backend** — la falla número uno de un entorno nuevo:
+   el backend levanta, `/health` contesta, y la app no muestra nada porque
+   `ALLOWED_ORIGINS` quedó con el dominio de producción.
+2. **Que la base esté conectada y sembrada** — `/health` no toca Postgres, así
+   que un backend con la `DATABASE_URL` mal apuntada pasa el health check.
+3. **Que los topes de BIR-13 estén desplegados** — la diferencia entre el
+   entorno que creés que desplegaste y el que desplegaste.
+4. **Que el bundle de la web apunte al backend de test.** El error más
+   silencioso de todos: staging se ve perfecto mientras escribe en la base de
+   producción, y mirando la pantalla no hay forma de darse cuenta.
+
+Sale con código 1 si algo falla, así que sirve de paso previo a un merge.
+
+**Verificado corriéndolo contra el backend local**, que resultó ser un caso de
+prueba mejor que uno inventado: pasó los cuatro chequeos de vida y **falló los
+dos de BIR-13**, porque el proceso local es un build anterior a ese merge. O
+sea que detectó una desincronización real de versión, que es exactamente para lo
+que existe. Contra staging todavía no se corrió: el entorno no está creado.
+
+De paso, `DEPLOY.md` decía "`/bars` no tiene límite de tasa" en la lista de
+pendientes. Es falso desde BIR-13; corregido, con el matiz de que lo que hay es
+fricción y no prevención.
+
+---
+
+## 2026-09-04 (cont.) — El smoke test se estrena y encuentra algo (BIR-21)
+
+Corrido por primera vez contra la URL real del preview de Vercel, y encontró un
+bloqueante que no habíamos visto: **está detrás de Vercel Deployment
+Protection**. Responde `302` a `vercel.com/sso-api` a cualquiera sin sesión de
+Vercel en ese navegador. Con eso puesto el entorno de test no sirve: no se abre
+desde el celular —que es donde se usa la app— y el callback de OAuth de Google
+tampoco puede volver. Viene prendido por defecto en los Preview.
+
+El chequeo ahora lo detecta por nombre y dice qué tocar, en vez de fallar con
+"la respuesta no parece el index de la PWA", que manda a buscar al lugar
+equivocado. Va con `redirect: 'manual'`: siguiendo el 302 se termina en una
+página de login de Vercel que después falla por otro motivo, y el mensaje que
+sale no tiene nada que ver con la causa.
+
+**Y se arregló un defecto del propio reporte**: los chequeos salteados se
+pintaban con ✓. El de "la web no apunta al backend equivocado" decía que estaba
+bien cuando en realidad nunca se había podido mirar. Un salteo pintado de verde
+es peor que no chequear: ahora hay un estado propio (`–`) y el resumen los
+cuenta aparte. Un verificador en el que no se puede confiar no sirve para nada.
+
+Estado del entorno: `dev` ya despliega, la URL de Vercel existe, y faltan la
+protección de Vercel y el backend de staging en Railway.
+
+---
+
 ## 2026-09-04 (cont.) — v0.6.7: la app dejaba de decirte que estás en el Obelisco
 
 Reporte de varios usuarios: el mapa les marcaba que estaban en el Obelisco
@@ -1233,3 +1371,113 @@ de todo: **encenderla con un número más grande sin haber medido cuál de las d
 causas era es repetir el incidente más tarde.**
 
 81 tests de backend en verde (79 + 2 nuevos, los del estado apagado).
+
+---
+
+## 2026-09-12 — v0.7.0: el contador de birras y el "+" que pregunta qué
+
+Cinco tickets de una tanda, todos del mismo racimo: **BIR-34** (contador),
+**BIR-36** (el menú del "+"), **BIR-35** (proponer estilos), **BIR-37/BIR-5**
+(favoritos) y **BIR-33** (stats de la zona). Sólo backend + PWA: Android queda
+para una rama aparte y la API ya está lista para cuando vaya.
+
+### El "+" dejó de hacer una sola cosa
+
+Hasta ahora el botón del mapa iba derecho a "agregar un bar". Cargar un precio
+sólo se podía desde adentro de la ficha de un bar, y anotar una birra no
+existía. Ahora es un desplegable chico anclado al botón —no una pantalla: elegir
+qué vas a cargar es un paso de tránsito, y una vista entera lo convierte en un
+trámite— con tres renglones: anotar una birra, cargar un precio, agregar un bar.
+
+"Cargar un precio" pide el bar con los de al lado primero y un buscador para el
+resto, y entra a la ficha con `?precio=1`, que abre el teclado de precio solo.
+Quien eligió esa opción ya dijo a qué venía; dejarlo en la ficha sería
+pedírselo de nuevo.
+
+### El contador (BIR-34)
+
+Tabla `beer_logs`, y a diferencia de `price_reports` **no es append-only**:
+esto no es dato comunitario, no alimenta el mapa y no hay histórico que
+defender. Quien anota una birra de más la borra y listo.
+
+Todo es opcional menos la persona y la fecha. Anotar tiene que costar un tap,
+igual que "Sigue igual" — el bar viene preelegido si hay uno a menos de 250 m
+(el "¿la birra te la tomaste acá?" de BIR-36), la cantidad arranca en 1, y el
+estilo y la marca están plegados detrás de "¿cuál era?". Si anotar cuesta lo
+mismo que cargar un precio, nadie anota, y un contador que no se usa no cuenta
+nada.
+
+**La zona horaria no es un detalle.** El calendario y las rachas se agrupan por
+`drank_at AT TIME ZONE 'America/Argentina/Buenos_Aires'`, fijo en el servidor.
+Agrupando por el timestamp crudo, una birra de las 23:30 de un viernes aparece
+el sábado y las rachas se cortan solas; el bug sería invisible hasta las nueve
+de la noche. La zona no se negocia con el cliente: si la mandara el navegador,
+el mismo dato se vería distinto según dónde esté el teléfono. Hay un test que
+lo fija, y se verificó que falla si se cambia la zona a UTC.
+
+Las rachas salen en SQL por gaps and islands. La actual admite que el último
+día sea ayer: cortada a medianoche, abrir la app a la mañana mostraría cero
+todos los días.
+
+**Los emblemas se derivan, no se guardan.** Seis, calculados sobre cinco
+cuentas de la misma tabla. Una tabla de emblemas ganados haría falta si
+importara *cuándo* se ganó cada uno o si las reglas dependieran de algo que no
+está en los logs; hoy no es el caso, y sin tabla no hay nada que se pueda
+desincronizar. El umbral viaja al cliente (`target`) para que cambiarlo no
+obligue a publicar una versión de la PWA. **BIR-32 queda abierto**: esto es la
+mitad de emblemas, no el sistema de XP y niveles.
+
+### Estilos propuestos por usuarios (BIR-35)
+
+`beer_styles` recibe `status` y `created_by`, exactamente el patrón de
+`brands`. El vocabulario cerrado es lo que permite comparar IPA contra IPA,
+pero uno que no crece deja afuera a la birra que la persona tiene enfrente — y
+lo que hace entonces no es abandonar, es elegir el estilo más parecido. Eso
+ensucia el dato en silencio, que es peor que una lista con un estilo de más.
+
+Va adentro del selector de estilo y **no** en el menú del "+": nadie abre la
+app queriendo proponer un estilo en abstracto, se le ocurre cuando el suyo no
+está en la lista. Rechazar no borra la fila: `price_reports.style_id` es
+ON DELETE RESTRICT justamente para que un rechazo no se lleve puesto un precio.
+
+### Favoritos (BIR-37 + BIR-5, que eran el mismo ticket)
+
+`favorites (user_id, bar_id)` con clave compuesta: favoritear dos veces no es
+un favorito nuevo, y con la PK ahí el `ON CONFLICT DO NOTHING` hace el botón
+idempotente sin una línea de Kotlin. Corazón en la ficha del bar y filtro en la
+lista. El filtro **pide al servidor** en vez de filtrar lo que hay en memoria:
+la lista sólo tiene lo que entra en el radio, y el favorito que uno quiere ver
+casi siempre está en otro barrio. Filtrando en memoria, un favorito lejos
+simplemente no aparecería.
+
+### Stats de la zona (BIR-33)
+
+Tarjeta arriba de la lista, plegada, que respeta el radio y el filtro de estilo
+que ya estén puestos. Dos decisiones:
+
+- **Todo normalizado a una pinta de 473 ml.** Sin eso, un schop de 330 y una
+  pinta de 473 se promedian como si fueran lo mismo y el número baja cuando lo
+  que cambió fue el tamaño del vaso. La tarjeta lo dice: un promedio sin su
+  unidad es otra forma de mentir.
+- **"El mejor de la zona" es nota sobre precio**, con `rating_avg` (el del
+  shrinkage), no la nota más alta. Con el promedio crudo, una sola persona
+  votando 5 a la birra más barata se lleva el puesto sola. Sin votos en la
+  zona no hay "mejor": no se puede decir cuál es la mejor si nadie opinó.
+- Con menos de tres precios no se muestra nada. Un promedio de dos no es un
+  promedio, es un precio con pretensiones.
+
+### Verificación
+
+107 tests de backend en verde (81 + 26 nuevos). `tsc` y build de la PWA
+limpios. Los endpoints nuevos se probaron a mano contra un backend local con
+PostGIS sembrado: stats, anotar, resumen con calendario y rachas, proponer
+estilo, moderarlo, favoritear y desfavoritear.
+
+**Lo que no se verificó: las pantallas, tocándolas.** La extensión de Chrome no
+conectó, igual que en las últimas sesiones. Compila y buildea, y la lógica de
+fechas del calendario se chequeó aparte, pero nadie tocó el menú del "+" con un
+dedo todavía.
+
+**Anotado, no hecho:** el contador existe sólo en la PWA. La app de Android
+sigue con el "+" viejo que lleva directo a agregar un bar. Queda como ticket
+propio.

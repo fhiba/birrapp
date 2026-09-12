@@ -105,6 +105,52 @@ class BarRepo(private val db: Db) {
     )
 
     /**
+     * Los favoritos de una persona, como pines (BIR-37 / BIR-5).
+     *
+     * Devuelve lo mismo que `nearby` para que la lista y el mapa los dibujen
+     * con el componente que ya tienen. `distance_meters` es null salvo que se
+     * pase un punto: los favoritos se miran sin estar cerca de ninguno.
+     */
+    fun favorites(userId: Long, fromLat: Double?, fromLng: Double?): List<BarPinDto> = db.conn {
+        it.query(
+            """
+            SELECT b.id, b.name,
+                   ST_Y(b.location::geometry) AS lat,
+                   ST_X(b.location::geometry) AS lng,
+                   h.from_price, h.freshest_age_days,
+                   CASE WHEN ?::float8 IS NULL THEN NULL
+                        ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
+                        AS distance_meters
+            FROM favorites f
+            JOIN bars b ON b.id = f.bar_id AND b.status = 'approved'
+            LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            WHERE f.user_id = ?
+            ORDER BY f.created_at DESC
+            """.trimIndent(),
+            fromLat, fromLng, fromLat, userId,
+            map = ::mapPin,
+        )
+    }
+
+    /**
+     * Marca o desmarca un favorito. Idempotente en los dos sentidos: el botón
+     * es un toggle y tocarlo dos veces rápido no puede romper nada.
+     */
+    fun setFavorite(userId: Long, barId: Long, on: Boolean) = db.conn { c ->
+        if (on) {
+            c.queryOne(
+                "SELECT 1 AS x FROM bars WHERE id = ? AND status = 'approved'", barId,
+            ) { it.getInt("x") } ?: com.birrapp.core.notFound("no existe un bar aprobado con id $barId")
+            c.update(
+                "INSERT INTO favorites (user_id, bar_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                userId, barId,
+            )
+        } else {
+            c.update("DELETE FROM favorites WHERE user_id = ? AND bar_id = ?", userId, barId)
+        }
+    }
+
+    /**
      * Busca bares ya cargados por nombre.
      *
      * Va antes que Google al dar de alta: si el bar ya está, el usuario lo ve

@@ -143,6 +143,8 @@ export interface ModerationSummary {
   pendingBars: number
   openFlags: number
   pendingBrands: number
+  /** Estilos propuestos por usuarios, sin revisar (BIR-35). */
+  pendingStyles: number
 }
 
 /** Una persona y lo que aportó. Sólo para el dashboard de moderación. */
@@ -221,4 +223,70 @@ export interface DashboardAnalytics {
   /** Fracción 0..1 del score total que concentran los cinco primeros. */
   top5Share: number
   funnel: Funnel
+}
+
+// ---------- contador de birras (BIR-34) ----------
+
+/** Una birra anotada. Todo menos la fecha y la cantidad puede faltar. */
+export interface BeerLog {
+  id: number
+  barId: number | null
+  barName: string | null
+  styleSlug: string | null
+  styleName: string | null
+  brandSlug: string | null
+  brandName: string | null
+  qty: number
+  /** Día local de Buenos Aires, `YYYY-MM-DD`. Es el que ordena el calendario. */
+  day: string
+  drankAt: string
+}
+
+export interface BeerDay { day: string; qty: number }
+export interface BeerBar { barId: number; barName: string; qty: number }
+
+/** Un emblema. El objetivo viene del servidor: acá no se decide ningún umbral. */
+export interface Badge {
+  id: string; name: string; detail: string
+  progress: number; target: number
+}
+
+export interface BeerSummary {
+  total: number
+  currentStreak: number
+  bestStreak: number
+  distinctBars: number
+  /** `YYYY-MM` del mes que se está mirando. */
+  month: string
+  monthTotal: number
+  days: BeerDay[]
+  topBars: BeerBar[]
+  badges: Badge[]
+  logs: BeerLog[]
+}
+
+// ---------- stats de la zona (BIR-33) ----------
+
+export interface AreaBeer {
+  barId: number; barName: string
+  styleSlug: string; styleName: string
+  brandSlug: string | null; brandName: string | null
+  price: number; sizeMl: number
+  /** Ningún precio se muestra sin su edad, tampoco acá. */
+  ageDays: number
+  ratingRaw: number | null
+  ratingCount: number
+}
+
+/** Montos normalizados a una pinta de 473 ml; ver PriceRepo.areaStats. */
+export interface AreaStats {
+  samples: number
+  bars: number
+  avgPint: number | null
+  medianPint: number | null
+  minPint: number | null
+  maxPint: number | null
+  cheapest: AreaBeer | null
+  /** Mejor nota por peso. Null si nadie votó nada en la zona. */
+  bestValue: AreaBeer | null
 }

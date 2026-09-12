@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type {
   BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
@@ -28,18 +28,23 @@ const beerName = (p: StylePrice) =>
 const beerKey = (p: StylePrice) => `${p.styleSlug}|${p.brandSlug ?? ''}`
 
 export function BarDetailScreen({
-  user, center, styles, brands, onBrandCreated, onChanged,
+  user, center, styles, brands, onBrandCreated, onStyleCreated, onChanged, favorites,
 }: {
   user: User | null
   center: google.maps.LatLngLiteral | null
   styles: BeerStyle[]
   brands: Brand[]
   onBrandCreated: (b: Brand) => void
+  onStyleCreated: (s: BeerStyle) => void
   onChanged: () => void
+  /** El conjunto de favoritos y su interruptor; ver useFavorites. */
+  favorites: { ids: Set<number>; toggle: (barId: number) => void }
 }) {
   const { id } = useParams()
   const barId = Number(id)
   const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const isFavorite = favorites.ids.has(barId)
 
   const [bar, setBar] = useState<Bar | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
@@ -91,6 +96,21 @@ export function BarDetailScreen({
   }, [barId, center])
 
   useEffect(() => { load() }, [load])
+
+  /**
+   * Llegar con `?precio=1` abre la carga de precio sola.
+   *
+   * Es cómo entra quien eligió "cargar un precio" en el menú del "+" (BIR-36):
+   * ya dijo lo que venía a hacer, y dejarlo en la ficha del bar sería
+   * pedírselo de nuevo. El parámetro se saca enseguida para que volver atrás
+   * —o recargar— no lo vuelva a abrir.
+   */
+  useEffect(() => {
+    if (params.get('precio') !== '1') return
+    setParams({}, { replace: true })
+    if (user) setReporting({})
+    else nav('/perfil')
+  }, [params, setParams, user, nav])
 
   /**
    * El embudo de las tres mutaciones de precio: confirmar, cargar y borrar.
@@ -250,6 +270,28 @@ export function BarDetailScreen({
             width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.07)',
           }} aria-label="Volver">←</button>
           <span style={{ flex: 1 }} />
+
+          {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
+              las acciones de abajo: no es un aporte a la comunidad como
+              cargar un precio, es una marca propia sobre este bar. */}
+          <button
+            onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
+            aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
+            aria-pressed={isFavorite}
+            style={{
+              width: 38, height: 38, borderRadius: '50%', marginRight: 8,
+              display: 'grid', placeItems: 'center',
+              background: isFavorite ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
+              color: isFavorite ? 'var(--amber)' : 'var(--muted)',
+            }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+              fill={isFavorite ? 'currentColor' : 'none'}
+              stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.9}>
+              <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+            </svg>
+          </button>
+
           {isModerator(user) && (
             // Modo moderador: un interruptor, no un menú. Prendido, aparecen
             // todas las herramientas destructivas juntas; apagado, un
@@ -550,6 +592,7 @@ export function BarDetailScreen({
           preselected={reporting.style} preselectedBrand={reporting.brand}
           barName={bar.name}
           onCancel={() => setReporting(null)}
+          onStyleCreated={onStyleCreated}
           onBrandCreated={onBrandCreated}
           onSubmit={(slug, brandSlug, price, sizeMl) => {
             setReporting(null)

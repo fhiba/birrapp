@@ -77,6 +77,11 @@ export function useBars() {
     setBrands(cur => cur.some(x => x.slug === b.slug) ? cur : [...cur, b])
   }, [])
 
+  /** Lo mismo para un estilo recién propuesto (BIR-35). */
+  const addStyle = useCallback((s: BeerStyle) => {
+    setStyles(cur => cur.some(x => x.slug === s.slug) ? cur : [...cur, s])
+  }, [])
+
   const covers = (c: google.maps.LatLngLiteral, radius: number, style?: string) => {
     const cur = covered.current.get(keyOf(style))
     if (!cur) return false
@@ -154,7 +159,7 @@ export function useBars() {
   const invalidate = useCallback(() => { covered.current.clear() }, [])
 
   return {
-    bars, styles, brands, addBrand, loading, error, load, invalidate, MIN_QUERY_ZOOM,
+    bars, styles, brands, addBrand, addStyle, loading, error, load, invalidate, MIN_QUERY_ZOOM,
   }
 }
 

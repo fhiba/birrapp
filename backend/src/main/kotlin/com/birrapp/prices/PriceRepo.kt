@@ -42,6 +42,55 @@ data class PriceAccepted(
 @Serializable
 data class StyleDto(val slug: String, val name: String)
 
+@Serializable
+data class NewStyleRequest(val name: String)
+
+/** Una birra concreta de la zona, para señalarla con nombre y apellido. */
+@Serializable
+data class AreaBeerDto(
+    val barId: Long,
+    val barName: String,
+    val styleSlug: String,
+    val styleName: String,
+    val brandSlug: String?,
+    val brandName: String?,
+    val price: Double,
+    val sizeMl: Int,
+    /** La edad viaja siempre: un precio sin su antigüedad al lado es mentira. */
+    val ageDays: Int,
+    /** El promedio real, el que se muestra. Null si nadie votó. */
+    val ratingRaw: Double?,
+    val ratingCount: Int,
+)
+
+/**
+ * Resumen de precios de un radio. Todos los montos están normalizados a una
+ * pinta de 473 ml — ver [PriceRepo.areaStats].
+ */
+@Serializable
+data class AreaStatsDto(
+    val samples: Int,
+    val bars: Int,
+    val avgPint: Double?,
+    val medianPint: Double?,
+    val minPint: Double?,
+    val maxPint: Double?,
+    val cheapest: AreaBeerDto?,
+    /** Mejor relación nota/precio. Null si ninguna birra de la zona tiene votos. */
+    val bestValue: AreaBeerDto?,
+)
+
+/**
+ * Nombre libre → slug del vocabulario. Compartido por marcas y estilos: son
+ * la misma operación y con dos copias se separan al primer arreglo.
+ */
+private fun slugify(name: String): String = name.lowercase()
+    .replace(Regex("[^a-z0-9áéíóúñü ]"), "")
+    .trim().replace(Regex("\\s+"), "-")
+    .replace("á", "a").replace("é", "e").replace("í", "i")
+    .replace("ó", "o").replace("ú", "u").replace("ñ", "n").replace("ü", "u")
+    .take(60)
+
 /** Cuántas horas hay que esperar para volver a reportar el mismo (bar, estilo). */
 private const val REPORT_COOLDOWN_HOURS = 6
 
@@ -87,12 +136,7 @@ class PriceRepo(private val db: Db) {
         if (name.length < 2) badRequest("el nombre es demasiado corto")
         if (name.length > 60) badRequest("el nombre es demasiado largo")
 
-        val slug = name.lowercase()
-            .replace(Regex("[^a-z0-9áéíóúñü ]"), "")
-            .trim().replace(Regex("\\s+"), "-")
-            .replace("á","a").replace("é","e").replace("í","i")
-            .replace("ó","o").replace("ú","u").replace("ñ","n").replace("ü","u")
-            .take(60)
+        val slug = slugify(name)
         if (slug.isBlank()) badRequest("ese nombre no es válido")
 
         val existing = c.queryOne(
@@ -121,8 +165,137 @@ class PriceRepo(private val db: Db) {
 
     fun styles(): List<StyleDto> = db.conn {
         it.query(
-            "SELECT slug, name_es FROM beer_styles WHERE active ORDER BY sort_order, name_es",
+            "SELECT slug, name_es FROM beer_styles WHERE active AND status = 'approved' " +
+                "ORDER BY sort_order, name_es",
         ) { rs -> StyleDto(rs.getString("slug"), rs.getString("name_es")) }
+    }
+
+    /**
+     * Alta de estilo por un usuario (BIR-35). Queda pendiente de moderación.
+     *
+     * Mismo trato que las marcas, y por el mismo motivo: el vocabulario
+     * cerrado es lo que permite comparar IPA contra IPA, pero uno que no crece
+     * deja afuera a la birra que la persona tiene enfrente y la obliga a
+     * cargarla mal. `sort_order` va al fondo: el orden de la lista lo curó
+     * alguien y un estilo nuevo no se gana el primer lugar por ser nuevo.
+     */
+    fun createStyle(req: NewStyleRequest, userId: Long): StyleDto = db.conn { c ->
+        val name = req.name.trim()
+        if (name.length < 2) badRequest("el nombre es demasiado corto")
+        if (name.length > 40) badRequest("el nombre es demasiado largo")
+
+        val slug = slugify(name)
+        if (slug.isBlank()) badRequest("ese nombre no es válido")
+
+        // Ya existe: se devuelve el que hay, aprobado o no. Proponer dos veces
+        // lo mismo no puede fallar ni crear un duplicado.
+        c.queryOne("SELECT slug, name_es FROM beer_styles WHERE slug = ?", slug) { rs ->
+            StyleDto(rs.getString("slug"), rs.getString("name_es"))
+        }?.let { return@conn it }
+
+        c.queryOne(
+            "INSERT INTO beer_styles (slug, name_es, sort_order, status, created_by) " +
+                "VALUES (?, ?, 900, 'pending', ?) RETURNING slug, name_es",
+            slug, name, userId,
+        ) { rs -> StyleDto(rs.getString("slug"), rs.getString("name_es")) }!!
+    }
+
+    fun pendingStyles(): List<StyleDto> = db.conn {
+        it.query(
+            "SELECT slug, name_es FROM beer_styles WHERE status = 'pending' ORDER BY id",
+        ) { rs -> StyleDto(rs.getString("slug"), rs.getString("name_es")) }
+    }
+
+    /**
+     * Aprobar o rechazar un estilo propuesto.
+     *
+     * Rechazar NO borra la fila: puede haber precios y birras anotadas
+     * colgando de ella, y `style_id` en `price_reports` es ON DELETE RESTRICT
+     * justamente para que un rechazo no se lleve puesto un precio. Queda
+     * 'rejected' y deja de ofrecerse.
+     */
+    fun setStyleStatus(slug: String, status: String): Boolean = db.conn {
+        it.update(
+            "UPDATE beer_styles SET status = ?::moderation_status WHERE slug = ?", status, slug,
+        ) > 0
+    }
+
+    /**
+     * Stats de precio de una zona (BIR-33).
+     *
+     * Todo se normaliza a 473 ml antes de promediar. Sin eso, un schop de 330
+     * y una pinta de 473 se promedian como si fueran lo mismo y el número
+     * baja cuando en realidad cambió el tamaño del vaso. El promedio sale
+     * siempre en "lo que sale una pinta", que es la pregunta que la gente hace.
+     *
+     * Los `stale` quedan afuera, igual que en el orden "más barata": un
+     * promedio construido con precios de hace tres meses no es el promedio de
+     * hoy, y en pesos eso es mentir.
+     */
+    fun areaStats(
+        lat: Double, lng: Double, radiusMeters: Int,
+        styleSlug: String? = null, brandSlug: String? = null,
+    ): AreaStatsDto = db.conn { c ->
+        // Se arma una sola vez y se usa en las tres consultas: los tres números
+        // tienen que salir del mismo conjunto de birras o no son comparables.
+        val from = """
+            FROM v_current_prices cp
+            JOIN bars b ON b.id = cp.bar_id AND b.status = 'approved'
+            LEFT JOIN v_style_ratings sr
+              ON sr.bar_id = cp.bar_id AND sr.style_id = cp.style_id
+             AND sr.brand_id IS NOT DISTINCT FROM cp.brand_id
+            WHERE cp.freshness <> 'stale'
+              AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
+              AND (?::text IS NULL OR cp.style_slug = ?::text)
+              AND (?::text IS NULL OR cp.brand_slug = ?::text)
+        """.trimIndent()
+        val args = arrayOf<Any?>(
+            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug,
+        )
+
+        val head = c.queryOne(
+            """
+            SELECT count(*)::int AS samples,
+                   count(DISTINCT cp.bar_id)::int AS bars,
+                   avg(cp.price / cp.size_ml * 473)::float8 AS avg_pint,
+                   percentile_cont(0.5) WITHIN GROUP (
+                       ORDER BY (cp.price / cp.size_ml * 473)
+                   )::float8 AS median_pint,
+                   min(cp.price / cp.size_ml * 473)::float8 AS min_pint,
+                   max(cp.price / cp.size_ml * 473)::float8 AS max_pint
+            $from
+            """.trimIndent(),
+            *args,
+        ) { rs ->
+            AreaStatsDto(
+                samples = rs.getInt("samples"),
+                bars = rs.getInt("bars"),
+                avgPint = rs.getDouble("avg_pint").takeUnless { rs.wasNull() },
+                medianPint = rs.getDouble("median_pint").takeUnless { rs.wasNull() },
+                minPint = rs.getDouble("min_pint").takeUnless { rs.wasNull() },
+                maxPint = rs.getDouble("max_pint").takeUnless { rs.wasNull() },
+                cheapest = null, bestValue = null,
+            )
+        }!!
+        if (head.samples == 0) return@conn head
+
+        val cheapest = c.queryOne(
+            "$BEER_COLS $from ORDER BY (cp.price / cp.size_ml) ASC LIMIT 1",
+            *args, map = ::mapAreaBeer,
+        )
+
+        // "El mejor de la zona": nota por peso, no la nota más alta ni el
+        // precio más bajo. Una birra sin votos no puede ganar —no hay nada que
+        // decir de su calidad— y por eso se usa `rating_avg`, que empuja hacia
+        // la media global: si no, una sola persona votando 5 a la birra más
+        // barata se lleva el puesto sola.
+        val best = c.queryOne(
+            "$BEER_COLS $from AND sr.rating_count > 0 " +
+                "ORDER BY (sr.rating_avg / (cp.price / cp.size_ml * 473)) DESC LIMIT 1",
+            *args, map = ::mapAreaBeer,
+        )
+
+        head.copy(cheapest = cheapest, bestValue = best)
     }
 
     /**
@@ -302,6 +475,30 @@ class PriceRepo(private val db: Db) {
                 at = rs.getTimestamp("created_at").toInstant().toString(),
             )
         }
+    }
+
+    private companion object {
+        /** Las columnas de una birra de la zona. Se pega delante del FROM común. */
+        val BEER_COLS = """
+            SELECT cp.bar_id, b.name AS bar_name,
+                   cp.style_slug, cp.style_name, cp.brand_slug, cp.brand_name,
+                   cp.price, cp.size_ml, cp.age_days,
+                   sr.rating_raw, coalesce(sr.rating_count, 0) AS rating_count
+        """.trimIndent()
+
+        fun mapAreaBeer(rs: java.sql.ResultSet) = AreaBeerDto(
+            barId = rs.getLong("bar_id"),
+            barName = rs.getString("bar_name"),
+            styleSlug = rs.getString("style_slug"),
+            styleName = rs.getString("style_name"),
+            brandSlug = rs.getString("brand_slug"),
+            brandName = rs.getString("brand_name"),
+            price = rs.getBigDecimal("price").toDouble(),
+            sizeMl = rs.getInt("size_ml"),
+            ageDays = rs.getInt("age_days"),
+            ratingRaw = rs.getBigDecimal("rating_raw")?.toDouble(),
+            ratingCount = rs.getInt("rating_count"),
+        )
     }
 }
 
