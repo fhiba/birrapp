@@ -96,6 +96,21 @@ class UserRepo(private val db: Db) {
     }
 
     /**
+     * Si la cuenta está baneada, ahora mismo y según la base.
+     *
+     * Existe porque el rol y la identidad viajan en el JWT, pero el ban **no
+     * puede** esperar a que el token expire: hasta `JWT_ACCESS_MINUTES` de
+     * abuso sostenido después de haber baneado a alguien es justo lo que la
+     * herramienta viene a cortar (era el "a decidir" de BIR-6). Un SELECT por
+     * escritura es barato; dos horas de comentarios abusivos no.
+     */
+    fun isBanned(userId: Long): Boolean = db.conn {
+        it.queryOne(
+            "SELECT banned_at IS NOT NULL AS banned FROM users WHERE id = ?", userId,
+        ) { rs -> rs.getBoolean("banned") } ?: false
+    }
+
+    /**
      * Alta o actualización por `google_sub`.
      *
      * El rol NUNCA se toca en el upsert: si un moderador vuelve a loguear no

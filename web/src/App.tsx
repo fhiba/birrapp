@@ -23,6 +23,7 @@ import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
 import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
+import { PersonScreen } from './screens/Person'
 import { useFavorites } from './data/useFavorites'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
@@ -233,6 +234,9 @@ function Shell() {
         <Route path="/perfil" element={
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
+        {/* El perfil de otra persona: se llega tocando su nombre en un
+            comentario o en una foto (BIR-6). */}
+        <Route path="/usuario/:id" element={<PersonScreen user={user} />} />
         <Route path="/config" element={
           <SettingsScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />

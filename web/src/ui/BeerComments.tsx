@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { RatingComment } from '../data/types'
 import { Confirm, Sheet } from './Chrome'
@@ -94,6 +95,7 @@ export function BeerComments({
   onClose: () => void
   onWrote: () => void
 }) {
+  const nav = useNavigate()
   const [items, setItems] = useState<RatingComment[] | null>(null)
   const [body, setBody] = useState('')
   const [rating, setRating] = useState(myRating)
@@ -192,9 +194,21 @@ export function BeerComments({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* La nota puede faltar: se puede comentar sin votar. */}
             {c.rating != null && <Stars value={c.rating} mine={c.mine} size={13} />}
-            <span style={{ fontSize: 13, color: c.mine ? 'var(--amber)' : 'var(--muted)' }}>
-              {c.mine ? 'Vos' : c.authorName}
-            </span>
+            {/* El nombre abre su perfil (BIR-6): es desde acá que hace falta
+                llegar a la persona, no desde una pantalla de moderación. El
+                propio no, que no tiene sentido ir a mirarse a uno mismo. */}
+            {c.mine ? (
+              <span style={{ fontSize: 13, color: 'var(--amber)' }}>Vos</span>
+            ) : (
+              <button
+                onClick={() => nav(`/usuario/${c.authorId}`)}
+                className="lbl"
+                style={{
+                  fontSize: 13, color: 'var(--muted)', textDecoration: 'underline',
+                  textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                }}
+              >{c.authorName}</button>
+            )}
             {/* La edad va siempre pegada, igual que con los precios: un
                 comentario de hace dos años sobre una canilla que ya cambió
                 dice menos de lo que parece. */}

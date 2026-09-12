@@ -66,6 +66,7 @@ fun Application.module(cfg: Config, db: Db) {
     val bars = BarRepo(db)
     val prices = PriceRepo(db)
     val beers = com.birrapp.beers.BeerRepo(db)
+    val people = PeopleRepo(db)
     val reviews = ReviewRepo(db)
     val ratings = com.birrapp.ratings.RatingRepo(db)
     val r2 = com.birrapp.photos.R2(
@@ -211,7 +212,8 @@ fun Application.module(cfg: Config, db: Db) {
 
     routing {
         apiRoutes(
-            bars, prices, beers, reviews, ratings, photos, moderation, analytics, users, traffic,
+            bars, prices, beers, people, reviews, ratings, photos, moderation, analytics,
+            users, traffic,
             // Vive tanto como el proceso y no se persiste: la clave es la IP.
             // Apagado salvo que COVERAGE_BUDGET_PER_DAY diga otra cosa — ver
             // el KDoc de CoverageBudget para por qué.

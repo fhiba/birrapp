@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { User } from '../data/types'
+import type { Person, User } from '../data/types'
 import { formatRadius } from '../data/format'
 import { AvatarPicker } from '../ui/AvatarPicker'
 import { Confirm, Toast } from '../ui/Chrome'
@@ -31,6 +31,12 @@ export function SettingsScreen({ user, onSession }: {
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState(user?.displayName ?? '')
+  // Quiénes están bloqueados. Acá y no en otra pantalla: es el único lugar
+  // desde donde se puede deshacer, y un bloqueo que no se puede levantar es
+  // una decisión que quedó para siempre por un toque.
+  const [blocked, setBlocked] = useState<Person[]>([])
+  const loadBlocked = () => { api.blockedPeople().then(setBlocked).catch(() => {}) }
+  useEffect(loadBlocked, [])
 
   if (!user) {
     nav('/perfil', { replace: true })
@@ -168,6 +174,38 @@ export function SettingsScreen({ user, onSession }: {
 
         {error && (
           <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 18 }}>{error}</p>
+        )}
+
+        {blocked.length > 0 && (
+          <>
+            <SectionLabel>Personas bloqueadas</SectionLabel>
+            {blocked.map(p => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '11px 2px', borderBottom: '1px solid var(--hairline)',
+              }}>
+                <button onClick={() => nav(`/usuario/${p.id}`)} className="lbl" style={{
+                  flex: 1, minWidth: 0, textAlign: 'left', fontSize: 14,
+                }}>{p.displayName}</button>
+                <button
+                  onClick={async () => {
+                    await api.unblockPerson(p.id).catch(() => {})
+                    setToast(`Desbloqueaste a ${p.displayName}`)
+                    loadBlocked()
+                  }}
+                  className="lbl"
+                  style={{ fontSize: 13, color: 'var(--amber)' }}
+                >Desbloquear</button>
+              </div>
+            ))}
+            <p style={{
+              color: 'var(--faint)', fontSize: 11.5, margin: '10px 0 0', lineHeight: 1.5,
+            }}>
+              Con alguien bloqueado, ninguno de los dos ve los comentarios ni las
+              fotos del otro. Los precios que cargó siguen en el mapa: son datos
+              sobre bares.
+            </p>
+          </>
         )}
 
         <SectionLabel>Zona de riesgo</SectionLabel>
