@@ -8,6 +8,9 @@ export interface BarPin {
   fromPrice: number | null
   freshestAgeDays: number | null
   distanceMeters: number | null
+  /** Promedio real de las birras del bar, ponderado por votos. Null = sin votos. */
+  rating: number | null
+  ratingCount: number
 }
 
 /**

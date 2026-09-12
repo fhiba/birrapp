@@ -96,15 +96,24 @@ export function ProfileScreen({ user, onSession }: {
         {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderador' : 'Usuario'}
       </span>
 
-      <SectionLabel>Tu aporte</SectionLabel>
-      {/* Los tres llevan al mismo lugar: no son tres pantallas, son tres
-          formas de entrar a la misma. "Confirmados" se cambió por "Fotos"
-          porque nadie reconocía qué contaba —eran los toques de "Sigue
-          igual"— y un número que no se entiende no sirve de nada. */}
-      <div style={{ display: 'flex', gap: 10 }} data-tour="profile-stats">
-        <Stat label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes')} />
-        <Stat label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes')} />
-        <Stat label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes')} />
+      <SectionLabel>Lo tuyo</SectionLabel>
+      {/* Cada cuadrado abre SU lista, no una pantalla común con todo apilado.
+          Con una sola vista compartida, tocar "Fotos" te dejaba arriba de
+          todo y había que scrollear los precios para llegar a las fotos —el
+          número que tocaste no era el que te recibía.
+
+          "Birras" es de otra naturaleza que los otros tres: no es un aporte a
+          la comunidad, es tu cuenta personal. Va en la misma grilla porque es
+          donde uno la busca, y se distingue por el corazón del contador, no
+          por estar en otro lado. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+      }} data-tour="profile-stats">
+        <Stat label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
+        <Stat label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
+        <Stat label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
+        <Stat label="Birras tomadas" value={beers ?? undefined}
+          onClick={() => nav('/mis-birras')} />
       </div>
 
       <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
@@ -113,9 +122,10 @@ export function ProfileScreen({ user, onSession }: {
         {isModerator(user) && (
           <Row label="Moderación" badge={pendingWork} onClick={() => nav('/moderacion')} />
         )}
-        {/* Arriba del todo: es lo único de esta pantalla que se mira seguido.
-            Lo demás se toca una vez y no se vuelve. */}
-        <Row label="Mis birras" badge={beers ?? 0} onClick={() => nav('/mis-birras')} />
+        {/* Los comentarios no tienen cuadrado: `UserStats` no los cuenta y
+            pedir la lista entera para dibujar un número sería traerse todos
+            los aportes de la persona cada vez que abre el perfil. */}
+        <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}

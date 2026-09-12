@@ -7,6 +7,7 @@ import { PintLoader } from '../ui/PintLoader'
 import { MAP_STYLE } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
+import { Segmented } from '../ui/Segmented'
 import { AddMenu, type AddAction } from '../ui/AddMenu'
 import { PickBarSheet } from '../ui/PickBar'
 import { LogBeerSheet } from './LogBeer'
@@ -215,32 +216,15 @@ export function MapScreen(p: Props) {
             en un teléfono angosto con las dos etiquetas puestas, y el nombre
             del modo que importa es el del que está prendido.
           */}
-          <div className="glass pill" data-tour="map-color" style={{
-            display: 'flex', padding: 3, flexShrink: 0, alignItems: 'center',
-          }}>
-            {([
-              ['freshness', 'Frescura'],
-              ['price', 'Precio'],
-            ] as [ColorBy, string][]).map(([mode, label]) => {
-              const on = p.colorBy === mode
-              return (
-                <button
-                  key={mode} onClick={() => p.onColorBy(mode)} className="lbl"
-                  aria-pressed={on} aria-label={`Colorear por ${label.toLowerCase()}`}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6, height: 38,
-                    padding: on ? '0 11px' : '0 9px', borderRadius: 999, fontSize: 12,
-                    whiteSpace: 'nowrap',
-                    background: on ? 'var(--amber)' : 'transparent',
-                    color: on ? 'var(--base)' : 'rgba(251,246,238,.7)',
-                  }}
-                >
-                  <Swatch mode={mode} />
-                  {on && <span>{label}</span>}
-                </button>
-              )
-            })}
-          </div>
+          <Segmented<ColorBy>
+            options={[
+              { value: 'freshness', label: 'Frescura', icon: <Swatch mode="freshness" /> },
+              { value: 'price', label: 'Precio', icon: <Swatch mode="price" /> },
+            ]}
+            value={p.colorBy} onChange={p.onColorBy}
+            label={o => `Colorear por ${o.label.toLowerCase()}`}
+            tourId="map-color"
+          />
         </div>
 
         {/* El slider va acá, pegado a los controles: es el control que lo
