@@ -110,6 +110,18 @@ private const val OUTLIER_FACTOR = 3.0
 private const val OUTLIER_MIN_SAMPLES = 5
 
 /**
+ * Radio dentro del cual se buscan precios de referencia para decidir si uno es
+ * atípico.
+ *
+ * 25 km es una ciudad y su alrededor: el área dentro de la cual tiene sentido
+ * decir "acá la pinta sale más o menos esto". Más grande empieza a mezclar
+ * ciudades con costos de vida distintos —que es el problema que este radio
+ * viene a resolver—, y más chico deja sin referencia a cualquier barrio que
+ * todavía tenga pocos precios cargados.
+ */
+private const val OUTLIER_RADIUS_M = 25_000
+
+/**
  * Techo absoluto del precio.
  *
  * La columna es numeric(12,2), así que la base ya rechaza cualquier cosa por
@@ -387,25 +399,45 @@ class PriceRepo(private val db: Db) {
                 )
             }
 
-            // Detección de outliers contra la mediana vigente del estilo, en
-            // la MISMA moneda. Normalizada a precio por litro: comparar una
-            // pinta de 473 ml contra un schop de 330 ml daría falsos
-            // positivos constantes.
+            // Detección de outliers contra la mediana de LOS BARES DE AL LADO,
+            // en la misma moneda. Normalizada a precio por litro: comparar una
+            // pinta de 473 ml contra un schop de 330 ml daría falsos positivos
+            // constantes.
             //
-            // Lo de la moneda no es un detalle: sin ese filtro, la mediana
-            // mezcla 8.000 pesos con 6 libras, y el primer precio de Londres
-            // que alguien cargue se va solo a la cola de moderación por
-            // "atípico" — o peor, deja de detectar los atípicos de verdad.
+            // La referencia es geográfica y no global, que es la diferencia
+            // entre detectar precios raros y castigar a quien carga desde otro
+            // lado. Filtrar sólo por moneda no alcanza:
+            //
+            //   * Una misma moneda cubre lugares con precios muy distintos.
+            //     Una pinta en Dublín y una en Lisboa son las dos en euros y
+            //     no se parecen en nada; contra la mediana del euro entero,
+            //     media Irlanda entra como "cara" y medio Portugal como
+            //     "sospechosamente barata".
+            //   * Y al revés: la mediana global de un estilo tapa la variación
+            //     local, que es justo donde vive el precio raro que queremos
+            //     encontrar — un bar cobrando el triple que los tres de la
+            //     misma cuadra.
+            //
+            // Sin suficientes vecinos NO se compara contra nada: se deja pasar.
+            // Retener el precio legítimo de alguien que acaba de descubrir la
+            // app en una ciudad nueva es mucho peor que dejar entrar uno raro,
+            // que además se ve con su antigüedad al lado y lo puede denunciar
+            // cualquiera.
             val median = c.queryOne(
                 """
                 SELECT percentile_cont(0.5) WITHIN GROUP (
-                           ORDER BY (price / size_ml * 1000)
+                           ORDER BY (cp.price / cp.size_ml * 1000)
                        ) AS m,
                        count(*) AS n
-                FROM v_current_prices
-                WHERE style_id = ? AND freshness <> 'stale' AND currency = ?
+                FROM v_current_prices cp
+                JOIN bars b ON b.id = cp.bar_id
+                WHERE cp.style_id = ? AND cp.freshness <> 'stale' AND cp.currency = ?
+                  AND ST_DWithin(
+                        b.location,
+                        (SELECT location FROM bars WHERE id = ?),
+                        ?)
                 """.trimIndent(),
-                styleId, currency,
+                styleId, currency, req.barId, OUTLIER_RADIUS_M,
             ) { rs -> rs.getDouble("m").takeUnless { rs.wasNull() } to rs.getInt("n") }
 
             val perLitre = req.price / req.sizeMl * 1000
@@ -435,8 +467,9 @@ class PriceRepo(private val db: Db) {
                     "INSERT INTO flags (target_type, target_id, reporter_id, reason) " +
                         "VALUES ('price', ?, ?, ?)",
                     id, userId,
-                    "auto: %.0f $/L contra una mediana de %.0f $/L para el estilo"
-                        .format(perLitre, medianPerLitre),
+                    ("auto: %.0f/L contra una mediana de %.0f/L (%s) " +
+                        "entre los bares a menos de %d km")
+                        .format(perLitre, medianPerLitre, currency, OUTLIER_RADIUS_M / 1000),
                 )
             }
 

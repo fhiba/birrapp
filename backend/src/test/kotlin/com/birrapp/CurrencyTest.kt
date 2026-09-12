@@ -119,6 +119,45 @@ class CurrencyTest {
     }
 
     @Test
+    fun `misma moneda, otra ciudad_ tampoco hay comparación`() {
+        val u = TestDb.insertUser()
+        // Cinco pintas baratas en Lisboa, en euros.
+        val lisboa = 38.7223 to -9.1393
+        repeat(5) { i ->
+            val bar = TestDb.insertBar("Lisboa $i", lisboa.first + i * 0.001, lisboa.second)
+            // Se fuerza la moneda del bar: el insert directo no pasa por create().
+            TestDb.setCurrency(bar, "EUR")
+            TestDb.insertPrice(bar, "ipa", 2.5, daysAgo = 1, userId = u)
+        }
+
+        // Una pinta en Dublín sale tres veces y media una de Lisboa, y las dos
+        // son precios perfectamente reales. Contra la mediana del euro entero,
+        // ésta pasaba el factor de outlier y se iba derecho a moderación.
+        val dublin = 53.3498 to -6.2603
+        val bar = crearBar("The Dublin Pub", dublin, "IE", quien = u)
+        val ok = prices.report(NewPriceRequest(bar, "ipa", 8.5), u)
+
+        assertFalse(ok.heldForReview, "Dublín no se compara contra Lisboa")
+    }
+
+    @Test
+    fun `el bar de la misma cuadra sí es referencia`() {
+        val u = TestDb.insertUser()
+        // Cinco bares londinenses alrededor de 6 libras.
+        val londres2 = londres.first to londres.second
+        repeat(5) { i ->
+            val bar = TestDb.insertBar("Pub $i", londres2.first + i * 0.001, londres2.second)
+            TestDb.setCurrency(bar, "GBP")
+            TestDb.insertPrice(bar, "ipa", 6.0, daysAgo = 1, userId = u)
+        }
+
+        val caro = crearBar("The Rip Off", londres, "GB", quien = u)
+        val res = prices.report(NewPriceRequest(caro, "ipa", 60.0), u)
+
+        assertTrue(res.heldForReview, "diez veces la del barrio sí es raro")
+    }
+
+    @Test
     fun `las stats de la zona son de una sola moneda y dicen cuántas dejaron afuera`() {
         val u = TestDb.insertUser()
         // Tres en pesos y uno en dólares, todos en el mismo radio.
