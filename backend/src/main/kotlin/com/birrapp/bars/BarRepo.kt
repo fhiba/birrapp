@@ -1,5 +1,6 @@
 package com.birrapp.bars
 
+import com.birrapp.core.Currency
 import com.birrapp.core.Db
 import com.birrapp.core.badRequest
 import com.birrapp.core.conflict
@@ -78,6 +79,7 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    $priceCols,
+                   b.currency,
                    r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    ST_Distance(b.location, ST_MakePoint(?, ?)::geography) AS distance_meters
             FROM bars b
@@ -109,6 +111,7 @@ class BarRepo(private val db: Db) {
         fromPrice = rs.getBigDecimal("from_price")?.toDouble(),
         freshestAgeDays = rs.getInt("freshest_age_days").takeUnless { rs.wasNull() },
         distanceMeters = rs.getDouble("distance_meters").takeUnless { rs.wasNull() },
+        currency = rs.getString("currency"),
         rating = rs.getBigDecimal("rating_raw")?.toDouble(),
         ratingCount = rs.getInt("rating_count"),
     )
@@ -127,6 +130,7 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    h.from_price, h.freshest_age_days,
+                   b.currency,
                    r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    CASE WHEN ?::float8 IS NULL THEN NULL
                         ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
@@ -181,6 +185,7 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    h.from_price, h.freshest_age_days,
+                   b.currency,
                    r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    CASE WHEN ?::float8 IS NULL THEN NULL
                         ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
@@ -208,6 +213,7 @@ class BarRepo(private val db: Db) {
         val bar = c.queryOne(
             """
             SELECT b.id, b.name, b.address, b.neighbourhood, b.status, b.google_place_id,
+                   b.currency, b.country_code,
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    CASE WHEN ?::float8 IS NULL THEN NULL
@@ -231,6 +237,8 @@ class BarRepo(private val db: Db) {
                 status = rs.getString("status"),
                 googlePlaceId = rs.getString("google_place_id"),
                 distanceMeters = rs.getDouble("distance_meters").takeUnless { rs.wasNull() },
+                currency = rs.getString("currency"),
+                countryCode = rs.getString("country_code"),
                 prices = emptyList(),
                 avgRating = rs.getDouble("avg_rating").takeUnless { rs.wasNull() },
                 reviewCount = rs.getInt("review_count"),
@@ -317,7 +325,8 @@ class BarRepo(private val db: Db) {
      * siempre es el mismo bar cargado dos veces. Sin esto el mapa se llena
      * de pines repetidos y los precios se parten entre ellos.
      */
-    fun create(req: NewBarRequest, createdBy: Long): Long = db.conn { c ->
+    fun create(req: NewBarRequest, createdBy: Long, creatorCurrency: String? = null): Long =
+        db.conn { c ->
         // Validación de entrada. La columna es `text` sin límite, así que sin
         // esto alguien puede cargar un nombre de un megabyte: no rompe la
         // base, pero llena la lista y el mapa de basura.
@@ -365,15 +374,26 @@ class BarRepo(private val db: Db) {
         // place_id ya prueba que existe. Lo cargado a mano sigue en cola.
         val status = if (req.googlePlaceId != null) "approved" else "pending"
 
+        val country = req.countryCode?.trim()?.uppercase()?.takeIf { it.length == 2 }
+
+        // La moneda, en orden de confianza: la que eligió quien lo carga gana
+        // —hay bares que cobran en dólares en países que no los usan—, después
+        // la del país que devolvió Google, y por último la de la persona, que
+        // es la que más chance tiene de ser la del lugar donde está parada.
+        val currency = Currency.normalize(req.currency)
+            ?: Currency.ofCountry(country)
+            ?: creatorCurrency
+            ?: Currency.DEFAULT
+
         c.queryOne(
             """
             INSERT INTO bars (name, address, neighbourhood, location, status,
-                              created_by, google_place_id)
-            VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, ?::moderation_status, ?, ?)
+                              created_by, google_place_id, country_code, currency)
+            VALUES (?, ?, ?, ST_MakePoint(?, ?)::geography, ?::moderation_status, ?, ?, ?, ?)
             RETURNING id
             """.trimIndent(),
             name, req.address?.trim(), req.neighbourhood?.trim(), req.lng, req.lat,
-            status, createdBy, req.googlePlaceId,
+            status, createdBy, req.googlePlaceId, country, currency,
         ) { it.getLong("id") }!!
     }
 
@@ -404,6 +424,7 @@ class BarRepo(private val db: Db) {
                    NULL::numeric AS from_price, NULL::int AS freshest_age_days,
                    -- Un bar pendiente no tiene nada todavía: ni precio ni nota.
                    NULL::numeric AS rating_raw, 0 AS rating_count,
+                   currency,
                    NULL::float8 AS distance_meters
             FROM bars WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?
             """.trimIndent(),

@@ -2,12 +2,57 @@ import type { Freshness } from './types'
 
 const AR = 'es-AR'
 
-/** $4.500, sin decimales: los centavos no significan nada con estos montos. */
-export const formatPrice = (v: number) =>
-  new Intl.NumberFormat(AR, {
-    style: 'currency', currency: 'ARS',
-    maximumFractionDigits: 0, minimumFractionDigits: 0,
+/**
+ * Monedas que no usan decimales.
+ *
+ * En pesos los centavos no significan nada —una pinta son cuatro mil y pico— y
+ * mostrar "$ 4.500,00" es ruido. En libras o euros, en cambio, £5,80 y £5 son
+ * precios distintos y comerse los decimales es perder el dato.
+ *
+ * La lista es de monedas donde el valor de una unidad es chico o que
+ * directamente no tienen subdivisión.
+ */
+const SIN_DECIMALES = new Set([
+  'ARS', 'CLP', 'COP', 'PYG', 'UYU', 'JPY', 'KRW', 'VND', 'ISK', 'HUF', 'CRC',
+])
+
+/**
+ * Un precio con su moneda. `$ 4.500` en Buenos Aires, `£5,80` en Londres.
+ *
+ * La moneda es obligatoria: un monto sin unidad es un número, no un precio, y
+ * desde que se pueden cargar bares de cualquier parte del mundo el default de
+ * pesos dejó de ser una simplificación razonable para pasar a ser una etiqueta
+ * equivocada.
+ *
+ * El idioma del formato sigue siendo el de acá: es la app de alguien que lee
+ * en castellano, y lo que cambia entre países es la moneda, no cómo se
+ * escriben los miles.
+ */
+export const formatPrice = (v: number, currency: string) => {
+  const cero = SIN_DECIMALES.has(currency)
+  return new Intl.NumberFormat(AR, {
+    style: 'currency', currency,
+    maximumFractionDigits: cero ? 0 : 2, minimumFractionDigits: cero ? 0 : 2,
   }).format(v)
+}
+
+/**
+ * El símbolo de una moneda, solo. Para el teclado de carga, donde el monto se
+ * arma dígito a dígito y no se puede formatear todavía.
+ *
+ * Sale de `Intl`, no de una tabla nuestra: formatea un cero y le saca lo que
+ * no sea el símbolo. Una tabla de cuarenta símbolos escrita a mano es una
+ * tabla de cuarenta símbolos que mantener.
+ *
+ * A propósito NO se usa `currencyDisplay: 'narrowSymbol'`, que daría "£" y
+ * "€" en vez de "GBP" y "EUR": con símbolos angostos, pesos argentinos,
+ * dólares y pesos chilenos son los tres "$". Entre un símbolo lindo y saber
+ * de qué moneda se está hablando, gana lo segundo — es la misma razón por la
+ * que ningún precio se muestra sin su antigüedad.
+ */
+export const currencyPrefix = (currency: string) =>
+  new Intl.NumberFormat(AR, { style: 'currency', currency, maximumFractionDigits: 0 })
+    .format(0).replace(/[\d\s.,]/g, '')
 
 export const groupThousands = (digits: string) => {
   const n = Number(digits)

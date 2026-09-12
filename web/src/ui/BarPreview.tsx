@@ -161,7 +161,7 @@ export function BarPreview({
             <>
               <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>desde</span>
               <span className="num" style={{ fontSize: 25, color: 'var(--cream)' }}>
-                {formatPrice(price)}
+                {formatPrice(price, bar.currency)}
               </span>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,

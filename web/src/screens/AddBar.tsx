@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CurrencySelect } from '../ui/CurrencySelect'
 import { useMapsLibrary } from '@vis.gl/react-google-maps'
 import * as api from '../data/api'
 import type { BarPin, User } from '../data/types'
@@ -33,9 +34,14 @@ export function AddBarScreen(
   const [chosen, setChosen] = useState<{
     placeId: string; name: string; address: string | null
     lat: number; lng: number
+    /** ISO-3166-1 alfa-2. De acá deduce el servidor la moneda del bar. */
+    countryCode: string | null
   } | null>(null)
   const [manual, setManual] = useState(false)
   const [address, setAddress] = useState('')
+  // Sólo para el alta a mano: sin lugar de Google no hay país que mirar.
+  // Arranca en la moneda de la persona, que es la del lugar donde está.
+  const [currency, setCurrency] = useState(user?.currency ?? 'ARS')
   const [searching, setSearching] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +72,10 @@ export function AddBarScreen(
         const { suggestions: s } =
           await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
             input: query,
-            includedRegionCodes: ['ar'],
+            // Sin `includedRegionCodes`. Era la única cosa en toda la app que
+            // ataba birrapp a Argentina: el backend siempre aceptó
+            // coordenadas de todo el globo. `locationBias` sigue ordenando por
+            // cercanía, así que parado en Buenos Aires ves lo de acá primero.
             sessionToken: token.current ?? undefined,
             ...(center ? {
               locationBias: { center, radius: 30_000 },
@@ -87,14 +96,22 @@ export function AddBarScreen(
     if (!placesLib) return
     try {
       const place = new placesLib.Place({ id: s.placeId })
-      await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] })
+      await place.fetchFields({
+        fields: ['displayName', 'formattedAddress', 'location', 'addressComponents'],
+      })
       const loc = place.location
       if (!loc) throw new Error('sin ubicación')
+      // El país sale de los componentes de la dirección. Es de donde el
+      // servidor deduce la moneda del bar: un pub de Londres cobra en libras
+      // y nadie tiene que elegir eso a mano.
+      const country = place.addressComponents
+        ?.find(c => c.types.includes('country'))?.shortText ?? null
       setChosen({
         placeId: s.placeId,
         name: place.displayName ?? s.primary,
         address: place.formattedAddress ?? null,
         lat: loc.lat(), lng: loc.lng(),
+        countryCode: country,
       })
       token.current = new placesLib.AutocompleteSessionToken()
     } catch { setError('No pudimos obtener la ubicación de ese lugar.') }
@@ -110,10 +127,15 @@ export function AddBarScreen(
         ? {
             name: chosen.name, lat: chosen.lat, lng: chosen.lng,
             address: chosen.address, googlePlaceId: chosen.placeId,
+            countryCode: chosen.countryCode ?? undefined,
           }
         : {
             name: query.trim(), lat: center!.lat, lng: center!.lng,
             address: address.trim(),
+            // Sin lugar de Google no hay país del que deducir nada, así que
+            // manda la moneda elegida en el formulario, que arranca en la de
+            // tu configuración.
+            currency,
           })
       onAdded()
       nav('/')
@@ -233,6 +255,19 @@ export function AddBarScreen(
                       Hace falta la dirección para que un moderador pueda verificar
                       que el bar existe.
                     </p>
+
+                    {/* Elegido del buscador, el país lo dice Google y la
+                        moneda sale sola. Cargado a mano no hay de dónde
+                        sacarla, así que se pregunta — con la de tu
+                        configuración puesta, que es la del lugar donde
+                        probablemente estés parado. */}
+                    <label className="lbl" style={{
+                      display: 'flex', alignItems: 'center', gap: 10, marginTop: 14,
+                      fontSize: 13, color: 'var(--muted)',
+                    }}>
+                      En qué moneda cobra
+                      <CurrencySelect value={currency} onChange={setCurrency} />
+                    </label>
                   </>
                 )}
               </div>

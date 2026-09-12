@@ -489,7 +489,7 @@ export function BarDetailScreen({
                     {b.brandName ?? 'Sin marca'}
                     {b.price != null && (
                       <span className="num" style={{ opacity: 0.75 }}>
-                        {formatPrice(b.price)}
+                        {formatPrice(b.price, bar.currency)}
                       </span>
                     )}
                   </button>
@@ -521,6 +521,7 @@ export function BarDetailScreen({
           {active && (
             <>
               <PriceRow
+                currency={bar.currency}
                 key={beerKey(active)} price={active} busy={busy === beerKey(active)}
                 modMode={modMode}
                 onConfirm={() => user
@@ -589,6 +590,8 @@ export function BarDetailScreen({
       {reporting && (
         <ReportPrice
           styles={styles} brands={brands}
+          currency={bar.currency}
+          defaultSizeMl={user?.defaultSizeMl ?? 473}
           preselected={reporting.style} preselectedBrand={reporting.brand}
           barName={bar.name}
           onCancel={() => setReporting(null)}
@@ -630,6 +633,7 @@ export function BarDetailScreen({
       </div>
       {history && (
         <PriceHistory
+          currency={bar.currency}
           barId={barId} styleSlug={history.styleSlug} brandSlug={history.brandSlug}
           title={beerName(history)}
           onClose={() => setHistory(null)}
@@ -656,7 +660,7 @@ export function BarDetailScreen({
               // acá no puede ser null.
               await api.flag({
                 targetType: 'price', targetId: p.id!,
-                reason: `precio incorrecto: ${beerName(p)} a ${formatPrice(p.price!)}`,
+                reason: `precio incorrecto: ${beerName(p)} a ${formatPrice(p.price!, bar.currency)}`,
               })
               setToast('Reportado. Gracias, lo revisa un moderador.')
             } catch (e) { setToast((e as Error).message) }
@@ -719,7 +723,7 @@ export function BarDetailScreen({
           title={`¿Eliminar el precio de ${beerName(confirmPrice)}?`}
           body={<>
             Se baja el reporte vigente de <strong>{beerName(confirmPrice)}</strong> a{' '}
-            {formatPrice(confirmPrice.price!)}. No se puede deshacer.
+            {formatPrice(confirmPrice.price!, bar.currency)}. No se puede deshacer.
             <br /><br />
             Las notas y las fotos de esta birra no se tocan: la birra sigue en la
             lista, sin precio, hasta que alguien cargue uno nuevo.
@@ -745,9 +749,9 @@ export function BarDetailScreen({
  * confirmar tiene que costar menos que corregir, o el dataset envejece.
  */
 function PriceRow({
-  price, busy, modMode, onConfirm, onUpdate, onRemove, onHistory, onFlag,
+  price, currency, busy, modMode, onConfirm, onUpdate, onRemove, onHistory, onFlag,
 }: {
-  price: StylePrice; busy: boolean; modMode: boolean
+  price: StylePrice; currency: string; busy: boolean; modMode: boolean
   onConfirm: () => void; onUpdate: () => void; onRemove: () => void
   onHistory: () => void; onFlag: () => void
 }) {
@@ -785,7 +789,7 @@ function PriceRow({
         <div style={{ flex: 1 }}>
           <div className="num" style={{
             fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
-          }}>{formatPrice(price.price!)}</div>
+          }}>{formatPrice(price.price!, currency)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color }}>

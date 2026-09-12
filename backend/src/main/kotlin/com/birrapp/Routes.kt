@@ -336,7 +336,12 @@ fun Route.apiRoutes(
 
         post("/bars") {
             val caller = call.caller()
-            val id = bars.create(call.receive<NewBarRequest>(), caller.userId)
+            // La moneda de quien lo carga entra como último recurso, cuando el
+            // bar no vino del buscador de Google y no se eligió una a mano.
+            val id = bars.create(
+                call.receive<NewBarRequest>(), caller.userId,
+                creatorCurrency = users.findById(caller.userId)?.currency,
+            )
             call.respond(HttpStatusCode.Created, mapOf("id" to id))
         }
 

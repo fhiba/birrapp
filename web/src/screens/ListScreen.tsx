@@ -437,7 +437,7 @@ export function ListScreen(p: Props) {
                 </span>
               </span>
               {b.fromPrice != null
-                ? <span className="num" style={{ fontSize: 19 }}>{formatPrice(b.fromPrice)}</span>
+                ? <span className="num" style={{ fontSize: 19 }}>{formatPrice(b.fromPrice, b.currency)}</span>
                 : <span style={{ fontSize: 12, color: 'var(--faint)' }}>Sin precio</span>}
             </button>
           </li>

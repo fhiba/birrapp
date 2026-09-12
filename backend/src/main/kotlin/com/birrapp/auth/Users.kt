@@ -24,6 +24,10 @@ data class User(
     val avatarUrl: String?,
     val role: Role,
     val bannedAt: Instant?,
+    /** Preferencias. Ver `V16__currency_and_settings.sql` por qué tienen default. */
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
+    val defaultSizeMl: Int = 473,
+    val defaultRadiusM: Int = 2000,
 ) {
     val isBanned: Boolean get() = bannedAt != null
 }
@@ -46,9 +50,28 @@ data class UserDto(
     val displayName: String,
     val avatarUrl: String?,
     val role: String,
+    /**
+     * Con qué moneda carga precios, no en cuál los ve: cada precio se muestra
+     * siempre en la moneda del bar. Ver V16.
+     */
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
+    val defaultSizeMl: Int = 473,
+    val defaultRadiusM: Int = 2000,
 )
 
-fun User.toDto() = UserDto(id, email, displayName, avatarUrl, role.name)
+/** Lo que una persona puede cambiar de sí misma. Todo opcional: se manda lo que cambió. */
+@Serializable
+data class UpdateMeRequest(
+    val displayName: String? = null,
+    val currency: String? = null,
+    val defaultSizeMl: Int? = null,
+    val defaultRadiusM: Int? = null,
+)
+
+fun User.toDto() = UserDto(
+    id, email, displayName, avatarUrl, role.name,
+    currency, defaultSizeMl, defaultRadiusM,
+)
 
 /** Lo que hay que limpiar fuera de la base después de borrar una cuenta. */
 data class DeletedAccount(val objectKeys: List<String>)
@@ -63,6 +86,9 @@ class UserRepo(private val db: Db) {
         avatarUrl = rs.getString("avatar_url"),
         role = Role.valueOf(rs.getString("role")),
         bannedAt = rs.getTimestamp("banned_at")?.toInstant(),
+        currency = rs.getString("currency"),
+        defaultSizeMl = rs.getInt("default_size_ml"),
+        defaultRadiusM = rs.getInt("default_radius_m"),
     )
 
     fun findById(id: Long): User? = db.conn {
@@ -101,6 +127,38 @@ class UserRepo(private val db: Db) {
             identity.picture, initialRole.name,
         )
         c.queryOne("SELECT * FROM users WHERE google_sub = ?", identity.sub, map = ::map)!!
+    }
+
+    /**
+     * Cambia lo que una persona puede cambiar de sí misma.
+     *
+     * Se actualiza sólo lo que viene: mandar el objeto entero desde el front
+     * haría que dos pantallas abiertas se pisen los cambios entre sí.
+     *
+     * El nombre se valida como el de un bar y por lo mismo — la columna es
+     * `text` sin límite y aparece en la lista de colaboradores.
+     */
+    fun updateMe(userId: Long, req: UpdateMeRequest): User = db.tx { c ->
+        req.displayName?.let { raw ->
+            val name = raw.trim()
+            if (name.length < 2) com.birrapp.core.badRequest("el nombre es demasiado corto")
+            if (name.length > 60) com.birrapp.core.badRequest("el nombre es demasiado largo")
+            c.update("UPDATE users SET display_name = ? WHERE id = ?", name, userId)
+        }
+        req.currency?.let { raw ->
+            val cur = com.birrapp.core.Currency.normalize(raw)
+                ?: com.birrapp.core.badRequest("no conocemos esa moneda: $raw")
+            c.update("UPDATE users SET currency = ? WHERE id = ?", cur, userId)
+        }
+        req.defaultSizeMl?.let { ml ->
+            if (ml !in 100..2000) com.birrapp.core.badRequest("tamaño fuera de rango (100-2000 ml)")
+            c.update("UPDATE users SET default_size_ml = ? WHERE id = ?", ml, userId)
+        }
+        req.defaultRadiusM?.let { m ->
+            if (m !in 300..20_000) com.birrapp.core.badRequest("radio fuera de rango")
+            c.update("UPDATE users SET default_radius_m = ? WHERE id = ?", m, userId)
+        }
+        c.queryOne("SELECT * FROM users WHERE id = ?", userId, map = ::map)!!
     }
 
     /**

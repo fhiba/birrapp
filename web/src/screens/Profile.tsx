@@ -6,7 +6,6 @@ import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
-import { AvatarPicker } from '../ui/AvatarPicker'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -16,7 +15,7 @@ export function ProfileScreen({ user, onSession }: {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<'out' | 'delete' | null>(null)
+  const [confirm, setConfirm] = useState<'out' | null>(null)
   const [pendingWork, setPendingWork] = useState(0)
   /** Cuántas birras llevás anotadas. Es el número que trae de vuelta acá. */
   const [beers, setBeers] = useState<number | null>(null)
@@ -81,13 +80,6 @@ export function ProfileScreen({ user, onSession }: {
         }}>⇥</button>
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <AvatarPicker
-          user={user}
-          onChange={u => { api.updateSessionUser(u); onSession() }}
-        />
-      </div>
-
       <span className="lbl pill" style={{
         display: 'inline-block', marginTop: 18, padding: '6px 12px', fontSize: 12,
         background: isModerator(user) ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
@@ -126,6 +118,10 @@ export function ProfileScreen({ user, onSession }: {
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
         <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
+        {/* La configuración se lleva el nombre, la foto y el borrado de
+            cuenta, que estaban sueltos acá. El perfil es lo que mostrás; la
+            configuración, lo que elegís. */}
+        <Row label="Configuración" onClick={() => nav('/config')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}
@@ -137,9 +133,6 @@ export function ProfileScreen({ user, onSession }: {
         )}
       </div>
 
-      <SectionLabel>Cuenta</SectionLabel>
-      <Row label="Borrar mi cuenta" danger onClick={() => setConfirm('delete')} />
-
       <Footer />
 
       {confirm === 'out' && (
@@ -149,25 +142,6 @@ export function ProfileScreen({ user, onSession }: {
           confirmLabel="Cerrar sesión" danger
           onCancel={() => setConfirm(null)}
           onConfirm={async () => { setConfirm(null); await api.signOut(); onSession() }}
-        />
-      )}
-      {confirm === 'delete' && (
-        <Confirm
-          title="¿Borrar tu cuenta?"
-          body={<>
-            Se borra tu cuenta, tus reseñas y tu sesión. No se puede deshacer.
-            <br /><br />
-            Los precios que cargaste quedan en el mapa, pero sin tu nombre: son
-            datos sobre bares, no sobre vos, y borrarlos dejaría peor informado
-            a todo el mundo.
-          </>}
-          confirmLabel="Borrar cuenta" danger requireWord="BORRAR"
-          onCancel={() => setConfirm(null)}
-          onConfirm={async () => {
-            setConfirm(null)
-            try { await api.deleteAccount(); onSession(); nav('/') }
-            catch (e) { setError((e as Error).message) }
-          }}
         />
       )}
     </Wrap>

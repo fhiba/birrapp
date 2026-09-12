@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BeerStyle, Brand } from '../data/types'
-import { groupThousands } from '../data/format'
+import { currencyPrefix, groupThousands } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
 import { StyleChips } from '../ui/StyleChips'
 
@@ -20,7 +20,7 @@ import { StyleChips } from '../ui/StyleChips'
  * birra "sin marca" es una birra propia, no un dato a medio cargar.
  */
 export function ReportPrice({
-  styles, brands, preselected, preselectedBrand, barName,
+  styles, brands, preselected, preselectedBrand, barName, currency, defaultSizeMl,
   onCancel, onSubmit, onBrandCreated, onStyleCreated,
 }: {
   styles: BeerStyle[]
@@ -28,6 +28,10 @@ export function ReportPrice({
   preselected?: string
   preselectedBrand?: string | null
   barName?: string
+  /** La del bar: el precio se carga en la moneda del lugar, no en la tuya. */
+  currency: string
+  /** El de tu configuración. Una pinta no mide lo mismo en todos lados. */
+  defaultSizeMl: number
   onCancel: () => void
   onSubmit: (
     styleSlug: string, brandSlug: string | null, price: number, sizeMl: number,
@@ -39,7 +43,7 @@ export function ReportPrice({
   const [style, setStyle] = useState(preselected ?? styles[0]?.slug)
   const [brand, setBrand] = useState<string | null>(preselectedBrand ?? null)
   const [digits, setDigits] = useState('')
-  const [size, setSize] = useState('473')
+  const [size, setSize] = useState(String(defaultSizeMl))
   const [editingSize, setEditingSize] = useState(false)
 
   // Cambiar de estilo limpia la marca elegida: una IPA de Antares y una rubia
@@ -52,7 +56,7 @@ export function ReportPrice({
   }, [style, preselected, preselectedBrand])
 
   const price = Number(digits) || 0
-  const sizeMl = Number(size) || 473
+  const sizeMl = Number(size) || defaultSizeMl
   const valid = !!style && price > 0 && sizeMl >= 100 && sizeMl <= 2000
 
   const press = (k: string) => {
@@ -103,7 +107,7 @@ export function ReportPrice({
           fontSize: 48, letterSpacing: '-.04em', padding: '8px 18px', borderRadius: 14,
           background: editingSize ? 'transparent' : 'var(--amber-soft)',
           color: digits === '' ? 'var(--faint)' : editingSize ? 'var(--muted)' : 'var(--cream)',
-        }}>$ {digits === '' ? '0' : groupThousands(digits)}</button>
+        }}>{currencyPrefix(currency)} {digits === '' ? '0' : groupThousands(digits)}</button>
 
         <button onClick={() => setEditingSize(true)} className="num pill" style={{
           fontSize: editingSize ? 22 : 18, padding: '9px 16px', marginTop: 10,
