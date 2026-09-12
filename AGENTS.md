@@ -55,6 +55,11 @@ Ahora la rama se levanta entera acá:
 scripts/dev.sh          # backend en 8091 + PWA en 5173, Ctrl-C baja todo
 ```
 
+La PWA se abre en **`http://127.0.0.1:5173/app`**, con la IP y no con
+`localhost`: vite escucha por su cuenta sólo en `::1` y Ktor sólo en
+`127.0.0.1`, así que con el nombre el navegador entra a la página por IPv6 y
+después no encuentra la API. El script ya fuerza IPv4 en las dos puntas.
+
 Corre contra `birrapp_dev`, una copia de los bares y precios reales **sin
 usuarios** (`scripts/dev_seed.sh` la rearma). El jar de producción en 8090 no
 se toca. Para que el login de Google funcione, el script da vuelta el Funnel a

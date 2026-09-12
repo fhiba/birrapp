@@ -69,7 +69,7 @@ say "compilando y levantando el backend en $PORT…"
 DATABASE_URL="jdbc:postgresql://localhost:5433/$DB" \
 PORT="$PORT" \
 BIND_HOST=127.0.0.1 \
-WEB_APP_URL="http://localhost:$WEB_PORT/app" \
+WEB_APP_URL="http://127.0.0.1:$WEB_PORT/app" \
 ALLOWED_ORIGINS="http://localhost:$WEB_PORT,http://127.0.0.1:$WEB_PORT" \
   backend/gradlew -p backend run --quiet >/tmp/birrapp-dev-backend.log 2>&1 &
 BACKEND=$!
@@ -111,13 +111,23 @@ if [ "$FUNNEL" = "1" ]; then
 fi
 
 # ---------- 5. web ----------
-say "PWA en http://localhost:$WEB_PORT/app"
+#
+# Todo en 127.0.0.1 y nunca "localhost", que es el bug que se comió una vuelta
+# entera: vite, por su cuenta, escucha SÓLO en `::1`, y el backend de Ktor SÓLO
+# en `127.0.0.1`. El navegador abre localhost:5173 por IPv6, la página carga
+# bien, y cuando pide la API a localhost:8091 vuelve a elegir IPv6 — donde no
+# hay nadie escuchando. El síntoma es "el backend no está levantado" con el
+# backend perfectamente levantado.
+#
+# Se fuerzan las dos puntas a IPv4: `--host 127.0.0.1` en vite (loopback, no
+# queda expuesto a la red) y la API por IP en vez de por nombre.
+say "PWA en http://127.0.0.1:$WEB_PORT/app"
 echo
 cd web
 # El binario directo y no `npx`: npx mete un `sh -c` en el medio, así que el
 # pid que queda acá es el del wrapper y no el del servidor. Al bajar todo se
 # mataba el wrapper y vite seguía vivo ocupando el puerto.
-VITE_API_BASE="http://localhost:$PORT" ./node_modules/.bin/vite \
-  --port "$WEB_PORT" --strictPort &
+VITE_API_BASE="http://127.0.0.1:$PORT" ./node_modules/.bin/vite \
+  --host 127.0.0.1 --port "$WEB_PORT" --strictPort &
 VITE=$!
 wait $VITE
