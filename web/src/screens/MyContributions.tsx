@@ -1,15 +1,40 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type { MyComment, MyContributions, MyPhoto, MyPrice } from '../data/types'
 import { formatPrice } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 
+/** Las cuatro listas, cada una con su pantalla. La ruta es `/mis-aportes/:tipo`. */
+type Kind = 'precios' | 'fotos' | 'comentarios' | 'bares'
+
+const TITLE: Record<Kind, string> = {
+  precios: 'Mis precios',
+  fotos: 'Mis fotos',
+  comentarios: 'Mis comentarios',
+  bares: 'Mis bares',
+}
+
+const EMPTY: Record<Kind, string> = {
+  precios: 'Todavía no cargaste ningún precio.',
+  fotos: 'Todavía no subiste ninguna foto.',
+  comentarios: 'Todavía no escribiste ningún comentario.',
+  bares: 'Todavía no agregaste ningún bar.',
+}
+
 /**
- * Todo lo que cargó una persona, en un solo lugar.
+ * Lo que cargó una persona, de a un tipo por pantalla.
  *
- * Hasta ahora, para encontrar algo propio mal cargado había que acordarse en
- * qué bar fue y navegar hasta ahí. Con veinte aportes eso deja de funcionar.
+ * Para encontrar algo propio mal cargado había que acordarse en qué bar fue y
+ * navegar hasta ahí; con veinte aportes eso deja de funcionar. Antes esto era
+ * una sola pantalla con los cuatro tipos apilados, y tenía el problema de
+ * siempre de las vistas compartidas: tocabas "Fotos" en el perfil y caías
+ * arriba de todo, con los precios por delante. El número que tocaste tiene que
+ * ser el que te recibe.
+ *
+ * La consulta sigue siendo una sola —el endpoint devuelve todo junto— y cada
+ * pantalla muestra su parte. Partir el endpoint sería cuatro viajes para el
+ * mismo dato.
  *
  * Los bares no se pueden borrar desde acá a propósito: un bar que creaste
  * puede tener precios y fotos de otra gente, así que borrarlo no es deshacer
@@ -28,6 +53,9 @@ export function MyContributionsScreen(
   }: { onChanged: () => void },
 ) {
   const nav = useNavigate()
+  const { tipo } = useParams()
+  const kind: Kind = (['precios', 'fotos', 'comentarios', 'bares'] as Kind[])
+    .includes(tipo as Kind) ? tipo as Kind : 'precios'
   const [data, setData] = useState<MyContributions | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -42,6 +70,12 @@ export function MyContributionsScreen(
 
   useEffect(() => { load() }, [load])
 
+  const list = data && data[
+    kind === 'precios' ? 'prices' : kind === 'fotos' ? 'photos'
+      : kind === 'comentarios' ? 'comments' : 'bars'
+  ]
+  const count = list?.length ?? null
+
   return (
     <div style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
@@ -52,21 +86,26 @@ export function MyContributionsScreen(
           <button onClick={() => nav(-1)} style={{
             width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
           }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>Mis aportes</h1>
+          <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>
+            {TITLE[kind]}
+            {count != null && count > 0 && (
+              <span className="num" style={{ color: 'var(--faint)', fontSize: 18 }}>
+                {' '}· {count}
+              </span>
+            )}
+          </h1>
           {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
         </div>
 
         {!data && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
 
-        {data && data.prices.length === 0 && data.bars.length === 0
-          && data.photos.length === 0 && data.comments.length === 0 && (
+        {count === 0 && (
           <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
-            Todavía no cargaste nada.
+            {EMPTY[kind]}
           </p>
         )}
 
-        {data && data.prices.length > 0 && <H>Precios · {data.prices.length}</H>}
-        {data?.prices.map(p => (
+        {kind === 'precios' && data?.prices.map(p => (
           <Item
             key={p.id}
             onOpen={() => nav(`/bar/${p.barId}`)}
@@ -80,8 +119,7 @@ export function MyContributionsScreen(
           />
         ))}
 
-        {data && data.photos.length > 0 && <H>Fotos · {data.photos.length}</H>}
-        {data?.photos.map(f => (
+        {kind === 'fotos' && data?.photos.map(f => (
           <Item
             key={f.id}
             onOpen={() => nav(`/bar/${f.barId}`)}
@@ -93,8 +131,7 @@ export function MyContributionsScreen(
           />
         ))}
 
-        {data && data.comments.length > 0 && <H>Comentarios · {data.comments.length}</H>}
-        {data?.comments.map(c => (
+        {kind === 'comentarios' && data?.comments.map(c => (
           <Item
             key={c.id}
             onOpen={() => nav(`/bar/${c.barId}`)}
@@ -105,8 +142,7 @@ export function MyContributionsScreen(
           />
         ))}
 
-        {data && data.bars.length > 0 && <H>Bares · {data.bars.length}</H>}
-        {data?.bars.map(b => (
+        {kind === 'bares' && data?.bars.map(b => (
           <Item
             key={b.id}
             onOpen={() => nav(`/bar/${b.id}`)}
@@ -117,7 +153,7 @@ export function MyContributionsScreen(
           />
         ))}
 
-        {data && data.bars.length > 0 && (
+        {kind === 'bares' && data && data.bars.length > 0 && (
           <p style={{
             color: 'var(--faint)', fontSize: 11.5, lineHeight: 1.5, padding: '14px 18px 0',
           }}>
@@ -198,13 +234,6 @@ export function MyContributionsScreen(
     </div>
   )
 }
-
-const H = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
-    margin: '26px 0 8px', padding: '0 18px',
-  }}>{children}</h2>
-)
 
 function Item({
   title, sub, age, tag, thumb, highlight, onOpen, onRemove,

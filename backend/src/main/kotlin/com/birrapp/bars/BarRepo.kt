@@ -66,6 +66,11 @@ class BarRepo(private val db: Db) {
             BarSort.cheapest ->
                 if (filtered) "cp.price ASC, distance_meters ASC"
                 else "h.from_price ASC NULLS LAST, distance_meters ASC"
+            // Por la nota con shrinkage, no por la que se muestra: un bar con
+            // un solo voto de 5 no puede encabezar el ranking. NULLS LAST
+            // porque un bar sin votos no es un bar mal puntuado — no se sabe,
+            // y "no se sabe" va al final, igual que un precio stale.
+            BarSort.rated -> "r.rating_sort DESC NULLS LAST, distance_meters ASC"
         }
 
         val sql = """
@@ -73,9 +78,11 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    $priceCols,
+                   r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    ST_Distance(b.location, ST_MakePoint(?, ?)::geography) AS distance_meters
             FROM bars b
             $joins
+            LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE b.status = 'approved'
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
             ORDER BY $orderBy
@@ -102,6 +109,8 @@ class BarRepo(private val db: Db) {
         fromPrice = rs.getBigDecimal("from_price")?.toDouble(),
         freshestAgeDays = rs.getInt("freshest_age_days").takeUnless { rs.wasNull() },
         distanceMeters = rs.getDouble("distance_meters").takeUnless { rs.wasNull() },
+        rating = rs.getBigDecimal("rating_raw")?.toDouble(),
+        ratingCount = rs.getInt("rating_count"),
     )
 
     /**
@@ -118,12 +127,14 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    h.from_price, h.freshest_age_days,
+                   r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    CASE WHEN ?::float8 IS NULL THEN NULL
                         ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
                         AS distance_meters
             FROM favorites f
             JOIN bars b ON b.id = f.bar_id AND b.status = 'approved'
             LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE f.user_id = ?
             ORDER BY f.created_at DESC
             """.trimIndent(),
@@ -170,11 +181,13 @@ class BarRepo(private val db: Db) {
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
                    h.from_price, h.freshest_age_days,
+                   r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    CASE WHEN ?::float8 IS NULL THEN NULL
                         ELSE ST_Distance(b.location, ST_MakePoint(?, ?)::geography) END
                         AS distance_meters
             FROM bars b
             LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE b.status = 'approved'
               AND bar_search_key(b.name) LIKE '%' || bar_search_key(?) || '%'
             ORDER BY ${if (hasPoint) "distance_meters ASC NULLS LAST," else ""}
@@ -389,6 +402,8 @@ class BarRepo(private val db: Db) {
             """
             SELECT id, name, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng,
                    NULL::numeric AS from_price, NULL::int AS freshest_age_days,
+                   -- Un bar pendiente no tiene nada todavía: ni precio ni nota.
+                   NULL::numeric AS rating_raw, 0 AS rating_count,
                    NULL::float8 AS distance_meters
             FROM bars WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?
             """.trimIndent(),
