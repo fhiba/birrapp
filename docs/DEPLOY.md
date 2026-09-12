@@ -202,6 +202,16 @@ El problema que resuelve: hasta ahora todo salía derecho a `master`, o sea a
 producción, sin ningún lugar donde probarlo primero. Un error se descubría con
 la app publicada.
 
+> **Actualización 2026-09-12 — el día a día se prueba en local, no acá.**
+> `scripts/dev.sh` levanta la rama entera en la máquina de Felipe (backend en
+> 8091 contra una copia de la base sin usuarios, PWA en 5173) y el Funnel
+> apunta ahí mientras corre, así el login de Google anda igual. El ciclo pasa
+> de minutos a segundos y un error a medio cocinar no lo ve nadie más.
+>
+> Esta sección sigue valiendo para lo que en local no se puede probar de
+> verdad: migraciones grandes, R2, el comportamiento detrás del proxy, o
+> cualquier cosa donde el entorno **sea** lo que se está probando.
+
 **La idea es que `dev` tenga su propio despliegue completo** —backend, base y
 web— y que `master` reciba sólo lo que ya se vio andar ahí.
 
