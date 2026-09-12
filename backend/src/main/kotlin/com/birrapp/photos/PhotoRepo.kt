@@ -38,7 +38,20 @@ data class PhotoDto(
     val authorName: String?,
     val ageDays: Int,
     val mine: Boolean,
+    /** Pulgares (BIR-10). */
+    val votes: Int = 0,
+    val votedByMe: Boolean = false,
+    /**
+     * La más votada de este mes en este bar.
+     *
+     * Se calcula acá y no en el cliente porque el mes es el de Buenos Aires:
+     * resolverlo con la zona del navegador haría que la foto del mes cambie
+     * según dónde esté parado quien mira.
+     */
+    val topOfMonth: Boolean = false,
 )
+
+private const val TZ = "America/Argentina/Buenos_Aires"
 
 class PhotoRepo(private val db: Db, private val r2: R2) {
 
@@ -96,20 +109,59 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
         PhotoDto(id, req.styleSlug, req.brandSlug, r2.publicUrl(req.key), null, 0, true)
     }
 
+    /**
+     * Las fotos de un bar, con sus pulgares.
+     *
+     * La foto del mes va primero y no ordenada por votos entre todas: el
+     * orden sigue siendo cronológico porque quien mira quiere ver lo último
+     * que se subió, y un ranking permanente dejaría la misma foto arriba para
+     * siempre. La del mes se corre al principio y se marca; el mes que viene
+     * es otra.
+     */
     fun forBar(barId: Long, viewerId: Long?): List<PhotoDto> = db.conn {
         it.query(
             """
+            WITH v AS (
+                SELECT pv.photo_id,
+                       count(*)::int                AS votes,
+                       -- Con viewerId NULL la comparación da NULL y bool_or
+                       -- devuelve NULL: el COALESCE de abajo lo vuelve false.
+                       bool_or(pv.user_id = ?::bigint) AS mine
+                FROM photo_votes pv
+                -- Acotado a este bar: sin el join, contar los pulgares de una
+                -- foto obliga a recorrer los votos de la base entera.
+                JOIN bar_photos bp ON bp.id = pv.photo_id AND bp.bar_id = ?
+                GROUP BY pv.photo_id
+            ),
+            top AS (
+                SELECT p.id
+                FROM bar_photos p
+                JOIN photo_votes pv ON pv.photo_id = p.id
+                WHERE p.bar_id = ? AND p.status = 'active'
+                  AND to_char(p.created_at AT TIME ZONE '$TZ', 'YYYY-MM')
+                    = to_char(now()        AT TIME ZONE '$TZ', 'YYYY-MM')
+                GROUP BY p.id
+                -- Empate: gana la más nueva. Premiar a la que llegó primero
+                -- sólo por haber estado más días juntando pulgares convierte
+                -- la foto del mes en la del día 1.
+                ORDER BY count(*) DESC, p.created_at DESC
+                LIMIT 1
+            )
             SELECT p.id, p.object_key, p.user_id, s.slug, b.slug AS brand_slug,
                    u.display_name,
-                   EXTRACT(DAY FROM (now() - p.created_at))::int AS age_days
+                   EXTRACT(DAY FROM (now() - p.created_at))::int AS age_days,
+                   COALESCE(v.votes, 0)    AS votes,
+                   COALESCE(v.mine, false) AS voted_by_me,
+                   (p.id = (SELECT id FROM top)) AS top_of_month
             FROM bar_photos p
             JOIN beer_styles s ON s.id = p.style_id
             LEFT JOIN brands b ON b.id = p.brand_id
             LEFT JOIN users u ON u.id = p.user_id
+            LEFT JOIN v ON v.photo_id = p.id
             WHERE p.bar_id = ? AND p.status = 'active'
-            ORDER BY p.created_at DESC
+            ORDER BY (p.id = (SELECT id FROM top)) DESC, p.created_at DESC
             """.trimIndent(),
-            barId,
+            viewerId, barId, barId, barId,
         ) { rs ->
             PhotoDto(
                 id = rs.getLong("id"),
@@ -119,8 +171,42 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
                 authorName = rs.getString("display_name"),
                 ageDays = rs.getInt("age_days"),
                 mine = viewerId != null && rs.getLong("user_id") == viewerId,
+                votes = rs.getInt("votes"),
+                votedByMe = rs.getBoolean("voted_by_me"),
+                // NULL cuando no hay foto del mes: `p.id = NULL` da NULL, no false.
+                topOfMonth = rs.getBoolean("top_of_month") && !rs.wasNull(),
             )
         }
+    }
+
+    /**
+     * Poner o sacar el pulgar. Devuelve cuántos quedaron.
+     *
+     * Idempotente en los dos sentidos: el botón es un interruptor y dos
+     * toques seguidos —o un toque repetido por una red lenta— no pueden
+     * dejar dos votos ni tirar un error en la cara.
+     *
+     * No se puede votar una foto bajada: sigue existiendo la fila, pero ya no
+     * se muestra en ningún lado, así que un voto ahí sólo podría llegar
+     * adivinando el id.
+     */
+    fun vote(photoId: Long, userId: Long, on: Boolean): Int = db.conn { c ->
+        c.queryOne("SELECT 1 FROM bar_photos WHERE id = ? AND status = 'active'", photoId) { }
+            ?: notFound("no existe esa foto")
+
+        if (on) {
+            c.update(
+                "INSERT INTO photo_votes (photo_id, user_id) VALUES (?, ?) " +
+                    "ON CONFLICT DO NOTHING",
+                photoId, userId,
+            )
+        } else {
+            c.update("DELETE FROM photo_votes WHERE photo_id = ? AND user_id = ?", photoId, userId)
+        }
+
+        c.queryOne("SELECT count(*)::int AS n FROM photo_votes WHERE photo_id = ?", photoId) {
+            it.getInt("n")
+        } ?: 0
     }
 
     /**

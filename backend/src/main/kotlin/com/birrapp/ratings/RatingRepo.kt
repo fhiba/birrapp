@@ -23,6 +23,19 @@ data class NewRatingRequest(
 )
 
 /**
+ * Retirar el voto (BIR-11).
+ *
+ * No lleva nota: es la ausencia de una, y mandar un 0 sería otra cosa —el 0
+ * es un voto real, "estuvo pésima", y cuenta para el promedio.
+ */
+@Serializable
+data class RetractRatingRequest(
+    val barId: Long,
+    val styleSlug: String,
+    val brandSlug: String? = null,
+)
+
+/**
  * Un comentario. Va aparte de la nota a propósito.
  *
  * La nota es una sola por persona y por birra —si no, cinco votos propios
@@ -102,6 +115,45 @@ class RatingRepo(private val db: Db) {
             """.trimIndent(),
             req.barId, styleId, brandId, userId, rating,
         )
+    }
+
+    /**
+     * Retirar el voto (BIR-11).
+     *
+     * Hasta acá la nota se podía corregir tocando otra estrella pero no sacar,
+     * así que quien votó una birra que el bar dejó de tener seguía contando
+     * para siempre en un promedio sobre algo que ya no se sirve.
+     *
+     * Borra la fila en vez de marcarla `removed`. `removed` es lo que deja un
+     * moderador, y una nota retirada por su autor no es contenido bajado sino
+     * una nota que no existe; además `upsert` revive las filas `removed`, así
+     * que volver a votar después tiene que encontrar el terreno limpio.
+     *
+     * La pertenencia va en el WHERE y no en un chequeo previo, igual que en
+     * el borrado de comentarios propios: entre comprobar y borrar hay una
+     * carrera, y así el voto de otro simplemente no se toca.
+     */
+    fun retract(req: RetractRatingRequest, userId: Long): Boolean = db.conn { c ->
+        val styleId = c.queryOne(
+            "SELECT id FROM beer_styles WHERE slug = ?", req.styleSlug,
+        ) { it.getLong("id") } ?: notFound("no existe ese estilo")
+
+        val brandId = req.brandSlug?.let { slug ->
+            c.queryOne("SELECT id FROM brands WHERE slug = ?", slug) { it.getLong("id") }
+                ?: notFound("marca desconocida: $slug")
+        }
+
+        // `IS NOT DISTINCT FROM` y no `=`: la birra sin marca tiene brand_id
+        // NULL, y con `=` no coincidiría con nada.
+        c.update(
+            """
+            DELETE FROM beer_ratings
+            WHERE bar_id = ? AND style_id = ?
+              AND brand_id IS NOT DISTINCT FROM ?::bigint
+              AND user_id = ?
+            """.trimIndent(),
+            req.barId, styleId, brandId, userId,
+        ) > 0
     }
 
     /** Alta de comentario. Se pueden dejar varios sobre la misma birra. */

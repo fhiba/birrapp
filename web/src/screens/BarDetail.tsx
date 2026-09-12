@@ -98,6 +98,32 @@ export function BarDetailScreen({
   useEffect(() => { load() }, [load])
 
   /**
+   * El pulgar de una foto (BIR-10).
+   *
+   * Optimista: es la acción más barata de la pantalla y esperar al servidor
+   * para pintarla la vuelve cara. Si falla se vuelve atrás, que es lo único
+   * honesto cuando el número que se muestra no es el que quedó guardado.
+   *
+   * La foto del mes NO se recalcula acá: puede cambiar de dueña con este voto,
+   * pero saberlo pide preguntarle al servidor, y una banda que salta de foto
+   * mientras se vota se lee como un error. Se acomoda en la próxima carga.
+   */
+  const vote = useCallback(async (photo: Photo) => {
+    const on = !photo.votedByMe
+    const shift = (d: number) => setPhotos(cur => cur.map(x =>
+      x.id === photo.id ? { ...x, votedByMe: d > 0, votes: x.votes + d } : x))
+
+    shift(on ? 1 : -1)
+    try {
+      const r = await api.votePhoto(photo.id, on)
+      setPhotos(cur => cur.map(x => x.id === photo.id ? { ...x, ...r } : x))
+    } catch (e) {
+      shift(on ? -1 : 1)
+      setToast((e as Error).message)
+    }
+  }, [])
+
+  /**
    * Llegar con `?precio=1` abre la carga de precio sola.
    *
    * Es cómo entra quien eligió "cargar un precio" en el menú del "+" (BIR-36):
@@ -548,11 +574,13 @@ export function BarDetailScreen({
                 <PhotoStrip
                   photos={beerPhotos}
                   canAdd={user != null}
+                  canVote={user != null}
                   onAdd={async file => {
                     await api.uploadPhoto(barId, active.styleSlug, active.brandSlug, file)
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
+                  onVote={vote}
                 />
               </div>
             </>
@@ -686,8 +714,10 @@ export function BarDetailScreen({
       {viewing != null && (
         <PhotoViewer
           photos={beerPhotos} start={viewing} modMode={modMode}
+          canVote={user != null}
           onClose={() => setViewing(null)}
           onRemove={p => { setViewing(null); setConfirmPhoto(p) }}
+          onVote={vote}
         />
       )}
 
@@ -896,13 +926,15 @@ function BeerLabel({ price }: { price: StylePrice }) {
  * lado y no rompe la navegación.
  */
 function PhotoViewer({
-  photos, start, modMode, onClose, onRemove,
+  photos, start, modMode, canVote, onClose, onRemove, onVote,
 }: {
   photos: Photo[]
   start: number
   modMode: boolean
+  canVote: boolean
   onClose: () => void
   onRemove: (p: Photo) => void
+  onVote: (p: Photo) => void
 }) {
   const [i, setI] = useState(start)
   const touch = useRef<{ x: number; y: number } | null>(null)
@@ -981,7 +1013,37 @@ function PhotoViewer({
           {photo.authorName && <>{photo.mine ? 'Tu foto' : photo.authorName} · </>}
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
+          {photo.topOfMonth && <> · <span style={{ color: 'var(--amber)' }}>foto del mes</span></>}
         </span>
+
+        {/* Acá el pulgar es un botón de verdad y no la pastilla chiquita de
+            la tira: es el momento en que alguien está mirando la foto, que es
+            cuando decide si le gustó. Sin sesión queda el número solo. */}
+        {(canVote || photo.votes > 0) && (
+          canVote ? (
+            <button
+              onClick={() => onVote(photo)}
+              aria-pressed={photo.votedByMe}
+              className="lbl"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 18px', borderRadius: 999, fontSize: 13,
+                background: photo.votedByMe ? 'var(--amber)' : 'rgba(255,255,255,.14)',
+                color: photo.votedByMe ? 'var(--base)' : 'var(--cream)',
+              }}
+            >
+              <ThumbIcon filled={photo.votedByMe} />
+              {photo.votes > 0
+                ? photo.votes
+                : photo.votedByMe ? 'Te gusta' : 'Me gusta'}
+            </button>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ThumbIcon filled />
+              {photo.votes}
+            </span>
+          )
+        )}
         {/* Las propias se borran siempre, sin ser moderador. Hasta acá la
             única forma de sacar una foto tuya era ir a "Mis aportes", que es
             justo donde nadie la está mirando cuando se da cuenta. */}
@@ -1001,6 +1063,14 @@ function PhotoViewer({
     </div>
   )
 }
+
+const ThumbIcon = ({ filled }: { filled: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor" strokeWidth={filled ? 0 : 1.8} strokeLinejoin="round">
+    <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm2 0 4.2-7.2a1 1 0 0 1 1.8.5V9h4.3a1.6 1.6 0 0 1 1.6 2l-1.7 8a1.6 1.6 0 0 1-1.6 1.3H9V10Z" />
+  </svg>
+)
 
 function ViewerArrow({
   side, disabled, onClick,

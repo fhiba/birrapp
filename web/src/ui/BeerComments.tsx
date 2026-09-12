@@ -127,6 +127,29 @@ export function BeerComments({
     } finally { setSavingStar(false) }
   }
 
+  /**
+   * Retirar el puntaje (BIR-11).
+   *
+   * Hasta acá la nota se podía corregir tocando otra estrella pero no sacar,
+   * así que quien votó una birra que el bar dejó de tener seguía contando en
+   * el promedio de algo que ya no se sirve.
+   *
+   * Sin diálogo de confirmación, a diferencia de borrar un comentario: ahí se
+   * pierde un texto que no vuelve, acá se vuelve tocando una estrella. Pedir
+   * confirmación para algo que se deshace con un toque es un paso de más.
+   */
+  async function retract() {
+    const antes = rating
+    setRating(null); setSavingStar(true); setError(null)
+    try {
+      await api.retractRating({ barId, styleSlug, brandSlug })
+      onWrote()
+    } catch (e) {
+      setError((e as Error).message)
+      setRating(antes)
+    } finally { setSavingStar(false) }
+  }
+
   const send = async () => {
     const text = body.trim()
     if (!text) return
@@ -155,6 +178,14 @@ export function BeerComments({
                 : 'Tu puntaje'}
             </span>
           </div>
+
+          {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene
+              qué retirar y sólo ocupa lugar. */}
+          {rating != null && (
+            <button onClick={retract} disabled={savingStar} style={{
+              marginTop: 8, fontSize: 12, color: 'var(--muted)',
+            }}>Retirar mi puntaje</button>
+          )}
 
           <textarea
             value={body} onChange={e => setBody(e.target.value)}

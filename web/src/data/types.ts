@@ -53,6 +53,15 @@ export interface Photo {
   authorName: string | null
   ageDays: number
   mine: boolean
+  /** Pulgares (BIR-10). */
+  votes: number
+  votedByMe: boolean
+  /**
+   * La más votada de este mes en este bar. La decide el servidor: el mes es
+   * el de Buenos Aires, y resolverlo acá la haría cambiar según dónde esté
+   * parado quien mira.
+   */
+  topOfMonth: boolean
 }
 
 export interface RatingComment {
