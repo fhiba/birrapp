@@ -9,6 +9,7 @@ import com.birrapp.core.ApiException
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.delete
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -195,6 +196,15 @@ fun Route.authRoutes(
             val caller = call.caller()
             val user = users.findById(caller.userId) ?: unauthorized("usuario inexistente")
             call.respond(user.toDto())
+        }
+
+        /**
+         * Cambiar lo propio: nombre, moneda, tamaño de vaso y radio por
+         * defecto. Se manda sólo lo que cambió — ver `UpdateMeRequest`.
+         */
+        patch("/me") {
+            val caller = call.caller()
+            call.respond(users.updateMe(caller.userId, call.receive<UpdateMeRequest>()).toDto())
         }
 
         get("/me/stats") {

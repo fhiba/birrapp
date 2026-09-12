@@ -58,7 +58,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
           </span>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 3 }}>
             <span className="num" style={{ fontSize: 22 }}>
-              {formatPrice(data.medianPint)}
+              {formatPrice(data.medianPint, data.currency)}
             </span>
             <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>
               la pinta, típico
@@ -77,8 +77,8 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
       {open && (
         <div style={{ padding: '0 15px 14px' }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <Cell label="Promedio" value={formatPrice(data.avgPint!)} />
-            <Cell label="La más barata" value={formatPrice(data.minPint!)} />
+            <Cell label="Promedio" value={formatPrice(data.avgPint!, data.currency)} />
+            <Cell label="La más barata" value={formatPrice(data.minPint!, data.currency)} />
             <Cell label="Bares" value={String(data.bars)} />
           </div>
 
@@ -87,7 +87,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
               title="El mejor de la zona"
               why={`${data.bestValue.ratingRaw?.toFixed(1)} ★ con ${data.bestValue.ratingCount} ${
                 data.bestValue.ratingCount === 1 ? 'voto' : 'votos'}, a ${
-                formatPrice(data.bestValue.price)}`}
+                formatPrice(data.bestValue.price, data.currency)}`}
               name={data.bestValue.barName}
               beer={beerLabel(data.bestValue.styleName, data.bestValue.brandName)}
               age={data.bestValue.ageDays}
@@ -98,7 +98,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
           {data.cheapest && (
             <Pick
               title="La más barata"
-              why={`${formatPrice(data.cheapest.price)} los ${data.cheapest.sizeMl} ml`}
+              why={`${formatPrice(data.cheapest.price, data.currency)} los ${data.cheapest.sizeMl} ml`}
               name={data.cheapest.barName}
               beer={beerLabel(data.cheapest.styleName, data.cheapest.brandName)}
               age={data.cheapest.ageDays}

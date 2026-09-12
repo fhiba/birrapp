@@ -78,7 +78,7 @@ export function PickBarSheet({
             {b.fromPrice != null && (
               <span style={{ textAlign: 'right' }}>
                 <span className="num" style={{ fontSize: 14 }}>
-                  {formatPrice(b.fromPrice)}
+                  {formatPrice(b.fromPrice, b.currency)}
                 </span>
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--faint)' }}>
                   {shortAge(b.freshestAgeDays)}

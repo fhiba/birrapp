@@ -347,8 +347,17 @@ export const confirmPrice = (barId: number, styleSlug: string, brandSlug: string
     body: { styleSlug, brandSlug }, auth: true,
   })
 
+export const updateMe = (b: {
+  displayName?: string; currency?: string
+  defaultSizeMl?: number; defaultRadiusM?: number
+}) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
+
 export const addBar = (b: {
   name: string; lat: number; lng: number; address?: string | null; googlePlaceId?: string | null
+  /** ISO-3166-1 alfa-2: el servidor deduce de acá la moneda del bar. */
+  countryCode?: string
+  /** Sólo para el alta a mano, donde no hay país que mirar. */
+  currency?: string
 }) => req<{ id: number }>('POST', '/bars', { body: b, auth: true })
 
 export const addReview = (b: { barId: number; rating: number; body?: string | null }) =>

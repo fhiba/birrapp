@@ -492,7 +492,7 @@ function Pins({
             onClick={() => { onOpen(b); reveal(b) }}
             zIndex={on ? 30 : withLabel ? 10 : 1}
             icon={withLabel
-              ? priceIcon(formatPrice(b.fromPrice!), colorOf(b), on)
+              ? priceIcon(formatPrice(b.fromPrice!, b.currency), colorOf(b), on)
               : dotIcon(colorOf(b), b.fromPrice != null ? 13 : 9, on)}
           />
         )

@@ -1,6 +1,7 @@
 package com.birrapp.prices
 
 import kotlinx.serialization.Serializable
+import com.birrapp.core.Currency
 import com.birrapp.core.Db
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
@@ -78,6 +79,14 @@ data class AreaStatsDto(
     val cheapest: AreaBeerDto?,
     /** Mejor relación nota/precio. Null si ninguna birra de la zona tiene votos. */
     val bestValue: AreaBeerDto?,
+    /**
+     * La moneda de TODOS los números de acá. Ver [PriceRepo.areaStats]: si en
+     * el radio conviven dos monedas, esto es la que más precios tiene y el
+     * resto queda afuera de la cuenta.
+     */
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
+    /** Cuántos precios del radio quedaron afuera por estar en otra moneda. */
+    val otherCurrencies: Int = 0,
 )
 
 /**
@@ -236,6 +245,32 @@ class PriceRepo(private val db: Db) {
         lat: Double, lng: Double, radiusMeters: Int,
         styleSlug: String? = null, brandSlug: String? = null,
     ): AreaStatsDto = db.conn { c ->
+        // Primero, en qué moneda está la zona.
+        //
+        // Promediar 8.000 pesos con 6 libras no da un precio, da un número sin
+        // significado. Y convertir no es opción: necesita cotizaciones en vivo,
+        // y una cotización vieja miente igual que un precio viejo.
+        //
+        // Así que se elige la moneda con más precios en el radio y el resto
+        // queda afuera, diciéndolo: `otherCurrencies` viaja para que la
+        // pantalla pueda avisar que hay precios que no está contando. Sólo
+        // pasa cerca de una frontera; en el 99% de los casos da una sola.
+        val monedas = c.query(
+            """
+            SELECT cp.currency, count(*)::int AS n
+            FROM v_current_prices cp
+            JOIN bars b ON b.id = cp.bar_id AND b.status = 'approved'
+            WHERE cp.freshness <> 'stale'
+              AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
+              AND (?::text IS NULL OR cp.style_slug = ?::text)
+              AND (?::text IS NULL OR cp.brand_slug = ?::text)
+            GROUP BY cp.currency ORDER BY n DESC, cp.currency
+            """.trimIndent(),
+            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug,
+        ) { rs -> rs.getString("currency") to rs.getInt("n") }
+
+        val currency = monedas.firstOrNull()?.first ?: Currency.DEFAULT
+        val otras = monedas.drop(1).sumOf { it.second }
         // Se arma una sola vez y se usa en las tres consultas: los tres números
         // tienen que salir del mismo conjunto de birras o no son comparables.
         val from = """
@@ -248,9 +283,10 @@ class PriceRepo(private val db: Db) {
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
               AND (?::text IS NULL OR cp.style_slug = ?::text)
               AND (?::text IS NULL OR cp.brand_slug = ?::text)
+              AND cp.currency = ?
         """.trimIndent()
         val args = arrayOf<Any?>(
-            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug,
+            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug, currency,
         )
 
         val head = c.queryOne(
@@ -275,6 +311,7 @@ class PriceRepo(private val db: Db) {
                 minPint = rs.getDouble("min_pint").takeUnless { rs.wasNull() },
                 maxPint = rs.getDouble("max_pint").takeUnless { rs.wasNull() },
                 cheapest = null, bestValue = null,
+                currency = currency, otherCurrencies = otras,
             )
         }!!
         if (head.samples == 0) return@conn head
@@ -323,10 +360,14 @@ class PriceRepo(private val db: Db) {
                     ?: notFound("marca desconocida: $slug")
             }
 
-            val barExists = c.queryOne(
-                "SELECT 1 AS x FROM bars WHERE id = ? AND status = 'approved'", req.barId,
-            ) { it.getInt("x") } != null
-            if (!barExists) notFound("no existe un bar aprobado con id ${req.barId}")
+            // La moneda sale del bar, no de quien reporta: es una propiedad
+            // del lugar. Si cada persona trajera la suya, el mismo bar
+            // terminaría con una lista mezclada donde "más barata" no
+            // significa nada.
+            val currency = c.queryOne(
+                "SELECT currency FROM bars WHERE id = ? AND status = 'approved'", req.barId,
+            ) { it.getString("currency") }
+                ?: notFound("no existe un bar aprobado con id ${req.barId}")
 
             // Rate limit por (usuario, bar, estilo). Sin esto una sola persona
             // puede mover el precio de un bar tantas veces como quiera.
@@ -346,18 +387,25 @@ class PriceRepo(private val db: Db) {
                 )
             }
 
-            // Detección de outliers contra la mediana vigente del estilo.
-            // Normalizada a precio por litro: comparar una pinta de 473 ml
-            // contra un schop de 330 ml daría falsos positivos constantes.
+            // Detección de outliers contra la mediana vigente del estilo, en
+            // la MISMA moneda. Normalizada a precio por litro: comparar una
+            // pinta de 473 ml contra un schop de 330 ml daría falsos
+            // positivos constantes.
+            //
+            // Lo de la moneda no es un detalle: sin ese filtro, la mediana
+            // mezcla 8.000 pesos con 6 libras, y el primer precio de Londres
+            // que alguien cargue se va solo a la cola de moderación por
+            // "atípico" — o peor, deja de detectar los atípicos de verdad.
             val median = c.queryOne(
                 """
                 SELECT percentile_cont(0.5) WITHIN GROUP (
                            ORDER BY (price / size_ml * 1000)
                        ) AS m,
                        count(*) AS n
-                FROM v_current_prices WHERE style_id = ? AND freshness <> 'stale'
+                FROM v_current_prices
+                WHERE style_id = ? AND freshness <> 'stale' AND currency = ?
                 """.trimIndent(),
-                styleId,
+                styleId, currency,
             ) { rs -> rs.getDouble("m").takeUnless { rs.wasNull() } to rs.getInt("n") }
 
             val perLitre = req.price / req.sizeMl * 1000
@@ -370,12 +418,12 @@ class PriceRepo(private val db: Db) {
             val id = c.queryOne(
                 """
                 INSERT INTO price_reports
-                    (bar_id, style_id, brand_id, price, size_ml, reported_by,
+                    (bar_id, style_id, brand_id, price, size_ml, currency, reported_by,
                      status, is_confirmation)
-                VALUES (?, ?, ?, ?, ?, ?, ?::content_status, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?::content_status, ?)
                 RETURNING id
                 """.trimIndent(),
-                req.barId, styleId, brandId, req.price, req.sizeMl, userId,
+                req.barId, styleId, brandId, req.price, req.sizeMl, currency, userId,
                 // Un outlier entra como 'removed': queda registrado pero no
                 // aparece en el mapa hasta que un moderador lo habilite.
                 if (isOutlier) "removed" else "active",

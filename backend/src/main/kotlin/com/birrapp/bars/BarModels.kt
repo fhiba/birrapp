@@ -55,6 +55,8 @@ data class BarPinDto(
     val fromPrice: Double?,
     val freshestAgeDays: Int?,
     val distanceMeters: Double?,
+    /** Moneda del bar (ISO-4217). Sin esto, `fromPrice` es un número sin unidad. */
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
     /**
      * Promedio real de las birras del bar, ponderado por votos. El que se
      * muestra. Null = nadie votó nada ahí todavía.
@@ -79,6 +81,8 @@ data class BarDetailDto(
     val status: String,
     val googlePlaceId: String? = null,
     val distanceMeters: Double?,
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
+    val countryCode: String? = null,
     val prices: List<StylePriceDto>,
     val avgRating: Double?,
     val reviewCount: Int,
@@ -96,6 +100,16 @@ data class NewBarRequest(
      * Es lo único de Places que se puede guardar de forma permanente.
      */
     val googlePlaceId: String? = null,
+    /**
+     * País del lugar, ISO-3166-1 alfa-2. Lo devuelve Google al elegirlo del
+     * buscador y es de dónde sale la moneda.
+     */
+    val countryCode: String? = null,
+    /**
+     * Moneda, si quien carga el bar la eligió a mano. Gana sobre la del país:
+     * hay bares que cobran en dólares en países que no los usan.
+     */
+    val currency: String? = null,
 )
 
 enum class BarSort {

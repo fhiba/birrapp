@@ -12,9 +12,11 @@ import { formatPrice } from '../data/format'
  * no sólo cuánto sale hoy, sino cuánto subió.
  */
 export function PriceHistory(
-  { barId, styleSlug, brandSlug, title, onClose }:
+  { barId, styleSlug, brandSlug, currency, title, onClose }:
   {
     barId: number
+    /** La del bar: todos los puntos de la serie están en la misma. */
+    currency: string
     styleSlug: string
     /** La serie es de esta birra, no del estilo: dos marcas son dos series. */
     brandSlug: string | null
@@ -88,8 +90,8 @@ export function PriceHistory(
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <Box label="Primero" value={formatPrice(first.price)} />
-              <Box label="Ahora" value={formatPrice(last.price)} />
+              <Box label="Primero" value={formatPrice(first.price, currency)} />
+              <Box label="Ahora" value={formatPrice(last.price, currency)} />
               {change !== null && (
                 <Box
                   label="Variación"

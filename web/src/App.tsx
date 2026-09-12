@@ -22,6 +22,7 @@ import { ModerationScreen } from './screens/Moderation'
 import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
 import { MyBeersScreen } from './screens/MyBeers'
+import { SettingsScreen } from './screens/Settings'
 import { useFavorites } from './data/useFavorites'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
@@ -66,7 +67,10 @@ function Shell() {
   const favorites = useFavorites(user)
 
   const [sort, setSort] = useState<Sort>('distance')
-  const [radius, setRadius] = useState(2000)
+  // El radio con el que abre la app sale de la configuración. `useState` sólo
+  // lee el valor inicial, así que hay un efecto abajo para cuando la sesión
+  // llega después del primer render — que es lo normal al abrir.
+  const [radius, setRadius] = useState(user?.defaultRadiusM ?? 2000)
   const [styleFilter, setStyleFilter] = useState<string | undefined>()
   const [simulated, setSimulated] = useState<google.maps.LatLngLiteral | null>(null)
   // La cámara vive acá y no en la pantalla del mapa: al ir a otra pestaña el
@@ -80,6 +84,14 @@ function Shell() {
   const [panTo, setPanTo] = useState<{ target: google.maps.LatLngLiteral; token: number } | null>(null)
 
   useEffect(() => api.onSessionChange(setUser), [])
+
+  // Al entrar (o al volver la sesión), el radio pasa a ser el configurado.
+  // Sólo al cambiar de usuario: si corriera con cada cambio de `user`, mover
+  // el slider y que se refresque la sesión te devolvería el radio de la
+  // configuración en la cara.
+  useEffect(() => {
+    if (user) setRadius(user.defaultRadiusM)
+  }, [user?.id])
 
   // Revalidar contra el backend: el rol pudo cambiar desde la última vez.
   //
@@ -220,6 +232,9 @@ function Shell() {
         } />
         <Route path="/perfil" element={
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
+        } />
+        <Route path="/config" element={
+          <SettingsScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
         <Route path="/info" element={<InfoScreen />} />
         <Route path="/mis-birras" element={<MyBeersScreen />} />

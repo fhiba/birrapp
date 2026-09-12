@@ -26,6 +26,8 @@ data class MyPriceDto(
     val brandName: String?,
     val price: Double,
     val sizeMl: Int,
+    /** La del reporte, que es la del bar. Sin esto el monto no tiene unidad. */
+    val currency: String = com.birrapp.core.Currency.DEFAULT,
     val ageDays: Int,
     /** Entró por "Sigue igual" y no por carga manual. */
     val isConfirmation: Boolean,
@@ -93,7 +95,7 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
             """
             SELECT pr.id, pr.bar_id, b.name AS bar_name, s.name_es AS style_name,
                    br.name AS brand_name,
-                   pr.price, pr.size_ml, pr.is_confirmation,
+                   pr.price, pr.size_ml, pr.currency, pr.is_confirmation,
                    EXTRACT(DAY FROM (now() - pr.created_at))::int AS age_days,
                    (cp.id = pr.id) AS is_current
             FROM price_reports pr
@@ -119,6 +121,7 @@ class ContributionRepo(private val db: Db, private val r2: R2) {
                 brandName = rs.getString("brand_name"),
                 price = rs.getBigDecimal("price").toDouble(),
                 sizeMl = rs.getInt("size_ml"),
+                currency = rs.getString("currency"),
                 ageDays = rs.getInt("age_days"),
                 isConfirmation = rs.getBoolean("is_confirmation"),
                 isCurrent = rs.getBoolean("is_current"),
