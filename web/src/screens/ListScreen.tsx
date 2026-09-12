@@ -5,6 +5,7 @@ import type { BarPin, BeerStyle } from '../data/types'
 import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '../data/format'
 import type { Sort } from '../data/useBars'
 import { StyleFilter } from '../ui/StyleFilter'
+import { AreaStatsCard } from '../ui/AreaStatsCard'
 
 interface Props {
   bars: BarPin[]; loading: boolean
@@ -17,6 +18,8 @@ interface Props {
   onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onClearSimulated: () => void
+  /** Ids favoritos, para el filtro. Vacío sin sesión. */
+  favorites: Set<number>
 }
 
 /**
@@ -79,8 +82,31 @@ export function ListScreen(p: Props) {
     return () => { alive = false; clearTimeout(t) }
   }, [searchingFor, isSearch, p.center])
 
-  const shown = isSearch ? (found ?? []) : p.bars
-  const busy = isSearch ? searching : p.loading
+  /*
+   * Filtro de favoritos (BIR-37 / BIR-5).
+   *
+   * Se piden al servidor en vez de filtrar `p.bars`: la lista sólo tiene lo
+   * que entra en el radio, y el favorito que se quiere ver casi siempre está
+   * en otro barrio —es de ahí que uno se acuerda—. Filtrando en memoria, un
+   * favorito lejos simplemente no aparecería y parecería que se perdió.
+   */
+  const [favOnly, setFavOnly] = useState(false)
+  const [favBars, setFavBars] = useState<BarPin[] | null>(null)
+  const [favBusy, setFavBusy] = useState(false)
+
+  useEffect(() => {
+    if (!favOnly) return
+    let alive = true
+    setFavBusy(true)
+    api.favorites(p.center?.lat, p.center?.lng)
+      .then(r => { if (alive) setFavBars(r) })
+      .catch(() => { if (alive) setFavBars([]) })
+      .finally(() => { if (alive) setFavBusy(false) })
+    return () => { alive = false }
+  }, [favOnly, p.center?.lat, p.center?.lng, p.favorites.size])
+
+  const shown = isSearch ? (found ?? []) : favOnly ? (favBars ?? []) : p.bars
+  const busy = isSearch ? searching : favOnly ? favBusy : p.loading
 
   /*
    * Swipe horizontal para cambiar de orden.
@@ -253,16 +279,42 @@ export function ListScreen(p: Props) {
                 color: p.sort === s ? 'var(--base)' : 'var(--muted)',
               }}>{SORT_LABEL[s]}</button>
             ))}
+            {/* Sin favoritos marcados no aparece: una píldora que siempre
+                devuelve una lista vacía sólo ocupa lugar. */}
+            {(p.favorites.size > 0 || favOnly) && (
+              <button onClick={() => setFavOnly(f => !f)} className="lbl pill"
+                aria-pressed={favOnly} style={{
+                  padding: '8px 13px', fontSize: 13, whiteSpace: 'nowrap',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: favOnly ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                  color: favOnly ? 'var(--base)' : 'var(--muted)',
+                }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+                </svg>
+                Favoritos
+              </button>
+            )}
             <span className="num" style={{
               marginLeft: 'auto', fontSize: 17, color: 'var(--faint)',
-            }}>{p.bars.length}</span>
+            }}>{shown.length}</span>
           </div>
         )}
       </div>
 
       {/* El radio no aplica buscando: la búsqueda es sobre toda la base, no
           sobre lo que entra en el círculo. */}
-      {!isSearch && <header style={{ padding: '12px 18px 0' }}>
+      {/* Las stats de la zona van con el radio, que es lo que definen. Con
+          el filtro de favoritos puesto no hay zona: la lista es de bares
+          sueltos de toda la ciudad. */}
+      {!isSearch && !favOnly && (
+        <AreaStatsCard
+          center={p.center} radius={p.radius}
+          styleFilter={p.styleFilter} styles={p.styles}
+        />
+      )}
+
+      {!isSearch && !favOnly && <header style={{ padding: '12px 18px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {p.simulated ? (
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
@@ -302,6 +354,7 @@ export function ListScreen(p: Props) {
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
           {isSearch
             ? `Ningún bar se llama así. Probá con menos letras.`
+            : favOnly ? 'Todavía no marcaste ningún bar como favorito.'
             : 'No hay bares cargados por acá todavía.'}
         </p>
       )}

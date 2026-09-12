@@ -1371,3 +1371,113 @@ de todo: **encenderla con un número más grande sin haber medido cuál de las d
 causas era es repetir el incidente más tarde.**
 
 81 tests de backend en verde (79 + 2 nuevos, los del estado apagado).
+
+---
+
+## 2026-09-12 — v0.7.0: el contador de birras y el "+" que pregunta qué
+
+Cinco tickets de una tanda, todos del mismo racimo: **BIR-34** (contador),
+**BIR-36** (el menú del "+"), **BIR-35** (proponer estilos), **BIR-37/BIR-5**
+(favoritos) y **BIR-33** (stats de la zona). Sólo backend + PWA: Android queda
+para una rama aparte y la API ya está lista para cuando vaya.
+
+### El "+" dejó de hacer una sola cosa
+
+Hasta ahora el botón del mapa iba derecho a "agregar un bar". Cargar un precio
+sólo se podía desde adentro de la ficha de un bar, y anotar una birra no
+existía. Ahora es un desplegable chico anclado al botón —no una pantalla: elegir
+qué vas a cargar es un paso de tránsito, y una vista entera lo convierte en un
+trámite— con tres renglones: anotar una birra, cargar un precio, agregar un bar.
+
+"Cargar un precio" pide el bar con los de al lado primero y un buscador para el
+resto, y entra a la ficha con `?precio=1`, que abre el teclado de precio solo.
+Quien eligió esa opción ya dijo a qué venía; dejarlo en la ficha sería
+pedírselo de nuevo.
+
+### El contador (BIR-34)
+
+Tabla `beer_logs`, y a diferencia de `price_reports` **no es append-only**:
+esto no es dato comunitario, no alimenta el mapa y no hay histórico que
+defender. Quien anota una birra de más la borra y listo.
+
+Todo es opcional menos la persona y la fecha. Anotar tiene que costar un tap,
+igual que "Sigue igual" — el bar viene preelegido si hay uno a menos de 250 m
+(el "¿la birra te la tomaste acá?" de BIR-36), la cantidad arranca en 1, y el
+estilo y la marca están plegados detrás de "¿cuál era?". Si anotar cuesta lo
+mismo que cargar un precio, nadie anota, y un contador que no se usa no cuenta
+nada.
+
+**La zona horaria no es un detalle.** El calendario y las rachas se agrupan por
+`drank_at AT TIME ZONE 'America/Argentina/Buenos_Aires'`, fijo en el servidor.
+Agrupando por el timestamp crudo, una birra de las 23:30 de un viernes aparece
+el sábado y las rachas se cortan solas; el bug sería invisible hasta las nueve
+de la noche. La zona no se negocia con el cliente: si la mandara el navegador,
+el mismo dato se vería distinto según dónde esté el teléfono. Hay un test que
+lo fija, y se verificó que falla si se cambia la zona a UTC.
+
+Las rachas salen en SQL por gaps and islands. La actual admite que el último
+día sea ayer: cortada a medianoche, abrir la app a la mañana mostraría cero
+todos los días.
+
+**Los emblemas se derivan, no se guardan.** Seis, calculados sobre cinco
+cuentas de la misma tabla. Una tabla de emblemas ganados haría falta si
+importara *cuándo* se ganó cada uno o si las reglas dependieran de algo que no
+está en los logs; hoy no es el caso, y sin tabla no hay nada que se pueda
+desincronizar. El umbral viaja al cliente (`target`) para que cambiarlo no
+obligue a publicar una versión de la PWA. **BIR-32 queda abierto**: esto es la
+mitad de emblemas, no el sistema de XP y niveles.
+
+### Estilos propuestos por usuarios (BIR-35)
+
+`beer_styles` recibe `status` y `created_by`, exactamente el patrón de
+`brands`. El vocabulario cerrado es lo que permite comparar IPA contra IPA,
+pero uno que no crece deja afuera a la birra que la persona tiene enfrente — y
+lo que hace entonces no es abandonar, es elegir el estilo más parecido. Eso
+ensucia el dato en silencio, que es peor que una lista con un estilo de más.
+
+Va adentro del selector de estilo y **no** en el menú del "+": nadie abre la
+app queriendo proponer un estilo en abstracto, se le ocurre cuando el suyo no
+está en la lista. Rechazar no borra la fila: `price_reports.style_id` es
+ON DELETE RESTRICT justamente para que un rechazo no se lleve puesto un precio.
+
+### Favoritos (BIR-37 + BIR-5, que eran el mismo ticket)
+
+`favorites (user_id, bar_id)` con clave compuesta: favoritear dos veces no es
+un favorito nuevo, y con la PK ahí el `ON CONFLICT DO NOTHING` hace el botón
+idempotente sin una línea de Kotlin. Corazón en la ficha del bar y filtro en la
+lista. El filtro **pide al servidor** en vez de filtrar lo que hay en memoria:
+la lista sólo tiene lo que entra en el radio, y el favorito que uno quiere ver
+casi siempre está en otro barrio. Filtrando en memoria, un favorito lejos
+simplemente no aparecería.
+
+### Stats de la zona (BIR-33)
+
+Tarjeta arriba de la lista, plegada, que respeta el radio y el filtro de estilo
+que ya estén puestos. Dos decisiones:
+
+- **Todo normalizado a una pinta de 473 ml.** Sin eso, un schop de 330 y una
+  pinta de 473 se promedian como si fueran lo mismo y el número baja cuando lo
+  que cambió fue el tamaño del vaso. La tarjeta lo dice: un promedio sin su
+  unidad es otra forma de mentir.
+- **"El mejor de la zona" es nota sobre precio**, con `rating_avg` (el del
+  shrinkage), no la nota más alta. Con el promedio crudo, una sola persona
+  votando 5 a la birra más barata se lleva el puesto sola. Sin votos en la
+  zona no hay "mejor": no se puede decir cuál es la mejor si nadie opinó.
+- Con menos de tres precios no se muestra nada. Un promedio de dos no es un
+  promedio, es un precio con pretensiones.
+
+### Verificación
+
+107 tests de backend en verde (81 + 26 nuevos). `tsc` y build de la PWA
+limpios. Los endpoints nuevos se probaron a mano contra un backend local con
+PostGIS sembrado: stats, anotar, resumen con calendario y rachas, proponer
+estilo, moderarlo, favoritear y desfavoritear.
+
+**Lo que no se verificó: las pantallas, tocándolas.** La extensión de Chrome no
+conectó, igual que en las últimas sesiones. Compila y buildea, y la lógica de
+fechas del calendario se chequeó aparte, pero nadie tocó el menú del "+" con un
+dedo todavía.
+
+**Anotado, no hecho:** el contador existe sólo en la PWA. La app de Android
+sigue con el "+" viejo que lleva directo a agregar un bar. Queda como ticket
+propio.

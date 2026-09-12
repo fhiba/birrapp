@@ -18,14 +18,19 @@ export function ProfileScreen({ user, onSession }: {
   const [error, setError] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<'out' | 'delete' | null>(null)
   const [pendingWork, setPendingWork] = useState(0)
+  /** Cuántas birras llevás anotadas. Es el número que trae de vuelta acá. */
+  const [beers, setBeers] = useState<number | null>(null)
 
   useEffect(() => {
     if (user) api.myStats().then(setStats).catch(() => {})
+    if (user) api.beerSummary().then(s => setBeers(s.total)).catch(() => {})
     // Sólo los números, no las listas: es un endpoint aparte para no bajarse
     // los bares pendientes y sus reportes enteros para dibujar un número.
     if (isModerator(user)) {
       api.moderationSummary()
-        .then(s => setPendingWork(s.pendingBars + s.openFlags + s.pendingBrands))
+        .then(s => setPendingWork(
+          s.pendingBars + s.openFlags + s.pendingBrands + s.pendingStyles,
+        ))
         .catch(() => {})
     }
   }, [user])
@@ -108,6 +113,9 @@ export function ProfileScreen({ user, onSession }: {
         {isModerator(user) && (
           <Row label="Moderación" badge={pendingWork} onClick={() => nav('/moderacion')} />
         )}
+        {/* Arriba del todo: es lo único de esta pantalla que se mira seguido.
+            Lo demás se toca una vez y no se vuelve. */}
+        <Row label="Mis birras" badge={beers ?? 0} onClick={() => nav('/mis-birras')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}

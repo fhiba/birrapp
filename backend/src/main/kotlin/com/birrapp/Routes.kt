@@ -12,6 +12,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import com.birrapp.auth.*
 import com.birrapp.bars.*
+import com.birrapp.beers.*
 import com.birrapp.core.CoverageBudget
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
@@ -61,6 +62,7 @@ private fun ApplicationCall.clientKey(): String = request.origin.remoteHost
 fun Route.apiRoutes(
     bars: BarRepo,
     prices: PriceRepo,
+    beers: BeerRepo,
     reviews: ReviewRepo,
     ratings: RatingRepo,
     photos: PhotoRepo,
@@ -77,6 +79,29 @@ fun Route.apiRoutes(
     get("/health") { call.respond(OkResponse()) }
 
     get("/styles") { call.respond(prices.styles()) }
+
+    /**
+     * Stats de precio de una zona (BIR-33). Público: es la misma información
+     * que ya se ve recorriendo el mapa, sólo que sumada.
+     *
+     * El radio usa los mismos techos que `/bars`: la consulta recorre las
+     * mismas filas y sin tope alguien pide el país entero.
+     */
+    get("/stats/prices") {
+        val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
+            ?: badRequest("falta lat")
+        val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
+            ?: badRequest("falta lng")
+        val radius = (call.request.queryParameters["radius"]?.toIntOrNull() ?: 2000)
+            .coerceIn(100, MAX_RADIUS_M)
+        call.respond(
+            prices.areaStats(
+                lat, lng, radius,
+                styleSlug = call.request.queryParameters["style"],
+                brandSlug = call.request.queryParameters["brand"],
+            ),
+        )
+    }
 
     get("/brands") { call.respond(prices.brands()) }
 
@@ -238,6 +263,68 @@ fun Route.apiRoutes(
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             val style = call.parameters["style"] ?: badRequest("falta el estilo")
             call.respond(prices.confirm(id, style, null, caller.userId))
+        }
+
+        /**
+         * Anotar una birra tomada (BIR-34).
+         *
+         * Todo el cuerpo es opcional: `POST /beers {}` suma una birra a
+         * ahora mismo. Es la versión de un tap, la misma idea que "Sigue
+         * igual" — si anotar exige elegir bar, marca y estilo, nadie anota.
+         */
+        post("/beers") {
+            val caller = call.caller()
+            val body = runCatching { call.receive<NewBeerLogRequest>() }
+                .getOrElse { NewBeerLogRequest() }
+            call.respond(HttpStatusCode.Created, beers.log(body, caller.userId))
+        }
+
+        /** Lo que dibuja "Mis birras": calendario del mes, totales y emblemas. */
+        get("/beers/summary") {
+            val caller = call.caller()
+            call.respond(
+                beers.summary(caller.userId, call.request.queryParameters["month"]),
+            )
+        }
+
+        /** Borrar una birra propia. Es dato personal: se borra de verdad. */
+        delete("/beers/{id}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            if (!beers.remove(id, caller.userId)) notFound("no existe esa birra tuya")
+            call.respond(OkResponse())
+        }
+
+        /** Los bares favoritos de quien mira (BIR-37 / BIR-5). */
+        get("/favorites") {
+            val caller = call.caller()
+            call.respond(
+                bars.favorites(
+                    caller.userId,
+                    call.request.queryParameters["lat"]?.toDoubleOrNull(),
+                    call.request.queryParameters["lng"]?.toDoubleOrNull(),
+                ),
+            )
+        }
+
+        post("/favorites/{id}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            bars.setFavorite(caller.userId, id, on = true)
+            call.respond(OkResponse())
+        }
+
+        delete("/favorites/{id}") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            bars.setFavorite(caller.userId, id, on = false)
+            call.respond(OkResponse())
+        }
+
+        /** Alta de estilo por un usuario (BIR-35). Pendiente de moderación. */
+        post("/styles") {
+            val caller = call.caller()
+            call.respond(prices.createStyle(call.receive<NewStyleRequest>(), caller.userId))
         }
 
         /** Alta de marca por un usuario. Queda pendiente de moderación. */
@@ -431,6 +518,30 @@ fun Route.apiRoutes(
                 call.requireRole(Role.moderator)
                 val slug = call.parameters["slug"] ?: badRequest("falta slug")
                 if (!prices.setBrandStatus(slug, "rejected")) notFound("no existe esa marca")
+                call.respond(OkResponse())
+            }
+
+            get("/styles/pending") {
+                call.requireRole(Role.moderator)
+                call.respond(prices.pendingStyles())
+            }
+
+            post("/styles/{slug}/approve") {
+                call.requireRole(Role.moderator)
+                val slug = call.parameters["slug"] ?: badRequest("falta el estilo")
+                if (!prices.setStyleStatus(slug, "approved")) notFound("no existe ese estilo")
+                call.respond(OkResponse())
+            }
+
+            /**
+             * Rechazar no borra: puede haber precios colgando del estilo, y
+             * `price_reports.style_id` es ON DELETE RESTRICT justamente para
+             * que un rechazo no se lleve puesto un precio cargado.
+             */
+            post("/styles/{slug}/reject") {
+                call.requireRole(Role.moderator)
+                val slug = call.parameters["slug"] ?: badRequest("falta el estilo")
+                if (!prices.setStyleStatus(slug, "rejected")) notFound("no existe ese estilo")
                 call.respond(OkResponse())
             }
 

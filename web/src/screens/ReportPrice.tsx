@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { BeerStyle, Brand } from '../data/types'
 import { groupThousands } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
+import { StyleChips } from '../ui/StyleChips'
 
 /**
  * Carga de precio: una pantalla, teclado propio.
@@ -20,7 +21,7 @@ import { BrandPicker } from '../ui/BrandPicker'
  */
 export function ReportPrice({
   styles, brands, preselected, preselectedBrand, barName,
-  onCancel, onSubmit, onBrandCreated,
+  onCancel, onSubmit, onBrandCreated, onStyleCreated,
 }: {
   styles: BeerStyle[]
   brands: Brand[]
@@ -32,6 +33,8 @@ export function ReportPrice({
     styleSlug: string, brandSlug: string | null, price: number, sizeMl: number,
   ) => void
   onBrandCreated: (b: Brand) => void
+  /** Un estilo propuesto acá todavía no está en la lista del servidor. */
+  onStyleCreated: (s: BeerStyle) => void
 }) {
   const [style, setStyle] = useState(preselected ?? styles[0]?.slug)
   const [brand, setBrand] = useState<string | null>(preselectedBrand ?? null)
@@ -74,17 +77,12 @@ export function ReportPrice({
         {barName && <span className="lbl" style={{ fontSize: 16 }}>{barName}</span>}
       </header>
 
-      <div style={{
-        display: 'flex', gap: 7, overflowX: 'auto', padding: '4px 14px', scrollbarWidth: 'none',
-      }}>
-        {styles.map(s => (
-          <button key={s.slug} onClick={() => setStyle(s.slug)} className="lbl pill" style={{
-            padding: '9px 15px', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
-            background: style === s.slug ? 'var(--cream)' : 'var(--elevated)',
-            color: style === s.slug ? 'var(--base)' : 'var(--muted)',
-          }}>{s.name}</button>
-        ))}
-      </div>
+      <StyleChips
+        styles={styles} value={style} onCreated={onStyleCreated}
+        // Sin `allowNone`, el chip de "sin estilo" no existe y el undefined
+        // no puede llegar: cargar un precio siempre es de una birra concreta.
+        onChange={s => s && setStyle(s)}
+      />
 
       {/* La marca, chica y a la izquierda, debajo de los estilos.
           Estaba como una barra de ancho completo y le comía la pantalla al
