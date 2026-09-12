@@ -8,6 +8,8 @@ export interface BarPin {
   fromPrice: number | null
   freshestAgeDays: number | null
   distanceMeters: number | null
+  /** Moneda del bar (ISO-4217). Sin esto `fromPrice` es un número sin unidad. */
+  currency: string
   /** Promedio real de las birras del bar, ponderado por votos. Null = sin votos. */
   rating: number | null
   ratingCount: number
@@ -81,6 +83,9 @@ export interface BarDetail {
   status: string
   googlePlaceId: string | null
   distanceMeters: number | null
+  /** Todos los precios de este bar están en esta moneda. */
+  currency: string
+  countryCode: string | null
   prices: StylePrice[]
   avgRating: number | null
   reviewCount: number
@@ -95,6 +100,10 @@ export interface Review {
 export interface User {
   id: number; email: string; displayName: string
   avatarUrl: string | null; role: string
+  /** Con qué moneda cargás precios. NO es en cuál los ves. */
+  currency: string
+  defaultSizeMl: number
+  defaultRadiusM: number
 }
 export interface UserStats {
   prices: number
@@ -111,7 +120,7 @@ export interface MyBar {
 export interface MyPrice {
   id: number; barId: number; barName: string; styleName: string
   brandName: string | null
-  price: number; sizeMl: number; ageDays: number
+  price: number; sizeMl: number; currency: string; ageDays: number
   isConfirmation: boolean
   /** Es el precio que la app muestra hoy para ese bar y estilo. */
   isCurrent: boolean
@@ -292,4 +301,8 @@ export interface AreaStats {
   cheapest: AreaBeer | null
   /** Mejor nota por peso. Null si nadie votó nada en la zona. */
   bestValue: AreaBeer | null
+  /** La moneda de todos los montos de acá. */
+  currency: string
+  /** Precios del radio que quedaron afuera por estar en otra moneda. */
+  otherCurrencies: number
 }

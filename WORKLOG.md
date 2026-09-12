@@ -1597,3 +1597,82 @@ opción de la zona"— ya está hecha: es el `bestValue` de la tarjeta de BIR-33
 
 Emblemas: Felipe pidió revisitarlos. Queda en BIR-39, con lo que no cierra de
 los seis actuales anotado ahí.
+---
+
+## 2026-09-12 (cont.) — v0.8.0: birrapp deja de ser sólo de Buenos Aires
+
+Pedido urgente: bares de cualquier parte del mundo, con su moneda.
+
+**El bloqueo era una línea.** El backend nunca restringió nada —`create`
+valida lat/lng contra el globo entero desde V1— pero el buscador de lugares
+llevaba `includedRegionCodes: ['ar']`, así que sólo ofrecía Argentina. Eso se
+fue.
+
+Lo que sí había que pensar era la moneda, porque hasta hoy toda la app asumía
+pesos: `formatPrice` tenía "ARS" escrito a mano, y la columna `currency` de
+`price_reports` existía desde V1 con default 'ARS' sin que nadie la leyera
+nunca.
+
+### La moneda vive en el bar
+
+Y no en cada precio ni en cada persona. Un bar de Londres cobra en libras: es
+una propiedad del lugar. Si cada reporte trajera la moneda de quien lo carga,
+el mismo bar terminaría con una lista mezclada donde "más barata" no significa
+nada.
+
+Sale, en orden de confianza: la que eligió quien carga el bar (hay bares que
+cobran en dólares en países que no los usan), la del país que devuelve Google
+al elegirlo del buscador, y por último la de la configuración de la persona.
+La tabla país → moneda vive en `core/Currency.kt` y es corta a propósito: los
+países donde puede aparecer alguien el año que viene, no los 195. El que falta
+cae en el default y se agrega cuando aparezca.
+
+### Nada se convierte
+
+Decisión explícita: **los precios se muestran siempre en la moneda del bar**.
+La configuración de cada persona define con qué moneda *carga*, no en cuál
+*ve*. Convertir necesita cotizaciones en vivo, y una cotización de hace una
+semana miente exactamente igual que un precio de hace tres meses — que es lo
+único que esta app existe para no hacer. Si algún día hace falta, el número
+convertido va a tener que llevar la fecha de la cotización al lado.
+
+### Dos lugares donde mezclar monedas rompía cosas de verdad
+
+**La detección de outliers.** Comparaba contra la mediana global del estilo.
+Sin filtrar por moneda, el primer precio de Londres —6 libras contra una
+mediana de 8.000 pesos— se iba solo a la cola de moderación por "atípico". Hay
+test, y otro que verifica que dentro de la misma moneda se sigue detectando.
+
+**Las stats de la zona.** Promediar 8.000 pesos con 6 libras no da un precio,
+da un número sin significado. Ahora la consulta elige la moneda con más
+precios del radio, filtra a esa, y devuelve `otherCurrencies` con cuántos dejó
+afuera para que la pantalla pueda decirlo. Sólo pasa cerca de una frontera.
+
+**Lo que queda anotado y no arreglado:** el orden "más barata" compara números
+crudos. En un radio de 20 km eso es correcto en cualquier lado menos pegado a
+una frontera, donde 6 libras se vería "más barato" que 5.000 pesos. Cuando
+moleste, la respuesta es la misma que en las stats: agrupar por moneda, no
+convertir.
+
+### Configuración de usuario
+
+Pantalla nueva en `/config`, con moneda, tamaño de vaso por defecto —una pinta
+son 473 ml acá y 568 en el Reino Unido, y el teclado arrancaba fijo en 473— y
+radio de búsqueda. Se lleva además el nombre, la foto y el borrado de cuenta,
+que estaban sueltos en el perfil: el perfil es lo que mostrás, la
+configuración lo que elegís.
+
+Cada control guarda al tocarlo, sin botón de "guardar" — son preferencias
+sueltas, no un formulario. La excepción es el nombre, que no sabe cuándo
+terminaste de escribir.
+
+El símbolo de la moneda sale de `Intl` y **no** se usa `narrowSymbol`: con
+símbolos angostos, pesos argentinos, dólares y pesos chilenos son los tres
+"$". Se muestra "GBP 5,80" en vez de "£5,80" a propósito — entre un símbolo
+lindo y saber de qué moneda se habla, gana lo segundo.
+
+122 tests de backend en verde (113 + 9).
+
+**Android queda atrás otra vez:** los campos nuevos viajan con default, así
+que la app vieja no se rompe, pero sigue mostrando todo con el "$" de pesos.
+Va al ticket de Android junto con el resto.
