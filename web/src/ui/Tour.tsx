@@ -95,10 +95,10 @@ const STEPS: Record<TourView, Step[]> = {
     },
     {
       anchor: 'list-sort',
-      title: 'Más cerca o más barata',
-      body: 'Ordenás por distancia o por precio. "Más barata" deja afuera los '
-        + 'precios de más de 45 días, así uno viejo y bajo no le gana a uno '
-        + 'fresco.',
+      title: 'Cerca, barata o bien puntuada',
+      body: 'Los tres órdenes de la lista. "Más barata" deja afuera los precios '
+        + 'de más de 45 días, así uno viejo y bajo no le gana a uno fresco; '
+        + '"mejor puntuada" manda al final los bares que nadie votó todavía.',
     },
   ],
   bar: [

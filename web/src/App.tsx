@@ -185,7 +185,7 @@ function Shell() {
         <Route path="/" element={
           <MapScreen
             bars={bars} styles={styles} loading={loading}
-            user={user} brands={brands}
+            user={user} brands={brands} favorites={favorites.ids}
             onBrandCreated={addBrand} onStyleCreated={addStyle}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
