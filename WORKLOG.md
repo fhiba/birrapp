@@ -1484,6 +1484,59 @@ propio.
 
 ---
 
+## 2026-09-12 (cont.) — el deploy a `dev` pasa a ser local
+
+Decisión de Felipe: en vez de desplegar cada rama a `dev` para probarla, se
+levanta entera en su máquina. El motivo es el de siempre en este proyecto —
+probar en un despliegue tiene un ciclo de minutos y, sobre todo, expone los
+errores a quien esté usando la app mientras tanto, que es exactamente cómo nos
+enteramos de que la 0.6.9 estaba rota.
+
+`scripts/dev.sh` levanta todo y `Ctrl-C` lo baja. Tres decisiones, todas
+obligadas por lo que ya había corriendo en la máquina:
+
+**El backend va en 8091 y no en 8090.** El 8090 lo tiene desde el 3 de
+septiembre el jar de `birrapp-deploy`, que es a lo que le apunta el Funnel de
+Tailscale y, por lo tanto, el APK de los que están probando. No se lo toca: si
+algo del entorno local sale mal, volver es apagarlo y nada más.
+
+**La base es `birrapp_dev`, no `birrapp`.** Copia de bares, estilos, marcas y
+precios reales —740 bares— **sin la tabla `users`** y con el `reported_by` de
+cada precio en NULL. Es la misma línea que ya fijaba este documento para el
+entorno de test: un precio es un dato sobre un bar, un usuario es un dato sobre
+una persona, y sólo uno de los dos se copia a un entorno con menos cuidado.
+`scripts/dev_seed.sh` la rearma cuando haga falta. Notas, fotos y comentarios
+no se copian porque todos cuelgan de un usuario.
+
+**El Funnel se da vuelta a 8091 mientras corre.** Es lo único que no se puede
+esquivar: el redirect de Google está registrado contra
+`debiansl.tail7fb17e.ts.net`, así que para que el login ande, el callback tiene
+que llegar al backend de la rama. La contra está dicha en el script y en
+AGENTS.md: **durante ese rato los teléfonos pegan contra código sin mergear**.
+Por eso el script restaura el Funnel al salir, y por eso no es para dejarlo
+prendido e irse. Con `DEV_FUNNEL=0` no se toca nada y no hay login.
+
+**Dos bugs del propio script, encontrados probándolo** (que es la parte que
+importa de haberlo probado):
+
+1. `npx vite` mete un `sh -c` en el medio, así que el pid que quedaba guardado
+   era el del wrapper. Al bajar todo, vite seguía vivo ocupando el 5173 y el
+   arranque siguiente moría contra `--strictPort`. Se llama al binario
+   directo. Lo mismo con el java de Gradle, que se busca por línea de comando
+   — con el path del worktree adelante, para no llevarse puesto el backend de
+   otro agente trabajando en otra rama.
+2. La restauración del Funnel se probó a mano en los dos sentidos y después
+   con un `SIGTERM` sobre el script entero. Un script que deja el Funnel
+   apuntando a un puerto muerto rompe la app de todos los que tienen el APK, y
+   eso no es algo para asumir que funciona.
+
+La rama `dev` queda como estaba —`feature` → `dev` → `master`—, sólo que ya no
+despliega nada. `docs/DEPLOY.md` conserva la sección del entorno desplegado:
+sigue haciendo falta para lo que en local no se puede probar de verdad
+(migraciones grandes, R2, el comportamiento detrás del proxy).
+
+---
+
 ## 2026-09-12 (cont.) — v0.7.1: lo que Felipe marcó de la 0.7.0, más BIR-30
 
 Tres devoluciones sobre la tanda anterior y un ticket nuevo.
