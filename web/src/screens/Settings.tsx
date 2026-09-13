@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { Person, User } from '../data/types'
@@ -35,8 +35,20 @@ export function SettingsScreen({ user, onSession }: {
   // desde donde se puede deshacer, y un bloqueo que no se puede levantar es
   // una decisión que quedó para siempre por un toque.
   const [blocked, setBlocked] = useState<Person[]>([])
+  /**
+   * El radio, mientras se arrastra.
+   *
+   * Hace falta estado local por dos razones: que el número de arriba se mueva
+   * con el dedo —si mostrara el guardado, se queda quieto hasta soltar y
+   * parece roto— y que guardar no dispare una consulta por cada pixel.
+   */
+  const [radius, setRadius] = useState(user?.defaultRadiusM ?? 2000)
   const loadBlocked = () => { api.blockedPeople().then(setBlocked).catch(() => {}) }
   useEffect(loadBlocked, [])
+
+  /** El temporizador que espera a que el slider se quede quieto. */
+  const guardarRadio = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(guardarRadio.current), [])
 
   if (!user) {
     nav('/perfil', { replace: true })
@@ -148,21 +160,31 @@ export function SettingsScreen({ user, onSession }: {
             <span className="lbl" style={{ fontSize: 14 }}>Radio de búsqueda</span>
             <span className="lbl" style={{
               marginLeft: 'auto', color: 'var(--amber)', fontSize: 14,
-            }}>{formatRadius(user.defaultRadiusM)}</span>
+            }}>{formatRadius(radius)}</span>
           </div>
-          {/* `onChange` dispararía una consulta por pixel arrastrado; se
-              guarda al soltar. */}
+          {/*
+            Se dibuja con cada cambio y se guarda medio segundo después de que
+            se dejó de mover.
+            
+            Antes guardaba en `onPointerUp`, que parecía suficiente y dejaba
+            afuera al teclado: con las flechas se movía el control y no se
+            guardaba nunca. Y el número de arriba mostraba el valor guardado,
+            así que se quedaba quieto mientras se arrastraba.
+          */}
           <input
             className="range" type="range" min={300} max={15000} step={100}
-            defaultValue={user.defaultRadiusM}
-            onPointerUp={e => guardar(
-              { defaultRadiusM: Number((e.target as HTMLInputElement).value) },
-              'Radio cambiado',
-            )}
-            onChange={() => {}}
+            value={radius}
+            onChange={e => {
+              const v = Number(e.target.value)
+              setRadius(v)
+              clearTimeout(guardarRadio.current)
+              guardarRadio.current = setTimeout(
+                () => guardar({ defaultRadiusM: v }, 'Radio cambiado'), 500,
+              )
+            }}
             style={{
               marginTop: 8,
-              ['--fill' as string]: `${((user.defaultRadiusM - 300) / (15000 - 300)) * 100}%`,
+              ['--fill' as string]: `${((radius - 300) / (15000 - 300)) * 100}%`,
             }}
           />
           <p style={{ color: 'var(--faint)', fontSize: 11.5, margin: '6px 0 0' }}>
