@@ -812,8 +812,12 @@ function PriceRow({
 
       <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
+          {/* El paso más grande de la escala, y es el único lugar donde se
+              usa. Estaba a la misma altura que el número de una baldosa de
+              estadística del perfil; esto es el dato que la app existe para
+              contestar y tiene que verse como tal. */}
           <div className="num" style={{
-            fontSize: 'var(--t-8)', letterSpacing: '-.02em',
+            fontSize: 'var(--t-9)', lineHeight: 1.05, letterSpacing: '-.03em',
             color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!, currency)}</div>
 

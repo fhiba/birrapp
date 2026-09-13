@@ -6,6 +6,7 @@ import { formatRadius } from '../data/format'
 import { AvatarPicker } from '../ui/AvatarPicker'
 import { Confirm, Toast } from '../ui/Chrome'
 import { CurrencySelect } from '../ui/CurrencySelect'
+import { SectionLabel } from '../ui/Kit'
 
 /**
  * Configuración de la cuenta.
@@ -276,8 +277,3 @@ function Field({ label, hint, children }: {
   )
 }
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '30px 0 12px',
-  }}>{String(children).toUpperCase()}</h2>
-)

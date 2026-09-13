@@ -119,7 +119,19 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 input, textarea { font: inherit; color: inherit; }
 a { color: var(--amber); }
 
-.num { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
+/* Cifras tabulares en todo lo que sea un número.
+ *
+ * Con cifras proporcionales el 1 es más angosto que el 8, así que una columna
+ * de precios queda desalineada y comparar dos filas obliga a leerlas en vez de
+ * mirarlas. En una lista cuyo trabajo es justamente comparar precios, eso es
+ * el trabajo de la pantalla saliendo mal. También evita que un contador baile
+ * al pasar de 9 a 10. */
+.num {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
 .ttl { font-family: var(--display); font-weight: 700; letter-spacing: -.03em; }
 .lbl { font-family: var(--display); font-weight: 500; }
 

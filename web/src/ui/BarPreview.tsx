@@ -134,13 +134,12 @@ export function BarPreview({
               )}
             </div>
 
+            {/* Era de 30px: por debajo del piso de 44 que la app ya dice
+                cumplir, y encima es el botón que se aprieta con el pulgar
+                mientras se camina. */}
             <button
-              onClick={onClose} aria-label="Cerrar"
-              style={{
-                flexShrink: 0, width: 30, height: 30, borderRadius: '50%',
-                display: 'grid', placeItems: 'center', color: 'var(--muted)',
-                background: 'var(--film-2)',
-              }}
+              onClick={onClose} aria-label="Cerrar" className="icon-btn"
+              style={{ color: 'var(--muted)', background: 'var(--film-2)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
                 <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
@@ -153,26 +152,29 @@ export function BarPreview({
         {/* La regla de la casa: el precio nunca va solo, la antigüedad va al
             lado. Un pin sin precio no tiene ninguno vigente —o los que hay
             son stale—, y eso también se dice. */}
-        <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 8,
-          margin: '12px 0 2px', minHeight: 30,
-        }}>
+        <div style={{ margin: '12px 0 2px', minHeight: 48 }}>
           {price != null ? (
             <>
-              <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>desde</span>
-              <span className="num" style={{ fontSize: 'var(--t-7)', color: 'var(--cream)' }}>
-                {formatPrice(price, bar.currency)}
-              </span>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--muted)',
-                whiteSpace: 'nowrap',
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>desde</span>
+                <span className="num" style={{
+                  fontSize: 'var(--t-8)', lineHeight: 1.05, color: 'var(--cream)',
+                }}>{formatPrice(price, bar.currency)}</span>
+              </div>
+
+              {/* La antigüedad, debajo del monto y no al costado — misma forma
+                  que en la ficha del bar. Al costado y alineada al otro
+                  extremo se leía como un dato aparte; es parte del precio. */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
+                marginTop: 'var(--s-1)', fontSize: 'var(--t-2)', color: ageColor(age),
               }}>
                 <span aria-hidden style={{
-                  width: 7, height: 7, borderRadius: '50%', background: ageColor(age),
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: ageColor(age), flexShrink: 0,
                 }} />
                 {shortAge(age)}
-              </span>
+              </div>
             </>
           ) : (
             <span style={{ fontSize: 'var(--t-3)', color: 'var(--muted)' }}>

@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
+import { SectionLabel } from '../ui/Kit'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -178,11 +179,6 @@ const Wrap = ({ children }: { children: React.ReactNode }) => (
   }}><div className="desk-narrow">{children}</div></div>
 )
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '26px 0 12px',
-  }}>{String(children).toUpperCase()}</h2>
-)
 
 const Stat = ({ label, value, onClick }: {
   label: string; value?: number; onClick: () => void

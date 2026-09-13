@@ -448,9 +448,22 @@ export function ListScreen(p: Props) {
                   )}
                 </span>
               </span>
+              {/* El precio, alineado a la derecha y en su propia columna.
+                  Antes iba a 17px contra un nombre de bar de 15: dos datos
+                  casi del mismo peso, y el que la pantalla viene a contestar
+                  perdiendo contra el que sólo sirve para ubicarlo. Ahora es lo
+                  más grande de la fila.
+                  El ancho mínimo es lo que arma la columna: sin él cada precio
+                  empieza donde termina su nombre, y comparar dos filas obliga
+                  a buscar el número en cada una. */}
               {b.fromPrice != null
-                ? <span className="num" style={{ fontSize: 'var(--t-5)' }}>{formatPrice(b.fromPrice, b.currency)}</span>
-                : <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>Sin precio</span>}
+                ? <span className="num" style={{
+                    fontSize: 'var(--t-6)', flexShrink: 0, textAlign: 'right', minWidth: 72,
+                  }}>{formatPrice(b.fromPrice, b.currency)}</span>
+                : <span style={{
+                    fontSize: 'var(--t-2)', color: 'var(--faint)', flexShrink: 0,
+                    textAlign: 'right', minWidth: 72,
+                  }}>Sin precio</span>}
             </button>
           </li>
         ))}

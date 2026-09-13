@@ -5,6 +5,7 @@ import { useMapsLibrary } from '@vis.gl/react-google-maps'
 import * as api from '../data/api'
 import type { BarPin, User } from '../data/types'
 import { formatDistance } from '../data/format'
+import { SectionLabel } from '../ui/Kit'
 
 interface Suggestion { placeId: string; primary: string; secondary: string }
 
@@ -309,10 +310,3 @@ export function AddBarScreen(
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="lbl" style={{
-      fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '18px 0 6px',
-    }}>{String(children).toUpperCase()}</h2>
-  )
-}

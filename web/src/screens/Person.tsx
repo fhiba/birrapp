@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm, Toast } from '../ui/Chrome'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
+import { SectionLabel } from '../ui/Kit'
 
 /**
  * El perfil de otra persona (BIR-6).
@@ -219,8 +220,3 @@ const Stat = ({ label, value }: { label: string; value: number }) => (
   </div>
 )
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '28px 0 10px',
-  }}>{String(children).toUpperCase()}</h2>
-)

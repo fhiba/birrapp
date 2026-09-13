@@ -4,6 +4,7 @@ import * as api from '../data/api'
 import type { Badge, BeerSummary } from '../data/types'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
+import { Screen, SectionLabel, Tile } from '../ui/Kit'
 
 /**
  * El calendario de birras (BIR-34).
@@ -36,24 +37,22 @@ export function MyBeersScreen() {
   }
 
   if (error) return (
-    <Wrap onBack={() => nav(-1)}>
+    <Screen onBack={() => nav(-1)}>
       <Empty
         title="No pudimos traer tus birras"
         hint={error}
         action="Reintentar"
         onAction={load}
       />
-    </Wrap>
+    </Screen>
   )
   if (!data) return <PintLoader message="Contando…" />
 
   const byDay = new Map(data.days.map(d => [d.day, d.qty]))
-  const top = Math.max(1, ...data.days.map(d => d.qty))
   const delDia = day ? data.logs.filter(l => l.day === day) : []
 
   return (
-    <Wrap onBack={() => nav(-1)}>
-      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '0 0 18px' }}>Mis birras</h1>
+    <Screen title="Mis birras" onBack={() => nav(-1)}>
 
       {/* Sin una sola birra anotada, el calendario vacío y seis emblemas en
           cero no dicen nada: lo que hace falta es contar para qué sirve esto
@@ -68,10 +67,10 @@ export function MyBeersScreen() {
       )}
 
       <div style={{ display: 'flex', gap: 12 }}>
-        <Big value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
-        <Big value={data.currentStreak} label="días seguidos"
+        <Tile value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
+        <Tile value={data.currentStreak} label="días seguidos"
           hint={data.bestStreak > data.currentStreak ? `tu récord: ${data.bestStreak}` : undefined} />
-        <Big value={data.distinctBars} label={data.distinctBars === 1 ? 'bar' : 'bares'} />
+        <Tile value={data.distinctBars} label={data.distinctBars === 1 ? 'bar' : 'bares'} />
       </div>
 
       <div style={{
@@ -91,7 +90,7 @@ export function MyBeersScreen() {
       </div>
 
       <Calendar
-        month={data.month} byDay={byDay} top={top}
+        month={data.month} byDay={byDay}
         selected={day} onSelect={d => setDay(d === day ? null : d)}
       />
 
@@ -149,9 +148,28 @@ export function MyBeersScreen() {
         {data.badges.map(b => <BadgeCard key={b.id} badge={b} />)}
       </div>
 
-      <div style={{ height: 30 }} />
-    </Wrap>
+    </Screen>
   )
+}
+
+/**
+ * Cuánto calor tiene un día (BIR-42).
+ *
+ * Los cortes son por cantidad absoluta y no por proporción del mejor día del
+ * mes, que es como estaba antes. Con la proporción, un mes de dos birras
+ * pintaba su mejor día tan fuerte como un mes de quince: el color decía "lo
+ * más que tomaste en este mes" en vez de "cuánto tomaste", así que comparar
+ * dos meses era imposible y el mapa de calor no mapeaba nada.
+ *
+ * Cinco niveles y no una rampa continua porque el ojo distingue escalones y
+ * no distingue un 62% de opacidad de un 68%.
+ */
+function heatLevel(qty: number): 0 | 1 | 2 | 3 | 4 {
+  if (qty <= 0) return 0
+  if (qty === 1) return 1
+  if (qty === 2) return 2
+  if (qty <= 4) return 3
+  return 4
 }
 
 /**
@@ -160,10 +178,9 @@ export function MyBeersScreen() {
  * Se dibujan todos los días, también los vacíos: un calendario con huecos
  * donde no tomaste nada se lee de un vistazo, y es la mitad de la gracia.
  */
-function Calendar({ month, byDay, top, selected, onSelect }: {
+function Calendar({ month, byDay, selected, onSelect }: {
   month: string
   byDay: Map<string, number>
-  top: number
   selected: string | null
   onSelect: (day: string) => void
 }) {
@@ -190,21 +207,15 @@ function Calendar({ month, byDay, top, selected, onSelect }: {
         {Array.from({ length: days }, (_, i) => {
           const iso = `${month}-${String(i + 1).padStart(2, '0')}`
           const qty = byDay.get(iso) ?? 0
-          // La intensidad es relativa al mejor día del mes: en absoluto, un
-          // mes tranquilo se ve todo apagado y no se distingue nada.
-          const strength = qty === 0 ? 0 : 0.25 + 0.6 * (qty / top)
           return (
             <button
               key={iso} onClick={() => onSelect(iso)}
-              aria-label={`${i + 1}: ${qty === 0 ? 'sin birras' : `${qty} birras`}`}
-              className="num"
+              aria-label={`${i + 1}: ${qty === 0 ? 'sin birras'
+                : qty === 1 ? '1 birra' : `${qty} birras`}`}
+              className={`num heat-${heatLevel(qty)}`}
               style={{
                 aspectRatio: '1', borderRadius: 'var(--r-1)', fontSize: 'var(--t-2)',
                 display: 'grid', placeItems: 'center',
-                background: qty > 0
-                  ? `rgba(255,182,39,${strength})`
-                  : 'var(--film-1)',
-                color: qty > 0 ? 'var(--base)' : 'var(--faint)',
                 outline: selected === iso ? '2px solid var(--cream)'
                   : iso === hoy ? '1px solid var(--muted)' : 'none',
                 outlineOffset: -1,
@@ -212,6 +223,25 @@ function Calendar({ month, byDay, top, selected, onSelect }: {
             >{i + 1}</button>
           )
         })}
+      </div>
+
+      {/* La referencia. Un mapa de calor sin ella es decoración: el tono dice
+          algo y no hay forma de saber qué. Va chica y a la derecha porque se
+          consulta una vez y después no se vuelve a mirar.
+          `aria-hidden`: cada día ya se anuncia con su cantidad en el
+          `aria-label`, así que para un lector de pantalla esto es ruido. */}
+      <div aria-hidden style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
+        justifyContent: 'flex-end', marginTop: 'var(--s-2)',
+        fontSize: 'var(--t-1)', color: 'var(--faint)',
+      }}>
+        <span style={{ marginRight: 2 }}>menos</span>
+        {([0, 1, 2, 3, 4] as const).map(n => (
+          <span key={n} className={`heat-${n}`} style={{
+            width: 11, height: 11, borderRadius: 3,
+          }} />
+        ))}
+        <span style={{ marginLeft: 2 }}>más</span>
       </div>
     </>
   )
@@ -284,48 +314,18 @@ const dayLabel = (iso: string) => {
 
 // ---------- piezas ----------
 
-function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, overflowY: 'auto',
-      padding: `calc(var(--safe-top) + 12px) 18px calc(24px + var(--nav-gap))`,
-    }}>
-      <button onClick={onBack} className="icon-btn"
-        style={{ background: 'var(--elevated)', marginBottom: 12 }}
-        aria-label="Volver">←</button>
-      {children}
-    </div>
-  )
-}
 
-function Big({ value, label, hint }: { value: number; label: string; hint?: string }) {
-  return (
-    <div style={{
-      flex: 1, padding: '12px 12px', borderRadius: 'var(--r-3)', background: 'var(--raised)',
-    }}>
-      <div className="num" style={{ fontSize: 'var(--t-7)', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 5 }}>{label}</div>
-      {hint && (
-        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>{hint}</div>
-      )}
-    </div>
-  )
-}
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '26px 0 8px',
-  }}>{String(children).toUpperCase()}</h2>
-)
 
 function Arrow({ dir, label, onClick, disabled }: {
   dir: string; label: string; onClick: () => void; disabled?: boolean
 }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} style={{
-      width: 34, height: 34, borderRadius: '50%', background: 'var(--elevated)',
-      color: disabled ? 'var(--faint)' : 'var(--cream)',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-    }}>{dir}</button>
+    <button onClick={onClick} disabled={disabled} aria-label={label} className="icon-btn"
+      style={{
+        background: 'var(--elevated)',
+        color: disabled ? 'var(--faint)' : 'var(--cream)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}>{dir}</button>
   )
 }
