@@ -184,6 +184,16 @@ export function AddBarScreen(
           <>
             <input
               value={query} onChange={e => { setQuery(e.target.value); setManual(false) }}
+              // Enter abre el alta a mano con lo escrito. Sin esto, quien
+              // escribe un bar que Google no conoce teclea el nombre, aprieta
+              // Enter, no pasa nada y el botón de enviar sigue apagado: hay
+              // que darse cuenta de que el camino es el botón "Agregar" de más
+              // abajo. Lo tecleado no se pierde, pero parece que sí.
+              onKeyDown={e => {
+                if (e.key === 'Enter' && query.trim().length >= 2 && !chosen) {
+                  setManual(true)
+                }
+              }}
               placeholder="¿Cómo se llama?" autoFocus
               style={{
                 width: '100%', padding: '14px 15px', borderRadius: 13,

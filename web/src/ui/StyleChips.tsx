@@ -89,6 +89,10 @@ export function StyleChips({
         <div style={{ padding: '10px 14px 0', display: 'flex', gap: 8 }}>
           <input
             value={name} onChange={e => setName(e.target.value)}
+            // Enter da de alta, igual que en las marcas: escribir un nombre y
+            // que la tecla de confirmar no haga nada es la forma más fácil de
+            // perder lo tecleado.
+            onKeyDown={e => { if (e.key === 'Enter' && canCreate && !busy) create() }}
             placeholder="Kellerbier, Gose, Sour…" maxLength={40} autoFocus
             autoComplete="off" autoCorrect="off" spellCheck={false}
             style={{

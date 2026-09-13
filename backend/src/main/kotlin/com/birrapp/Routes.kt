@@ -202,8 +202,18 @@ fun Route.apiRoutes(
             val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
             val style = call.parameters["style"] ?: badRequest("falta style")
             val brand = call.request.queryParameters["brand"]
+            // Tope de 100 por página: es lo que había antes como tope total, y
+            // deja al cliente pedir de a poco sin poder pedir la tabla entera.
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 100)
+                .coerceIn(1, 100)
+            val offset = (call.request.queryParameters["offset"]?.toIntOrNull() ?: 0)
+                .coerceAtLeast(0)
             call.respond(
-                ratings.comments(id, style, brand, viewerId = call.callerOrNull()?.userId),
+                ratings.comments(
+                    id, style, brand,
+                    viewerId = call.callerOrNull()?.userId,
+                    limit = limit, offset = offset,
+                ),
             )
         }
 

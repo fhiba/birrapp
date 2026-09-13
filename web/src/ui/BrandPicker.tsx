@@ -158,6 +158,11 @@ export function BrandList({
         <input
           ref={input}
           value={q} onChange={e => setQ(e.target.value)}
+          // Enter da de alta lo escrito. Es la tecla que sigue naturalmente a
+          // escribir un nombre que no está en la lista, y sin esto no hacía
+          // nada: había que ver el botón de arriba y tocarlo, o lo tecleado se
+          // perdía al salir del paso.
+          onKeyDown={e => { if (e.key === 'Enter' && canCreate && !busy) create() }}
           placeholder="Buscar o escribir una marca" maxLength={60}
           autoComplete="off" autoCorrect="off" spellCheck={false}
           style={{
