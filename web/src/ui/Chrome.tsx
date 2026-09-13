@@ -30,12 +30,12 @@ export function BottomNav() {
       // que sin esto las otras dos se anunciaban como enlaces sin nombre.
       aria-label={label}
       style={({ isActive }) => ({
-        display: 'flex', alignItems: 'center', gap: 7,
+        display: 'flex', alignItems: 'center', gap: 8,
         padding: isActive ? '11px 16px' : '11px 17px',
         borderRadius: 999, textDecoration: 'none',
         background: isActive ? 'var(--amber)' : 'transparent',
         color: isActive ? 'var(--base)' : 'var(--muted)',
-        fontFamily: 'var(--display)', fontWeight: 500, fontSize: 13,
+        fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-3)',
         transition: 'background .15s',
       })}
     >
@@ -58,9 +58,9 @@ export function BottomNav() {
       <nav className="bottom-nav" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)',
         bottom: 'var(--nav-gap)', zIndex: 50,
-        display: 'flex', gap: 2, padding: 5, borderRadius: 999,
+        display: 'flex', gap: 2, padding: 4, borderRadius: 999,
         background: 'rgba(38,30,24,.94)',
-        border: '.8px solid rgba(255,255,255,.16)',
+        border: '.8px solid var(--film-3)',
         backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
       }}>
         {tab('/', 'Mapa', 'map')}
@@ -83,7 +83,7 @@ export function Sheet(
   return (
     <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
       <div style={{ padding: `18px 20px calc(20px + var(--nav-gap))` }}>
-        {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 20 }}>{title}</h2>}
+        {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 'var(--t-6)' }}>{title}</h2>}
         {children}
       </div>
     </Modal>
@@ -143,17 +143,17 @@ export function Confirm({
 
   return (
     <Modal label={title} onClose={onCancel}>
-      <div style={{ padding: 22 }}>
-        <h3 className="ttl" style={{ margin: '0 0 10px', fontSize: 19 }}>{title}</h3>
-        <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55 }}>{body}</div>
+      <div style={{ padding: 24 }}>
+        <h3 className="ttl" style={{ margin: '0 0 10px', fontSize: 'var(--t-5)' }}>{title}</h3>
+        <div style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', lineHeight: 1.55 }}>{body}</div>
 
         {requireWord && (
           <>
-            <p style={{ color: 'var(--faint)', fontSize: 12, margin: '16px 0 6px' }}>
+            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '16px 0 6px' }}>
               Escribí {requireWord} para confirmar
             </p>
             <input value={typed} onChange={e => setTyped(e.target.value)} style={{
-              width: '100%', padding: '11px 13px', borderRadius: 11,
+              width: '100%', padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
             }} />
           </>
@@ -203,8 +203,8 @@ export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
       role="status" aria-live="polite"
       style={{
         position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
-        zIndex: 70, background: 'var(--elevated)', borderRadius: 14, padding: '13px 16px',
-        fontSize: 13.5, boxShadow: '0 8px 30px rgba(0,0,0,.45)',
+        zIndex: 70, background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: '12px 16px',
+        fontSize: 'var(--t-3)', boxShadow: '0 8px 30px rgba(0,0,0,.45)',
         animation: 'toast-in .18s ease-out',
       }}
     >{text}</div>

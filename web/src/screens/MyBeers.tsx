@@ -53,7 +53,7 @@ export function MyBeersScreen() {
 
   return (
     <Wrap onBack={() => nav(-1)}>
-      <h1 className="ttl" style={{ fontSize: 28, margin: '0 0 18px' }}>Mis birras</h1>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '0 0 18px' }}>Mis birras</h1>
 
       {/* Sin una sola birra anotada, el calendario vacío y seis emblemas en
           cero no dicen nada: lo que hace falta es contar para qué sirve esto
@@ -67,7 +67,7 @@ export function MyBeersScreen() {
         />
       )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 12 }}>
         <Big value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
         <Big value={data.currentStreak} label="días seguidos"
           hint={data.bestStreak > data.currentStreak ? `tu récord: ${data.bestStreak}` : undefined} />
@@ -78,7 +78,7 @@ export function MyBeersScreen() {
         display: 'flex', alignItems: 'center', gap: 8, margin: '26px 0 10px',
       }}>
         <Arrow dir="‹" label="Mes anterior" onClick={() => setMonth(shift(data.month, -1))} />
-        <span className="lbl" style={{ flex: 1, textAlign: 'center', fontSize: 14 }}>
+        <span className="lbl" style={{ flex: 1, textAlign: 'center', fontSize: 'var(--t-4)' }}>
           {monthLabel(data.month)}
           <span style={{ color: 'var(--faint)' }}>
             {' · '}{data.monthTotal}
@@ -99,27 +99,27 @@ export function MyBeersScreen() {
         <div style={{ marginTop: 16 }}>
           <SectionLabel>{dayLabel(day)}</SectionLabel>
           {delDia.length === 0 && (
-            <p style={{ color: 'var(--faint)', fontSize: 13 }}>Ese día no anotaste nada.</p>
+            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>Ese día no anotaste nada.</p>
           )}
           {delDia.map(l => (
             <div key={l.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '11px 2px',
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px',
               borderBottom: '1px solid var(--hairline)',
             }}>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span className="lbl" style={{ fontSize: 14 }}>
+                <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>
                   {l.qty > 1 ? `${l.qty} · ` : ''}
                   {[l.styleName, l.brandName].filter(Boolean).join(' · ') || 'Una birra'}
                 </span>
                 {l.barName && (
-                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--faint)' }}>
+                  <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                     en {l.barName}
                   </span>
                 )}
               </span>
               <button onClick={() => remove(l.id)} aria-label="Borrar esta birra"
                 className="icon-btn"
-                style={{ color: 'var(--muted)', background: 'rgba(255,255,255,.06)', fontSize: 13 }}
+                style={{ color: 'var(--muted)', background: 'var(--film-2)', fontSize: 'var(--t-3)' }}
               >✕</button>
             </div>
           ))}
@@ -131,12 +131,12 @@ export function MyBeersScreen() {
           <SectionLabel>Tus bares</SectionLabel>
           {data.topBars.map(b => (
             <button key={b.barId} onClick={() => nav(`/bar/${b.barId}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-              padding: '11px 2px', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              padding: '12px 2px', textAlign: 'left',
               borderBottom: '1px solid var(--hairline)',
             }}>
-              <span className="lbl" style={{ flex: 1, fontSize: 14 }}>{b.barName}</span>
-              <span className="num" style={{ fontSize: 15, color: 'var(--amber)' }}>{b.qty}</span>
+              <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{b.barName}</span>
+              <span className="num" style={{ fontSize: 'var(--t-4)', color: 'var(--amber)' }}>{b.qty}</span>
             </button>
           ))}
         </>
@@ -144,7 +144,7 @@ export function MyBeersScreen() {
 
       <SectionLabel>Emblemas</SectionLabel>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 10,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 12,
       }}>
         {data.badges.map(b => <BadgeCard key={b.id} badge={b} />)}
       </div>
@@ -176,16 +176,16 @@ function Calendar({ month, byDay, top, selected, onSelect }: {
   return (
     <>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, marginBottom: 5,
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 5,
       }}>
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
           <span key={i} className="lbl" style={{
-            textAlign: 'center', fontSize: 10, color: 'var(--faint)',
+            textAlign: 'center', fontSize: 'var(--t-1)', color: 'var(--faint)',
           }}>{d}</span>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
         {Array.from({ length: offset }, (_, i) => <span key={`x${i}`} />)}
         {Array.from({ length: days }, (_, i) => {
           const iso = `${month}-${String(i + 1).padStart(2, '0')}`
@@ -199,11 +199,11 @@ function Calendar({ month, byDay, top, selected, onSelect }: {
               aria-label={`${i + 1}: ${qty === 0 ? 'sin birras' : `${qty} birras`}`}
               className="num"
               style={{
-                aspectRatio: '1', borderRadius: 9, fontSize: 12.5,
+                aspectRatio: '1', borderRadius: 'var(--r-1)', fontSize: 'var(--t-2)',
                 display: 'grid', placeItems: 'center',
                 background: qty > 0
                   ? `rgba(255,182,39,${strength})`
-                  : 'rgba(255,255,255,.045)',
+                  : 'var(--film-1)',
                 color: qty > 0 ? 'var(--base)' : 'var(--faint)',
                 outline: selected === iso ? '2px solid var(--cream)'
                   : iso === hoy ? '1px solid var(--muted)' : 'none',
@@ -221,14 +221,14 @@ function BadgeCard({ badge }: { badge: Badge }) {
   const earned = badge.progress >= badge.target
   return (
     <div style={{
-      padding: '12px 13px', borderRadius: 14,
-      background: earned ? 'var(--amber-soft)' : 'rgba(255,255,255,.045)',
+      padding: '12px 12px', borderRadius: 'var(--r-3)',
+      background: earned ? 'var(--amber-soft)' : 'var(--film-1)',
       border: `1px solid ${earned ? 'rgba(255,182,39,.35)' : 'transparent'}`,
     }}>
       <div className="lbl" style={{
-        fontSize: 13.5, color: earned ? 'var(--amber)' : 'var(--muted)',
+        fontSize: 'var(--t-3)', color: earned ? 'var(--amber)' : 'var(--muted)',
       }}>{badge.name}</div>
-      <div style={{ fontSize: 11.5, color: 'var(--faint)', marginTop: 3, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 3, lineHeight: 1.4 }}>
         {badge.detail}
       </div>
       {/* Los que faltan muestran cuánto falta. Un emblema apagado sin número
@@ -236,14 +236,14 @@ function BadgeCard({ badge }: { badge: Badge }) {
       {!earned && (
         <div style={{ marginTop: 8 }}>
           <div style={{
-            height: 4, borderRadius: 2, background: 'rgba(255,255,255,.08)', overflow: 'hidden',
+            height: 4, borderRadius: 2, background: 'var(--film-2)', overflow: 'hidden',
           }}>
             <div style={{
               width: `${(badge.progress / badge.target) * 100}%`, height: '100%',
               background: 'var(--amber-deep)',
             }} />
           </div>
-          <div className="num" style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 4 }}>
+          <div className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4 }}>
             {badge.progress} / {badge.target}
           </div>
         </div>
@@ -301,12 +301,12 @@ function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => v
 function Big({ value, label, hint }: { value: number; label: string; hint?: string }) {
   return (
     <div style={{
-      flex: 1, padding: '13px 12px', borderRadius: 15, background: 'var(--raised)',
+      flex: 1, padding: '12px 12px', borderRadius: 'var(--r-3)', background: 'var(--raised)',
     }}>
-      <div className="num" style={{ fontSize: 26, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 5 }}>{label}</div>
+      <div className="num" style={{ fontSize: 'var(--t-7)', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 5 }}>{label}</div>
       {hint && (
-        <div style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 2 }}>{hint}</div>
+        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>{hint}</div>
       )}
     </div>
   )
@@ -314,7 +314,7 @@ function Big({ value, label, hint }: { value: number; label: string; hint?: stri
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <h2 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '26px 0 8px',
+    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '26px 0 8px',
   }}>{String(children).toUpperCase()}</h2>
 )
 

@@ -71,9 +71,9 @@ export function StyleChips({
     <>
       <div style={grid ? {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-        gap: 8, padding: '4px 14px',
+        gap: 8, padding: '4px 16px',
       } : {
-        display: 'flex', gap: 7, overflowX: 'auto', padding: '4px 14px', scrollbarWidth: 'none',
+        display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 16px', scrollbarWidth: 'none',
       }}>
         {allowNone && chip('Sin estilo', value === undefined, () => onChange(undefined))}
         {styles.map(s => chip(s.name, value === s.slug, () => onChange(s.slug)))}
@@ -96,13 +96,13 @@ export function StyleChips({
             placeholder="Kellerbier, Gose, Sour…" maxLength={40} autoFocus
             autoComplete="off" autoCorrect="off" spellCheck={false}
             style={{
-              flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 11,
+              flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'var(--elevated)', border: '1px solid var(--hairline)',
-              fontSize: 16,
+              fontSize: 'var(--t-4)',
             }}
           />
           <button disabled={!canCreate || busy} onClick={create} className="lbl" style={{
-            padding: '10px 15px', borderRadius: 11, fontSize: 13.5,
+            padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: canCreate && !busy ? 'var(--amber)' : 'var(--elevated)',
             color: canCreate && !busy ? 'var(--base)' : 'var(--faint)',
           }}>{busy ? '…' : 'Agregar'}</button>
@@ -112,7 +112,7 @@ export function StyleChips({
       {typing && (
         <p style={{
           color: error ? 'var(--danger)' : 'var(--faint)',
-          fontSize: 11.5, margin: '8px 14px 0', lineHeight: 1.5,
+          fontSize: 'var(--t-2)', margin: '8px 14px 0', lineHeight: 1.5,
         }}>
           {error ?? 'Lo podés usar al toque; un moderador lo revisa después.'}
         </p>

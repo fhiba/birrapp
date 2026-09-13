@@ -34,9 +34,9 @@ export function BrandPicker({
         onClick={() => setOpen(true)}
         className="lbl"
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          padding: '7px 12px', borderRadius: 999, fontSize: 12.5,
-          background: selected ? 'var(--amber-soft)' : 'rgba(255,255,255,.06)',
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
+          background: selected ? 'var(--amber-soft)' : 'var(--film-2)',
           color: selected ? 'var(--amber)' : 'var(--muted)',
         }}
       >
@@ -149,7 +149,7 @@ export function BrandList({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <header style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
       }}>
         <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Cancelar">←</button>
         <input
@@ -163,28 +163,28 @@ export function BrandList({
           placeholder="Buscar o escribir una marca" maxLength={60}
           autoComplete="off" autoCorrect="off" spellCheck={false}
           style={{
-            flex: 1, minWidth: 0, padding: '11px 13px', borderRadius: 12,
+            flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
             background: 'var(--elevated)', border: '1px solid var(--hairline)',
-            fontFamily: 'inherit', fontSize: 16, color: 'inherit',
+            fontFamily: 'inherit', fontSize: 'var(--t-4)', color: 'inherit',
           }}
         />
       </header>
 
       {error && (
-        <p style={{ color: 'var(--danger)', fontSize: 13, margin: '0 18px' }}>{error}</p>
+        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', margin: '0 18px' }}>{error}</p>
       )}
 
       {/* Agregar va arriba y no al final de la lista: si escribiste algo que no
           está, bajar treinta marcas para encontrar el botón es justo lo que
           hace que la gente abandone y cargue el precio sin marca. */}
       {canCreate && (
-        <div style={{ padding: '4px 18px 10px' }}>
+        <div style={{ padding: '4px 16px 12px' }}>
           <button disabled={busy} onClick={create} className="lbl" style={{
-            width: '100%', padding: 13, borderRadius: 13, fontSize: 13.5,
+            width: '100%', padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
           }}>{busy ? '…' : `Agregar "${typed}"`}</button>
           <p style={{
-            color: 'var(--faint)', fontSize: 11.5, margin: '8px 0 0', lineHeight: 1.5,
+            color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
             La podés usar al toque; un moderador la revisa después.
           </p>
@@ -212,7 +212,7 @@ export function BrandList({
         ))}
 
         {shown.length === 0 && !canCreate && (
-          <p style={{ color: 'var(--muted)', fontSize: 14, padding: '12px 4px' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', padding: '12px 4px' }}>
             Escribí al menos dos letras para agregarla.
           </p>
         )}
@@ -223,7 +223,7 @@ export function BrandList({
 
 const H = ({ children }: { children: React.ReactNode }) => (
   <h3 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '16px 4px 4px',
+    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '16px 4px 4px',
   }}>{String(children).toUpperCase()}</h3>
 )
 
@@ -232,15 +232,15 @@ function Option({
 }: { label: string; hint?: string; on: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} className="lbl" style={{
-      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-      padding: '12px 13px', borderRadius: 12, fontSize: 14.5, textAlign: 'left',
+      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+      padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', textAlign: 'left',
       background: on ? 'var(--amber-soft)' : 'transparent',
       color: on ? 'var(--amber)' : 'var(--cream)',
     }}>
       <span style={{ flex: 1 }}>
         {label}
         {hint && (
-          <span style={{ display: 'block', fontSize: 11.5, color: 'var(--faint)' }}>
+          <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
             {hint}
           </span>
         )}

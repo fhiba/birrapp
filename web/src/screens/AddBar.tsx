@@ -147,9 +147,9 @@ export function AddBarScreen(
       position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
       paddingTop: 'var(--safe-top)',
     }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <h1 className="ttl" style={{ fontSize: 20, margin: 0 }}>Bar nuevo</h1>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Bar nuevo</h1>
       </header>
 
       {/* Con `paddingTop: 0` el borde del input queda pegado al origen del
@@ -160,22 +160,22 @@ export function AddBarScreen(
         {chosen ? (
           <>
             <div style={{
-              display: 'flex', gap: 10, padding: 14, borderRadius: 14,
+              display: 'flex', gap: 12, padding: 16, borderRadius: 'var(--r-3)',
               background: 'rgba(95,217,141,.10)',
             }}>
               <span style={{ color: 'var(--fresh)' }}>✓</span>
               <div>
-                <div className="lbl" style={{ fontSize: 16 }}>{chosen.name}</div>
+                <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>{chosen.name}</div>
                 {chosen.address && (
-                  <div style={{ color: 'var(--muted)', fontSize: 12 }}>{chosen.address}</div>
+                  <div style={{ color: 'var(--muted)', fontSize: 'var(--t-2)' }}>{chosen.address}</div>
                 )}
-                <div style={{ color: 'var(--fresh)', fontSize: 11, marginTop: 6 }}>
+                <div style={{ color: 'var(--fresh)', fontSize: 'var(--t-1)', marginTop: 6 }}>
                   Verificado en Google Maps · se publica al instante
                 </div>
               </div>
             </div>
             <button onClick={() => { setChosen(null); setQuery('') }} style={{
-              color: 'var(--amber)', fontSize: 13, marginTop: 12,
+              color: 'var(--amber)', fontSize: 'var(--t-3)', marginTop: 12,
             }}>¿No es este?</button>
           </>
         ) : (
@@ -194,7 +194,7 @@ export function AddBarScreen(
               }}
               placeholder="¿Cómo se llama?" autoFocus
               style={{
-                width: '100%', padding: '14px 15px', borderRadius: 13,
+                width: '100%', padding: '16px 16px', borderRadius: 'var(--r-2)',
                 background: 'transparent', border: '1px solid var(--hairline)',
               }}
             />
@@ -203,32 +203,32 @@ export function AddBarScreen(
             {existing.length > 0 && <SectionLabel>Ya está en birrapp</SectionLabel>}
             {existing.map(b => (
               <button key={b.id} onClick={() => nav(`/bar/${b.id}`)} style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
               }}>
                 <span style={{ color: 'var(--fresh)' }}>✓</span>
                 <span style={{ flex: 1 }}>
-                  <span className="lbl" style={{ display: 'block', fontSize: 16 }}>{b.name}</span>
-                  <span style={{ color: 'var(--faint)', fontSize: 12 }}>
+                  <span className="lbl" style={{ display: 'block', fontSize: 'var(--t-4)' }}>{b.name}</span>
+                  <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>
                     {formatDistance(b.distanceMeters)}
                   </span>
                 </span>
-                <span style={{ color: 'var(--amber)', fontSize: 13 }}>Ver</span>
+                <span style={{ color: 'var(--amber)', fontSize: 'var(--t-3)' }}>Ver</span>
               </button>
             ))}
 
             {suggestions.length > 0 && <SectionLabel>Encontrados en Google</SectionLabel>}
             {suggestions.map(s => (
               <button key={s.placeId} onClick={() => pick(s)} style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
               }}>
                 <span style={{ color: 'var(--amber)' }}>◈</span>
                 <span style={{ flex: 1 }}>
-                  <span className="lbl" style={{ display: 'block', fontSize: 16 }}>{s.primary}</span>
-                  <span style={{ color: 'var(--faint)', fontSize: 12 }}>{s.secondary}</span>
+                  <span className="lbl" style={{ display: 'block', fontSize: 'var(--t-4)' }}>{s.primary}</span>
+                  <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>{s.secondary}</span>
                 </span>
               </button>
             ))}
@@ -237,29 +237,29 @@ export function AddBarScreen(
               <div style={{ marginTop: 16 }}>
                 {!manual ? (
                   <button onClick={() => setManual(true)} style={{
-                    display: 'flex', gap: 10, width: '100%', padding: 14,
-                    borderRadius: 14, background: 'var(--elevated)', textAlign: 'left',
+                    display: 'flex', gap: 12, width: '100%', padding: 16,
+                    borderRadius: 'var(--r-3)', background: 'var(--elevated)', textAlign: 'left',
                   }}>
                     <span style={{ color: 'var(--amber)' }}>+</span>
                     <span>
                       <span className="lbl" style={{ display: 'block' }}>Agregar “{query}”</span>
-                      <span style={{ color: 'var(--faint)', fontSize: 11 }}>
+                      <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
                         Lo revisa un moderador antes de publicarse
                       </span>
                     </span>
                   </button>
                 ) : (
                   <>
-                    <div className="lbl" style={{ fontSize: 16 }}>Agregar “{query}”</div>
+                    <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>Agregar “{query}”</div>
                     <input
                       value={address} onChange={e => setAddress(e.target.value)}
                       placeholder="Calle y altura, o esquina"
                       style={{
-                        width: '100%', padding: '13px 15px', borderRadius: 13, marginTop: 10,
+                        width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 10,
                         background: 'transparent', border: '1px solid var(--hairline)',
                       }}
                     />
-                    <p style={{ color: 'var(--faint)', fontSize: 11, lineHeight: 1.5 }}>
+                    <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5 }}>
                       Hace falta la dirección para que un moderador pueda verificar
                       que el bar existe.
                     </p>
@@ -270,8 +270,8 @@ export function AddBarScreen(
                         configuración puesta, que es la del lugar donde
                         probablemente estés parado. */}
                     <label className="lbl" style={{
-                      display: 'flex', alignItems: 'center', gap: 10, marginTop: 14,
-                      fontSize: 13, color: 'var(--muted)',
+                      display: 'flex', alignItems: 'center', gap: 12, marginTop: 14,
+                      fontSize: 'var(--t-3)', color: 'var(--muted)',
                     }}>
                       En qué moneda cobra
                       <CurrencySelect value={currency} onChange={setCurrency} />
@@ -283,14 +283,14 @@ export function AddBarScreen(
           </>
         )}
 
-        {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
       </div>
 
       {/* Un botón apagado sin explicación es un callejón: la persona escribió
           el nombre, ve el botón gris y no sabe qué le falta. Esto lo dice. */}
       {!canSend && query.trim().length >= 2 && (
         <p style={{
-          color: 'var(--faint)', fontSize: 12, textAlign: 'center',
+          color: 'var(--faint)', fontSize: 'var(--t-2)', textAlign: 'center',
           margin: '0 18px', lineHeight: 1.5,
         }}>
           {manual
@@ -301,7 +301,7 @@ export function AddBarScreen(
 
       <button disabled={!canSend || sending} onClick={submit} className="lbl" style={{
         margin: `12px 18px calc(14px + var(--nav-gap))`, padding: 16,
-        borderRadius: 16, fontSize: 15, minHeight: 52,
+        borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)', minHeight: 52,
         background: canSend ? 'var(--amber)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',
       }}>{sending ? 'Enviando…' : 'Agregar este bar'}</button>
@@ -312,7 +312,7 @@ export function AddBarScreen(
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="lbl" style={{
-      fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '18px 0 6px',
+      fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '18px 0 6px',
     }}>{String(children).toUpperCase()}</h2>
   )
 }

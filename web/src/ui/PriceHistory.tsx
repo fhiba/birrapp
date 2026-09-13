@@ -49,21 +49,21 @@ export function PriceHistory(
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 65, background: 'rgba(0,0,0,.6)',
-      display: 'grid', placeItems: 'center', padding: 20,
+      display: 'grid', placeItems: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--raised)', borderRadius: 20, padding: 22,
+        background: 'var(--raised)', borderRadius: 'var(--r-4)', padding: 24,
         width: '100%', maxWidth: 380,
       }}>
-        <h3 className="ttl" style={{ margin: 0, fontSize: 19 }}>{title}</h3>
-        <p style={{ color: 'var(--faint)', fontSize: 12, margin: '4px 0 18px' }}>
+        <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)' }}>{title}</h3>
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 18px' }}>
           Historial de precios
         </p>
 
         {points === null && <div className="spinner" style={{ margin: '30px auto' }} />}
 
         {points && series.length < 2 && (
-          <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
             Todavía no hay suficientes reportes para mostrar una evolución.
             Hace falta al menos un segundo precio.
           </p>
@@ -83,13 +83,13 @@ export function PriceHistory(
 
             <div style={{
               display: 'flex', justifyContent: 'space-between',
-              color: 'var(--faint)', fontSize: 11, marginTop: 4,
+              color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 4,
             }}>
               <span>{new Date(first.at).toLocaleDateString('es-AR')}</span>
               <span>{new Date(last.at).toLocaleDateString('es-AR')}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
               <Box label="Primero" value={formatPrice(first.price, currency)} />
               <Box label="Ahora" value={formatPrice(last.price, currency)} />
               {change !== null && (
@@ -104,8 +104,8 @@ export function PriceHistory(
         )}
 
         <button onClick={onClose} className="lbl" style={{
-          width: '100%', marginTop: 20, padding: 12, borderRadius: 12,
-          background: 'rgba(255,255,255,.07)',
+          width: '100%', marginTop: 20, padding: 12, borderRadius: 'var(--r-2)',
+          background: 'var(--film-2)',
         }}>Cerrar</button>
       </div>
     </div>
@@ -114,10 +114,10 @@ export function PriceHistory(
 
 const Box = ({ label, value, color }: { label: string; value: string; color?: string }) => (
   <div style={{
-    flex: 1, padding: '10px 0', borderRadius: 12, textAlign: 'center',
-    background: 'rgba(255,255,255,.05)',
+    flex: 1, padding: '10px 0', borderRadius: 'var(--r-2)', textAlign: 'center',
+    background: 'var(--film-1)',
   }}>
-    <div className="num" style={{ fontSize: 15, color: color ?? 'var(--cream)' }}>{value}</div>
-    <div style={{ fontSize: 10, color: 'var(--faint)', marginTop: 2 }}>{label}</div>
+    <div className="num" style={{ fontSize: 'var(--t-4)', color: color ?? 'var(--cream)' }}>{value}</div>
+    <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>{label}</div>
   </div>
 )

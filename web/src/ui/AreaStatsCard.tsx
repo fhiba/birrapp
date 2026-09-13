@@ -47,20 +47,20 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
   const styleName = styles.find(s => s.slug === styleFilter)?.name
 
   return (
-    <div style={{ margin: '12px 18px 0', borderRadius: 15, background: 'var(--raised)' }}>
+    <div style={{ margin: '12px 18px 0', borderRadius: 'var(--r-3)', background: 'var(--raised)' }}>
       <button onClick={() => setOpen(o => !o)} style={{
         display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        padding: '13px 15px', textAlign: 'left',
+        padding: '12px 16px', textAlign: 'left',
       }}>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span className="lbl" style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+          <span className="lbl" style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
             {styleName ? `${styleName} · ` : ''}{formatRadius(radius)} a la redonda
           </span>
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 3 }}>
-            <span className="num" style={{ fontSize: 22 }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 3 }}>
+            <span className="num" style={{ fontSize: 'var(--t-6)' }}>
               {formatPrice(data.medianPint, data.currency)}
             </span>
-            <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>
+            <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
               la pinta, típico
             </span>
           </span>
@@ -76,7 +76,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
 
       {open && (
         <div style={{ padding: '0 15px 14px' }}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
             <Cell label="Promedio" value={formatPrice(data.avgPint!, data.currency)} />
             <Cell label="La más barata" value={formatPrice(data.minPint!, data.currency)} />
             <Cell label="Bares" value={String(data.bars)} />
@@ -107,7 +107,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
           )}
 
           <p style={{
-            fontSize: 10.5, color: 'var(--faint)', margin: '10px 0 0', lineHeight: 1.5,
+            fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '10px 0 0', lineHeight: 1.5,
           }}>
             Todo llevado a una pinta de 473 ml, sobre {data.samples} precios de
             menos de 45 días. Los más viejos no entran.
@@ -124,8 +124,8 @@ const beerLabel = (style: string, brand: string | null) =>
 function Cell({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ flex: 1 }}>
-      <div className="num" style={{ fontSize: 15 }}>{value}</div>
-      <div style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 2 }}>{label}</div>
+      <div className="num" style={{ fontSize: 'var(--t-4)' }}>{value}</div>
+      <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>{label}</div>
     </div>
   )
 }
@@ -135,23 +135,23 @@ function Pick({ title, why, name, beer, age, onClick }: {
 }) {
   return (
     <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
       padding: '9px 0', textAlign: 'left', borderTop: '1px solid var(--hairline)',
     }}>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="lbl" style={{ fontSize: 10, color: 'var(--faint)' }}>
+        <span className="lbl" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
           {title.toUpperCase()}
         </span>
         <span className="lbl" style={{
-          display: 'block', fontSize: 14, whiteSpace: 'nowrap',
+          display: 'block', fontSize: 'var(--t-4)', whiteSpace: 'nowrap',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
-        <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+        <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
           {beer} — {why}
         </span>
       </span>
       {/* Ningún precio sin su antigüedad al lado, tampoco en un ranking. */}
-      <span style={{ fontSize: 11, color: 'var(--faint)', flexShrink: 0 }}>
+      <span style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', flexShrink: 0 }}>
         {shortAge(age)}
       </span>
     </button>

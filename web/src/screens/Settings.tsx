@@ -74,7 +74,7 @@ export function SettingsScreen({ user, onSession }: {
       <div className="desk-narrow">
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
 
-        <h1 className="ttl" style={{ fontSize: 26, margin: '16px 0 0' }}>Configuración</h1>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>Configuración</h1>
 
         <SectionLabel>Tu cuenta</SectionLabel>
 
@@ -84,16 +84,16 @@ export function SettingsScreen({ user, onSession }: {
         />
 
         <label className="lbl" style={{
-          display: 'block', fontSize: 12, color: 'var(--muted)', margin: '20px 0 6px',
+          display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '20px 0 6px',
         }} htmlFor="nombre">Cómo te llamás</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             id="nombre" value={name} onChange={e => setName(e.target.value)}
             maxLength={60}
             style={{
-              flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 12,
+              flex: 1, minWidth: 0, padding: '12px 16px', borderRadius: 'var(--r-2)',
               background: 'var(--elevated)', border: '1px solid var(--hairline)',
-              fontSize: 16,
+              fontSize: 'var(--t-4)',
             }}
           />
           {/* Este sí lleva botón: el campo no sabe cuándo terminaste de
@@ -103,7 +103,7 @@ export function SettingsScreen({ user, onSession }: {
             onClick={() => guardar({ displayName: name.trim() }, 'Nombre cambiado')}
             className="lbl"
             style={{
-              padding: '0 16px', borderRadius: 12, fontSize: 13.5,
+              padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               background: name.trim() !== user.displayName && name.trim().length >= 2
                 ? 'var(--amber)' : 'var(--elevated)',
               color: name.trim() !== user.displayName && name.trim().length >= 2
@@ -111,7 +111,7 @@ export function SettingsScreen({ user, onSession }: {
             }}
           >Guardar</button>
         </div>
-        <p style={{ color: 'var(--faint)', fontSize: 11.5, margin: '6px 0 0' }}>
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0' }}>
           Es el nombre con el que aparecen tus aportes. {user.email} no se muestra
           en ningún lado.
         </p>
@@ -140,7 +140,7 @@ export function SettingsScreen({ user, onSession }: {
               { defaultSizeMl: Number(e.target.value) }, 'Tamaño cambiado',
             )}
             style={{
-              padding: '9px 11px', borderRadius: 11, fontSize: 13.5,
+              padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               background: 'var(--elevated)', color: 'var(--cream)',
               border: '1px solid var(--hairline)',
             }}
@@ -157,9 +157,9 @@ export function SettingsScreen({ user, onSession }: {
 
         <div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span className="lbl" style={{ fontSize: 14 }}>Radio de búsqueda</span>
+            <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>Radio de búsqueda</span>
             <span className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--amber)', fontSize: 14,
+              marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-4)',
             }}>{formatRadius(radius)}</span>
           </div>
           {/*
@@ -187,13 +187,13 @@ export function SettingsScreen({ user, onSession }: {
               ['--fill' as string]: `${((radius - 300) / (15000 - 300)) * 100}%`,
             }}
           />
-          <p style={{ color: 'var(--faint)', fontSize: 11.5, margin: '6px 0 0' }}>
+          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0' }}>
             Con cuánto a la redonda abre el mapa y la lista.
           </p>
         </div>
 
         {error && (
-          <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 18 }}>{error}</p>
+          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 18 }}>{error}</p>
         )}
 
         {blocked.length > 0 && (
@@ -201,11 +201,11 @@ export function SettingsScreen({ user, onSession }: {
             <SectionLabel>Personas bloqueadas</SectionLabel>
             {blocked.map(p => (
               <div key={p.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '11px 2px', borderBottom: '1px solid var(--hairline)',
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 2px', borderBottom: '1px solid var(--hairline)',
               }}>
                 <button onClick={() => nav(`/usuario/${p.id}`)} className="lbl" style={{
-                  flex: 1, minWidth: 0, textAlign: 'left', fontSize: 14,
+                  flex: 1, minWidth: 0, textAlign: 'left', fontSize: 'var(--t-4)',
                 }}>{p.displayName}</button>
                 <button
                   onClick={async () => {
@@ -214,12 +214,12 @@ export function SettingsScreen({ user, onSession }: {
                     loadBlocked()
                   }}
                   className="lbl"
-                  style={{ fontSize: 13, color: 'var(--amber)' }}
+                  style={{ fontSize: 'var(--t-3)', color: 'var(--amber)' }}
                 >Desbloquear</button>
               </div>
             ))}
             <p style={{
-              color: 'var(--faint)', fontSize: 11.5, margin: '10px 0 0', lineHeight: 1.5,
+              color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '10px 0 0', lineHeight: 1.5,
             }}>
               Con alguien bloqueado, ninguno de los dos ve los comentarios ni las
               fotos del otro. Los precios que cargó siguen en el mapa: son datos
@@ -230,7 +230,7 @@ export function SettingsScreen({ user, onSession }: {
 
         <SectionLabel>Zona de riesgo</SectionLabel>
         <button onClick={() => setConfirmDelete(true)} className="lbl" style={{
-          width: '100%', padding: 15, borderRadius: 14, textAlign: 'left', fontSize: 14,
+          width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
           background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
         }}>Borrar mi cuenta</button>
       </div>
@@ -266,11 +266,11 @@ function Field({ label, hint, children }: {
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span className="lbl" style={{ flex: 1, fontSize: 14 }}>{label}</span>
+        <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{label}</span>
         {children}
       </div>
       <p style={{
-        color: 'var(--faint)', fontSize: 11.5, margin: '6px 0 0', lineHeight: 1.5,
+        color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0', lineHeight: 1.5,
       }}>{hint}</p>
     </div>
   )
@@ -278,6 +278,6 @@ function Field({ label, hint, children }: {
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <h2 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '30px 0 12px',
+    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '30px 0 12px',
   }}>{String(children).toUpperCase()}</h2>
 )
