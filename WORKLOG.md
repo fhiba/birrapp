@@ -2079,3 +2079,37 @@ píldora para que sea lo primero que se lee.
 También aparecieron rótulos de sección en fotos y comentarios: con las dos
 cosas una arriba de la otra y nada que las separe, la tira de fotos parecía
 parte de la fila de puntaje.
+
+---
+
+## 2026-09-13 — v0.10.1: los flujos, de a uno
+
+Segunda tanda de la revisión de UX. Cuatro cosas, todas de flujo.
+
+**El teclado del precio no respondía al teclado.** El teclado propio existe
+porque en el teléfono el del sistema tapa media pantalla; en una notebook es al
+revés — hay un teclado físico adelante y la única forma de cargar un precio era
+apuntarle a los botones con el mouse, dígito por dígito. Ahora responde a los
+números, al borrado y a Enter.
+
+**Salir del flujo a mitad de camino tiraba lo elegido en silencio.** Es un
+formulario de varios pasos: irse sin avisar es la forma más rápida de perder
+tres respuestas. Ahora pregunta — pero sólo si hay algo que perder: en el
+primer paso, salir es salir. El diálogo se dibuja en las dos ramas del
+componente, porque el paso del monto sale por su propio `return` y ahí es
+justamente donde salir cuesta más caro.
+
+**La barra de abajo tenía dos pestañas sin nombre.** La etiqueta se dibuja sólo
+en la activa —es lo que mantiene la barra angosta— así que un lector de
+pantalla anunciaba las otras dos como enlaces sin nombre. El nombre va ahora en
+`aria-label`, que no ocupa lugar.
+
+**El menú del "+" prometía un teclado que no tiene.** Estaba declarado como
+`menu` con `menuitem`, y el patrón ARIA de menú promete flechas, Home y End.
+Acá se navega con Tab, como en cualquier grupo de botones, así que ahora dice
+lo que es. Declarar un menú que no se comporta como un menú es peor que no
+declarar nada.
+
+Y el orden de la lista se recuerda entre sesiones, en localStorage: es una
+preferencia de cómo mirás, no un dato de la cuenta, y quien usa la app sin
+cuenta también la tiene.

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
+import { Confirm } from '../ui/Chrome'
 import { BrandList } from '../ui/BrandPicker'
 import { BarSearchList } from '../ui/PickBar'
 import { StyleChips } from '../ui/StyleChips'
@@ -88,7 +89,18 @@ export function ReportFlow({
   ]
 
   const [step, setStep] = useState<Step>(steps[0])
+  const [confirmExit, setConfirmExit] = useState(false)
   const stepNumber = steps.indexOf(step) + 1
+
+  /**
+   * Salir tira lo que se eligió, así que se pregunta — pero sólo si hay algo
+   * que tirar. Preguntar en el primer paso, donde no se contestó nada
+   * todavía, es un diálogo que sobra: ahí salir es salir.
+   */
+  const leave = () => {
+    if (steps.indexOf(step) === 0) return onCancel()
+    setConfirmExit(true)
+  }
 
   const next = () => setStep(steps[Math.min(steps.indexOf(step) + 1, steps.length - 1)])
 
@@ -106,6 +118,7 @@ export function ReportFlow({
   // pueda corregir sin salir.
   if (step === 'price' && chosenBar && style) {
     return (
+      <>
       <ReportPrice
         barName={chosenBar.name}
         currency={chosenBar.currency}
@@ -113,11 +126,20 @@ export function ReportFlow({
         styleName={styleName ?? style}
         brandName={brandName ?? null}
         onBack={back}
-        onCancel={onCancel}
+        onCancel={leave}
         onSubmit={(price, sizeMl) => onSubmit({
           bar: chosenBar, styleSlug: style, brandSlug: brand, price, sizeMl,
         })}
       />
+      {/* Va también en esta rama: el paso del monto sale por su propio
+          `return`, así que un diálogo dibujado sólo abajo no aparecería nunca
+          — y es justo acá, con las tres respuestas puestas, donde salir
+          cuesta más caro. */}
+      {confirmExit && <SalirSinCargar
+        onStay={() => setConfirmExit(false)}
+        onLeave={() => { setConfirmExit(false); onCancel() }}
+      />}
+      </>
     )
   }
 
@@ -172,7 +194,25 @@ export function ReportFlow({
           </div>
         )}
       </div>
+
+      {confirmExit && <SalirSinCargar
+        onStay={() => setConfirmExit(false)}
+        onLeave={() => { setConfirmExit(false); onCancel() }}
+      />}
     </div>
+  )
+}
+
+/** El aviso de que salir tira lo elegido. Una sola definición, dos ramas. */
+function SalirSinCargar({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  return (
+    <Confirm
+      title="¿Salir sin cargar el precio?"
+      body="Lo que elegiste hasta acá se pierde y hay que empezar de nuevo."
+      confirmLabel="Salir"
+      onCancel={onStay}
+      onConfirm={onLeave}
+    />
   )
 }
 
