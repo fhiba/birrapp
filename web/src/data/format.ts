@@ -59,6 +59,26 @@ export const groupThousands = (digits: string) => {
   return Number.isFinite(n) ? new Intl.NumberFormat(AR).format(n) : digits
 }
 
+/**
+ * La dirección, sin el ruido: calle y altura y nada más.
+ *
+ * Google devuelve `formattedAddress` entera — "Av. Corrientes 1234, C1043AAZ
+ * CABA, Argentina" — y eso, en la ficha de un bar que estás mirando porque
+ * está a cuatrocientos metros, es tres datos que ya sabés ocupando el renglón
+ * del que no sabés. El código postal, la ciudad, la provincia y el país no le
+ * dicen nada a nadie que esté parado ahí.
+ *
+ * Se corta en la primera coma, que es donde Google separa la calle del resto.
+ * Los bares cargados a mano piden "calle y altura, o esquina", así que ya
+ * vienen cortos y esto no los toca.
+ *
+ * Se hace al mostrar y no al guardar: la dirección completa es un dato real y
+ * sirve para desambiguar bares homónimos en moderación. Lo que sobra es
+ * mostrarla entera, no tenerla.
+ */
+export const shortAddress = (address: string | null | undefined) =>
+  address?.split(',')[0]?.trim() || null
+
 export const formatDistance = (m: number | null | undefined) =>
   m == null ? null
     : m < 1000 ? `a ${Math.round(m)} m`
