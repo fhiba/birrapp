@@ -96,27 +96,27 @@ export function BeerComments({
   }
 
   return (
-    <section style={{ marginTop: 18 }}>
+    <section style={{ marginTop: 16 }}>
       <h3 className="lbl" style={{
-        fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 12px',
       }}>
         COMENTARIOS{items && items.length > 0 ? ` · ${items.length}${more ? '+' : ''}` : ''}
       </h3>
       {canWrite && (
         <div style={{
-          padding: 12, borderRadius: 14, background: 'var(--base)', marginBottom: 16,
+          padding: 12, borderRadius: 'var(--r-3)', background: 'var(--base)', marginBottom: 16,
         }}>
           <textarea
             value={body} onChange={e => setBody(e.target.value)}
             placeholder="Cómo estaba (opcional)" rows={2} maxLength={600}
             style={{
-              width: '100%', marginTop: 10, padding: '10px 12px', borderRadius: 11,
+              width: '100%', marginTop: 12, padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
-              resize: 'vertical', fontFamily: 'inherit', fontSize: 16,
+              resize: 'vertical', fontFamily: 'inherit', fontSize: 'var(--t-field)',
             }}
           />
           <button disabled={busy || !body.trim()} onClick={send} className="lbl" style={{
-            width: '100%', marginTop: 8, padding: 12, borderRadius: 12, fontSize: 13.5,
+            width: '100%', marginTop: 8, padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: !body.trim() ? 'var(--elevated)'
               : busy ? 'var(--amber-deep)' : 'var(--amber)',
             color: !body.trim() ? 'var(--faint)' : 'var(--base)',
@@ -125,19 +125,19 @@ export function BeerComments({
         </div>
       )}
 
-      {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
 
       {items == null ? (
         <div style={{ display: 'grid', placeItems: 'center', padding: 24 }}>
           <div className="spinner" />
         </div>
       ) : items.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 14, margin: '8px 0' }}>
+        <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: '8px 0' }}>
           Todavía nadie comentó esta birra.
         </p>
       ) : items.map(c => (
         <div key={c.id} style={{
-          padding: '12px 0', borderTop: '1px solid rgba(255,255,255,.06)',
+          padding: '12px 0', borderTop: '1px solid var(--film-2)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* La nota puede faltar: se puede comentar sin votar. */}
@@ -146,32 +146,32 @@ export function BeerComments({
                 llegar a la persona, no desde una pantalla de moderación. El
                 propio no, que no tiene sentido ir a mirarse a uno mismo. */}
             {c.mine ? (
-              <span style={{ fontSize: 13, color: 'var(--amber)' }}>Vos</span>
+              <span style={{ fontSize: 'var(--t-3)', color: 'var(--amber)' }}>Vos</span>
             ) : (
               <button
                 onClick={() => nav(`/usuario/${c.authorId}`)}
                 className="lbl"
                 style={{
-                  fontSize: 13, color: 'var(--muted)', textDecoration: 'underline',
-                  textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                  fontSize: 'var(--t-3)', color: 'var(--muted)', textDecoration: 'underline',
+                  textDecorationColor: 'var(--film-3)', textUnderlineOffset: 3,
                 }}
               >{c.authorName}</button>
             )}
             {/* La edad va siempre pegada, igual que con los precios: un
                 comentario de hace dos años sobre una canilla que ya cambió
                 dice menos de lo que parece. */}
-            <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--faint)' }}>
+            <span style={{ marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
               {c.ageDays <= 0 ? 'hoy' : c.ageDays === 1 ? 'ayer' : `hace ${c.ageDays} d`}
             </span>
           </div>
-          {c.body && <p style={{ margin: '6px 0 0', fontSize: 14 }}>{c.body}</p>}
+          {c.body && <p style={{ margin: '8px 0 0', fontSize: 'var(--t-4)' }}>{c.body}</p>}
 
           {/* Lo propio se borra siempre, sin ser moderador: son tus palabras.
               Antes esto no existía porque la nota y el comentario eran la misma
               fila y no se podía bajar una sin la otra. */}
           {(c.mine || modMode) && (
             <button onClick={() => setConfirmDelete(c)} style={{
-              marginTop: 6, fontSize: 12, color: 'var(--danger)',
+              marginTop: 8, fontSize: 'var(--t-2)', color: 'var(--danger)',
             }}>{c.mine ? 'Borrar' : 'Eliminar'}</button>
           )}
         </div>
@@ -184,8 +184,8 @@ export function BeerComments({
         <button
           onClick={loadMore} disabled={loadingMore} className="lbl"
           style={{
-            width: '100%', marginTop: 12, padding: 12, borderRadius: 12,
-            fontSize: 13.5, background: 'rgba(255,255,255,.06)', color: 'var(--muted)',
+            width: '100%', marginTop: 12, padding: 12, borderRadius: 'var(--r-2)',
+            fontSize: 'var(--t-3)', background: 'var(--film-2)', color: 'var(--muted)',
           }}
         >{loadingMore ? '…' : 'Ver comentarios más viejos'}</button>
       )}

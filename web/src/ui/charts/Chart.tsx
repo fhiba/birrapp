@@ -69,8 +69,8 @@ export const KIND_COLORS = {
  */
 const W = 360
 const PAD = { l: 30, r: 6, t: 10, b: 20 }
-const GRID = 'rgba(255,255,255,.08)'
-const LABEL = { fontSize: 11, fill: '#8A7B6D' } as const
+const GRID = 'var(--film-2)'
+const LABEL = { fontSize: 'var(--t-1)', fill: '#8A7B6D' } as const
 
 /** Las etiquetas del eje x: primera, del medio y última. Más se amontonan. */
 function xTicks(x: string[]) {
@@ -235,11 +235,11 @@ export function HBars({
 export function Legend({ series }: { series: Series[] }) {
   return (
     <div style={{
-      display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6,
-      fontSize: 11, color: 'var(--faint)',
+      display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8,
+      fontSize: 'var(--t-1)', color: 'var(--faint)',
     }}>
       {series.map(s => (
-        <span key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{
             width: 9, height: 9, borderRadius: 2, background: s.color, display: 'inline-block',
           }} />

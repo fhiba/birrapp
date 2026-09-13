@@ -170,7 +170,7 @@ export function ReportFlow({
         onBack={back}
       />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingTop: 6 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingTop: 8 }}>
         {step === 'style' && (
           <StyleChips
             layout="grid"
@@ -200,9 +200,9 @@ export function ReportFlow({
 
             {onAddBar && (
               <button onClick={onAddBar} className="lbl" style={{
-                width: '100%', marginTop: 14, padding: 14, borderRadius: 13,
-                fontSize: 13.5, minHeight: 44, textAlign: 'center',
-                background: 'rgba(255,255,255,.06)', color: 'var(--amber)',
+                width: '100%', marginTop: 16, padding: 16, borderRadius: 'var(--r-2)',
+                fontSize: 'var(--t-3)', minHeight: 44, textAlign: 'center',
+                background: 'var(--film-2)', color: 'var(--amber)',
                 border: '1px dashed var(--hairline)',
               }}>El bar no está — agregalo</button>
             )}
@@ -247,20 +247,20 @@ function Header({ step, total, title, hint, chosen, onBack }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <span className="lbl" style={{
-          fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
+          fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)',
         }}>PASO {step} DE {total}</span>
       </div>
 
-      <h1 className="ttl" style={{ fontSize: 24, margin: '14px 0 0' }}>{title}</h1>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>{title}</h1>
       {hint && (
-        <p style={{ color: 'var(--muted)', fontSize: 13, margin: '5px 0 0' }}>{hint}</p>
+        <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{hint}</p>
       )}
 
       {chosen.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           {chosen.map(c => (
             <span key={c} className="lbl pill" style={{
-              padding: '5px 11px', fontSize: 12,
+              padding: '4px 12px', fontSize: 'var(--t-2)',
               background: 'var(--amber-soft)', color: 'var(--amber)',
             }}>{c}</span>
           ))}

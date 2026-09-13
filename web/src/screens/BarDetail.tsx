@@ -130,7 +130,7 @@ export function BarDetailScreen({
     <Centered>
       <p style={{ color: 'var(--muted)' }}>{error}</p>
       <button onClick={load} className="lbl" style={{
-        marginTop: 12, padding: '10px 18px', borderRadius: 12,
+        marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
         background: 'var(--amber)', color: 'var(--base)',
       }}>Reintentar</button>
     </Centered>
@@ -263,7 +263,7 @@ export function BarDetailScreen({
         // Sin esto, arrastrar hacia abajo desde arriba dispara el
         // pull-to-refresh del navegador antes de que la ficha se mueva.
         overscrollBehaviorY: 'contain',
-        paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 40,
+        paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 48,
         // Sin arrastre no se deja `transform` puesto: un transform crea
         // bloque contenedor y los `position: fixed` de los diálogos dejarían
         // de medirse contra el viewport.
@@ -275,7 +275,7 @@ export function BarDetailScreen({
       <div style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button onClick={() => nav(-1)} className="icon-btn"
-            style={{ background: 'rgba(255,255,255,.07)' }} aria-label="Volver">←</button>
+            style={{ background: 'var(--film-2)' }} aria-label="Volver">←</button>
           <span style={{ flex: 1 }} />
 
           {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
@@ -288,7 +288,7 @@ export function BarDetailScreen({
             className="icon-btn"
             style={{
               marginRight: 8,
-              background: isFavorite ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
+              background: isFavorite ? 'var(--amber-soft)' : 'var(--film-2)',
               color: isFavorite ? 'var(--amber)' : 'var(--muted)',
             }}
           >
@@ -310,7 +310,7 @@ export function BarDetailScreen({
               aria-pressed={modMode}
               className="icon-btn"
               style={{
-                background: modMode ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                background: modMode ? 'var(--amber)' : 'var(--film-2)',
                 color: modMode ? 'var(--base)' : 'var(--muted)',
               }}
             >
@@ -327,7 +327,7 @@ export function BarDetailScreen({
 
         {modMode && (
           <div style={{
-            marginTop: 14, padding: '9px 13px', borderRadius: 11, fontSize: 12,
+            marginTop: 16, padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
             background: 'var(--amber-soft)', color: 'var(--amber)',
           }}>
             Modo moderador — las acciones de esta vista no se pueden deshacer
@@ -337,8 +337,8 @@ export function BarDetailScreen({
         {/* El enlace va acá y no abajo: pegado a las pestañas quedaba
             separando el nombre del bar de sus birras, que es lo que se viene
             a mirar. Al lado del nombre es donde se lo busca. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '20px 0 6px' }}>
-          <h1 className="ttl" style={{ fontSize: 28, margin: 0, flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '24px 0 8px' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0, flex: 1, minWidth: 0 }}>
             {bar.name}
           </h1>
 
@@ -356,11 +356,11 @@ export function BarDetailScreen({
                   fill="var(--amber)" aria-hidden>
                   <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
                 </svg>
-                <span className="num" style={{ fontSize: 17, color: 'var(--cream)' }}>
+                <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
                   {barAvg.toFixed(1)}
                 </span>
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
                 {votes === 1 ? '1 voto' : `${votes} votos`}
               </div>
             </div>
@@ -381,12 +381,12 @@ export function BarDetailScreen({
             </svg>
           </a>
         </div>
-        {meta && <p style={{ color: 'var(--faint)', fontSize: 13, margin: 0 }}>{meta}</p>}
+        {meta && <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)', margin: 0 }}>{meta}</p>}
 
       </div>
 
       {bar.prices.length === 0 ? (
-        <div style={{ padding: 18 }}>
+        <div style={{ padding: 16 }}>
           <p style={{ color: 'var(--muted)' }}>Todavía nadie cargó precios acá. ¿Los sabés?</p>
           <PrimaryAction
             label="Cargar el primer precio"
@@ -409,7 +409,7 @@ export function BarDetailScreen({
               de la pantalla, desalineada de todo lo demás de la ficha. Con
               esto, el enganche respeta el mismo margen que el resto. */}
           <div data-tour="bar-tabs" style={{
-            display: 'flex', gap: 6, padding: '4px 18px 0',
+            display: 'flex', gap: 8, padding: '4px 18px 0',
             overflowX: 'auto', scrollSnapType: 'x proximity',
             scrollPaddingLeft: 18,
           }}>
@@ -425,9 +425,9 @@ export function BarDetailScreen({
                   className="lbl" aria-pressed={on}
                   style={{
                     flex: '0 0 auto', scrollSnapAlign: 'start',
-                    padding: '9px 14px', borderRadius: 999, fontSize: 13,
+                    padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
                     whiteSpace: 'nowrap',
-                    background: on ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                    background: on ? 'var(--amber)' : 'var(--film-2)',
                     color: on ? 'var(--base)' : 'var(--muted)',
                   }}
                 >
@@ -437,7 +437,7 @@ export function BarDetailScreen({
                       hasta entrar. */}
                   {g.beers.length > 1 && (
                     <span style={{
-                      marginLeft: 6, fontSize: 11,
+                      marginLeft: 8, fontSize: 'var(--t-1)',
                       opacity: on ? 0.65 : 1,
                       color: on ? 'inherit' : 'var(--faint)',
                     }}>{g.beers.length}</span>
@@ -456,8 +456,8 @@ export function BarDetailScreen({
               className="lbl" aria-label="Cargar otra birra"
               style={{
                 flex: '0 0 auto', scrollSnapAlign: 'start',
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '9px 14px', borderRadius: 999, fontSize: 13,
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
                 whiteSpace: 'nowrap', color: 'var(--amber)',
                 border: '1px dashed rgba(255,182,39,.45)',
               }}
@@ -479,7 +479,7 @@ export function BarDetailScreen({
               que no se encuentra cuando se lo necesita. */}
           {group && (
             <div style={{
-              display: 'flex', gap: 6, padding: '8px 18px 0',
+              display: 'flex', gap: 8, padding: '8px 18px 0',
               overflowX: 'auto', scrollSnapType: 'x proximity',
               scrollPaddingLeft: 18,
             }}>
@@ -492,8 +492,8 @@ export function BarDetailScreen({
                     className="lbl" aria-pressed={on}
                     style={{
                       flex: '0 0 auto', scrollSnapAlign: 'start',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '7px 12px', borderRadius: 999, fontSize: 12.5,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
                       whiteSpace: 'nowrap',
                       background: on ? 'rgba(255,182,39,.16)' : 'transparent',
                       color: on ? 'var(--amber)' : 'var(--faint)',
@@ -517,8 +517,8 @@ export function BarDetailScreen({
                 className="lbl" aria-label="Cargar otra marca"
                 style={{
                   flex: '0 0 auto', scrollSnapAlign: 'start',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '7px 12px', borderRadius: 999, fontSize: 12.5,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
                   whiteSpace: 'nowrap', color: 'var(--muted)',
                   border: '1px dashed var(--hairline)',
                 }}
@@ -552,7 +552,7 @@ export function BarDetailScreen({
                 onFlag={() => user ? setReportingBad(active) : nav('/perfil')}
               />
 
-              <div style={{ padding: '14px 18px 4px' }}>
+              <div style={{ padding: '16px 16px 4px' }}>
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active)}
@@ -592,17 +592,17 @@ export function BarDetailScreen({
       )}
 
       {reviews.length > 0 && (
-        <section style={{ padding: '10px 18px' }}>
+        <section style={{ padding: '12px 16px' }}>
           <h2 className="lbl" style={{
-            fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)', margin: '18px 0 10px',
+            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', margin: '16px 0 12px',
           }}>RESEÑAS</h2>
           {reviews.map(r => (
             <div key={r.id} style={{ padding: '10px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-3)' }}>
                 <span style={{ color: 'var(--amber)' }}>{'★'.repeat(r.rating)}</span>
                 <span style={{ color: 'var(--muted)' }}>{r.authorName}</span>
               </div>
-              {r.body && <p style={{ margin: '4px 0 0', fontSize: 14 }}>{r.body}</p>}
+              {r.body && <p style={{ margin: '4px 0 0', fontSize: 'var(--t-4)' }}>{r.body}</p>}
             </div>
           ))}
         </section>
@@ -611,7 +611,7 @@ export function BarDetailScreen({
       {modMode && (
         <div style={{ padding: '22px 18px 0' }}>
           <button onClick={() => setConfirmDelete(true)} className="lbl" style={{
-            width: '100%', padding: 13, borderRadius: 12, fontSize: 13.5,
+            width: '100%', padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
           }}>Eliminar este bar y sus precios</button>
         </div>
@@ -778,14 +778,14 @@ function PriceRow({
   if (price.price == null) {
     return (
       <div style={{
-        padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
+        padding: '16px 16px', borderBottom: '1px solid var(--film-2)',
       }}>
         {/* Sin rótulo: cuál birra es lo dicen las pestañas de arriba. */}
-        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
           Esta birra no tiene precio cargado.
         </p>
         <button onClick={onUpdate} className="lbl" style={{
-          width: '100%', marginTop: 12, padding: 12, borderRadius: 12, fontSize: 13.5,
+          width: '100%', marginTop: 12, padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
           background: 'var(--amber)', color: 'var(--base)',
         }}>Cargar su precio</button>
       </div>
@@ -795,7 +795,7 @@ function PriceRow({
   const color = freshnessColor(price.freshness!)
   const dim = price.freshness === 'stale'
   return (
-    <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+    <div style={{ padding: '16px 16px', borderBottom: '1px solid var(--film-2)' }}>
       {/* Acá iba otra vez el estilo y la marca. Lo dicen las dos filas de
           pestañas que están justo arriba, con la activa en ámbar: repetirlo
           era gastar el renglón de mayor jerarquía en algo que la persona
@@ -804,16 +804,20 @@ function PriceRow({
           eso sí queda. */}
       {price.brandCraft && (
         <span className="lbl" style={{
-          display: 'inline-block', fontSize: 10, letterSpacing: '.08em',
-          padding: '2px 7px', borderRadius: 999, marginBottom: 8,
-          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
+          display: 'inline-block', fontSize: 'var(--t-1)', letterSpacing: '.08em',
+          padding: '2px 8px', borderRadius: 999, marginBottom: 8,
+          background: 'var(--film-2)', color: 'var(--faint)',
         }}>ARTESANAL</span>
       )}
 
       <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
+          {/* El paso más grande de la escala, y es el único lugar donde se
+              usa. Estaba a la misma altura que el número de una baldosa de
+              estadística del perfil; esto es el dato que la app existe para
+              contestar y tiene que verse como tal. */}
           <div className="num" style={{
-            fontSize: 34, letterSpacing: '-.02em',
+            fontSize: 'var(--t-9)', lineHeight: 1.05, letterSpacing: '-.03em',
             color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!, currency)}</div>
 
@@ -824,10 +828,10 @@ function PriceRow({
               rápido como el monto — y cuando el precio está viejo, el aviso es
               lo que hay que leer primero. */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 7,
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8,
             padding: dim ? '4px 10px' : 0, borderRadius: 999,
-            background: dim ? 'rgba(255,255,255,.06)' : 'transparent',
-            fontSize: 12.5, color,
+            background: dim ? 'var(--film-2)' : 'transparent',
+            fontSize: 'var(--t-2)', color,
           }}>
             <span aria-hidden style={{
               width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
@@ -839,28 +843,28 @@ function PriceRow({
             decirlo es ruido; si no lo es, cambia el precio y hay que saberlo. */}
         {price.sizeMl !== 473 && (
           <div className="num" style={{
-            fontSize: 13, color: 'var(--muted)', flexShrink: 0,
-            padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.06)',
+            fontSize: 'var(--t-3)', color: 'var(--muted)', flexShrink: 0,
+            padding: '4px 12px', borderRadius: 999, background: 'var(--film-2)',
           }}>{price.sizeMl} ml</div>
         )}
       </div>
 
       {dim && (
         <p style={{
-          margin: '10px 0 0', padding: 10, borderRadius: 10, fontSize: 11,
+          margin: '12px 0 0', padding: 12, borderRadius: 'var(--r-1)', fontSize: 'var(--t-1)',
           background: 'rgba(255,122,102,.1)', color: 'var(--muted)',
         }}>
           Este precio tiene más de 45 días. Con la inflación, tomalo como referencia nomás.
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button disabled={busy} onClick={onConfirm} className="lbl" data-tour="bar-confirm" style={{
-          flex: 1, padding: 11, borderRadius: 12,
+          flex: 1, padding: 12, borderRadius: 'var(--r-2)',
           background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
         }}>{busy ? '…' : 'Sigue igual'}</button>
         <button disabled={busy} onClick={onUpdate} className="lbl" style={{
-          padding: '11px 20px', borderRadius: 12, background: 'rgba(255,255,255,.07)',
+          padding: '12px 24px', borderRadius: 'var(--r-2)', background: 'var(--film-2)',
         }}>Actualizar</button>
       </div>
 
@@ -868,11 +872,11 @@ function PriceRow({
           Antes iban apretadas contra el borde derecho, debajo de la fecha,
           y competían visualmente con ella. */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 14, marginTop: 12,
-        fontSize: 12, color: 'var(--faint)',
+        display: 'flex', alignItems: 'center', gap: 16, marginTop: 12,
+        fontSize: 'var(--t-2)', color: 'var(--faint)',
       }}>
         <button onClick={onHistory} style={{
-          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+          fontSize: 'var(--t-2)', color: 'var(--muted)', padding: '10px 0', minHeight: 44,
         }}>
           Ver historial
         </button>
@@ -882,7 +886,7 @@ function PriceRow({
             hace el botón de al lado. Cualquiera puede usarlo, no sólo
             moderadores — quien ve el precio mal es el que está parado ahí. */}
         <button onClick={onFlag} style={{
-          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+          fontSize: 'var(--t-2)', color: 'var(--muted)', padding: '10px 0', minHeight: 44,
         }}>
           Este precio está mal
         </button>
@@ -890,7 +894,7 @@ function PriceRow({
           <>
             <span style={{ marginLeft: 'auto' }} />
             <button disabled={busy} onClick={onRemove} style={{
-              fontSize: 12, color: 'var(--danger)',
+              fontSize: 'var(--t-2)', color: 'var(--danger)',
             }}>Eliminar</button>
           </>
         )}
@@ -976,7 +980,7 @@ function PhotoViewer({
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain',
-          borderRadius: 12, display: 'block',
+          borderRadius: 'var(--r-2)', display: 'block',
         }}
       />
 
@@ -995,7 +999,7 @@ function PhotoViewer({
           position: 'absolute', left: 0, right: 0,
           bottom: `calc(22px + var(--safe-bottom))`,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          color: 'var(--muted)', fontSize: 12.5,
+          color: 'var(--muted)', fontSize: 'var(--t-2)',
         }}
       >
         <span>
@@ -1008,8 +1012,8 @@ function PhotoViewer({
                       persona (BIR-6). */}
                   <button onClick={() => nav(`/usuario/${photo.authorId}`)} className="lbl"
                     style={{
-                      color: 'var(--muted)', fontSize: 12.5, textDecoration: 'underline',
-                      textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                      color: 'var(--muted)', fontSize: 'var(--t-2)', textDecoration: 'underline',
+                      textDecorationColor: 'var(--film-3)', textUnderlineOffset: 3,
                     }}>{photo.authorName}</button>
                   {' · '}
                 </>
@@ -1023,7 +1027,7 @@ function PhotoViewer({
             justo donde nadie la está mirando cuando se da cuenta. */}
         {(photo.mine || modMode) && (
           <button onClick={() => onRemove(photo)} className="lbl" style={{
-            padding: '8px 16px', borderRadius: 999, fontSize: 12.5,
+            padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-2)',
             background: 'rgba(255,122,102,.16)', color: 'var(--danger)',
           }}>{photo.mine ? 'Borrar tu foto' : 'Eliminar esta foto'}</button>
         )}
@@ -1032,7 +1036,7 @@ function PhotoViewer({
       <button onClick={onClose} aria-label="Cerrar" style={{
         position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
         width: 40, height: 40, borderRadius: '50%',
-        background: 'rgba(255,255,255,.12)', color: 'var(--cream)', fontSize: 20,
+        background: 'var(--hairline)', color: 'var(--cream)', fontSize: 'var(--t-6)',
       }}>×</button>
     </div>
   )
@@ -1050,7 +1054,7 @@ function ViewerArrow({
         position: 'absolute', top: '50%', transform: 'translateY(-50%)',
         [side]: 14, width: 44, height: 44, borderRadius: '50%',
         display: 'grid', placeItems: 'center',
-        background: 'rgba(255,255,255,.12)', color: 'var(--cream)',
+        background: 'var(--hairline)', color: 'var(--cream)',
         opacity: disabled ? 0.25 : 1,
         cursor: disabled ? 'default' : 'pointer',
       }}
@@ -1084,7 +1088,7 @@ function BeerRating({
   const mine = myRating != null
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
     }} data-tour="bar-rating">
       {/* Tocar una estrella guarda el voto, sin abrir nada. Antes abría la
           hoja de comentarios con el valor elegido: un rodeo que existía sólo
@@ -1098,8 +1102,8 @@ function BeerRating({
           enteros y para un 3,5 hay que escribirlo. */}
       {canRate && (
         <label style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 11.5, color: 'var(--faint)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 'var(--t-2)', color: 'var(--faint)',
         }}>
           <span>tu nota</span>
           <RatingField rating={myRating} onCommit={onRate} />
@@ -1107,7 +1111,7 @@ function BeerRating({
       )}
 
       {price.ratingCount > 0 ? (
-        <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
           {/* `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage y sirve
               para ordenar, pero mostrarle 3,8 a alguien que acaba de poner
               cinco estrellas hace que el número parezca roto. El conteo al
@@ -1118,7 +1122,7 @@ function BeerRating({
         </span>
       ) : (
         <span style={{
-          marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)',
+          marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)',
         }}>Sin votos</span>
       )}
 
@@ -1129,7 +1133,7 @@ function BeerRating({
 function PrimaryAction({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="lbl" style={{
-      width: '100%', padding: 14, borderRadius: 14, marginTop: 14,
+      width: '100%', padding: 16, borderRadius: 'var(--r-3)', marginTop: 16,
       background: 'var(--amber)', color: 'var(--base)',
     }}>{label}</button>
   )
@@ -1139,7 +1143,7 @@ function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-      textAlign: 'center', padding: 28,
+      textAlign: 'center', padding: 32,
     }}>{children}</div>
   )
 }

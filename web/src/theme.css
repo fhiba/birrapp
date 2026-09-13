@@ -12,12 +12,86 @@
 
   --cream: #FBF6EE;
   --muted: #B6A899;
-  --faint: #8A7B6D;
+  /*
+   * Aclarado de #8A7B6D a #9C8E82.
+   *
+   * El original daba 4,46:1 sobre --base, 4,01 sobre --raised y 3,50 sobre
+   * --elevated: por debajo del 4,5:1 que pide WCAG 1.4.3 para texto chico en
+   * las tres superficies. Y es el color de 106 textos de la app, casi todos
+   * de 11 y 12px — o sea, exactamente el caso que la regla cubre.
+   *
+   * El tono y la saturación no se tocan, sólo la luminosidad, lo justo para
+   * llegar a 4,50 sobre la superficie más clara (que es el peor caso).
+   */
+  --faint: #9C8E82;
   --danger:#FF7A66;
 
   --fresh: #5FD98D;
   --aging: #FFB627;
-  --stale: #9C8C7C;
+  /* Mismo caso que --faint: 4,40:1 sobre --elevated. */
+  --stale: #9D8E7E;
+
+  /* ---------- Escalas ----------
+   *
+   * Antes de esto la app tenía 26 tamaños de letra, 14 radios y 18 blancos
+   * translúcidos distintos, todos escritos a mano pantalla por pantalla. No
+   * es que estuvieran mal elegidos de a uno: es que elegirlos de a uno es el
+   * problema. Un valor por fuera de una escala no se nota solo, se nota
+   * apilado contra sus vecinos, y ahí es donde una interfaz deja de verse
+   * hecha y pasa a verse armada.
+   */
+
+  /* Tipografía, ~1,15-1,25 entre pasos. */
+  --t-1: 11px;   /* etiquetas en mayúscula con tracking */
+  --t-2: 12px;   /* metadatos, pies */
+  --t-3: 13px;   /* secundario */
+  --t-4: 15px;   /* cuerpo */
+  --t-5: 17px;   /* destacado */
+  --t-6: 20px;   /* título de hoja */
+  --t-7: 25px;   /* título de pantalla */
+  --t-8: 30px;   /* número grande */
+  --t-9: 38px;   /* el precio: el dato que la app viene a contestar */
+  --t-10: 48px;  /* el monto que se está tecleando, único en su pantalla */
+
+  /*
+   * Piso de los campos de texto, y no es una decisión de diseño.
+   *
+   * Safari en iOS acerca el viewport al enfocar un campo de menos de 16px, y
+   * al volver no lo aleja: quedás con la app en zoom y hay que pellizcar para
+   * salir. Antes lo tapaba `maximum-scale=1` en el meta viewport, pero eso
+   * bloquea el zoom de toda la página, que es un incumplimiento de WCAG 1.4.4
+   * y se sacó en v0.10.0. Desde entonces la única defensa es el tamaño.
+   *
+   * Al revisar quedó que estaban *todos* mal: seis campos a 15px, el de la nota
+   * a 13 y el de confirmación heredando 15. El de búsqueda tenía el comentario
+   * que explicaba los 16px justo arriba del 15.
+   */
+  --t-field: 16px;
+
+  /* Espaciado. La regla que lo hace funcionar no es la escala sino usarla
+     para agrupar: el aire entre grupos tiene que superar al de adentro. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Radios. Cuanto más grande la caja, más grande la esquina. */
+  --r-1: 8px;    /* píldoras chicas, barras de progreso */
+  --r-2: 12px;   /* controles, campos */
+  --r-3: 16px;   /* tarjetas */
+  --r-4: 22px;   /* hojas y lo que se apoya contra un borde */
+
+  /* Películas: "una superficie apenas elevada sobre la de atrás". Cuatro
+     pasos alcanzan para todo lo que la app hacía con dieciocho. */
+  --film-1: rgba(255,255,255,.04);   /* fondo de zona */
+  --film-2: rgba(255,255,255,.07);   /* control en reposo */
+  --film-3: rgba(255,255,255,.22);   /* borde de algo que flota */
+  /* Para bordes y separadores está --hairline, que ya existía y es este mismo
+     valor: dos nombres para una cosa es la inconsistencia que veníamos
+     sacando, en chico. */
 
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -62,7 +136,19 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 input, textarea { font: inherit; color: inherit; }
 a { color: var(--amber); }
 
-.num { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
+/* Cifras tabulares en todo lo que sea un número.
+ *
+ * Con cifras proporcionales el 1 es más angosto que el 8, así que una columna
+ * de precios queda desalineada y comparar dos filas obliga a leerlas en vez de
+ * mirarlas. En una lista cuyo trabajo es justamente comparar precios, eso es
+ * el trabajo de la pantalla saliendo mal. También evita que un contador baile
+ * al pasar de 9 a 10. */
+.num {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
 .ttl { font-family: var(--display); font-weight: 700; letter-spacing: -.03em; }
 .lbl { font-family: var(--display); font-weight: 500; }
 
@@ -199,7 +285,7 @@ a { color: var(--amber); }
 /* Con mouse conviene marcar lo tocable. */
 @media (hover: hover) {
   button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
-  .row-hover:hover { background: rgba(255,255,255,.04); }
+  .row-hover:hover { background: var(--film-1); }
 }
 
 /* Los gráficos de análisis: en un teléfono el dashboard tiene que contestar
@@ -333,3 +419,77 @@ a { color: var(--amber); }
   from { transform: translateY(14px); opacity: 0; }
   to   { transform: none; opacity: 1; }
 }
+
+/* ---------- Piezas que se repetían ----------
+ *
+ * `SectionLabel` estaba definido cinco veces, con cinco combinaciones apenas
+ * distintas de tamaño, color y márgenes; la baldosa de estadística, tres. No
+ * eran variantes con intención: eran copias que se fueron separando. Acá van
+ * una vez, en CSS, y los componentes de React quedan en `ui/Kit.tsx`.
+ */
+
+/* El encabezado chico en mayúscula que separa zonas de una pantalla larga.
+   Va tracking porque la mayúscula sin él se lee apretada, y va --faint
+   porque una etiqueta acompaña al dato, no compite con él. */
+.section-label {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: var(--t-1);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: var(--s-5) 0 var(--s-2);
+}
+
+/* La baldosa de un número con su etiqueta. El número manda: grande, en la
+   tipografía de display; la etiqueta es chica y apagada. Es la jerarquía de
+   Refactoring UI para una métrica —dato grande, contexto chico— y es lo que
+   hace que el perfil se lea de un vistazo en vez de leerse. */
+.tile {
+  padding: var(--s-3);
+  border-radius: var(--r-3);
+  background: var(--raised);
+  min-width: 0;
+}
+
+/* Fila de lista con separador. El separador es el último recurso: agrupa
+   mejor el espaciado, pero en listas densas de datos comparables la línea
+   ayuda a seguir el renglón. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3) 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ---------- Mapa de calor del calendario (BIR-42) ----------
+ *
+ * Antes la intensidad era una sola rampa de opacidad continua sobre el mismo
+ * ámbar, relativa al mejor día del mes. Dos problemas: con un mes parejo
+ * todos los días quedaban casi del mismo tono —que es justo cuando el mapa de
+ * calor tendría que estar diciendo algo— y la opacidad sola no distingue dos
+ * niveles vecinos a simple vista.
+ *
+ * Ahora son cinco escalones discretos que además **se corren de tono**: del
+ * ámbar apagado al ámbar pleno. El ojo distingue un salto de tono mucho mejor
+ * que un salto de opacidad, y al ser escalones fijos "dos" se ve igual en
+ * enero que en julio.
+ *
+ * Los cortes son por cantidad absoluta y no por proporción del mejor día: el
+ * nivel tiene que significar lo mismo en todos los meses.
+ */
+.heat-0 { background: var(--film-1); color: var(--faint); }
+.heat-1 { background: #4A3B22; color: #E8D9BE; }
+.heat-2 { background: #7A5D1E; color: #FFF3DA; }
+.heat-3 { background: #B88710; color: var(--base); }
+.heat-4 { background: var(--amber); color: var(--base); }
+
+/* Red de seguridad del piso de 16px: cubre los campos que no traen tamaño
+   propio. Los que sí lo traen lo ponen inline, que gana por especificidad, así
+   que ahí la regla es usar --t-field y no un paso de la escala. */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea,
+select { font-size: var(--t-field); }

@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm, Toast } from '../ui/Chrome'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
+import { Screen, SectionLabel, Tile } from '../ui/Kit'
 
 /**
  * El perfil de otra persona (BIR-6).
@@ -52,22 +53,22 @@ export function PersonScreen({ user }: { user: User | null }) {
   }
 
   if (error) return (
-    <Wrap onBack={() => nav(-1)}>
+    <Screen onBack={() => nav(-1)}>
       <Empty
         title="No pudimos abrir este perfil"
         hint={error}
         action="Reintentar"
         onAction={load}
       />
-    </Wrap>
+    </Screen>
   )
   if (!person) return <PintLoader message="Buscando…" />
 
   const esVos = user?.id === person.id
 
   return (
-    <Wrap onBack={() => nav(-1)}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+    <Screen onBack={() => nav(-1)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {person.avatarUrl ? (
           <img src={person.avatarUrl} alt="" width={64} height={64}
             style={{ borderRadius: '50%', objectFit: 'cover' }} />
@@ -75,12 +76,12 @@ export function PersonScreen({ user }: { user: User | null }) {
           <div className="num" style={{
             width: 64, height: 64, borderRadius: '50%', display: 'grid',
             placeItems: 'center', background: 'var(--elevated)',
-            color: 'var(--muted)', fontSize: 24,
+            color: 'var(--muted)', fontSize: 'var(--t-7)',
           }}>{person.displayName.charAt(0).toUpperCase()}</div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="ttl" style={{ fontSize: 24, margin: 0 }}>{person.displayName}</h1>
-          <p style={{ color: 'var(--faint)', fontSize: 12.5, margin: '4px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{person.displayName}</h1>
+          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 0' }}>
             {person.ageDays < 1 ? 'Se sumó hoy'
               : person.ageDays === 1 ? 'Se sumó ayer'
               : `Acá desde hace ${person.ageDays} días`}
@@ -92,19 +93,19 @@ export function PersonScreen({ user }: { user: User | null }) {
           información pública, sería una lista de escarmiento. */}
       {person.banned && (
         <div style={{
-          marginTop: 16, padding: '10px 13px', borderRadius: 11, fontSize: 12.5,
+          marginTop: 16, padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
           background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
         }}>Cuenta suspendida — no puede aportar nada</div>
       )}
 
       <SectionLabel>Lo que aportó</SectionLabel>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }}>
-        <Stat label="Precios" value={person.prices} />
-        <Stat label="Bares" value={person.bars} />
-        <Stat label="Fotos" value={person.photos} />
-        <Stat label="Notas" value={person.ratings} />
+        <Tile label="Precios" value={person.prices} />
+        <Tile label="Bares" value={person.bars} />
+        <Tile label="Fotos" value={person.photos} />
+        <Tile label="Notas" value={person.ratings} />
       </div>
 
       {!esVos && user && (
@@ -117,7 +118,7 @@ export function PersonScreen({ user }: { user: User | null }) {
               : setConfirm('block')}
             className="lbl"
             style={{
-              width: '100%', padding: 15, borderRadius: 14, textAlign: 'left', fontSize: 14,
+              width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
               background: person.blocked ? 'var(--elevated)' : 'rgba(255,122,102,.12)',
               color: person.blocked ? 'var(--cream)' : 'var(--danger)',
             }}
@@ -125,7 +126,7 @@ export function PersonScreen({ user }: { user: User | null }) {
             {person.blocked ? 'Desbloquear a esta persona' : 'Bloquear a esta persona'}
           </button>
           <p style={{
-            color: 'var(--faint)', fontSize: 11.5, margin: '8px 0 0', lineHeight: 1.5,
+            color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
             {person.blocked
               ? 'Ahora mismo no ven los comentarios ni las fotas del otro. Sus precios siguen en el mapa: son datos sobre bares.'
@@ -144,13 +145,13 @@ export function PersonScreen({ user }: { user: User | null }) {
               : setConfirm('ban')}
             className="lbl"
             style={{
-              width: '100%', padding: 15, borderRadius: 14, textAlign: 'left', fontSize: 14,
+              width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
               background: person.banned ? 'var(--elevated)' : 'rgba(255,122,102,.12)',
               color: person.banned ? 'var(--cream)' : 'var(--danger)',
             }}
           >{person.banned ? 'Levantar la suspensión' : 'Suspender la cuenta'}</button>
           <p style={{
-            color: 'var(--faint)', fontSize: 11.5, margin: '8px 0 0', lineHeight: 1.5,
+            color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
             Suspender corta al toque: deja de poder cargar precios, comentar y
             puntuar. Lo que ya cargó queda — para bajar algo puntual, se baja
@@ -191,36 +192,9 @@ export function PersonScreen({ user }: { user: User | null }) {
       )}
 
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
-      <div style={{ height: 30 }} />
-    </Wrap>
+    </Screen>
   )
 }
 
-function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, overflowY: 'auto',
-      padding: `calc(var(--safe-top) + 12px) 20px calc(24px + var(--nav-gap))`,
-    }}>
-      <div className="desk-narrow">
-        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)', marginBottom: 18 }} aria-label="Volver">←</button>
-        {children}
-      </div>
-    </div>
-  )
-}
 
-const Stat = ({ label, value }: { label: string; value: number }) => (
-  <div style={{ padding: '13px 14px', borderRadius: 14, background: 'var(--raised)' }}>
-    <div className="num" style={{
-      fontSize: 20, color: value > 0 ? 'var(--amber)' : 'var(--faint)',
-    }}>{value}</div>
-    <div style={{ fontSize: 11.5, color: 'var(--faint)', marginTop: 3 }}>{label}</div>
-  </div>
-)
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '28px 0 10px',
-  }}>{String(children).toUpperCase()}</h2>
-)

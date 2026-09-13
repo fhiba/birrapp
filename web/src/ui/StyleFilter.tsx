@@ -38,13 +38,13 @@ export function StyleFilter({
         className={active ? 'lbl pill' : idle}
         aria-label="Filtrar por estilo"
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
+          display: 'flex', alignItems: 'center', gap: 8,
           height: size, padding: active ? '0 14px' : 0, width: active ? undefined : size,
           justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
           background: active ? 'var(--amber)'
-            : tone === 'plain' ? 'rgba(255,255,255,.07)' : undefined,
+            : tone === 'plain' ? 'var(--film-2)' : undefined,
           color: active ? 'var(--base)' : 'var(--muted)',
-          fontSize: 12,
+          fontSize: 'var(--t-2)',
         }}
       >
         <svg width={active ? 15 : 18} height={active ? 15 : 18} viewBox="0 0 24 24"
@@ -60,8 +60,8 @@ export function StyleFilter({
           <div style={{
             position: 'absolute', left: 0, top: size + 6, zIndex: 21, minWidth: 190,
             maxHeight: 320, overflowY: 'auto',
-            background: 'var(--elevated)', borderRadius: 14, padding: 6,
-            border: '.8px solid rgba(255,255,255,.12)',
+            background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: 8,
+            border: '.8px solid var(--hairline)',
             boxShadow: '0 10px 34px rgba(0,0,0,.5)',
           }}>
             <MenuItem on={selected == null} onClick={() => { onSelect(undefined); setOpen(false) }}>
@@ -86,7 +86,7 @@ function MenuItem(
   return (
     <button onClick={onClick} className="lbl row-hover" style={{
       display: 'block', width: '100%', textAlign: 'left',
-      padding: '10px 12px', borderRadius: 10, fontSize: 13.5,
+      padding: '12px 12px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-3)',
       color: on ? 'var(--amber)' : 'var(--cream)',
     }}>{children}</button>
   )

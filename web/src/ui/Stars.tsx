@@ -36,14 +36,14 @@ export function Stars({
               padding: 0, lineHeight: 0, cursor: onRate ? 'pointer' : 'default',
               // Sin esto el área tocable son los ~14px del glifo, por debajo
               // del mínimo cómodo en un teléfono.
-              ...(onRate ? { padding: 3, margin: -3 } : {}),
+              ...(onRate ? { padding: 4, margin: -3 } : {}),
             }}
           >
             <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
               <defs>
                 <linearGradient id={`s${n}-${pct}-${mine}`}>
                   <stop offset={`${pct}%`} stopColor={color} />
-                  <stop offset={`${pct}%`} stopColor="rgba(255,255,255,.14)" />
+                  <stop offset={`${pct}%`} stopColor="var(--hairline)" />
                 </linearGradient>
               </defs>
               <path
@@ -113,7 +113,7 @@ export function RatingField({ rating, onCommit }: {
         setText(n != null ? String(n) : real)
       }}
       style={{
-        width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
+        width: 56, padding: '4px 8px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-field)',
         background: 'transparent', border: '1px solid var(--hairline)',
         color: 'inherit', fontFamily: 'inherit',
       }}

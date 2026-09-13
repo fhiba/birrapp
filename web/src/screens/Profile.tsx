@@ -6,6 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
+import { SectionLabel, Tile } from '../ui/Kit'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -49,25 +50,25 @@ export function ProfileScreen({ user, onSession }: {
 
   if (!user) return (
     <Wrap>
-      <h1 className="ttl" style={{ fontSize: 30, margin: 0 }}>birrapp</h1>
-      <p style={{ color: 'var(--muted)', margin: '10px 0 26px' }}>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-8)', margin: 0 }}>birrapp</h1>
+      <p style={{ color: 'var(--muted)', margin: '12px 0 24px' }}>
         Para cargar precios hace falta una cuenta. Mirar el mapa no.
       </p>
       <button onClick={login} disabled={busy} className="lbl" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 11,
-        width: '100%', padding: 15, borderRadius: 14,
-        background: 'var(--cream)', color: 'var(--base)', fontSize: 15,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+        width: '100%', padding: 16, borderRadius: 'var(--r-3)',
+        background: 'var(--cream)', color: 'var(--base)', fontSize: 'var(--t-4)',
       }}>
         {busy ? <span className="spinner" /> : <><GoogleG /> Continuar con Google</>}
       </button>
-      {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 16 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 16 }}>{error}</p>}
       <Footer />
     </Wrap>
   )
 
   return (
     <Wrap>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
         {/* La foto se edita en configuración; acá sólo se ve. Un perfil sin
             cara es una lista de números con un nombre arriba. */}
         {user.avatarUrl ? (
@@ -77,23 +78,20 @@ export function ProfileScreen({ user, onSession }: {
           <div className="num" aria-hidden style={{
             width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
             display: 'grid', placeItems: 'center',
-            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 22,
+            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 'var(--t-6)',
           }}>{user.displayName.charAt(0).toUpperCase()}</div>
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="ttl" style={{ fontSize: 26, margin: 0 }}>{user.displayName}</h1>
-          <p style={{ color: 'var(--faint)', fontSize: 13, margin: '4px 0 0' }}>{user.email}</p>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{user.displayName}</h1>
+          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{user.email}</p>
         </div>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
             leer una lista para encontrar la configuración, la busca arriba a
             la derecha. */}
-        <button onClick={() => nav('/config')} aria-label="Configuración" style={{
-          width: 42, height: 42, borderRadius: '50%', marginRight: 8,
-          display: 'grid', placeItems: 'center',
-          background: 'rgba(255,255,255,.07)', color: 'var(--muted)',
-        }}>
+        <button onClick={() => nav('/config')} aria-label="Configuración" className="icon-btn"
+          style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2L1.1 8.9a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
           </svg>
@@ -101,15 +99,13 @@ export function ProfileScreen({ user, onSession }: {
 
         {/* Salir arriba a la derecha, con su color: es una acción de sesión,
             no una opción más de la lista. */}
-        <button onClick={() => setConfirm('out')} aria-label="Cerrar sesión" style={{
-          width: 42, height: 42, borderRadius: '50%',
-          background: 'rgba(255,122,102,.13)', color: 'var(--danger)',
-        }}>⇥</button>
+        <button onClick={() => setConfirm('out')} aria-label="Cerrar sesión" className="icon-btn"
+          style={{ background: 'rgba(255,122,102,.13)', color: 'var(--danger)' }}>⇥</button>
       </div>
 
       <span className="lbl pill" style={{
-        display: 'inline-block', marginTop: 18, padding: '6px 12px', fontSize: 12,
-        background: isModerator(user) ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
+        display: 'inline-block', marginTop: 16, padding: '8px 12px', fontSize: 'var(--t-2)',
+        background: isModerator(user) ? 'var(--amber-soft)' : 'var(--film-2)',
         color: isModerator(user) ? 'var(--amber)' : 'var(--muted)',
       }}>
         {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderador' : 'Usuario'}
@@ -126,16 +122,16 @@ export function ProfileScreen({ user, onSession }: {
           donde uno la busca, y se distingue por el corazón del contador, no
           por estar en otro lado. */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }} data-tour="profile-stats">
-        <Stat label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
-        <Stat label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
-        <Stat label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
-        <Stat label="Birras tomadas" value={beers ?? undefined}
+        <Tile label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
+        <Tile label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
+        <Tile label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
+        <Tile label="Birras tomadas" value={beers ?? undefined}
           onClick={() => nav('/mis-birras')} />
       </div>
 
-      <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
+      <div style={{ marginTop: 32, display: 'grid', gap: 12 }}>
         {/* El contador va acá y no sólo adentro de Moderación: si hay que
             entrar para enterarse de que hay algo que hacer, nadie entra. */}
         {isModerator(user) && (
@@ -174,43 +170,25 @@ export function ProfileScreen({ user, onSession }: {
 const Wrap = ({ children }: { children: React.ReactNode }) => (
   <div style={{
     position: 'absolute', inset: 0, overflowY: 'auto',
-    padding: `calc(28px + var(--safe-top)) 22px calc(108px + var(--nav-gap))`,
+    padding: `calc(var(--s-6) + var(--safe-top)) var(--s-5) calc(var(--s-7) + var(--s-6) + var(--nav-gap))`,
   }}><div className="desk-narrow">{children}</div></div>
 )
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '26px 0 12px',
-  }}>{String(children).toUpperCase()}</h2>
-)
 
-const Stat = ({ label, value, onClick }: {
-  label: string; value?: number; onClick: () => void
-}) => (
-  <button onClick={onClick} style={{
-    flex: 1, padding: '14px 0', borderRadius: 14, textAlign: 'center',
-    background: 'rgba(255,255,255,.05)',
-  }}>
-    <div className="num" style={{
-      fontSize: 19, color: (value ?? 0) > 0 ? 'var(--amber)' : 'var(--faint)',
-    }}>{value ?? '—'}</div>
-    <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{label}</div>
-  </button>
-)
 
 const Row = ({ label, onClick, danger, badge }: {
   label: string; onClick: () => void; danger?: boolean; badge?: number
 }) => (
   <button onClick={onClick} className="lbl" style={{
-    display: 'flex', alignItems: 'center', gap: 10,
-    width: '100%', padding: '15px 18px', borderRadius: 14, textAlign: 'left',
-    background: 'rgba(255,255,255,.06)', color: danger ? 'var(--danger)' : 'var(--cream)',
+    display: 'flex', alignItems: 'center', gap: 12,
+    width: '100%', padding: '16px 16px', borderRadius: 'var(--r-3)', textAlign: 'left',
+    background: 'var(--film-2)', color: danger ? 'var(--danger)' : 'var(--cream)',
   }}>
     <span style={{ flex: 1 }}>{label}</span>
     {badge != null && badge > 0 && (
       <span className="num" style={{
         minWidth: 22, height: 22, padding: '0 7px', borderRadius: 999,
-        display: 'grid', placeItems: 'center', fontSize: 12,
+        display: 'grid', placeItems: 'center', fontSize: 'var(--t-2)',
         background: 'var(--amber)', color: 'var(--base)',
       }}>{badge}</span>
     )}
@@ -218,8 +196,8 @@ const Row = ({ label, onClick, danger, badge }: {
 )
 
 const Footer = () => (
-  <div style={{ marginTop: 34 }}>
-    <p style={{ color: 'var(--faint)', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+  <div style={{ marginTop: 'var(--s-6)' }}>
+    <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5, margin: 0 }}>
       birrapp {__APP_VERSION__}<br />
       datos de bares © colaboradores de OpenStreetMap
     </p>
@@ -227,7 +205,7 @@ const Footer = () => (
         actualización tiene que estar igual: alguien puede quedar trabado en
         una versión vieja antes de siquiera loguearse. */}
     <button onClick={forceUpdate} style={{
-      color: 'var(--muted)', fontSize: 11, marginTop: 10, textDecoration: 'underline',
+      color: 'var(--muted)', fontSize: 'var(--t-1)', marginTop: 12, textDecoration: 'underline',
     }}>Buscar actualización</button>
   </div>
 )

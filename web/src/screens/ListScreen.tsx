@@ -230,8 +230,8 @@ export function ListScreen(p: Props) {
         position: 'sticky', top: 0, zIndex: 5,
         padding: `calc(14px + var(--safe-top)) 18px 10px`,
         background: 'var(--base)',
-        borderBottom: '1px solid rgba(255,255,255,.06)',
-        display: 'flex', flexDirection: 'column', gap: 10,
+        borderBottom: '1px solid var(--film-2)',
+        display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         {/*
           Los dos filtros flanquean la búsqueda, y no viven en la franja de
@@ -254,16 +254,16 @@ export function ListScreen(p: Props) {
               value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Buscar un bar" type="search"
               style={{
-                width: '100%', padding: '11px 34px 11px 13px', borderRadius: 12,
-                background: 'rgba(255,255,255,.06)', border: '1px solid var(--hairline)',
-                // 16px: abajo de eso, iOS acerca la pantalla al enfocar.
-                fontSize: 16,
+                width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
+                background: 'var(--film-2)', border: '1px solid var(--hairline)',
+                // Ver --t-field: abajo de 16px iOS acerca la pantalla al enfocar.
+                fontSize: 'var(--t-field)',
               }}
             />
             {query !== '' && (
               <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
-                position: 'absolute', right: 4, top: 0, bottom: 0, width: 30,
-                color: 'var(--faint)', fontSize: 16,
+                position: 'absolute', right: 2, top: 0, bottom: 0, width: 44,
+                color: 'var(--faint)', fontSize: 'var(--t-5)',
               }}>×</button>
             )}
           </div>
@@ -277,7 +277,7 @@ export function ListScreen(p: Props) {
               aria-label={favOnly ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
               className="icon-btn"
               style={{
-                background: favOnly ? 'var(--amber)' : 'rgba(255,255,255,.07)',
+                background: favOnly ? 'var(--amber)' : 'var(--film-2)',
                 color: favOnly ? 'var(--base)' : 'var(--muted)',
               }}
             >
@@ -294,14 +294,14 @@ export function ListScreen(p: Props) {
             ordenados por cercanía y no por lo que diga esta píldora. Mostrarla
             igual sería ofrecer un control que no hace nada. */}
         {isSearch ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-3)' }}>
             <span style={{ color: 'var(--muted)' }}>
               {searching ? 'Buscando…'
                 : shown.length === 0 ? 'Sin resultados'
                 : shown.length === 1 ? '1 resultado' : `${shown.length} resultados`}
             </span>
             <button onClick={() => setQuery('')} className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--amber)', fontSize: 13,
+              marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-3)',
             }}>Volver a la lista</button>
           </div>
         ) : (
@@ -322,7 +322,7 @@ export function ListScreen(p: Props) {
             {/* El conteo es el dato de la pantalla, no un control. Cifras
                 tabulares para que no baile al pasar de 9 a 10. */}
             <span className="num" style={{
-              marginLeft: 'auto', flexShrink: 0, fontSize: 17, color: 'var(--faint)',
+              marginLeft: 'auto', flexShrink: 0, fontSize: 'var(--t-5)', color: 'var(--faint)',
               fontVariantNumeric: 'tabular-nums',
             }}>{shown.length}</span>
           </div>
@@ -348,12 +348,12 @@ export function ListScreen(p: Props) {
             // sin esto no hay forma de saber desde dónde se mide.
             <button onClick={p.onClearSimulated} className="pill" style={{
               background: 'var(--amber-soft)', color: 'var(--amber)',
-              padding: '5px 10px', fontSize: 12,
+              padding: '4px 12px', fontSize: 'var(--t-2)',
             }}>Desde el punto elegido ✕</button>
           ) : (
-            <span style={{ color: 'var(--faint)', fontSize: 12 }}>Desde tu ubicación</span>
+            <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>Desde tu ubicación</span>
           )}
-          <span className="lbl" style={{ marginLeft: 'auto', color: 'var(--amber)', fontSize: 13 }}>
+          <span className="lbl" style={{ marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-3)' }}>
             {formatRadius(p.radius)}
           </span>
         </div>
@@ -363,7 +363,7 @@ export function ListScreen(p: Props) {
           className="range" type="range" min={300} max={15000} step={100}
           value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
           style={{
-            marginTop: 6,
+            marginTop: 8,
             ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,
           }}
         />
@@ -381,7 +381,7 @@ export function ListScreen(p: Props) {
       {busy && shown.length === 0 && <SkeletonRows />}
 
       {busy && shown.length > 0 && (
-        <div className="skeleton" style={{ height: 2, margin: '8px 18px' }} />
+        <div className="skeleton" style={{ height: 2, margin: '8px 16px' }} />
       )}
 
       {!busy && shown.length === 0 && (
@@ -409,26 +409,26 @@ export function ListScreen(p: Props) {
         )
       )}
 
-      <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
+      <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0 }}>
         {shown.map(b => (
           <li key={b.id}>
             <button className="row-hover" onClick={() => nav(`/bar/${b.id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 14, width: '100%',
-              padding: '15px 18px', textAlign: 'left',
-              borderBottom: '1px solid rgba(255,255,255,.06)',
+              display: 'flex', alignItems: 'center', gap: 16, width: '100%',
+              padding: '16px 16px', textAlign: 'left',
+              borderBottom: '1px solid var(--film-2)',
             }}>
               {/* Barra de frescura: se escanea en vertical sin leer nada. */}
               <span style={{
                 width: 3, height: 34, borderRadius: 999, flexShrink: 0,
                 background: b.fromPrice != null
-                  ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.12)',
+                  ? ageColor(b.freshestAgeDays) : 'var(--hairline)',
               }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="lbl" style={{
-                  display: 'block', fontSize: 16, whiteSpace: 'nowrap',
+                  display: 'block', fontSize: 'var(--t-4)', whiteSpace: 'nowrap',
                   overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{b.name}</span>
-                <span style={{ fontSize: 12, color: 'var(--faint)' }}>
+                <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                   {formatDistance(b.distanceMeters)}
                   {b.freshestAgeDays != null && (
                     <> · <span style={{ color: ageColor(b.freshestAgeDays) }}>
@@ -448,9 +448,22 @@ export function ListScreen(p: Props) {
                   )}
                 </span>
               </span>
+              {/* El precio, alineado a la derecha y en su propia columna.
+                  Antes iba a 17px contra un nombre de bar de 15: dos datos
+                  casi del mismo peso, y el que la pantalla viene a contestar
+                  perdiendo contra el que sólo sirve para ubicarlo. Ahora es lo
+                  más grande de la fila.
+                  El ancho mínimo es lo que arma la columna: sin él cada precio
+                  empieza donde termina su nombre, y comparar dos filas obliga
+                  a buscar el número en cada una. */}
               {b.fromPrice != null
-                ? <span className="num" style={{ fontSize: 19 }}>{formatPrice(b.fromPrice, b.currency)}</span>
-                : <span style={{ fontSize: 12, color: 'var(--faint)' }}>Sin precio</span>}
+                ? <span className="num" style={{
+                    fontSize: 'var(--t-6)', flexShrink: 0, textAlign: 'right', minWidth: 72,
+                  }}>{formatPrice(b.fromPrice, b.currency)}</span>
+                : <span style={{
+                    fontSize: 'var(--t-2)', color: 'var(--faint)', flexShrink: 0,
+                    textAlign: 'right', minWidth: 72,
+                  }}>Sin precio</span>}
             </button>
           </li>
         ))}

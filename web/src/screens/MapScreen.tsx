@@ -183,8 +183,8 @@ export function MapScreen(p: Props) {
             data-tour="map-radius"
             className="lbl pill glass"
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, height: 44,
-              padding: '0 var(--pill-pad)', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 8, height: 44,
+              padding: '0 var(--pill-pad)', fontSize: 'var(--t-3)',
               flexShrink: 0, whiteSpace: 'nowrap',
               background: radiusOpen ? 'var(--amber)' : undefined,
               color: radiusOpen ? 'var(--base)' : undefined,
@@ -244,16 +244,16 @@ export function MapScreen(p: Props) {
               // elegir entre 300 m y 15 km. Arrastrar de punta a punta
               // cambiaba el radio 8 metros por píxel.
               width: 'calc(100% - 28px)', maxWidth: 420, pointerEvents: 'auto',
-              borderRadius: 18, padding: '10px 18px 8px',
+              borderRadius: 'var(--r-3)', padding: '12px 16px 8px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ color: 'var(--muted)', fontSize: 12, minWidth: 0,
+              <span style={{ color: 'var(--muted)', fontSize: 'var(--t-2)', minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
               </span>
               <span className="lbl" style={{
-                marginLeft: 'auto', paddingLeft: 10, color: 'var(--amber)', fontSize: 14,
+                marginLeft: 'auto', paddingLeft: 12, color: 'var(--amber)', fontSize: 'var(--t-4)',
                 whiteSpace: 'nowrap',
               }}>{formatRadius(p.radius)}</span>
             </div>
@@ -268,7 +268,7 @@ export function MapScreen(p: Props) {
             />
             <div style={{
               display: 'flex', justifyContent: 'space-between',
-              color: 'var(--faint)', fontSize: 10.5, marginTop: 2,
+              color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 2,
             }}>
               <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
             </div>
@@ -277,7 +277,7 @@ export function MapScreen(p: Props) {
 
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
-            padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--muted)',
             pointerEvents: 'auto',
           }}>Acercá el mapa para ver bares</div>
         )}
@@ -297,20 +297,20 @@ export function MapScreen(p: Props) {
         */}
         {!p.loading && !p.tooZoomedOut && p.bars.length === 0 && (
           <div className="glass" style={{
-            pointerEvents: 'auto', maxWidth: 340, borderRadius: 16,
-            padding: '14px 16px', textAlign: 'center',
+            pointerEvents: 'auto', maxWidth: 340, borderRadius: 'var(--r-3)',
+            padding: '16px 16px', textAlign: 'center',
           }}>
-            <p className="lbl" style={{ margin: 0, fontSize: 14 }}>
+            <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
               Por acá no hay bares cargados
             </p>
             <p style={{
-              margin: '6px 0 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5,
+              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--muted)', lineHeight: 1.5,
             }}>
               El mapa lo hacemos entre todos. Si conocés uno en esta zona,
               cargalo y queda para el resto.
             </p>
             <button onClick={() => nav('/agregar')} className="lbl" style={{
-              marginTop: 12, padding: '11px 18px', borderRadius: 12, fontSize: 13.5,
+              marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
             }}>Agregar un bar</button>
           </div>
@@ -333,7 +333,7 @@ export function MapScreen(p: Props) {
         {p.locationUnknown && (
           <div className="glass pill" style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--muted)',
             pointerEvents: 'auto', maxWidth: 'calc(100% - 28px)',
           }}>
             {p.locationBlocked ? (
@@ -345,7 +345,7 @@ export function MapScreen(p: Props) {
               <>
                 <span>No pudimos ubicarte — esto es el centro</span>
                 <button onClick={p.onRecenter} className="lbl" style={{
-                  color: 'var(--amber)', fontSize: 12, whiteSpace: 'nowrap',
+                  color: 'var(--amber)', fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
                 }}>Reintentar</button>
               </>
             )}
@@ -587,6 +587,11 @@ function priceIcon(
   const s = on ? 1.16 : 1
   // El corazón se lleva su ancho: sin esto se monta sobre el último dígito
   // del precio, que es justo el que no se puede perder.
+  //
+  // El ancho se estima como 8,6px por carácter, y eso sólo es cierto si todos
+  // los dígitos miden lo mismo — por eso el `<text>` de abajo pide cifras
+  // tabulares. Sin ellas, "$11.111" queda nadando en una cápsula de más y
+  // "$8.888" se sale por los costados.
   const w = (20 + label.length * 8.6 + (fav ? 13 : 0)) * s
   const h = 26 * s
   // El aro se dibuja por dentro del borde, así que el lienzo tiene que
@@ -599,7 +604,9 @@ function priceIcon(
     <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
       text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
-      font-weight="700" fill="#1A1410">${label}</text>
+      font-weight="700" font-variant-numeric="tabular-nums"
+      style="font-variant-numeric:tabular-nums"
+      fill="#1A1410">${label}</text>
     ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
   </svg>`
   return {

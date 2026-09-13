@@ -37,6 +37,10 @@ bin/
 web/.env.local
 web/node_modules/
 web/dist/
+# Caché incremental de tsc. Estaba versionada desde que se armó la PWA, así que
+# cambiaba en cada build y aparecía en el diff de cada rama — dos ramas que
+# compilan se pisan acá sin que nadie haya tocado código.
+web/tsconfig.tsbuildinfo
 
 # Dump de datos para migrar a Neon: trae emails y google_sub de usuarios
 birrapp-data.sql
