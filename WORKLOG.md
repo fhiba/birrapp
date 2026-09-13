@@ -2152,3 +2152,44 @@ arrastrando, así que se quedaba quieto hasta soltar y parecía trabado.
 Ahora el control es controlado, el número sigue al dedo, y se guarda medio
 segundo después de que se deja de mover — que era el motivo original de no usar
 `onChange`: una consulta por pixel arrastrado.
+
+---
+
+## 2026-09-13 — Revisión de UX: resumen y lo que queda
+
+Cuatro versiones (v0.10.0 → v0.10.3) de la revisión pedida. Anotado acá junto
+porque las entradas de arriba cuentan cada tanda por separado y conviene tener
+el estado en un solo lugar.
+
+**Método.** No hay plugins ni skills de UX en el catálogo —lo busqué— así que
+se instaló `modern-web-guidance`, que trae guías de patrones web actuales y se
+usó para los diálogos y los formularios, y se trabajó contra las heurísticas de
+Nielsen, las guías de toque de Apple y Material, y WCAG 2.2 AA.
+
+**Lo que se encontró que era un bug y no una mejora:**
+
+1. El toast programaba un temporizador por cada render. El mapa se redibuja con
+   cada movimiento de cámara, así que un aviso podía cerrarse antes de tiempo
+   por el temporizador de un render anterior.
+2. El slider del radio en Configuración guardaba en `onPointerUp`: con teclado
+   no guardaba nunca. Bug propio, de la 0.8.0.
+3. Dos de las tres pestañas de la barra de abajo no tenían nombre accesible.
+4. El paso "¿en qué bar?" del flujo de carga era un callejón sin bares cerca.
+5. El mapa vacío no decía una palabra, que desde que se abrió al mundo es el
+   primer contacto más probable de alguien nuevo.
+
+**Lo que queda pendiente, en orden de importancia:**
+
+1. **Nada de esto está probado tocándolo.** `tsc` y build limpios, backend en
+   verde, pero la extensión de Chrome no conecta y el ambiente local todavía no
+   se abre desde la tailnet. Destrabar eso es lo primero: son cuatro versiones
+   de cambios de interfaz verificados sólo por compilación.
+2. **Escala tipográfica.** Los tamaños de letra están escritos a mano pantalla
+   por pantalla: 10, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5… Unificarlos en
+   tokens es un diff enorme y sin cambio visible, así que se deja anotado en
+   vez de hacerlo a las tres de la mañana.
+3. **El visor de fotos** sigue siendo un overlay propio y no un `<dialog>`.
+   Maneja Escape por su cuenta, así que anda, pero no atrapa el foco como los
+   demás.
+4. **La lista no tiene "tirar para actualizar"**, que sí tiene la ficha del
+   bar. Hay que pensarlo con el swipe horizontal que ya cambia el orden.
