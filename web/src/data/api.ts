@@ -271,9 +271,13 @@ export const removeFavorite = (barId: number) =>
 export const barPhotos = (barId: number) =>
   req<Photo[]>('GET', `/bars/${barId}/photos`, { auth: true })
 
-export const beerComments = (barId: number, styleSlug: string, brandSlug: string | null) =>
+export const beerComments = (
+  barId: number, styleSlug: string, brandSlug: string | null,
+  page: { limit?: number; offset?: number } = {},
+) =>
   req<RatingComment[]>('GET', `/bars/${barId}/ratings/${styleSlug}/comments`, {
-    auth: true, params: { brand: brandSlug ?? undefined },
+    auth: true,
+    params: { brand: brandSlug ?? undefined, limit: page.limit, offset: page.offset },
   })
 
 export const myRatings = (barId: number) =>

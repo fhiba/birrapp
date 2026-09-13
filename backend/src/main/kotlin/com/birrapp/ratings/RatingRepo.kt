@@ -154,9 +154,18 @@ class RatingRepo(private val db: Db) {
         ) > 0
     }
 
-    /** Comentarios de una birra concreta, para el modal. */
+    /**
+     * Comentarios de una birra concreta, del más nuevo al más viejo.
+     *
+     * Paginado por `offset` y no por cursor: son decenas, no miles, y un
+     * cursor acá sería maquinaria para un problema que esta tabla no tiene.
+     * El orden es estable —`created_at DESC, id DESC`— así que pedir la
+     * página siguiente no repite ni saltea filas salvo que entre un
+     * comentario nuevo mientras tanto, que en ese caso aparece arriba.
+     */
     fun comments(
-        barId: Long, styleSlug: String, brandSlug: String?, viewerId: Long?, limit: Int = 100,
+        barId: Long, styleSlug: String, brandSlug: String?, viewerId: Long?,
+        limit: Int = 100, offset: Int = 0,
     ): List<RatingCommentDto> = db.conn {
         it.query(
             """
@@ -176,9 +185,10 @@ class RatingRepo(private val db: Db) {
             WHERE cm.bar_id = ? AND s.slug = ? AND cm.status = 'active'
               AND b.slug IS NOT DISTINCT FROM ?
               ${com.birrapp.auth.notBlocked("cm.user_id")}
-            ORDER BY cm.created_at DESC LIMIT ?
+            ORDER BY cm.created_at DESC, cm.id DESC
+            LIMIT ? OFFSET ?
             """.trimIndent(),
-            barId, styleSlug, brandSlug, viewerId, viewerId, limit,
+            barId, styleSlug, brandSlug, viewerId, viewerId, limit, offset,
         ) { rs ->
             RatingCommentDto(
                 id = rs.getLong("id"),

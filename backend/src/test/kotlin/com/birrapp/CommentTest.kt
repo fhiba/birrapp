@@ -25,6 +25,29 @@ class CommentTest {
     @BeforeTest fun setup() = TestDb.reset()
 
     @Test
+    fun `los comentarios se paginan del mas nuevo al mas viejo`() {
+        val u = TestDb.insertUser()
+        val bar = TestDb.insertBar("Prueba", lat, lng)
+        repeat(25) { i ->
+            repo.addComment(NewCommentRequest(bar, "ipa", "antares", "comentario $i"), u)
+        }
+
+        val primera = repo.comments(bar, "ipa", "antares", u, limit = 10)
+        assertEquals(10, primera.size)
+        assertEquals("comentario 24", primera.first().body, "el más nuevo primero")
+
+        val segunda = repo.comments(bar, "ipa", "antares", u, limit = 10, offset = 10)
+        assertEquals(10, segunda.size)
+        // Ni repite ni saltea: las dos páginas no comparten ninguna fila y
+        // juntas son las veinte más nuevas.
+        assertTrue(primera.map { it.id }.intersect(segunda.map { it.id }.toSet()).isEmpty())
+
+        val tercera = repo.comments(bar, "ipa", "antares", u, limit = 10, offset = 20)
+        assertEquals(5, tercera.size, "la última página viene corta: no hay más")
+        assertEquals("comentario 0", tercera.last().body)
+    }
+
+    @Test
     fun `una persona puede dejar varios comentarios sobre la misma birra`() {
         val u = TestDb.insertUser()
         val bar = TestDb.insertBar("Prueba", lat, lng)
