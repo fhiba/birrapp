@@ -170,7 +170,7 @@ export function AddBarScreen(
                 {chosen.address && (
                   <div style={{ color: 'var(--muted)', fontSize: 'var(--t-2)' }}>{chosen.address}</div>
                 )}
-                <div style={{ color: 'var(--fresh)', fontSize: 'var(--t-1)', marginTop: 6 }}>
+                <div style={{ color: 'var(--fresh)', fontSize: 'var(--t-1)', marginTop: 8 }}>
                   Verificado en Google Maps · se publica al instante
                 </div>
               </div>
@@ -256,7 +256,7 @@ export function AddBarScreen(
                       value={address} onChange={e => setAddress(e.target.value)}
                       placeholder="Calle y altura, o esquina"
                       style={{
-                        width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 10,
+                        width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 12,
                         background: 'transparent', border: '1px solid var(--hairline)',
                       }}
                     />
@@ -271,7 +271,7 @@ export function AddBarScreen(
                         configuración puesta, que es la del lugar donde
                         probablemente estés parado. */}
                     <label className="lbl" style={{
-                      display: 'flex', alignItems: 'center', gap: 12, marginTop: 14,
+                      display: 'flex', alignItems: 'center', gap: 12, marginTop: 16,
                       fontSize: 'var(--t-3)', color: 'var(--muted)',
                     }}>
                       En qué moneda cobra
@@ -292,7 +292,7 @@ export function AddBarScreen(
       {!canSend && query.trim().length >= 2 && (
         <p style={{
           color: 'var(--faint)', fontSize: 'var(--t-2)', textAlign: 'center',
-          margin: '0 18px', lineHeight: 1.5,
+          margin: '0 16px', lineHeight: 1.5,
         }}>
           {manual
             ? 'Falta la dirección para poder verificarlo.'

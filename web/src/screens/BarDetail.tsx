@@ -327,7 +327,7 @@ export function BarDetailScreen({
 
         {modMode && (
           <div style={{
-            marginTop: 14, padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
+            marginTop: 16, padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
             background: 'var(--amber-soft)', color: 'var(--amber)',
           }}>
             Modo moderador — las acciones de esta vista no se pueden deshacer
@@ -337,7 +337,7 @@ export function BarDetailScreen({
         {/* El enlace va acá y no abajo: pegado a las pestañas quedaba
             separando el nombre del bar de sus birras, que es lo que se viene
             a mirar. Al lado del nombre es donde se lo busca. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '20px 0 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '24px 0 8px' }}>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0, flex: 1, minWidth: 0 }}>
             {bar.name}
           </h1>
@@ -360,7 +360,7 @@ export function BarDetailScreen({
                   {barAvg.toFixed(1)}
                 </span>
               </div>
-              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
                 {votes === 1 ? '1 voto' : `${votes} votos`}
               </div>
             </div>
@@ -437,7 +437,7 @@ export function BarDetailScreen({
                       hasta entrar. */}
                   {g.beers.length > 1 && (
                     <span style={{
-                      marginLeft: 6, fontSize: 'var(--t-1)',
+                      marginLeft: 8, fontSize: 'var(--t-1)',
                       opacity: on ? 0.65 : 1,
                       color: on ? 'inherit' : 'var(--faint)',
                     }}>{g.beers.length}</span>
@@ -594,7 +594,7 @@ export function BarDetailScreen({
       {reviews.length > 0 && (
         <section style={{ padding: '12px 16px' }}>
           <h2 className="lbl" style={{
-            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', margin: '18px 0 10px',
+            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', margin: '16px 0 12px',
           }}>RESEÑAS</h2>
           {reviews.map(r => (
             <div key={r.id} style={{ padding: '10px 0' }}>
@@ -828,7 +828,7 @@ function PriceRow({
               rápido como el monto — y cuando el precio está viejo, el aviso es
               lo que hay que leer primero. */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 7,
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8,
             padding: dim ? '4px 10px' : 0, borderRadius: 999,
             background: dim ? 'var(--film-2)' : 'transparent',
             fontSize: 'var(--t-2)', color,
@@ -851,14 +851,14 @@ function PriceRow({
 
       {dim && (
         <p style={{
-          margin: '10px 0 0', padding: 12, borderRadius: 'var(--r-1)', fontSize: 'var(--t-1)',
+          margin: '12px 0 0', padding: 12, borderRadius: 'var(--r-1)', fontSize: 'var(--t-1)',
           background: 'rgba(255,122,102,.1)', color: 'var(--muted)',
         }}>
           Este precio tiene más de 45 días. Con la inflación, tomalo como referencia nomás.
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button disabled={busy} onClick={onConfirm} className="lbl" data-tour="bar-confirm" style={{
           flex: 1, padding: 12, borderRadius: 'var(--r-2)',
           background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
@@ -1133,7 +1133,7 @@ function BeerRating({
 function PrimaryAction({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="lbl" style={{
-      width: '100%', padding: 16, borderRadius: 'var(--r-3)', marginTop: 14,
+      width: '100%', padding: 16, borderRadius: 'var(--r-3)', marginTop: 16,
       background: 'var(--amber)', color: 'var(--base)',
     }}>{label}</button>
   )

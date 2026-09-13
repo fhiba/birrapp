@@ -95,7 +95,7 @@ export function LogBeerSheet({
                 color: barId === b.id ? 'var(--base)' : 'var(--muted)',
               }}>
                 {b.name}
-                <span style={{ opacity: .6, marginLeft: 6, fontSize: 'var(--t-2)' }}>
+                <span style={{ opacity: .6, marginLeft: 8, fontSize: 'var(--t-2)' }}>
                   {formatDistance(b.distanceMeters)?.replace('a ', '')}
                 </span>
               </button>
@@ -124,7 +124,7 @@ export function LogBeerSheet({
       {/* El detalle va plegado: quien quiera anotar cuál era la birra lo
           abre, y quien sólo lleva la cuenta no lo ve nunca. */}
       <button onClick={() => setDetail(d => !d)} className="lbl" style={{
-        display: 'block', marginTop: 20, fontSize: 'var(--t-3)', color: 'var(--amber)',
+        display: 'block', marginTop: 24, fontSize: 'var(--t-3)', color: 'var(--amber)',
       }}>
         {detail ? 'Listo' : '¿Cuál era? (opcional)'}
       </button>
@@ -144,11 +144,11 @@ export function LogBeerSheet({
       )}
 
       {error && (
-        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', margin: '14px 0 0' }}>{error}</p>
+        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', margin: '16px 0 0' }}>{error}</p>
       )}
 
       <button disabled={busy} onClick={submit} className="lbl" style={{
-        width: '100%', marginTop: 22, padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+        width: '100%', marginTop: 24, padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
         background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
       }}>{busy ? '…' : 'Anotar'}</button>
     </Sheet>
@@ -157,7 +157,7 @@ export function LogBeerSheet({
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <h3 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '18px 0 8px',
+    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '16px 0 8px',
   }}>{String(children).toUpperCase()}</h3>
 )
 

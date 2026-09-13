@@ -74,7 +74,7 @@ export function MyBeersScreen() {
       </div>
 
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, margin: '26px 0 10px',
+        display: 'flex', alignItems: 'center', gap: 8, margin: '24px 0 12px',
       }}>
         <Arrow dir="‹" label="Mes anterior" onClick={() => setMonth(shift(data.month, -1))} />
         <span className="lbl" style={{ flex: 1, textAlign: 'center', fontSize: 'var(--t-4)' }}>
@@ -193,7 +193,7 @@ function Calendar({ month, byDay, selected, onSelect }: {
   return (
     <>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 5,
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4,
       }}>
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
           <span key={i} className="lbl" style={{
@@ -258,7 +258,7 @@ function BadgeCard({ badge }: { badge: Badge }) {
       <div className="lbl" style={{
         fontSize: 'var(--t-3)', color: earned ? 'var(--amber)' : 'var(--muted)',
       }}>{badge.name}</div>
-      <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 3, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
         {badge.detail}
       </div>
       {/* Los que faltan muestran cuánto falta. Un emblema apagado sin número

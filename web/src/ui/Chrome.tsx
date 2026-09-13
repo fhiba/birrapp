@@ -83,7 +83,7 @@ export function Sheet(
   return (
     <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
       <div style={{ padding: `18px 20px calc(20px + var(--nav-gap))` }}>
-        {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 'var(--t-6)' }}>{title}</h2>}
+        {title && <h2 className="ttl" style={{ margin: '0 0 16px', fontSize: 'var(--t-6)' }}>{title}</h2>}
         {children}
       </div>
     </Modal>
@@ -144,12 +144,12 @@ export function Confirm({
   return (
     <Modal label={title} onClose={onCancel}>
       <div style={{ padding: 24 }}>
-        <h3 className="ttl" style={{ margin: '0 0 10px', fontSize: 'var(--t-5)' }}>{title}</h3>
+        <h3 className="ttl" style={{ margin: '0 0 12px', fontSize: 'var(--t-5)' }}>{title}</h3>
         <div style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', lineHeight: 1.55 }}>{body}</div>
 
         {requireWord && (
           <>
-            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '16px 0 6px' }}>
+            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '16px 0 8px' }}>
               Escribí {requireWord} para confirmar
             </p>
             <input value={typed} onChange={e => setTyped(e.target.value)} style={{
@@ -159,7 +159,7 @@ export function Confirm({
           </>
         )}
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 24 }}>
           <button onClick={onCancel} style={{
             color: 'var(--muted)', padding: '12px 16px', minHeight: 44,
           }}>

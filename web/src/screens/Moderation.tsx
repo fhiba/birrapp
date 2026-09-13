@@ -39,7 +39,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 0' }}>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>Moderación</h1>
           {!loading && total > 0 && (
             <span className="num" style={{
@@ -56,7 +56,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
             quiere saber si la cuenta que cargó algo raro es de ayer. */}
         <button onClick={() => nav('/dashboard')} className="lbl" style={{
           display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          marginTop: 14, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+          marginTop: 16, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
           background: 'var(--elevated)', color: 'var(--cream)',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -83,7 +83,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.lat.toFixed(5)}, {b.lng.toFixed(5)}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveBar(b.id))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBar(b.id))}>Rechazar</Btn>
             <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>Eliminar</Btn>
@@ -106,7 +106,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.craft ? 'artesanal' : 'industrial'} · {b.slug}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
           </div>
@@ -124,7 +124,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         }}>
           <div className="lbl">{st.name}</div>
           <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>{st.slug}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>Rechazar</Btn>
           </div>
@@ -139,7 +139,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           {f.targetSummary && (
             <div style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>→ {f.targetSummary}</div>
           )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             {f.targetType === 'price' ? (
               <>
                 <Btn primary onClick={() => act(async () => {

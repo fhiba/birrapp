@@ -200,7 +200,7 @@ export function ReportFlow({
 
             {onAddBar && (
               <button onClick={onAddBar} className="lbl" style={{
-                width: '100%', marginTop: 14, padding: 16, borderRadius: 'var(--r-2)',
+                width: '100%', marginTop: 16, padding: 16, borderRadius: 'var(--r-2)',
                 fontSize: 'var(--t-3)', minHeight: 44, textAlign: 'center',
                 background: 'var(--film-2)', color: 'var(--amber)',
                 border: '1px dashed var(--hairline)',
@@ -251,13 +251,13 @@ function Header({ step, total, title, hint, chosen, onBack }: {
         }}>PASO {step} DE {total}</span>
       </div>
 
-      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '14px 0 0' }}>{title}</h1>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>{title}</h1>
       {hint && (
-        <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '5px 0 0' }}>{hint}</p>
+        <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{hint}</p>
       )}
 
       {chosen.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           {chosen.map(c => (
             <span key={c} className="lbl pill" style={{
               padding: '4px 12px', fontSize: 'var(--t-2)',

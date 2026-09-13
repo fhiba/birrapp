@@ -85,7 +85,7 @@ export function SettingsScreen({ user, onSession }: {
         />
 
         <label className="lbl" style={{
-          display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '20px 0 6px',
+          display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '24px 0 8px',
         }} htmlFor="nombre">Cómo te llamás</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
@@ -112,7 +112,7 @@ export function SettingsScreen({ user, onSession }: {
             }}
           >Guardar</button>
         </div>
-        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0' }}>
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
           Es el nombre con el que aparecen tus aportes. {user.email} no se muestra
           en ningún lado.
         </p>
@@ -188,13 +188,13 @@ export function SettingsScreen({ user, onSession }: {
               ['--fill' as string]: `${((radius - 300) / (15000 - 300)) * 100}%`,
             }}
           />
-          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0' }}>
+          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
             Con cuánto a la redonda abre el mapa y la lista.
           </p>
         </div>
 
         {error && (
-          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 18 }}>{error}</p>
+          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 16 }}>{error}</p>
         )}
 
         {blocked.length > 0 && (
@@ -220,7 +220,7 @@ export function SettingsScreen({ user, onSession }: {
               </div>
             ))}
             <p style={{
-              color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '10px 0 0', lineHeight: 1.5,
+              color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '12px 0 0', lineHeight: 1.5,
             }}>
               Con alguien bloqueado, ninguno de los dos ve los comentarios ni las
               fotos del otro. Los precios que cargó siguen en el mapa: son datos
@@ -265,13 +265,13 @@ function Field({ label, hint, children }: {
   label: string; hint: string; children: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{label}</span>
         {children}
       </div>
       <p style={{
-        color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '6px 0 0', lineHeight: 1.5,
+        color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
       }}>{hint}</p>
     </div>
   )

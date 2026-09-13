@@ -235,7 +235,7 @@ export function HBars({
 export function Legend({ series }: { series: Series[] }) {
   return (
     <div style={{
-      display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6,
+      display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8,
       fontSize: 'var(--t-1)', color: 'var(--faint)',
     }}>
       {series.map(s => (

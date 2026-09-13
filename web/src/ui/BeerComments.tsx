@@ -96,9 +96,9 @@ export function BeerComments({
   }
 
   return (
-    <section style={{ marginTop: 18 }}>
+    <section style={{ marginTop: 16 }}>
       <h3 className="lbl" style={{
-        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 12px',
       }}>
         COMENTARIOS{items && items.length > 0 ? ` · ${items.length}${more ? '+' : ''}` : ''}
       </h3>
@@ -110,7 +110,7 @@ export function BeerComments({
             value={body} onChange={e => setBody(e.target.value)}
             placeholder="Cómo estaba (opcional)" rows={2} maxLength={600}
             style={{
-              width: '100%', marginTop: 10, padding: '12px 12px', borderRadius: 'var(--r-2)',
+              width: '100%', marginTop: 12, padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
               resize: 'vertical', fontFamily: 'inherit', fontSize: 'var(--t-field)',
             }}
@@ -164,14 +164,14 @@ export function BeerComments({
               {c.ageDays <= 0 ? 'hoy' : c.ageDays === 1 ? 'ayer' : `hace ${c.ageDays} d`}
             </span>
           </div>
-          {c.body && <p style={{ margin: '6px 0 0', fontSize: 'var(--t-4)' }}>{c.body}</p>}
+          {c.body && <p style={{ margin: '8px 0 0', fontSize: 'var(--t-4)' }}>{c.body}</p>}
 
           {/* Lo propio se borra siempre, sin ser moderador: son tus palabras.
               Antes esto no existía porque la nota y el comentario eran la misma
               fila y no se podía bajar una sin la otra. */}
           {(c.mine || modMode) && (
             <button onClick={() => setConfirmDelete(c)} style={{
-              marginTop: 6, fontSize: 'var(--t-2)', color: 'var(--danger)',
+              marginTop: 8, fontSize: 'var(--t-2)', color: 'var(--danger)',
             }}>{c.mine ? 'Borrar' : 'Eliminar'}</button>
           )}
         </div>

@@ -56,7 +56,7 @@ export function PriceHistory(
         width: '100%', maxWidth: 380,
       }}>
         <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)' }}>{title}</h3>
-        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 18px' }}>
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 16px' }}>
           Historial de precios
         </p>
 
@@ -89,7 +89,7 @@ export function PriceHistory(
               <span>{new Date(last.at).toLocaleDateString('es-AR')}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <Box label="Primero" value={formatPrice(first.price, currency)} />
               <Box label="Ahora" value={formatPrice(last.price, currency)} />
               {change !== null && (
@@ -104,7 +104,7 @@ export function PriceHistory(
         )}
 
         <button onClick={onClose} className="lbl" style={{
-          width: '100%', marginTop: 20, padding: 12, borderRadius: 'var(--r-2)',
+          width: '100%', marginTop: 24, padding: 12, borderRadius: 'var(--r-2)',
           background: 'var(--film-2)',
         }}>Cerrar</button>
       </div>

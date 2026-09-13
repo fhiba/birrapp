@@ -16,7 +16,7 @@ export function InfoScreen() {
       <button onClick={() => nav(-1)} className="icon-btn"
         style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
 
-      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '22px 0 0' }}>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '24px 0 0' }}>
         Cómo funcionan los precios
       </h1>
 
@@ -46,7 +46,7 @@ export function InfoScreen() {
         por nosotros.
       </Section>
 
-      <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 30, lineHeight: 1.5 }}>
+      <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 32, lineHeight: 1.5 }}>
         Datos de bares © colaboradores de OpenStreetMap, bajo licencia ODbL.
       </p>
       </div>
@@ -56,7 +56,7 @@ export function InfoScreen() {
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <>
-    <h2 className="lbl" style={{ fontSize: 'var(--t-4)', margin: '26px 0 6px' }}>{title}</h2>
+    <h2 className="lbl" style={{ fontSize: 'var(--t-4)', margin: '24px 0 8px' }}>{title}</h2>
     <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', lineHeight: 1.55, margin: 0 }}>{children}</p>
   </>
 )

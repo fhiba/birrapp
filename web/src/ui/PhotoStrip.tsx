@@ -41,12 +41,12 @@ export function PhotoStrip({
   if (photos.length === 0 && !canAdd) return null
 
   return (
-    <div style={{ marginTop: 18 }}>
+    <div style={{ marginTop: 16 }}>
       {/* Rótulo de sección, igual que en los comentarios de abajo: con las dos
           cosas una arriba de la otra y sin nada que las separe, la tira de
           fotos parecía parte de la fila de puntaje. */}
       <h3 className="lbl" style={{
-        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 12px',
       }}>
         {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
       </h3>

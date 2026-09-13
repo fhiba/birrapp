@@ -97,7 +97,7 @@ export function ReportPrice({
         {/* Qué se está cargando, en una línea. Es lo que evita el precio
             cargado sobre la birra equivocada: el monto va a quedar pegado a
             esto, así que tiene que estar a la vista mientras se teclea. */}
-        <div style={{ margin: '14px 0 0' }}>
+        <div style={{ margin: '16px 0 0' }}>
           <div className="ttl" style={{ fontSize: 'var(--t-6)' }}>
             {styleName}
             {brandName && (
@@ -105,7 +105,7 @@ export function ReportPrice({
             )}
           </div>
           {barName && (
-            <div style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', marginTop: 3 }}>
+            <div style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', marginTop: 4 }}>
               en {barName}
             </div>
           )}
@@ -123,7 +123,7 @@ export function ReportPrice({
         }}>{currencyPrefix(currency)} {digits === '' ? '0' : groupThousands(digits)}</button>
 
         <button onClick={() => setEditingSize(true)} className="num pill" style={{
-          fontSize: editingSize ? 22 : 18, padding: '8px 16px', marginTop: 10,
+          fontSize: editingSize ? 22 : 18, padding: '8px 16px', marginTop: 12,
           background: editingSize ? 'var(--amber-soft)' : 'transparent',
           color: editingSize ? 'var(--amber)' : 'var(--muted)',
         }}>{size} ml</button>
@@ -138,7 +138,7 @@ export function ReportPrice({
           <div key={i} style={{ display: 'flex' }}>
             {row.map(k => (
               <button key={k} onClick={() => press(k)} className="num" style={{
-                flex: 1, margin: 5, padding: '16px 0', borderRadius: 'var(--r-3)',
+                flex: 1, margin: 4, padding: '16px 0', borderRadius: 'var(--r-3)',
                 background: 'var(--raised)', fontSize: k === '000' ? 20 : 24,
                 color: k === '⌫' ? 'var(--muted)' : 'var(--cream)',
               }}>{k}</button>
@@ -152,7 +152,7 @@ export function ReportPrice({
         onClick={() => onSubmit(price, sizeMl)}
         className="lbl"
         style={{
-          margin: '12px 18px 18px', padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+          margin: '12px 16px 16px', padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
           background: valid ? 'var(--amber)' : 'var(--elevated)',
           color: valid ? 'var(--base)' : 'var(--faint)',
           cursor: valid ? 'pointer' : 'not-allowed',

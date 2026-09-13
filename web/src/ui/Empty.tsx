@@ -46,7 +46,7 @@ export function Empty({ title, hint, action, onAction }: {
 
       {action && onAction && (
         <button onClick={onAction} className="lbl" style={{
-          marginTop: 10, padding: '12px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+          marginTop: 12, padding: '12px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
           minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
         }}>{action}</button>
       )}
@@ -74,7 +74,7 @@ export function SkeletonRows({ rows = 6, children }: { rows?: number; children?:
           <div className="skeleton" style={{ width: 3, height: 34, borderRadius: 999 }} />
           <div style={{ flex: 1 }}>
             <div className="skeleton" style={{ height: 14, width: `${55 + (i % 3) * 12}%` }} />
-            <div className="skeleton" style={{ height: 10, width: '35%', marginTop: 7 }} />
+            <div className="skeleton" style={{ height: 10, width: '35%', marginTop: 8 }} />
           </div>
           <div className="skeleton" style={{ height: 18, width: 62 }} />
         </div>

@@ -47,7 +47,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
   const styleName = styles.find(s => s.slug === styleFilter)?.name
 
   return (
-    <div style={{ margin: '12px 18px 0', borderRadius: 'var(--r-3)', background: 'var(--raised)' }}>
+    <div style={{ margin: '12px 16px 0', borderRadius: 'var(--r-3)', background: 'var(--raised)' }}>
       <button onClick={() => setOpen(o => !o)} style={{
         display: 'flex', alignItems: 'center', gap: 12, width: '100%',
         padding: '12px 16px', textAlign: 'left',
@@ -56,7 +56,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
           <span className="lbl" style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
             {styleName ? `${styleName} · ` : ''}{formatRadius(radius)} a la redonda
           </span>
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 3 }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
             <span className="num" style={{ fontSize: 'var(--t-6)' }}>
               {formatPrice(data.medianPint, data.currency)}
             </span>
@@ -107,7 +107,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
           )}
 
           <p style={{
-            fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '10px 0 0', lineHeight: 1.5,
+            fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '12px 0 0', lineHeight: 1.5,
           }}>
             Todo llevado a una pinta de 473 ml, sobre {data.samples} precios de
             menos de 45 días. Los más viejos no entran.

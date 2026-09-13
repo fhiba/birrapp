@@ -171,7 +171,7 @@ export function BrandList({
       </header>
 
       {error && (
-        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', margin: '0 18px' }}>{error}</p>
+        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', margin: '0 16px' }}>{error}</p>
       )}
 
       {/* Agregar va arriba y no al final de la lista: si escribiste algo que no

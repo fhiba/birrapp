@@ -6,7 +6,7 @@ import { isModerator } from '../data/types'
 import { Confirm, Toast } from '../ui/Chrome'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
-import { SectionLabel } from '../ui/Kit'
+import { Screen, SectionLabel, Tile } from '../ui/Kit'
 
 /**
  * El perfil de otra persona (BIR-6).
@@ -53,21 +53,21 @@ export function PersonScreen({ user }: { user: User | null }) {
   }
 
   if (error) return (
-    <Wrap onBack={() => nav(-1)}>
+    <Screen onBack={() => nav(-1)}>
       <Empty
         title="No pudimos abrir este perfil"
         hint={error}
         action="Reintentar"
         onAction={load}
       />
-    </Wrap>
+    </Screen>
   )
   if (!person) return <PintLoader message="Buscando…" />
 
   const esVos = user?.id === person.id
 
   return (
-    <Wrap onBack={() => nav(-1)}>
+    <Screen onBack={() => nav(-1)}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {person.avatarUrl ? (
           <img src={person.avatarUrl} alt="" width={64} height={64}
@@ -102,10 +102,10 @@ export function PersonScreen({ user }: { user: User | null }) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }}>
-        <Stat label="Precios" value={person.prices} />
-        <Stat label="Bares" value={person.bars} />
-        <Stat label="Fotos" value={person.photos} />
-        <Stat label="Notas" value={person.ratings} />
+        <Tile label="Precios" value={person.prices} />
+        <Tile label="Bares" value={person.bars} />
+        <Tile label="Fotos" value={person.photos} />
+        <Tile label="Notas" value={person.ratings} />
       </div>
 
       {!esVos && user && (
@@ -192,31 +192,9 @@ export function PersonScreen({ user }: { user: User | null }) {
       )}
 
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
-      <div style={{ height: 30 }} />
-    </Wrap>
+    </Screen>
   )
 }
 
-function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, overflowY: 'auto',
-      padding: `calc(var(--safe-top) + 12px) 20px calc(24px + var(--nav-gap))`,
-    }}>
-      <div className="desk-narrow">
-        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)', marginBottom: 18 }} aria-label="Volver">←</button>
-        {children}
-      </div>
-    </div>
-  )
-}
 
-const Stat = ({ label, value }: { label: string; value: number }) => (
-  <div style={{ padding: '12px 16px', borderRadius: 'var(--r-3)', background: 'var(--raised)' }}>
-    <div className="num" style={{
-      fontSize: 'var(--t-6)', color: value > 0 ? 'var(--amber)' : 'var(--faint)',
-    }}>{value}</div>
-    <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 3 }}>{label}</div>
-  </div>
-)
 

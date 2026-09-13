@@ -89,7 +89,7 @@ export function AvatarPicker({
             nuestra para borrarla. */}
         {user.avatarUrl?.includes('/avatar/') && (
           <>
-            <span style={{ color: 'var(--faint)', margin: '0 7px' }}>·</span>
+            <span style={{ color: 'var(--faint)', margin: '0 8px' }}>·</span>
             <button
               onClick={() => setConfirmRemove(true)} disabled={busy}
               style={{ fontSize: 'var(--t-3)', color: 'var(--muted)', padding: 0 }}

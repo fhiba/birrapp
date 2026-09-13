@@ -54,7 +54,7 @@ export function DashboardScreen() {
       <div className="desk-wide">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '18px 0 0' }}>Dashboard</h1>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>Dashboard</h1>
           {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
         </div>
 
@@ -122,7 +122,7 @@ function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean
         fontSize: 'var(--t-7)', lineHeight: 1.1, color: accent ? 'var(--amber)' : 'var(--cream)',
       }}>{n}</div>
       <div style={{
-        fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 3, whiteSpace: 'pre-line',
+        fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4, whiteSpace: 'pre-line',
       }}>{label}</div>
     </div>
   )
@@ -175,7 +175,7 @@ function UserRow({ u }: { u: DashboardUser }) {
             confirma, que es justo lo que hay que poder distinguir. */}
         {total > 0 ? (
           <div style={{
-            display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5,
+            display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4,
             fontSize: 'var(--t-2)', color: 'var(--muted)',
           }}>
             {u.prices > 0 && <Chip n={u.prices} what="precios" />}
@@ -185,7 +185,7 @@ function UserRow({ u }: { u: DashboardUser }) {
             {u.ratings > 0 && <Chip n={u.ratings} what="notas" />}
           </div>
         ) : (
-          <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 5 }}>
+          <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4 }}>
             Sin aportes todavía
           </div>
         )}
@@ -308,7 +308,7 @@ function Card({ title, hint, deskOnly, children }: {
     }}>
       <div className="lbl" style={{ fontSize: 'var(--t-2)' }}>{title}</div>
       {hint && (
-        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '2px 0 10px' }}>{hint}</div>
+        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '2px 0 12px' }}>{hint}</div>
       )}
       {children}
     </div>

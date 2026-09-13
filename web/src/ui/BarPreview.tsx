@@ -128,7 +128,7 @@ export function BarPreview({
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{bar.name}</h2>
               {distance && (
-                <p style={{ margin: '3px 0 0', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
+                <p style={{ margin: '4px 0 0', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                   {distance}
                 </p>
               )}

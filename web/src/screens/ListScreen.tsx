@@ -363,7 +363,7 @@ export function ListScreen(p: Props) {
           className="range" type="range" min={300} max={15000} step={100}
           value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
           style={{
-            marginTop: 6,
+            marginTop: 8,
             ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,
           }}
         />
@@ -381,7 +381,7 @@ export function ListScreen(p: Props) {
       {busy && shown.length === 0 && <SkeletonRows />}
 
       {busy && shown.length > 0 && (
-        <div className="skeleton" style={{ height: 2, margin: '8px 18px' }} />
+        <div className="skeleton" style={{ height: 2, margin: '8px 16px' }} />
       )}
 
       {!busy && shown.length === 0 && (
@@ -409,7 +409,7 @@ export function ListScreen(p: Props) {
         )
       )}
 
-      <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
+      <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0 }}>
         {shown.map(b => (
           <li key={b.id}>
             <button className="row-hover" onClick={() => nav(`/bar/${b.id}`)} style={{

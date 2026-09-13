@@ -102,7 +102,7 @@ export function MyContributionsScreen(
       <div className="desk-narrow">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '18px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>
             {TITLE[kind]}
             {count != null && count > 0 && (
               <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-5)' }}>

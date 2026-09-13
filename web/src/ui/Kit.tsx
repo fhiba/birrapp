@@ -29,20 +29,28 @@ export const SectionLabel = ({ children }: { children: ReactNode }) => (
  * logro y es lo contrario. Apagado dice "acá todavía no hay nada", que es la
  * verdad y además invita.
  */
-export function Tile({ value, label, hint, accent = true }: {
-  value: number | string
+export function Tile({ value, label, hint, accent = true, onClick }: {
+  /** `undefined` mientras carga: se dibuja un guión, no un cero. Un cero es un
+   *  dato y "todavía no sé" no lo es. */
+  value: number | string | undefined
   label: string
   hint?: string
   /** Falso deja el número en color de texto: para baldosas que no son un logro. */
   accent?: boolean
+  /** Con esto la baldosa es un botón. Sin esto, un `div`: una baldosa que no
+   *  lleva a ningún lado no tiene que anunciarse como algo tocable. */
+  onClick?: () => void
 }) {
-  const vacio = value === 0 || value === '0'
+  const vacio = value === 0 || value === '0' || value == null
+  const Caja = (onClick ? 'button' : 'div') as 'div'
   return (
-    <div className="tile" style={{ flex: 1 }}>
+    <Caja className="tile" onClick={onClick} style={{
+      flex: 1, textAlign: 'left', minHeight: onClick ? 44 : undefined,
+    }}>
       <div className="num" style={{
         fontSize: 'var(--t-8)', lineHeight: 1,
         color: vacio ? 'var(--faint)' : accent ? 'var(--amber)' : 'var(--cream)',
-      }}>{value}</div>
+      }}>{value ?? '—'}</div>
       <div style={{
         fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 'var(--s-1)',
       }}>{label}</div>
@@ -51,7 +59,7 @@ export function Tile({ value, label, hint, accent = true }: {
           {hint}
         </div>
       )}
-    </div>
+    </Caja>
   )
 }
 

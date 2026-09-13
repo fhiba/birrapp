@@ -304,7 +304,7 @@ export function MapScreen(p: Props) {
               Por acá no hay bares cargados
             </p>
             <p style={{
-              margin: '6px 0 0', fontSize: 'var(--t-2)', color: 'var(--muted)', lineHeight: 1.5,
+              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--muted)', lineHeight: 1.5,
             }}>
               El mapa lo hacemos entre todos. Si conocés uno en esta zona,
               cargalo y queda para el resto.

@@ -112,7 +112,7 @@ export function StyleChips({
       {typing && (
         <p style={{
           color: error ? 'var(--danger)' : 'var(--faint)',
-          fontSize: 'var(--t-2)', margin: '8px 14px 0', lineHeight: 1.5,
+          fontSize: 'var(--t-2)', margin: '8px 16px 0', lineHeight: 1.5,
         }}>
           {error ?? 'Lo podés usar al toque; un moderador lo revisa después.'}
         </p>

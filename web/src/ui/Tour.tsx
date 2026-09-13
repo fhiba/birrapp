@@ -296,7 +296,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
         boxShadow: '0 12px 40px rgba(0,0,0,.5)',
       }}>
         <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6,
+          display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8,
         }}>
           <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)', flex: 1 }}>{current.title}</h3>
           <span className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
