@@ -2137,3 +2137,18 @@ que no existe. En Buenos Aires eso no pasa nunca; en una ciudad donde todavía
 no cargó nadie es el caso normal. Ahora hay una salida: "El bar no está —
 agregalo". Se pierde el flujo, y no hay forma de que no se pierda, pero al
 menos hay puerta.
+
+---
+
+## 2026-09-13 (cont.) — v0.10.3: el slider del radio no guardaba con teclado
+
+Bug propio, de la pantalla de configuración que salió con la 0.8.0. Guardaba en
+`onPointerUp`, que parecía suficiente porque cubre el dedo y el mouse — y deja
+afuera al teclado: con las flechas se movía el control y no se guardaba nunca.
+
+De paso, el número de arriba mostraba el valor guardado y no el que se estaba
+arrastrando, así que se quedaba quieto hasta soltar y parecía trabado.
+
+Ahora el control es controlado, el número sigue al dedo, y se guarda medio
+segundo después de que se deja de mover — que era el motivo original de no usar
+`onChange`: una consulta por pixel arrastrado.
