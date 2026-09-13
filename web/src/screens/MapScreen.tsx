@@ -283,6 +283,40 @@ export function MapScreen(p: Props) {
         )}
 
         {/*
+          Zona sin un solo bar cargado.
+          
+          Desde que se pueden cargar bares de cualquier parte del mundo, éste
+          pasó a ser el primer contacto más probable de alguien nuevo: abre la
+          app en una ciudad donde nadie cargó nada y ve un mapa mudo, sin una
+          palabra que le diga si la app está rota, si está mal parado, o si
+          simplemente no hay nada todavía.
+          
+          Sólo cuando terminó de cargar y el zoom alcanza: con el mapa lejos ya
+          lo dice el cartel de arriba, y mientras carga decir "no hay nada"
+          sería mentir por un segundo.
+        */}
+        {!p.loading && !p.tooZoomedOut && p.bars.length === 0 && (
+          <div className="glass" style={{
+            pointerEvents: 'auto', maxWidth: 340, borderRadius: 16,
+            padding: '14px 16px', textAlign: 'center',
+          }}>
+            <p className="lbl" style={{ margin: 0, fontSize: 14 }}>
+              Por acá no hay bares cargados
+            </p>
+            <p style={{
+              margin: '6px 0 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5,
+            }}>
+              El mapa lo hacemos entre todos. Si conocés uno en esta zona,
+              cargalo y queda para el resto.
+            </p>
+            <button onClick={() => nav('/agregar')} className="lbl" style={{
+              marginTop: 12, padding: '11px 18px', borderRadius: 12, fontSize: 13.5,
+              minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+            }}>Agregar un bar</button>
+          </div>
+        )}
+
+        {/*
           Sin esto, un mapa centrado en el Obelisco es indistinguible de un
           mapa centrado en vos. Ya no hay punto azul mintiendo, pero el
           encuadre solo sigue sugiriendo que estás ahí: hay que decirlo con
@@ -369,6 +403,9 @@ export function MapScreen(p: Props) {
           nearby={p.bars} center={p.myLocation ?? p.camera?.center ?? null}
           onStyleCreated={p.onStyleCreated}
           onBrandCreated={p.onBrandCreated}
+          // Se pierde el flujo, y no hay forma de que no se pierda: el precio
+          // necesita un bar que exista. Al menos no es un callejón.
+          onAddBar={() => { setAction(null); nav('/agregar') }}
           onCancel={() => setAction(null)}
           onSubmit={async ({ bar, styleSlug, brandSlug, price, sizeMl }) => {
             setAction(null)
