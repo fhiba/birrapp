@@ -813,19 +813,36 @@ function PriceRow({
       <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <div className="num" style={{
-            fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
+            fontSize: 34, letterSpacing: '-.02em',
+            color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!, currency)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+
+          {/* La antigüedad, debajo del número y con su color.
+              Estaba chiquita a la derecha, alineada con la última línea: se
+              leía como un pie de página. En esta app un precio sin su edad al
+              lado es información falsa, así que la edad tiene que verse tan
+              rápido como el monto — y cuando el precio está viejo, el aviso es
+              lo que hay que leer primero. */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 7,
+            padding: dim ? '4px 10px' : 0, borderRadius: 999,
+            background: dim ? 'rgba(255,255,255,.06)' : 'transparent',
+            fontSize: 12.5, color,
+          }}>
+            <span aria-hidden style={{
+              width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
+            }} />
             {ageLabel(price.ageDays!, price.freshness!)}
           </div>
-          {price.sizeMl !== 473 && (
-            <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{price.sizeMl} ml</div>
-          )}
-
         </div>
+        {/* El tamaño sólo cuando no es la pinta de 473: si es la de siempre,
+            decirlo es ruido; si no lo es, cambia el precio y hay que saberlo. */}
+        {price.sizeMl !== 473 && (
+          <div className="num" style={{
+            fontSize: 13, color: 'var(--muted)', flexShrink: 0,
+            padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.06)',
+          }}>{price.sizeMl} ml</div>
+        )}
       </div>
 
       {dim && (
@@ -1079,10 +1096,18 @@ function BeerRating({
 
       {/* El campo del decimal, al lado de las estrellas: las estrellas dan
           enteros y para un 3,5 hay que escribirlo. */}
-      {canRate && <RatingField rating={myRating} onCommit={onRate} />}
+      {canRate && (
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 11.5, color: 'var(--faint)',
+        }}>
+          <span>tu nota</span>
+          <RatingField rating={myRating} onCommit={onRate} />
+        </label>
+      )}
 
       {price.ratingCount > 0 ? (
-        <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)' }}>
           {/* `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage y sirve
               para ordenar, pero mostrarle 3,8 a alguien que acaba de poner
               cinco estrellas hace que el número parezca roto. El conteo al
@@ -1092,7 +1117,9 @@ function BeerRating({
           {price.ratingAgeDays != null && price.ratingAgeDays > 45 && ' · sin votos nuevos'}
         </span>
       ) : (
-        <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>Sin votos</span>
+        <span style={{
+          marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)',
+        }}>Sin votos</span>
       )}
 
     </div>

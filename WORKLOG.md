@@ -2052,3 +2052,30 @@ dejar a la persona mirando un botón gris.
 
 El perfil recuperó la foto, que se había ido con la mudanza a configuración: un
 perfil sin cara es una lista de números con un nombre arriba.
+
+### Y lo que falla cuando las cosas salen mal
+
+**Sin conexión no se decía en ningún lado.** Esta app se usa parado en un bar,
+en un subsuelo, con una raya de señal: perder la conexión no es el caso raro,
+es un martes. Hasta ahora eso se veía como un error genérico o como una
+pantalla que no cargaba nunca, sin forma de distinguir "se cayó el servidor" de
+"estás sin datos". Ahora hay un aviso que dice las dos cosas que importan: que
+el problema es la conexión y que lo que ya está en pantalla sigue sirviendo.
+
+**Y si algo se rompe al dibujar, ya no queda la pantalla en blanco.** Era la
+peor falla posible: React desmonta el árbol entero, no queda ni un botón, y en
+una PWA instalada no hay ni barra de direcciones para recargar. Ahora hay una
+pantalla que lo dice y ofrece recargar. No intenta recuperarse sola: si el
+estado quedó roto, volver a dibujar lo mismo falla de nuevo.
+
+### El precio y su edad
+
+La antigüedad estaba chiquita, a la derecha, alineada con la última línea: se
+leía como un pie de página. En esta app un precio sin su edad al lado es
+información falsa —es la regla que no se negocia— así que ahora va debajo del
+monto, con su color, y cuando el precio está viejo el aviso se envuelve en una
+píldora para que sea lo primero que se lee.
+
+También aparecieron rótulos de sección en fotos y comentarios: con las dos
+cosas una arriba de la otra y nada que las separe, la tira de fotos parecía
+parte de la fila de puntaje.

@@ -9,6 +9,8 @@ import * as api from './data/api'
 import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
 import { AndroidPrompt } from './ui/AndroidPrompt'
+import { Crash } from './ui/Crash'
+import { OfflineBanner } from './ui/Offline'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
 import { Tour, type TourView } from './ui/Tour'
@@ -38,7 +40,11 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <APIProvider apiKey={MAPS_KEY} libraries={['places']}>
-        <Shell />
+        {/* Adentro del router: desde la pantalla de error se puede recargar, y
+            si el error fue de una ruta puntual el resto de la app sigue. */}
+        <Crash>
+          <Shell />
+        </Crash>
         {/*
           Analytics de Vercel. Va adentro del router para que registre cada
           cambio de ruta y no sólo la primera carga: el 90% de la navegación
@@ -259,6 +265,8 @@ function Shell() {
           Mostrárselo a quien sólo mira precios sería enseñarle botones que le
           van a pedir que se loguee. */}
       {tourView && user && <Tour view={tourView} userId={user.id} />}
+
+      <OfflineBanner />
 
       {showNav && <AndroidPrompt />}
       {showNav && <BottomNav />}
