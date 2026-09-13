@@ -188,6 +188,7 @@ function Shell() {
             bars={bars} styles={styles} loading={loading}
             user={user} brands={brands} favorites={favorites.ids}
             onBrandCreated={addBrand} onStyleCreated={addStyle}
+            onChanged={afterChange}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
             colorBy={colorBy} onColorBy={setColorBy}

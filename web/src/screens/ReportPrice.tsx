@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react'
-import type { BeerStyle, Brand } from '../data/types'
+import { useState } from 'react'
 import { currencyPrefix, groupThousands } from '../data/format'
-import { BrandPicker } from '../ui/BrandPicker'
-import { StyleChips } from '../ui/StyleChips'
 
 /**
- * Carga de precio: una pantalla, teclado propio.
+ * El último paso: cuánto sale y de qué tamaño.
  *
  * Se usa parado en un bar, con una mano, con poca luz. De ahí el teclado
  * propio (el del sistema tapa media pantalla), la tecla 000 (los precios de
@@ -15,49 +12,37 @@ import { StyleChips } from '../ui/StyleChips'
  * Tocar el monto o el tamaño edita ese campo directamente; el activo se
  * resalta. Nada de modos escondidos.
  *
- * La marca va debajo del estilo y es opcional: se sabe siempre si es rubia o
- * IPA, no siempre de qué marca. Sin ella, el precio se carga igual — y esa
- * birra "sin marca" es una birra propia, no un dato a medio cargar.
+ * **Acá ya no se elige la birra.** Antes esta pantalla tenía encima la fila de
+ * estilos y el selector de marca, y el teclado competía con dos decisiones más
+ * en el mismo alto. Ahora eso lo preguntó [ReportFlow] antes, de a una, y lo
+ * elegido se muestra arriba sólo para poder corregirlo: el botón de volver
+ * lleva al paso anterior, no afuera.
  */
 export function ReportPrice({
-  styles, brands, preselected, preselectedBrand, barName, currency, defaultSizeMl,
-  onCancel, onSubmit, onBrandCreated, onStyleCreated,
+  barName, currency, defaultSizeMl, styleName, brandName,
+  onBack, onCancel, onSubmit,
 }: {
-  styles: BeerStyle[]
-  brands: Brand[]
-  preselected?: string
-  preselectedBrand?: string | null
   barName?: string
   /** La del bar: el precio se carga en la moneda del lugar, no en la tuya. */
   currency: string
   /** El de tu configuración. Una pinta no mide lo mismo en todos lados. */
   defaultSizeMl: number
+  styleName: string
+  /** Null es "sin marca", que es una birra concreta y no un dato faltante. */
+  brandName: string | null
+  /** Al paso anterior. */
+  onBack: () => void
+  /** Salir del flujo entero. */
   onCancel: () => void
-  onSubmit: (
-    styleSlug: string, brandSlug: string | null, price: number, sizeMl: number,
-  ) => void
-  onBrandCreated: (b: Brand) => void
-  /** Un estilo propuesto acá todavía no está en la lista del servidor. */
-  onStyleCreated: (s: BeerStyle) => void
+  onSubmit: (price: number, sizeMl: number) => void
 }) {
-  const [style, setStyle] = useState(preselected ?? styles[0]?.slug)
-  const [brand, setBrand] = useState<string | null>(preselectedBrand ?? null)
   const [digits, setDigits] = useState('')
   const [size, setSize] = useState(String(defaultSizeMl))
   const [editingSize, setEditingSize] = useState(false)
 
-  // Cambiar de estilo limpia la marca elegida: una IPA de Antares y una rubia
-  // de Antares son birras distintas, pero arrastrar la marca sin querer
-  // convierte un cambio de estilo en un precio cargado sobre otra cerveza.
-  // Se conserva sólo cuando el estilo vuelve a ser el que venía preseleccionado
-  // (el caso de "Actualizar" sobre una birra concreta).
-  useEffect(() => {
-    setBrand(style === preselected ? (preselectedBrand ?? null) : null)
-  }, [style, preselected, preselectedBrand])
-
   const price = Number(digits) || 0
   const sizeMl = Number(size) || defaultSizeMl
-  const valid = !!style && price > 0 && sizeMl >= 100 && sizeMl <= 2000
+  const valid = price > 0 && sizeMl >= 100 && sizeMl <= 2000
 
   const press = (k: string) => {
     const cur = editingSize ? size : digits
@@ -74,30 +59,40 @@ export function ReportPrice({
       display: 'flex', flexDirection: 'column',
       paddingTop: 'var(--safe-top)', paddingBottom: 'var(--nav-gap)',
     }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
-        <button onClick={onCancel} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-        }} aria-label="Cancelar">←</button>
-        {barName && <span className="lbl" style={{ fontSize: 16 }}>{barName}</span>}
+      <header style={{ padding: '10px 18px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* La flecha vuelve un paso, no sale del flujo: quien llegó hasta acá
+              eligiendo tres cosas y se equivocó en la marca no tiene que
+              empezar de nuevo. Salir es la cruz. */}
+          <button onClick={onBack} style={{
+            width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
+            flexShrink: 0,
+          }} aria-label="Volver al paso anterior">←</button>
+          <span className="lbl" style={{
+            fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)', flex: 1,
+          }}>ÚLTIMO PASO</span>
+          <button onClick={onCancel} className="lbl" style={{
+            fontSize: 13, color: 'var(--muted)',
+          }} aria-label="Cancelar la carga">Cancelar</button>
+        </div>
+
+        {/* Qué se está cargando, en una línea. Es lo que evita el precio
+            cargado sobre la birra equivocada: el monto va a quedar pegado a
+            esto, así que tiene que estar a la vista mientras se teclea. */}
+        <div style={{ margin: '14px 0 0' }}>
+          <div className="ttl" style={{ fontSize: 21 }}>
+            {styleName}
+            {brandName && (
+              <span style={{ color: 'var(--amber)' }}> · {brandName}</span>
+            )}
+          </div>
+          {barName && (
+            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 3 }}>
+              en {barName}
+            </div>
+          )}
+        </div>
       </header>
-
-      <StyleChips
-        styles={styles} value={style} onCreated={onStyleCreated}
-        // Sin `allowNone`, el chip de "sin estilo" no existe y el undefined
-        // no puede llegar: cargar un precio siempre es de una birra concreta.
-        onChange={s => s && setStyle(s)}
-      />
-
-      {/* La marca, chica y a la izquierda, debajo de los estilos.
-          Estaba como una barra de ancho completo y le comía la pantalla al
-          monto, que es lo único que acá tiene que ser grande. Es un atributo
-          del estilo que se acaba de elegir, no un campo del mismo peso. */}
-      <div style={{ padding: '10px 14px 0' }}>
-        <BrandPicker
-          brands={brands} value={brand} onChange={setBrand}
-          onCreated={onBrandCreated}
-        />
-      </div>
 
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
@@ -136,7 +131,7 @@ export function ReportPrice({
 
       <button
         disabled={!valid}
-        onClick={() => onSubmit(style!, brand, price, sizeMl)}
+        onClick={() => onSubmit(price, sizeMl)}
         className="lbl"
         style={{
           margin: '12px 18px 18px', padding: 16, borderRadius: 16, fontSize: 15,

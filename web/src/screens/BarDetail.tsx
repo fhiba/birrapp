@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type {
   BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
 } from '../data/types'
 import { isModerator } from '../data/types'
-import { ageLabel, formatDistance, formatPrice, freshnessColor } from '../data/format'
+import {
+  ageLabel, formatDistance, formatPrice, freshnessColor, shortAddress,
+} from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
-import { ReportPrice } from './ReportPrice'
+import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
 import { Stars } from '../ui/Stars'
 import { PhotoStrip } from '../ui/PhotoStrip'
@@ -43,7 +45,6 @@ export function BarDetailScreen({
   const { id } = useParams()
   const barId = Number(id)
   const nav = useNavigate()
-  const [params, setParams] = useSearchParams()
   const isFavorite = favorites.ids.has(barId)
 
   const [bar, setBar] = useState<Bar | null>(null)
@@ -97,20 +98,9 @@ export function BarDetailScreen({
 
   useEffect(() => { load() }, [load])
 
-  /**
-   * Llegar con `?precio=1` abre la carga de precio sola.
-   *
-   * Es cómo entra quien eligió "cargar un precio" en el menú del "+" (BIR-36):
-   * ya dijo lo que venía a hacer, y dejarlo en la ficha del bar sería
-   * pedírselo de nuevo. El parámetro se saca enseguida para que volver atrás
-   * —o recargar— no lo vuelva a abrir.
-   */
-  useEffect(() => {
-    if (params.get('precio') !== '1') return
-    setParams({}, { replace: true })
-    if (user) setReporting({})
-    else nav('/perfil')
-  }, [params, setParams, user, nav])
+  // Nota: hasta la 0.9.0 se entraba acá con `?precio=1` desde el mapa y la
+  // carga de precio se abría sola. Ya no: el "+" del mapa abre el flujo entero
+  // —estilo, marca, bar y recién el monto— sin pasar por la ficha.
 
   /**
    * El embudo de las tres mutaciones de precio: confirmar, cargar y borrar.
@@ -148,7 +138,9 @@ export function BarDetailScreen({
   )
   if (!bar) return <Centered><div className="spinner" /></Centered>
 
-  const meta = [formatDistance(bar.distanceMeters), bar.neighbourhood, bar.address]
+  // El barrio sí queda: en una ciudad que no conocés, "Palermo" ubica. Lo que
+  // se va es el resto de la dirección — ver `shortAddress`.
+  const meta = [formatDistance(bar.distanceMeters), bar.neighbourhood, shortAddress(bar.address)]
     .filter(Boolean).join(' · ')
 
   // El promedio del bar no se guarda: sale de sus birras. Guardarlo aparte
@@ -588,24 +580,27 @@ export function BarDetailScreen({
       )}
 
       {reporting && (
-        <ReportPrice
-          styles={styles} brands={brands}
-          currency={bar.currency}
-          defaultSizeMl={user?.defaultSizeMl ?? 473}
-          preselected={reporting.style} preselectedBrand={reporting.brand}
-          barName={bar.name}
-          onCancel={() => setReporting(null)}
+        <ReportFlow
+          styles={styles} brands={brands} user={user}
+          // Entrando desde la ficha, el bar ya está: el flujo no lo pregunta.
+          bar={{ id: bar.id, name: bar.name, currency: bar.currency }}
+          // `reporting` ya tiene la forma de lo que se sabe: vacío desde
+          // "Otra birra", con estilo desde "Otra marca", con los dos desde
+          // "Actualizar". El flujo pregunta sólo lo que falta.
+          preselected={reporting}
+          nearby={[]} center={center}
           onStyleCreated={onStyleCreated}
           onBrandCreated={onBrandCreated}
-          onSubmit={(slug, brandSlug, price, sizeMl) => {
+          onCancel={() => setReporting(null)}
+          onSubmit={({ styleSlug, brandSlug, price, sizeMl }) => {
             setReporting(null)
             // La birra cargada pasa a ser la que se está mirando: si no, se
             // carga la segunda IPA y la pantalla se queda mostrando la
             // primera, como si no hubiera pasado nada.
-            setTab({ style: slug, brand: brandSlug })
+            setTab({ style: styleSlug, brand: brandSlug })
             act(
-              () => api.reportPrice({ barId, styleSlug: slug, brandSlug, price, sizeMl }),
-              slug + '|' + (brandSlug ?? ''),
+              () => api.reportPrice({ barId, styleSlug, brandSlug, price, sizeMl }),
+              styleSlug + '|' + (brandSlug ?? ''),
             )
           }}
         />
@@ -762,8 +757,8 @@ function PriceRow({
       <div style={{
         padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
       }}>
-        <BeerLabel price={price} />
-        <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 14 }}>
+        {/* Sin rótulo: cuál birra es lo dicen las pestañas de arriba. */}
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
           Esta birra no tiene precio cargado.
         </p>
         <button onClick={onUpdate} className="lbl" style={{
@@ -778,14 +773,21 @@ function PriceRow({
   const dim = price.freshness === 'stale'
   return (
     <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-      {/* Estilo y marca sobre el precio.
-          Cuando el estilo era toda la identidad esto sobraba —lo decía la
-          pestaña de arriba— pero con dos IPA a precios distintos el número
-          suelto no dice de cuál es, y las dos filas de pestañas se pueden
-          haber corrido de lado. El precio sin su birra no significa nada. */}
-      <BeerLabel price={price} />
+      {/* Acá iba otra vez el estilo y la marca. Lo dicen las dos filas de
+          pestañas que están justo arriba, con la activa en ámbar: repetirlo
+          era gastar el renglón de mayor jerarquía en algo que la persona
+          acababa de tocar.
+          Lo único que no está en las pestañas es si la marca es artesanal, y
+          eso sí queda. */}
+      {price.brandCraft && (
+        <span className="lbl" style={{
+          display: 'inline-block', fontSize: 10, letterSpacing: '.08em',
+          padding: '2px 7px', borderRadius: 999, marginBottom: 8,
+          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
+        }}>ARTESANAL</span>
+      )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <div className="num" style={{
             fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
@@ -858,34 +860,6 @@ function PriceRow({
  * leerlos como una sola frase ("IPA · Antares") es más rápido que buscar cuál
  * de las dos pestañas está encendida.
  */
-function BeerLabel({ price }: { price: StylePrice }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
-      <span className="lbl" style={{
-        fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
-      }}>{price.styleName.toUpperCase()}</span>
-
-      {price.brandName ? (
-        <span className="lbl" style={{ fontSize: 13, color: 'var(--amber)' }}>
-          {price.brandName}
-        </span>
-      ) : (
-        // "Sin marca" se dice, no se omite: en un bar con dos IPA, una con
-        // marca y otra sin, el silencio se lee como que falta el dato.
-        <span className="lbl" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-          Sin marca
-        </span>
-      )}
-
-      {price.brandCraft && (
-        <span className="lbl" style={{
-          fontSize: 10, letterSpacing: '.08em', padding: '2px 7px', borderRadius: 999,
-          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
-        }}>ARTESANAL</span>
-      )}
-    </div>
-  )
-}
 
 /**
  * Foto ampliada.

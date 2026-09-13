@@ -1826,3 +1826,64 @@ mutación: desactivándolo caen tres tests, no cero.
 Un assert que había escrito mal —una cadena de `sorted().reversed()` sin
 sentido que pasaba igual— quedó corregido antes de commitear. Pasaba, pero no
 probaba lo que decía probar.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.1: cargar un precio, de a una pregunta por vez
+
+Pedido de Felipe, y tenía razón: la carga de precio era una sola pantalla con
+la fila de estilos, el selector de marca y el teclado del monto peleando por el
+mismo alto, con el bar dado por dónde hubieras entrado. Funciona cuando ya
+sabés usarlo; para alguien que entra por primera vez son tres decisiones
+encimadas, y lo que pasa es que carga el precio con el estilo que venía puesto.
+
+**Ahora son tres preguntas, en el orden en que se saben:** qué tipo de birra
+(se sabe siempre, se ve en el vaso), qué marca (no siempre, y "sin marca" es
+una respuesta y no un dato faltante) y en qué bar (casi siempre el de al lado,
+así que primero los cercanos). Recién con las tres contestadas aparece el
+teclado del monto.
+
+Cada paso muestra arriba lo que ya se contestó. Sin eso, tres pantallas
+seguidas se sienten como un formulario que no termina; ver "IPA · Antares"
+arriba es lo que dice que se está avanzando y sobre qué.
+
+**Los pasos ya contestados no se preguntan.** Entrando desde la ficha de un
+bar, el bar no se pregunta; desde "Otra marca" tampoco el estilo; desde
+"Actualizar" sobre una birra concreta se va derecho al monto. La lista de
+pasos se calcula al entrar y no cambia, así que "paso 2 de 3" no puede mentir.
+
+**Tres extracciones para no duplicar nada.** El flujo necesitaba, adentro de
+sus pasos, cosas que ya existían metidas en su propia cáscara: la lista de
+marcas con su alta (`BrandList`, sacada de `BrandPicker`), el buscador de bares
+(`BarSearchList`, sacado de `PickBarSheet`) y la grilla de estilos con su alta
+(`StyleChips` con `layout="grid"`). Ninguna lógica nueva: si se hubiera
+copiado, en dos meses habría dos formas distintas de proponer una marca.
+
+`ReportPrice` se queda con lo suyo —el teclado, la tecla 000, el separador de
+miles— y muestra la birra elegida arriba en vez de dejarte elegirla ahí. La
+flecha vuelve un paso, no sale del flujo: quien eligió tres cosas y se equivocó
+en la marca no tiene que empezar de nuevo.
+
+Se fue el `?precio=1`: el "+" del mapa abre el flujo entero y ya no pasa por la
+ficha del bar. Y el precio cargado desde el mapa invalida la caché de bares —
+es el agujero de BIR-23, que estaba arreglado en la ficha y habría vuelto a
+aparecer por la puerta nueva.
+
+### Y el ruido de la ficha del bar
+
+**La dirección se corta en la primera coma.** Google devuelve
+`formattedAddress` entera —"Av. Corrientes 1234, C1043AAZ CABA, Argentina"— y
+el código postal, la ciudad, la provincia y el país no le dicen nada a alguien
+que está parado a cuatrocientos metros: son tres datos que ya sabe ocupando el
+renglón del que no sabe. Se corta al mostrar y no al guardar: la dirección
+completa sirve para desambiguar bares homónimos en moderación. El barrio queda,
+que en una ciudad que no conocés sí ubica.
+
+**El rótulo con el estilo y la marca arriba del precio se fue.** Lo dicen las
+dos filas de pestañas que están justo encima, con la activa en ámbar: repetirlo
+gastaba el renglón de mayor jerarquía en algo que la persona acababa de tocar.
+Lo único que las pestañas no dicen es si la marca es artesanal, y eso se queda.
+
+134 tests de backend en verde (sin cambios de backend). `shortAddress` se
+verificó contra las formas reales que devuelve Google en tres países, más las
+direcciones a mano y los nulos.
