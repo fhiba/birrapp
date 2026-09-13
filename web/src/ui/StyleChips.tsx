@@ -15,7 +15,7 @@ import type { BeerStyle } from '../data/types'
  * en vez de en una pantalla nueva — es un renglón de texto, no un trámite.
  */
 export function StyleChips({
-  styles, value, onChange, onCreated, allowNone = false,
+  styles, value, onChange, onCreated, allowNone = false, layout = 'row',
 }: {
   styles: BeerStyle[]
   value: string | undefined
@@ -24,6 +24,13 @@ export function StyleChips({
   onCreated: (s: BeerStyle) => void
   /** "Sin estilo" como opción real. En el contador sí; cargando un precio no. */
   allowNone?: boolean
+  /**
+   * `row` es la fila que se arrastra, para cuando el estilo es un control más
+   * al costado de otra cosa. `grid` los muestra todos a la vez, para cuando
+   * elegir el estilo ES la pantalla: ahí esconder la mitad detrás de un gesto
+   * sería pedir que adivinen que hay más.
+   */
+  layout?: 'row' | 'grid'
 }) {
   const [typing, setTyping] = useState(false)
   const [name, setName] = useState('')
@@ -47,9 +54,14 @@ export function StyleChips({
     } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
 
+  const grid = layout === 'grid'
+
   const chip = (label: string, on: boolean, onClick: () => void) => (
     <button key={label} onClick={onClick} className="lbl pill" style={{
-      padding: '9px 15px', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
+      padding: grid ? '13px 16px' : '9px 15px',
+      fontSize: grid ? 14 : 13,
+      whiteSpace: 'nowrap', flexShrink: 0,
+      textAlign: grid ? 'center' : undefined,
       background: on ? 'var(--cream)' : 'var(--elevated)',
       color: on ? 'var(--base)' : 'var(--muted)',
     }}>{label}</button>
@@ -57,13 +69,17 @@ export function StyleChips({
 
   return (
     <>
-      <div style={{
+      <div style={grid ? {
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gap: 8, padding: '4px 14px',
+      } : {
         display: 'flex', gap: 7, overflowX: 'auto', padding: '4px 14px', scrollbarWidth: 'none',
       }}>
         {allowNone && chip('Sin estilo', value === undefined, () => onChange(undefined))}
         {styles.map(s => chip(s.name, value === s.slug, () => onChange(s.slug)))}
         <button onClick={() => setTyping(t => !t)} className="lbl pill" style={{
-          padding: '9px 15px', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
+          padding: grid ? '13px 16px' : '9px 15px',
+          fontSize: grid ? 14 : 13, whiteSpace: 'nowrap', flexShrink: 0,
           background: 'transparent', color: 'var(--amber)',
           border: '1px dashed rgba(255,182,39,.5)',
         }}>+ Otro</button>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import * as api from '../data/api'
 import type { BarPin } from '../data/types'
 import { formatDistance, formatPrice, shortAge } from '../data/format'
-import { Sheet } from './Chrome'
 
 /**
  * "¿En qué bar?" — el paso que faltaba para poder cargar un precio desde el
@@ -13,13 +12,19 @@ import { Sheet } from './Chrome'
  * otro 10%, y consulta al servidor porque la caché del mapa sólo tiene lo que
  * entró en el radio que se está mirando.
  */
-export function PickBarSheet({
-  title, nearby, center, onClose, onPick,
+/**
+ * Buscador y lista de bares, sin cáscara.
+ *
+ * Va aparte porque lo usan dos cosas con posicionamiento distinto: el paso 3
+ * del flujo de carga de precio, a pantalla completa, y cualquier hoja que
+ * necesite elegir un bar. La lógica de "los de al lado primero, el buscador
+ * para el resto" existe una sola vez.
+ */
+export function BarSearchList({
+  nearby, center, onPick,
 }: {
-  title: string
   nearby: BarPin[]
   center: google.maps.LatLngLiteral | null
-  onClose: () => void
   onPick: (bar: BarPin) => void
 }) {
   const [q, setQ] = useState('')
@@ -51,7 +56,7 @@ export function PickBarSheet({
   const shown = found ?? close
 
   return (
-    <Sheet title={title} onClose={onClose}>
+    <>
       <input
         value={q} onChange={e => setQ(e.target.value)}
         placeholder="Buscar un bar" maxLength={60} autoComplete="off"
@@ -96,6 +101,6 @@ export function PickBarSheet({
           </p>
         )}
       </div>
-    </Sheet>
+    </>
   )
 }
