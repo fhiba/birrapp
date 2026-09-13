@@ -39,7 +39,7 @@ type Step = 'style' | 'brand' | 'bar' | 'price'
  */
 export function ReportFlow({
   styles, brands, user, nearby, center, bar, preselected,
-  onStyleCreated, onBrandCreated, onCancel, onSubmit,
+  onStyleCreated, onBrandCreated, onAddBar, onCancel, onSubmit,
 }: {
   styles: BeerStyle[]
   brands: Brand[]
@@ -59,6 +59,12 @@ export function ReportFlow({
   preselected?: { style?: string; brand?: string | null }
   onStyleCreated: (s: BeerStyle) => void
   onBrandCreated: (b: Brand) => void
+  /**
+   * Salida para cuando el bar no está cargado. Sin esto el paso 3 es un
+   * callejón: no se puede cargar el precio de un bar que no existe, y en una
+   * ciudad donde todavía no cargó nadie ése es el caso normal.
+   */
+  onAddBar?: () => void
   onCancel: () => void
   onSubmit: (r: {
     bar: FlowBar
@@ -191,6 +197,15 @@ export function ReportFlow({
                 next()
               }}
             />
+
+            {onAddBar && (
+              <button onClick={onAddBar} className="lbl" style={{
+                width: '100%', marginTop: 14, padding: 14, borderRadius: 13,
+                fontSize: 13.5, minHeight: 44, textAlign: 'center',
+                background: 'rgba(255,255,255,.06)', color: 'var(--amber)',
+                border: '1px dashed var(--hairline)',
+              }}>El bar no está — agregalo</button>
+            )}
           </div>
         )}
       </div>

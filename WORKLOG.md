@@ -2113,3 +2113,27 @@ declarar nada.
 Y el orden de la lista se recuerda entre sesiones, en localStorage: es una
 preferencia de cómo mirás, no un dato de la cuenta, y quien usa la app sin
 cuenta también la tiene.
+
+---
+
+## 2026-09-13 (cont.) — v0.10.2: los dos callejones que dejó abrir el mundo
+
+Dos consecuencias de la 0.8.0 que no habíamos visto, las dos del mismo tipo:
+lugares donde alguien nuevo se queda sin nada que hacer.
+
+**El mapa vacío no decía nada.** Desde que se pueden cargar bares de cualquier
+parte del mundo, éste pasó a ser el primer contacto más probable de alguien
+nuevo: abre la app en una ciudad donde nadie cargó nada y ve un mapa mudo, sin
+una palabra que le diga si la app está rota, si está mal parado, o si
+simplemente no hay nada todavía. Ahora lo dice y ofrece cargar el primero.
+
+Aparece sólo cuando terminó de cargar y el zoom alcanza: con el mapa lejos ya
+lo dice el cartel de "acercá el mapa", y mientras carga decir "no hay nada"
+sería mentir por un segundo.
+
+**Y el paso 3 del flujo de carga era un callejón.** Si no hay bares cerca, la
+lista está vacía y no se puede seguir — no se puede cargar el precio de un bar
+que no existe. En Buenos Aires eso no pasa nunca; en una ciudad donde todavía
+no cargó nadie es el caso normal. Ahora hay una salida: "El bar no está —
+agregalo". Se pierde el flujo, y no hay forma de que no se pierda, pero al
+menos hay puerta.
