@@ -388,9 +388,16 @@ export function BarDetailScreen({
           {/* La fila se muestra incluso con una sola birra: es donde vive el
               "+", y un control que aparece y desaparece según cuántas haya es
               un control que no se encuentra cuando se lo necesita. */}
+          {/* `scrollPaddingLeft` va con el `padding` y no es decoración: al
+              engancharse, el navegador alinea la pestaña contra el borde del
+              scrollport, que está ANTES del padding. O sea que la fila se
+              corría 18px sola y la primera pestaña terminaba pegada al borde
+              de la pantalla, desalineada de todo lo demás de la ficha. Con
+              esto, el enganche respeta el mismo margen que el resto. */}
           <div data-tour="bar-tabs" style={{
             display: 'flex', gap: 6, padding: '4px 18px 0',
             overflowX: 'auto', scrollSnapType: 'x proximity',
+            scrollPaddingLeft: 18,
           }}>
             {groups.map(g => {
               const on = g.slug === group?.slug
@@ -460,6 +467,7 @@ export function BarDetailScreen({
             <div style={{
               display: 'flex', gap: 6, padding: '8px 18px 0',
               overflowX: 'auto', scrollSnapType: 'x proximity',
+              scrollPaddingLeft: 18,
             }}>
               {group.beers.map(b => {
                 const on = b.brandSlug === active?.brandSlug

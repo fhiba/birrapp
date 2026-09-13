@@ -1887,3 +1887,36 @@ Lo único que las pestañas no dicen es si la marca es artesanal, y eso se queda
 134 tests de backend en verde (sin cambios de backend). `shortAddress` se
 verificó contra las formas reales que devuelve Google en tres países, más las
 direcciones a mano y los nulos.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.2: el código postal que sobrevivió, y la fila corrida
+
+Dos cosas que Felipe vio en pantalla y que yo no podía ver.
+
+**El código postal seguía ahí.** Cortar en la primera coma alcanzaba para "Av.
+Corrientes 1234, C1043AAZ CABA, Argentina", que es la forma que miré. Pero hay
+direcciones que **empiezan** por el código postal —"B1640HEM, Martínez,
+Provincia de Buenos Aires, Argentina", un bar de Martínez— y ahí cortar en la
+coma deja en pantalla exactamente el dato más inútil de todos. La regla parecía
+general porque los casos que probé eran todos del mismo molde.
+
+Ahora se recorren los segmentos y se devuelve el primero que no sea un código
+postal, sacándole el CPA de adelante si lo tiene ("B1640HEM Martínez" →
+"Martínez"). Si el bar no tiene calle, lo que queda es la localidad: peor que
+la calle, mejor que el código postal, y es lo que de verdad sabemos.
+
+El reconocedor cubre el CPA argentino, los cuatro o cinco dígitos de media
+Europa y Estados Unidos, el CEP brasileño, el británico, el canadiense y el
+holandés. **El CPA pegado adelante se saca sólo en su forma argentina**
+(letra + cuatro dígitos + tres letras), que no se confunde con nada: sacar
+cuatro dígitos sueltos del principio le comería la altura a "1600 Pennsylvania
+Avenue NW", y eso es perder el dato, no limpiar ruido. Verificado contra quince
+formas reales, incluida ésa.
+
+**La fila de birras estaba corrida.** La primera pestaña quedaba pegada al
+borde de la pantalla, desalineada de todo el resto de la ficha. No era el
+padding: es que al engancharse, el navegador alinea la pestaña contra el borde
+del scrollport, que está *antes* del padding, así que la fila se corría sola
+esos 18px. Se arregla con `scroll-padding-left` en las dos filas que enganchan
+—estilos y marcas—, que es el control que existe justamente para eso.
