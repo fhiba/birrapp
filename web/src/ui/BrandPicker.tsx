@@ -165,7 +165,7 @@ export function BrandList({
           style={{
             flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
             background: 'var(--elevated)', border: '1px solid var(--hairline)',
-            fontFamily: 'inherit', fontSize: 'var(--t-4)', color: 'inherit',
+            fontFamily: 'inherit', fontSize: 'var(--t-field)', color: 'inherit',
           }}
         />
       </header>

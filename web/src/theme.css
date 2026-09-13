@@ -53,6 +53,21 @@
   --t-9: 38px;   /* el precio: el dato que la app viene a contestar */
   --t-10: 48px;  /* el monto que se está tecleando, único en su pantalla */
 
+  /*
+   * Piso de los campos de texto, y no es una decisión de diseño.
+   *
+   * Safari en iOS acerca el viewport al enfocar un campo de menos de 16px, y
+   * al volver no lo aleja: quedás con la app en zoom y hay que pellizcar para
+   * salir. Antes lo tapaba `maximum-scale=1` en el meta viewport, pero eso
+   * bloquea el zoom de toda la página, que es un incumplimiento de WCAG 1.4.4
+   * y se sacó en v0.10.0. Desde entonces la única defensa es el tamaño.
+   *
+   * Al revisar quedó que estaban *todos* mal: seis campos a 15px, el de la nota
+   * a 13 y el de confirmación heredando 15. El de búsqueda tenía el comentario
+   * que explicaba los 16px justo arriba del 15.
+   */
+  --t-field: 16px;
+
   /* Espaciado. La regla que lo hace funcionar no es la escala sino usarla
      para agrupar: el aire entre grupos tiene que superar al de adentro. */
   --s-1: 4px;
@@ -469,3 +484,10 @@ a { color: var(--amber); }
 .heat-2 { background: #7A5D1E; color: #FFF3DA; }
 .heat-3 { background: #B88710; color: var(--base); }
 .heat-4 { background: var(--amber); color: var(--base); }
+
+/* Red de seguridad del piso de 16px: cubre los campos que no traen tamaño
+   propio. Los que sí lo traen lo ponen inline, que gana por especificidad, así
+   que ahí la regla es usar --t-field y no un paso de la escala. */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea,
+select { font-size: var(--t-field); }

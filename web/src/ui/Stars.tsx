@@ -113,7 +113,7 @@ export function RatingField({ rating, onCommit }: {
         setText(n != null ? String(n) : real)
       }}
       style={{
-        width: 52, padding: '4px 8px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-3)',
+        width: 56, padding: '4px 8px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-field)',
         background: 'transparent', border: '1px solid var(--hairline)',
         color: 'inherit', fontFamily: 'inherit',
       }}

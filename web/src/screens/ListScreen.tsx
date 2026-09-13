@@ -256,14 +256,14 @@ export function ListScreen(p: Props) {
               style={{
                 width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
                 background: 'var(--film-2)', border: '1px solid var(--hairline)',
-                // 16px: abajo de eso, iOS acerca la pantalla al enfocar.
-                fontSize: 'var(--t-4)',
+                // Ver --t-field: abajo de 16px iOS acerca la pantalla al enfocar.
+                fontSize: 'var(--t-field)',
               }}
             />
             {query !== '' && (
               <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
-                position: 'absolute', right: 4, top: 0, bottom: 0, width: 30,
-                color: 'var(--faint)', fontSize: 'var(--t-4)',
+                position: 'absolute', right: 2, top: 0, bottom: 0, width: 44,
+                color: 'var(--faint)', fontSize: 'var(--t-5)',
               }}>×</button>
             )}
           </div>

@@ -296,10 +296,8 @@ function Item({
         </div>
       </button>
       {onRemove && (
-        <button onClick={onRemove} aria-label="Borrar" style={{
-          flexShrink: 0, width: 36, height: 36, borderRadius: '50%',
-          display: 'grid', placeItems: 'center', color: 'var(--danger)',
-          background: 'rgba(255,122,102,.1)',
+        <button onClick={onRemove} aria-label="Borrar" className="icon-btn" style={{
+          color: 'var(--danger)', background: 'rgba(255,122,102,.1)',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 2H8l1-2Z" />
