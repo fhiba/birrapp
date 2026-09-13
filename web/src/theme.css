@@ -208,3 +208,128 @@ a { color: var(--amber); }
 @media (min-width: 820px) {
   .desk-only { display: block; }
 }
+
+/* ---------- Piso de accesibilidad ----------
+ *
+ * Tres cosas que la app no tenía y que son estándar en cualquier interfaz
+ * seria. No son decoración: son lo que separa a una app que se puede usar de
+ * una que se puede usar *si* la usás como el autor esperaba.
+ */
+
+/* 1. Foco visible.
+ *
+ * Hasta acá, moverse con teclado por la app era moverse a ciegas: el reset de
+ * `button` no saca el contorno, pero el que pone el navegador sobre fondo
+ * oscuro casi no se ve. Esto es WCAG 2.4.7, y también es lo que hace usable la
+ * versión de escritorio para quien no usa mouse.
+ *
+ * `:focus-visible` y no `:focus`: el anillo aparece navegando con teclado y no
+ * cada vez que se toca un botón con el dedo. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 2. Movimiento, sólo si lo quieren.
+ *
+ * Para quien marcó "reducir movimiento" en su sistema —vértigo, migrañas, o
+ * simplemente preferencia— las animaciones se apagan. No se esconde nada: lo
+ * que se anima aparece igual, sin el trayecto. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 3. Área de toque.
+ *
+ * Apple pide 44pt y Material 48dp de mínimo; la app tenía botones redondos de
+ * 38px por todos lados, que es cómodo de mirar e incómodo de apuntar con el
+ * pulgar en un colectivo. `.icon-btn` deja el círculo donde está y agranda lo
+ * que se puede tocar. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---------- Esqueletos de carga ----------
+ *
+ * Una barra de un pixel avisando "cargando" no dice qué está por aparecer. El
+ * esqueleto sí: ocupa la forma de las filas que vienen, así la pantalla no
+ * salta cuando llegan. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, .05) 25%,
+    rgba(255, 255, 255, .09) 37%,
+    rgba(255, 255, 255, .05) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton 1.4s ease infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0 50%; }
+}
+
+/* ---------- Diálogos ----------
+ *
+ * El `<dialog>` nativo trae el foco atrapado, Escape, el botón de atrás del
+ * teléfono y la capa superior; lo único que hay que poner es cómo se ve.
+ * El reset del navegador le mete borde, fondo blanco y un margen automático
+ * que lo centra sólo en horizontal, así que se reemplazan los tres.
+ */
+.modal {
+  margin: auto;                      /* centra en los dos ejes */
+  max-width: 400px;
+  width: calc(100% - 44px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--raised);
+  color: var(--cream);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+  animation: modal-in .16s ease-out;
+}
+.modal::backdrop {
+  background: rgba(0, 0, 0, .6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* La variante hoja: pegada abajo, ancho completo y esquinas sólo arriba.
+   `max-height` en `dvh` y no `vh` porque en Safari la barra de herramientas se
+   colapsa al scrollear y con `vh` la hoja quedaba más alta que la pantalla. */
+.modal-sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 86dvh;
+  overflow-y: auto;
+  border-radius: 22px 22px 0 0;
+  animation: sheet-in .2s ease-out;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}

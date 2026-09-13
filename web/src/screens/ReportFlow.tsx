@@ -190,10 +190,7 @@ function Header({ step, total, title, hint, chosen, onBack }: {
   return (
     <header style={{ padding: '10px 18px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          flexShrink: 0,
-        }} aria-label="Volver">←</button>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <span className="lbl" style={{
           fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
         }}>PASO {step} DE {total}</span>

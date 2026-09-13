@@ -133,9 +133,10 @@ const STEPS: Record<TourView, Step[]> = {
   profile: [
     {
       anchor: 'profile-stats',
-      title: 'Todo lo que cargaste',
-      body: 'Tocá cualquiera de los tres y ves tus precios, tus fotos y tus '
-        + 'bares juntos. Si algo te salió mal, lo borrás desde ahí.',
+      title: 'Lo tuyo, de un vistazo',
+      body: 'Cada cuadrado abre su lista: tus precios, tus fotos, tus bares. Si '
+        + 'algo te salió mal, lo borrás desde ahí. El cuarto es tu cuenta de '
+        + 'birras, que no es un aporte al mapa sino tuya.',
     },
   ],
 }

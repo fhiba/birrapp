@@ -112,7 +112,7 @@ export function BeerComments({
             style={{
               width: '100%', marginTop: 10, padding: '10px 12px', borderRadius: 11,
               background: 'transparent', border: '1px solid var(--hairline)',
-              resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
+              resize: 'vertical', fontFamily: 'inherit', fontSize: 16,
             }}
           />
           <button disabled={busy || !body.trim()} onClick={send} className="lbl" style={{

@@ -6,6 +6,7 @@ import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '.
 import type { Sort } from '../data/useBars'
 import { StyleFilter } from '../ui/StyleFilter'
 import { AreaStatsCard } from '../ui/AreaStatsCard'
+import { Empty, SkeletonRows } from '../ui/Empty'
 import { Segmented } from '../ui/Segmented'
 
 interface Props {
@@ -253,9 +254,10 @@ export function ListScreen(p: Props) {
               value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Buscar un bar" type="search"
               style={{
-                width: '100%', padding: '10px 34px 10px 13px', borderRadius: 12,
+                width: '100%', padding: '11px 34px 11px 13px', borderRadius: 12,
                 background: 'rgba(255,255,255,.06)', border: '1px solid var(--hairline)',
-                fontSize: 14,
+                // 16px: abajo de eso, iOS acerca la pantalla al enfocar.
+                fontSize: 16,
               }}
             />
             {query !== '' && (
@@ -273,9 +275,8 @@ export function ListScreen(p: Props) {
               onClick={() => setFavOnly(f => !f)}
               aria-pressed={favOnly}
               aria-label={favOnly ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
+              className="icon-btn"
               style={{
-                width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                display: 'grid', placeItems: 'center',
                 background: favOnly ? 'var(--amber)' : 'rgba(255,255,255,.07)',
                 color: favOnly ? 'var(--base)' : 'var(--muted)',
               }}
@@ -374,15 +375,38 @@ export function ListScreen(p: Props) {
           búsqueda y orden es justamente lo que tiene que quedarse quieto
           mientras la lista se corre. */}
       <div ref={deck} style={{ willChange: 'transform' }}>
-      {busy && <div style={{ height: 1, background: 'var(--amber)', margin: '8px 0' }} />}
+      {/* Esqueleto sólo en la primera carga: con filas en pantalla, cambiarlas
+          por fantasmas cada vez que se mueve el radio sería un parpadeo
+          constante. Ahí basta con que la lista se actualice sola. */}
+      {busy && shown.length === 0 && <SkeletonRows />}
+
+      {busy && shown.length > 0 && (
+        <div className="skeleton" style={{ height: 2, margin: '8px 18px' }} />
+      )}
 
       {!busy && shown.length === 0 && (
-        <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
-          {isSearch
-            ? `Ningún bar se llama así. Probá con menos letras.`
-            : favOnly ? 'Todavía no marcaste ningún bar como favorito.'
-            : 'No hay bares cargados por acá todavía.'}
-        </p>
+        isSearch ? (
+          <Empty
+            title="Ningún bar se llama así"
+            hint="Probá con menos letras: busca por parte del nombre y no hace falta poner las tildes."
+            action="Agregar este bar"
+            onAction={() => nav('/agregar')}
+          />
+        ) : favOnly ? (
+          <Empty
+            title="Todavía no marcaste ningún favorito"
+            hint="El corazón está arriba a la derecha en la ficha de cada bar. Los favoritos se guardan en tu cuenta, así que los ves desde cualquier teléfono."
+            action="Ver todos los bares"
+            onAction={() => setFavOnly(false)}
+          />
+        ) : (
+          <Empty
+            title="Por acá todavía no hay bares"
+            hint="El mapa lo hacemos entre todos: si conocés uno en esta zona, cargalo y queda para el resto."
+            action="Agregar un bar"
+            onAction={() => nav('/agregar')}
+          />
+        )
       )}
 
       <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>
