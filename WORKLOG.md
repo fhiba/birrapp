@@ -1972,3 +1972,83 @@ persona, comentar son todas las que quieras— y ahora se ven como dos.
 
 135 tests de backend en verde (134 + 1: las páginas de comentarios no repiten
 ni saltean filas).
+
+---
+
+## 2026-09-12 (cont.) — v0.10.0: el piso de calidad que faltaba
+
+Felipe pidió una revisión de UX contra lo que se hace en la industria. Busqué
+skills y plugins de UX: no hay ninguno de eso en el catálogo, así que instalé
+`modern-web-guidance` —que sí trae guías de patrones web actuales— y trabajé
+contra las heurísticas de Nielsen, las guías de toque de Apple y Material, y
+WCAG 2.2 AA.
+
+Lo que sigue no es maquillaje: son las cosas que separan una app que se puede
+usar de una que se puede usar *si* la usás como el autor esperaba.
+
+### Accesibilidad, en un solo lugar
+
+**Foco visible.** No había ninguno. Moverse con teclado por la app era moverse
+a ciegas: el reset de `button` no saca el contorno, pero el que pone el
+navegador sobre fondo oscuro casi no se ve. Ahora hay un anillo ámbar en
+`:focus-visible` —no en `:focus`, así no aparece al tocar con el dedo—.
+
+**Movimiento reducido.** Quien marcó esa preferencia en su sistema ahora no ve
+las animaciones. No se esconde nada: aparece igual, sin el trayecto.
+
+**Área de toque.** Apple pide 44pt y Material 48dp; la app tenía quince botones
+redondos de 38px. `.icon-btn` deja el círculo donde está y agranda lo que se
+puede tocar.
+
+**Y el zoom volvió.** El HTML tenía `maximum-scale=1`, que bloquea agrandar la
+pantalla — incumplimiento de WCAG 1.4.4 y deja afuera a quien lo necesita.
+Estaba ahí para evitar que iOS acercara la pantalla al enfocar un campo, que es
+un problema con otra solución: los campos de texto ahora son de 16px, que es el
+umbral donde iOS deja de hacerlo.
+
+### Diálogos de verdad
+
+`Confirm` y las hojas inferiores eran `div` con `position: fixed`. Se veían
+bien y les faltaba todo lo que hace usable un modal: el foco se quedaba en la
+página de atrás —con teclado se podía tabular hasta los botones tapados—,
+Escape no cerraba, el botón de atrás del teléfono tampoco, y al cerrar el foco
+no volvía a donde estaba.
+
+Ahora los dos salen del `<dialog>` nativo con `showModal()`, que da las cuatro
+cosas y el `::backdrop` gratis, más `closedby="any"` para cerrar tocando afuera
+donde el navegador lo soporta.
+
+### El toast tenía un bug
+
+`setTimeout(onDone, 3200)` estaba suelto en el cuerpo del componente, así que
+se programaba otro temporizador en **cada render** — y el mapa se redibuja con
+cada movimiento de cámara. Un aviso podía cerrarse antes de tiempo por el
+temporizador de un render anterior. Va en un efecto, uno solo, y con
+`role="status"` para que un lector de pantalla lo anuncie: hasta ahora la única
+confirmación de que un precio se cargó era visual.
+
+### Los vacíos y las esperas
+
+Media docena de pantallas vacías resueltas con un renglón gris: "No hay bares
+cargados por acá todavía". Verdadero e inútil — quien lo lee no sabe qué hacer,
+y es justo el momento donde más sirve decirlo. Ahora cada vacío dice qué pasa,
+por qué no es culpa de nadie, y ofrece el paso siguiente: cargar un bar, ver
+todos, anotar la primera birra.
+
+Y la lista dejó de anunciar la carga con una barra de un pixel: ahora hay
+filas fantasma con la forma de las que vienen, así la pantalla no salta cuando
+llegan.
+
+### Palabras
+
+**"Reportar precio" era una trampa.** Es el botón de denunciar un precio mal
+cargado, y está al lado del de cargar uno: en esta app "reportar un precio" es
+exactamente lo otro. Pasa a "Este precio está mal".
+
+El botón final del flujo de carga decía "Enviar"; ahora dice "Cargar el
+precio", que es lo que hace. Y el de agregar un bar, "Agregar este bar" — con
+una línea abajo que explica por qué está apagado cuando lo está, en vez de
+dejar a la persona mirando un botón gris.
+
+El perfil recuperó la foto, que se había ido con la mudanza a configuración: un
+perfil sin cara es una lista de números con un nombre arriba.

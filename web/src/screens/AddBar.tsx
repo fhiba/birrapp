@@ -148,9 +148,7 @@ export function AddBarScreen(
       paddingTop: 'var(--safe-top)',
     }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
-        <button onClick={() => nav(-1)} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-        }} aria-label="Volver">←</button>
+        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <h1 className="ttl" style={{ fontSize: 20, margin: 0 }}>Bar nuevo</h1>
       </header>
 
@@ -288,12 +286,25 @@ export function AddBarScreen(
         {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
       </div>
 
+      {/* Un botón apagado sin explicación es un callejón: la persona escribió
+          el nombre, ve el botón gris y no sabe qué le falta. Esto lo dice. */}
+      {!canSend && query.trim().length >= 2 && (
+        <p style={{
+          color: 'var(--faint)', fontSize: 12, textAlign: 'center',
+          margin: '0 18px', lineHeight: 1.5,
+        }}>
+          {manual
+            ? 'Falta la dirección para poder verificarlo.'
+            : 'Elegí el bar de la lista, o tocá “Agregar” para cargarlo a mano.'}
+        </p>
+      )}
+
       <button disabled={!canSend || sending} onClick={submit} className="lbl" style={{
         margin: `12px 18px calc(14px + var(--nav-gap))`, padding: 16,
-        borderRadius: 16, fontSize: 15,
+        borderRadius: 16, fontSize: 15, minHeight: 52,
         background: canSend ? 'var(--amber)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',
-      }}>{sending ? '…' : 'Enviar'}</button>
+      }}>{sending ? 'Enviando…' : 'Agregar este bar'}</button>
     </div>
   )
 }

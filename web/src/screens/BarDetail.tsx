@@ -274,9 +274,8 @@ export function BarDetailScreen({
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => nav(-1)} style={{
-            width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.07)',
-          }} aria-label="Volver">←</button>
+          <button onClick={() => nav(-1)} className="icon-btn"
+            style={{ background: 'rgba(255,255,255,.07)' }} aria-label="Volver">←</button>
           <span style={{ flex: 1 }} />
 
           {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
@@ -286,9 +285,9 @@ export function BarDetailScreen({
             onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
             aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
             aria-pressed={isFavorite}
+            className="icon-btn"
             style={{
-              width: 38, height: 38, borderRadius: '50%', marginRight: 8,
-              display: 'grid', placeItems: 'center',
+              marginRight: 8,
               background: isFavorite ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
               color: isFavorite ? 'var(--amber)' : 'var(--muted)',
             }}
@@ -309,9 +308,8 @@ export function BarDetailScreen({
               onClick={() => setModMode(m => !m)}
               aria-label={modMode ? 'Salir del modo moderador' : 'Modo moderador'}
               aria-pressed={modMode}
+              className="icon-btn"
               style={{
-                width: 38, height: 38, borderRadius: '50%',
-                display: 'grid', placeItems: 'center',
                 background: modMode ? 'var(--amber)' : 'rgba(255,255,255,.07)',
                 color: modMode ? 'var(--base)' : 'var(--muted)',
               }}
@@ -856,14 +854,20 @@ function PriceRow({
         display: 'flex', alignItems: 'center', gap: 14, marginTop: 12,
         fontSize: 12, color: 'var(--faint)',
       }}>
-        <button onClick={onHistory} style={{ fontSize: 12, color: 'var(--muted)' }}>
+        <button onClick={onHistory} style={{
+          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+        }}>
           Ver historial
         </button>
         <span>·</span>
-        {/* Reportar lo puede usar cualquiera, no sólo moderadores: quien ve
-            el precio mal es el que está parado en el bar. */}
-        <button onClick={onFlag} style={{ fontSize: 12, color: 'var(--muted)' }}>
-          Reportar precio
+        {/* "Este precio está mal" y no "reportar precio", que era ambiguo con
+            cargar uno: en esta app "reportar un precio" es justamente lo que
+            hace el botón de al lado. Cualquiera puede usarlo, no sólo
+            moderadores — quien ve el precio mal es el que está parado ahí. */}
+        <button onClick={onFlag} style={{
+          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+        }}>
+          Este precio está mal
         </button>
         {modMode && (
           <>

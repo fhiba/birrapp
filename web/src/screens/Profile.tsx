@@ -67,9 +67,22 @@ export function ProfileScreen({ user, onSession }: {
 
   return (
     <Wrap>
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        {/* La foto se edita en configuración; acá sólo se ve. Un perfil sin
+            cara es una lista de números con un nombre arriba. */}
+        {user.avatarUrl ? (
+          <img src={user.avatarUrl} alt="" width={56} height={56}
+            style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+        ) : (
+          <div className="num" aria-hidden style={{
+            width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+            display: 'grid', placeItems: 'center',
+            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 22,
+          }}>{user.displayName.charAt(0).toUpperCase()}</div>
+        )}
+
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="ttl" style={{ fontSize: 28, margin: 0 }}>{user.displayName}</h1>
+          <h1 className="ttl" style={{ fontSize: 26, margin: 0 }}>{user.displayName}</h1>
           <p style={{ color: 'var(--faint)', fontSize: 13, margin: '4px 0 0' }}>{user.email}</p>
         </div>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de

@@ -13,9 +13,8 @@ export function InfoScreen() {
       padding: `calc(10px + var(--safe-top)) 22px 60px`,
     }}>
       <div className="desk-narrow">
-      <button onClick={() => nav(-1)} style={{
-        width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-      }} aria-label="Volver">←</button>
+      <button onClick={() => nav(-1)} className="icon-btn"
+        style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
 
       <h1 className="ttl" style={{ fontSize: 28, margin: '22px 0 0' }}>
         Cómo funcionan los precios

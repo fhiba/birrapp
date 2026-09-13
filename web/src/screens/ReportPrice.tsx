@@ -64,10 +64,7 @@ export function ReportPrice({
           {/* La flecha vuelve un paso, no sale del flujo: quien llegó hasta acá
               eligiendo tres cosas y se equivocó en la marca no tiene que
               empezar de nuevo. Salir es la cruz. */}
-          <button onClick={onBack} style={{
-            width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-            flexShrink: 0,
-          }} aria-label="Volver al paso anterior">←</button>
+          <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver al paso anterior">←</button>
           <span className="lbl" style={{
             fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)', flex: 1,
           }}>ÚLTIMO PASO</span>
@@ -139,7 +136,7 @@ export function ReportPrice({
           color: valid ? 'var(--base)' : 'var(--faint)',
           cursor: valid ? 'pointer' : 'not-allowed',
         }}
-      >Enviar</button>
+      >Cargar el precio</button>
     </div>
   )
 }
