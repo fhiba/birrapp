@@ -2193,3 +2193,96 @@ Nielsen, las guías de toque de Apple y Material, y WCAG 2.2 AA.
    demás.
 4. **La lista no tiene "tirar para actualizar"**, que sí tiene la ficha del
    bar. Hay que pensarlo con el swipe horizontal que ya cambia el orden.
+
+---
+
+## 2026-09-13 (cont.) — v0.11.0: revamp con sistema de escalas
+
+Pedido: "utilizando lo que te bajaste y lo de uizze de stop ui slop, pegale un
+buen revamp" — de la app entera, no sólo del contador.
+
+**Herramientas.** Se instalaron seis plugins: `ui-ux-pro-max`, `taste-skill`,
+`daisyui`, `ux-design` (de wondelai/skills: trae Refactoring UI, heurísticas de
+usabilidad, microinteracciones, tipografía web), `uizze` (anti-ui-slop) y
+`accessibility-test-scanner`.
+
+Dos notas sobre eso. `wondelai-refactoring-ui` ya no existe en el marketplace
+de jeremylongshore —`plugins/design/` sólo tiene `brand-forge` y `uizze`—; se
+tomó de la fuente original, `wondelai/skills`, donde viene dentro del plugin
+`ux-design` junto con siete skills más. Y hay un mirror llamado exactamente
+`github-trending-wondelai-refactoring-ui` que adentro tiene
+`agent-context-manager`: no se usó.
+
+`daisyui` queda instalado pero no aplica: es una librería de componentes sobre
+Tailwind y acá los estilos son `theme.css` con variables propias.
+
+### El diagnóstico, medido antes de tocar nada
+
+| Qué | Cuántos |
+|---|---|
+| Tamaños de letra distintos | 26 (9,5 / 10 / 10,5 / 11 / 11,5 / 12 / 12,5 / 13 / 13,5 / 14 / 14,5 …) |
+| Radios de esquina | 14 |
+| Blancos translúcidos para "superficie apenas elevada" | 18 |
+| Combinaciones de padding | ~30 |
+| `SectionLabel` definido | 5 veces, con 5 márgenes distintos |
+
+No es que estuvieran mal elegidos de a uno. El problema es elegirlos de a uno:
+un valor fuera de escala no se nota solo, se nota apilado contra sus vecinos.
+
+### Lo que resultó ser un bug, no una mejora
+
+1. **Los nueve campos de texto estaban abajo del piso de 16px de iOS.** Safari
+   acerca el viewport al enfocar un campo más chico y al salir no lo aleja.
+   Antes lo tapaba `maximum-scale=1`, que se sacó en v0.10.0 por WCAG 1.4.4, así
+   que desde entonces la única defensa es el tamaño — y no lo cumplía ninguno:
+   seis a 15px, el de la nota a 13 y el de confirmación heredando 15. El de
+   búsqueda tenía el comentario que explicaba los 16px justo arriba del 15.
+2. **`--faint` falla contraste.** #8A7B6D daba 4,46:1 sobre `--base`, 4,01 sobre
+   `--raised` y 3,50 sobre `--elevated`, contra el 4,5:1 que pide WCAG 1.4.3
+   para texto chico. Es el color de 106 textos, casi todos de 11 y 12px.
+   `--stale` igual, a 4,40 sobre `--elevated`.
+3. **Cinco controles abajo de 44px**, el piso que la app declara cumplido desde
+   v0.10.0: cerrar la preview (30), borrar un aporte (36), las flechas de mes
+   (34), limpiar la búsqueda (30 de ancho) y la tuerca y salir del perfil (42).
+4. **El mapa de calor del calendario no mapeaba nada** (BIR-42). La intensidad
+   era proporcional al mejor día del mes, así que un mes de dos birras pintaba
+   su mejor día tan fuerte como un mes de quince: el color decía "lo más que
+   tomaste este mes", no "cuánto tomaste". Comparar dos meses era imposible.
+5. **El ancho de la cápsula del pin se estima en 8,6px por carácter** y el SVG
+   no pedía cifras tabulares, que es lo único que hace cierta esa cuenta. Sin
+   ellas "$11.111" nada en una cápsula de más y "$8.888" se sale.
+
+### El sistema
+
+10 pasos de tipografía, 7 de espaciado, 3 de radio, 3 de película, más
+`--t-field` (16px) para los campos con su regla de CSS de respaldo. 408 valores
+sueltos pasaron a salir de la escala; cero tamaños de letra fuera de ella.
+
+`--hairline` y el `--film-3` que había definido eran el mismo `rgba(…,.12)` con
+dos nombres: se colapsaron.
+
+### Jerarquía
+
+La regla de la casa es precio → antigüedad → nombre del bar, y no se cumplía:
+
+- En la lista el precio iba a 17px contra un nombre de bar de 15. Ahora es lo
+  más grande de la fila y con ancho mínimo, que es lo que arma una columna: sin
+  columna, comparar dos filas obliga a buscar el número en cada una.
+- En la ficha del bar el precio sube al paso más grande de la escala, que se usa
+  sólo ahí. Estaba a la misma altura que el número de una baldosa del perfil.
+- Cifras tabulares en todo `.num`.
+- En la preview del mapa la antigüedad pasa abajo del monto, como en la ficha.
+- Los cuatro cuadrados del perfil tenían el número en 17px y estaban sobre otra
+  superficie que las tres del contador, por ser dos copias de la misma baldosa.
+
+`ui/Kit.tsx`: `SectionLabel`, `Tile` y `Screen`, una vez.
+
+### Lo que no se hizo
+
+- **Nada de esto está probado tocándolo.** `tsc` y build limpios, pero es un
+  cambio visual grande verificado sólo por compilación. Sigue sin destrabarse el
+  ambiente local desde la tailnet.
+- La mitad de BIR-42 que son notificaciones push para la racha: es backend e
+  infra de push, no entra en un revamp. Queda en el ticket.
+- El visor de fotos sigue sin atrapar el foco.
+- La lista sigue sin "tirar para actualizar".

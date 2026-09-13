@@ -1013,7 +1013,7 @@ function PhotoViewer({
                   <button onClick={() => nav(`/usuario/${photo.authorId}`)} className="lbl"
                     style={{
                       color: 'var(--muted)', fontSize: 'var(--t-2)', textDecoration: 'underline',
-                      textDecorationColor: 'var(--film-4)', textUnderlineOffset: 3,
+                      textDecorationColor: 'var(--film-3)', textUnderlineOffset: 3,
                     }}>{photo.authorName}</button>
                   {' · '}
                 </>
@@ -1036,7 +1036,7 @@ function PhotoViewer({
       <button onClick={onClose} aria-label="Cerrar" style={{
         position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
         width: 40, height: 40, borderRadius: '50%',
-        background: 'var(--film-3)', color: 'var(--cream)', fontSize: 'var(--t-6)',
+        background: 'var(--hairline)', color: 'var(--cream)', fontSize: 'var(--t-6)',
       }}>×</button>
     </div>
   )
@@ -1054,7 +1054,7 @@ function ViewerArrow({
         position: 'absolute', top: '50%', transform: 'translateY(-50%)',
         [side]: 14, width: 44, height: 44, borderRadius: '50%',
         display: 'grid', placeItems: 'center',
-        background: 'var(--film-3)', color: 'var(--cream)',
+        background: 'var(--hairline)', color: 'var(--cream)',
         opacity: disabled ? 0.25 : 1,
         cursor: disabled ? 'default' : 'pointer',
       }}

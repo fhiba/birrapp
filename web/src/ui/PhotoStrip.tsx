@@ -74,7 +74,7 @@ export function PhotoStrip({
             aria-label="Agregar una foto"
             style={{
               flex: '0 0 auto', width: 108, height: 108, borderRadius: 'var(--r-3)',
-              border: '1px dashed var(--film-4)', color: 'var(--muted)',
+              border: '1px dashed var(--film-3)', color: 'var(--muted)',
               display: 'grid', placeItems: 'center', gap: 4,
             }}
           >

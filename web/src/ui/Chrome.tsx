@@ -60,7 +60,7 @@ export function BottomNav() {
         bottom: 'var(--nav-gap)', zIndex: 50,
         display: 'flex', gap: 2, padding: 4, borderRadius: 999,
         background: 'rgba(38,30,24,.94)',
-        border: '.8px solid var(--film-3)',
+        border: '.8px solid var(--hairline)',
         backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
       }}>
         {tab('/', 'Mapa', 'map')}

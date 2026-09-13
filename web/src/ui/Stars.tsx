@@ -43,7 +43,7 @@ export function Stars({
               <defs>
                 <linearGradient id={`s${n}-${pct}-${mine}`}>
                   <stop offset={`${pct}%`} stopColor={color} />
-                  <stop offset={`${pct}%`} stopColor="var(--film-3)" />
+                  <stop offset={`${pct}%`} stopColor="var(--hairline)" />
                 </linearGradient>
               </defs>
               <path

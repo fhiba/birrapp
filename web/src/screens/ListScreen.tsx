@@ -421,7 +421,7 @@ export function ListScreen(p: Props) {
               <span style={{
                 width: 3, height: 34, borderRadius: 999, flexShrink: 0,
                 background: b.fromPrice != null
-                  ? ageColor(b.freshestAgeDays) : 'var(--film-3)',
+                  ? ageColor(b.freshestAgeDays) : 'var(--hairline)',
               }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="lbl" style={{

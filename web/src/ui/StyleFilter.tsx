@@ -61,7 +61,7 @@ export function StyleFilter({
             position: 'absolute', left: 0, top: size + 6, zIndex: 21, minWidth: 190,
             maxHeight: 320, overflowY: 'auto',
             background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: 8,
-            border: '.8px solid var(--film-3)',
+            border: '.8px solid var(--hairline)',
             boxShadow: '0 10px 34px rgba(0,0,0,.5)',
           }}>
             <MenuItem on={selected == null} onClick={() => { onSelect(undefined); setOpen(false) }}>

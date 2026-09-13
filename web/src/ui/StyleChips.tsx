@@ -98,7 +98,7 @@ export function StyleChips({
             style={{
               flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'var(--elevated)', border: '1px solid var(--hairline)',
-              fontSize: 'var(--t-4)',
+              fontSize: 'var(--t-field)',
             }}
           />
           <button disabled={!canCreate || busy} onClick={create} className="lbl" style={{

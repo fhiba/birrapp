@@ -88,8 +88,10 @@
      pasos alcanzan para todo lo que la app hacía con dieciocho. */
   --film-1: rgba(255,255,255,.04);   /* fondo de zona */
   --film-2: rgba(255,255,255,.07);   /* control en reposo */
-  --film-3: rgba(255,255,255,.12);   /* borde, separador */
-  --film-4: rgba(255,255,255,.22);   /* borde de algo que flota */
+  --film-3: rgba(255,255,255,.22);   /* borde de algo que flota */
+  /* Para bordes y separadores está --hairline, que ya existía y es este mismo
+     valor: dos nombres para una cosa es la inconsistencia que veníamos
+     sacando, en chico. */
 
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -283,7 +285,7 @@ a { color: var(--amber); }
 /* Con mouse conviene marcar lo tocable. */
 @media (hover: hover) {
   button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
-  .row-hover:hover { background: rgba(255,255,255,.04); }
+  .row-hover:hover { background: var(--film-1); }
 }
 
 /* Los gráficos de análisis: en un teléfono el dashboard tiene que contestar

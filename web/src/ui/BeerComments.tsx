@@ -153,7 +153,7 @@ export function BeerComments({
                 className="lbl"
                 style={{
                   fontSize: 'var(--t-3)', color: 'var(--muted)', textDecoration: 'underline',
-                  textDecorationColor: 'var(--film-4)', textUnderlineOffset: 3,
+                  textDecorationColor: 'var(--film-3)', textUnderlineOffset: 3,
                 }}
               >{c.authorName}</button>
             )}

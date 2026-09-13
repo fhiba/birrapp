@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const BASE = process.env.VITE_BASE_PATH ?? '/app/'
-const VERSION = '0.10.3'
+const VERSION = '0.11.0'
 
 export default defineConfig({
   plugins: [

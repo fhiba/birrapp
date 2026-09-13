@@ -587,6 +587,11 @@ function priceIcon(
   const s = on ? 1.16 : 1
   // El corazón se lleva su ancho: sin esto se monta sobre el último dígito
   // del precio, que es justo el que no se puede perder.
+  //
+  // El ancho se estima como 8,6px por carácter, y eso sólo es cierto si todos
+  // los dígitos miden lo mismo — por eso el `<text>` de abajo pide cifras
+  // tabulares. Sin ellas, "$11.111" queda nadando en una cápsula de más y
+  // "$8.888" se sale por los costados.
   const w = (20 + label.length * 8.6 + (fav ? 13 : 0)) * s
   const h = 26 * s
   // El aro se dibuja por dentro del borde, así que el lienzo tiene que
@@ -599,7 +604,9 @@ function priceIcon(
     <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
       text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
-      font-weight="700" fill="#1A1410">${label}</text>
+      font-weight="700" font-variant-numeric="tabular-nums"
+      style="font-variant-numeric:tabular-nums"
+      fill="#1A1410">${label}</text>
     ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
   </svg>`
   return {

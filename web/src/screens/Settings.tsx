@@ -94,7 +94,7 @@ export function SettingsScreen({ user, onSession }: {
             style={{
               flex: 1, minWidth: 0, padding: '12px 16px', borderRadius: 'var(--r-2)',
               background: 'var(--elevated)', border: '1px solid var(--hairline)',
-              fontSize: 'var(--t-4)',
+              fontSize: 'var(--t-field)',
             }}
           />
           {/* Este sí lleva botón: el campo no sabe cuándo terminaste de

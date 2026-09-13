@@ -103,7 +103,7 @@ export function BarPreview({
         style={{
           pointerEvents: 'auto',
           background: 'var(--raised)', borderRadius: 'var(--r-4)',
-          border: '.8px solid var(--film-3)',
+          border: '.8px solid var(--hairline)',
           boxShadow: '0 -6px 34px rgba(0,0,0,.5)',
           padding: '8px 16px 16px',
         }}
@@ -118,7 +118,7 @@ export function BarPreview({
         >
           <div aria-hidden style={{
             width: 38, height: 4, borderRadius: 2, margin: '0 auto 10px',
-            background: 'var(--film-4)',
+            background: 'var(--film-3)',
           }} />
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
