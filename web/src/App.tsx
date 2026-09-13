@@ -73,7 +73,24 @@ function Shell() {
   } = useBars()
   const favorites = useFavorites(user)
 
-  const [sort, setSort] = useState<Sort>('distance')
+  /**
+   * El orden de la lista se recuerda entre sesiones.
+   *
+   * Va en localStorage y no en la cuenta: es una preferencia de cómo mirás, no
+   * un dato tuyo, y quien usa la app sin cuenta también la tiene. Volver y
+   * encontrar la lista ordenada distinto de como la dejaste es de las cosas
+   * que más desorientan, sobre todo cuando el orden cambia qué bar aparece
+   * primero.
+   */
+  const [sort, setSort] = useState<Sort>(() => {
+    try {
+      const v = localStorage.getItem('birrapp.sort')
+      return v === 'cheapest' || v === 'rated' ? v : 'distance'
+    } catch { return 'distance' }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('birrapp.sort', sort) } catch { /* modo privado */ }
+  }, [sort])
   // El radio con el que abre la app sale de la configuración. `useState` sólo
   // lee el valor inicial, así que hay un efecto abajo para cuando la sesión
   // llega después del primer render — que es lo normal al abrir.

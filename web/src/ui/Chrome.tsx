@@ -25,6 +25,10 @@ export function BottomNav() {
     <NavLink
       to={to}
       end
+      // El nombre accesible va acá y no en el texto: la etiqueta sólo se
+      // dibuja en la pestaña activa —es lo que mantiene la barra angosta— así
+      // que sin esto las otras dos se anunciaban como enlaces sin nombre.
+      aria-label={label}
       style={({ isActive }) => ({
         display: 'flex', alignItems: 'center', gap: 7,
         padding: isActive ? '11px 16px' : '11px 17px',

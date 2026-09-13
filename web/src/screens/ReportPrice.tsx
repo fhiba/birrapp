@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { currencyPrefix, groupThousands } from '../data/format'
 
 /**
@@ -43,6 +43,27 @@ export function ReportPrice({
   const price = Number(digits) || 0
   const sizeMl = Number(size) || defaultSizeMl
   const valid = price > 0 && sizeMl >= 100 && sizeMl <= 2000
+
+  /**
+   * El teclado de verdad, en escritorio.
+   *
+   * El teclado propio existe porque en el teléfono el del sistema tapa media
+   * pantalla. En una notebook es al revés: hay un teclado físico delante y la
+   * única forma de cargar el precio era apuntarle a los botones con el mouse,
+   * dígito por dígito.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key >= '0' && e.key <= '9') press(e.key)
+      else if (e.key === 'Backspace') press('⌫')
+      else if (e.key === 'Enter' && valid) onSubmit(price, sizeMl)
+      else return
+      e.preventDefault()
+    }
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
+  })
 
   const press = (k: string) => {
     const cur = editingSize ? size : digits
