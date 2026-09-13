@@ -38,9 +38,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     }}>
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
-        <button onClick={() => nav(-1)} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-        }} aria-label="Volver">←</button>
+        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 0' }}>
           <h1 className="ttl" style={{ fontSize: 26, margin: 0 }}>Moderación</h1>
           {!loading && total > 0 && (

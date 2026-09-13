@@ -4,6 +4,7 @@ import * as api from '../data/api'
 import type { Person, User } from '../data/types'
 import { isModerator } from '../data/types'
 import { Confirm, Toast } from '../ui/Chrome'
+import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
 
 /**
@@ -52,7 +53,12 @@ export function PersonScreen({ user }: { user: User | null }) {
 
   if (error) return (
     <Wrap onBack={() => nav(-1)}>
-      <p style={{ color: 'var(--danger)' }}>{error}</p>
+      <Empty
+        title="No pudimos abrir este perfil"
+        hint={error}
+        action="Reintentar"
+        onAction={load}
+      />
     </Wrap>
   )
   if (!person) return <PintLoader message="Buscando…" />
@@ -197,10 +203,7 @@ function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => v
       padding: `calc(var(--safe-top) + 12px) 20px calc(24px + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
-        <button onClick={onBack} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          marginBottom: 18,
-        }} aria-label="Volver">←</button>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)', marginBottom: 18 }} aria-label="Volver">←</button>
         {children}
       </div>
     </div>

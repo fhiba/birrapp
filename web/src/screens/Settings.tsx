@@ -60,9 +60,7 @@ export function SettingsScreen({ user, onSession }: {
       padding: `calc(18px + var(--safe-top)) 22px calc(40px + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
-        <button onClick={() => nav(-1)} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-        }} aria-label="Volver">←</button>
+        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
 
         <h1 className="ttl" style={{ fontSize: 26, margin: '16px 0 0' }}>Configuración</h1>
 

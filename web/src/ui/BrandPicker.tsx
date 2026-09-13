@@ -151,10 +151,7 @@ export function BrandList({
       <header style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
       }}>
-        <button onClick={onBack} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          flexShrink: 0,
-        }} aria-label="Cancelar">←</button>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Cancelar">←</button>
         <input
           ref={input}
           value={q} onChange={e => setQ(e.target.value)}
