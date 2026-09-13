@@ -118,15 +118,16 @@ const STEPS: Record<TourView, Step[]> = {
     {
       anchor: 'bar-rating',
       title: 'Puntuá la birra',
-      body: 'Tocá las estrellas y ponele del 1 al 5. En ámbar ves tu voto y en '
-        + 'gris el promedio del resto. El iconito de al lado abre los '
-        + 'comentarios, y ahí también podés dejar el tuyo.',
+      body: 'Tocá las estrellas y ponele del 1 al 5 — se guarda solo. Para '
+        + 'medios puntos, escribilo en el casillero de al lado: 3,5 vale. En '
+        + 'ámbar ves tu voto y en gris el promedio del resto.',
     },
     {
       anchor: 'bar-photos',
       title: 'Subí una foto',
       body: 'Sacale una foto a la birra o elegí una de la galería. Se achica '
-        + 'en tu teléfono antes de subirse, así no te come datos.',
+        + 'en tu teléfono antes de subirse, así no te come datos. Abajo de las '
+        + 'fotos están los comentarios.',
     },
   ],
   profile: [

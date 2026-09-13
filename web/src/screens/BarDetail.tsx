@@ -11,7 +11,7 @@ import {
 import { Confirm, Toast } from '../ui/Chrome'
 import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
-import { Stars } from '../ui/Stars'
+import { RatingField, Stars } from '../ui/Stars'
 import { PhotoStrip } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
 
@@ -64,7 +64,6 @@ export function BarDetailScreen({
   // se actualiza un precio y la lista se reordena, un índice apuntaría a otra
   // cerveza.
   const [tab, setTab] = useState<{ style: string; brand: string | null } | null>(null)
-  const [comments, setComments] = useState<{ price: StylePrice; initial?: number } | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
   const [confirmPhoto, setConfirmPhoto] = useState<Photo | null>(null)
   const [confirmPrice, setConfirmPrice] = useState<StylePrice | null>(null)
@@ -167,6 +166,23 @@ export function BarDetailScreen({
     ? voted.reduce((n, p) => n + p.ratingRaw! * p.ratingCount, 0) / votes
     : null
 
+  /**
+   * Guarda la nota de una birra.
+   *
+   * Vivía adentro de la hoja de comentarios, que es de donde salió: puntuar
+   * obligaba a abrirla. Ahora las estrellas están con la birra y guardan solas
+   * — es una nota por persona, así que tocar de nuevo corrige la anterior.
+   */
+  const rate = async (p: StylePrice, n: number) => {
+    if (!user) return nav('/perfil')
+    try {
+      await api.rateBeer({
+        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,
+      })
+      await load()
+    } catch (e) { setToast((e as Error).message) }
+  }
+
   const myRatingOf = (p: StylePrice) =>
     mine.find(m => m.styleSlug === p.styleSlug && m.brandSlug === p.brandSlug)?.rating ?? null
 
@@ -198,7 +214,7 @@ export function BarDetailScreen({
   // Los diálogos y el visor de fotos son hijos de este contenedor, así que
   // sus toques burbujean hasta acá. Con uno abierto el arrastre es de él.
   const overlayOpen = !!(
-    reporting || confirmDelete || history || reportingBad || comments ||
+    reporting || confirmDelete || history || reportingBad ||
     viewing != null || confirmPhoto || confirmPrice
   )
 
@@ -542,7 +558,8 @@ export function BarDetailScreen({
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active)}
-                  onOpen={n => setComments({ price: active, initial: n })}
+                  canRate={user != null}
+                  onRate={n => rate(active, n)}
                 />
 
                 <PhotoStrip
@@ -553,6 +570,21 @@ export function BarDetailScreen({
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
+                />
+
+                {/* Los comentarios, abajo de las fotos y no detrás de un
+                    ícono: es el orden en que se mira una birra —cuánto sale,
+                    cómo se ve, qué dijeron— y lo que estaba escondido no lo
+                    leía nadie. */}
+                <BeerComments
+                  key={beerKey(active)}
+                  barId={barId}
+                  styleSlug={active.styleSlug}
+                  brandSlug={active.brandSlug}
+                  canWrite={user != null}
+                  modMode={modMode}
+                  myRating={myRatingOf(active)}
+                  onWrote={load}
                 />
               </div>
             </>
@@ -668,21 +700,6 @@ export function BarDetailScreen({
               setToast('Reportado. Gracias, lo revisa un moderador.')
             } catch (e) { setToast((e as Error).message) }
           }}
-        />
-      )}
-
-      {comments && (
-        <BeerComments
-          barId={barId}
-          styleSlug={comments.price.styleSlug}
-          brandSlug={comments.price.brandSlug}
-          title={beerName(comments.price)}
-          canWrite={user != null}
-          modMode={modMode}
-          myRating={myRatingOf(comments.price)}
-          initialRating={comments.initial}
-          onClose={() => setComments(null)}
-          onWrote={load}
         />
       )}
 
@@ -1037,20 +1054,28 @@ function ViewerArrow({
  * lo que aparenta.
  */
 function BeerRating({
-  price, myRating, onOpen,
+  price, myRating, canRate, onRate,
 }: {
-  price: StylePrice; myRating: number | null; onOpen: (n?: number) => void
+  price: StylePrice; myRating: number | null
+  canRate: boolean
+  onRate: (n: number) => void
 }) {
   const mine = myRating != null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} data-tour="bar-rating">
-      {/* Tocar una estrella abre el modal con ese valor ya elegido. Antes
-          eran decorativas y puntuar obligaba a encontrar el ícono de
-          comentarios, que es lo último donde alguien lo busca. */}
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    }} data-tour="bar-rating">
+      {/* Tocar una estrella guarda el voto, sin abrir nada. Antes abría la
+          hoja de comentarios con el valor elegido: un rodeo que existía sólo
+          porque el campo del decimal vivía allá adentro. */}
       <Stars
         value={mine ? myRating : price.ratingRaw} mine={mine} size={19}
-        onRate={n => onOpen(n)}
+        onRate={canRate ? onRate : undefined}
       />
+
+      {/* El campo del decimal, al lado de las estrellas: las estrellas dan
+          enteros y para un 3,5 hay que escribirlo. */}
+      {canRate && <RatingField rating={myRating} onCommit={onRate} />}
 
       {price.ratingCount > 0 ? (
         <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>
@@ -1066,15 +1091,6 @@ function BeerRating({
         <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>Sin votos</span>
       )}
 
-      <button onClick={() => onOpen()} aria-label="Ver comentarios" style={{
-        marginLeft: 'auto', display: 'grid', placeItems: 'center',
-        width: 38, height: 38, borderRadius: '50%',
-        background: 'rgba(255,255,255,.07)', color: 'var(--muted)',
-      }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
-        </svg>
-      </button>
     </div>
   )
 }

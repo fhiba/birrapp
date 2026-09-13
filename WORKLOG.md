@@ -1920,3 +1920,55 @@ padding: es que al engancharse, el navegador alinea la pestaña contra el borde
 del scrollport, que está *antes* del padding, así que la fila se corría sola
 esos 18px. Se arregla con `scroll-padding-left` en las dos filas que enganchan
 —estilos y marcas—, que es el control que existe justamente para eso.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.3: la nota con coma, lo tecleado que no se pierde, y los comentarios a la vista
+
+Tres cosas de la lista de Felipe.
+
+### La nota no aceptaba 3,5
+
+El bug no estaba donde parecía. `parseRating` siempre supo aceptar la coma
+—hace `replace(',', '.')` desde que existe— pero **nunca la veía**: el campo
+era `<input type="number">`, y ahí el navegador saneá el valor antes de que
+llegue a nuestro código. Cualquier cosa que no sea un número con punto se
+convierte en cadena vacía, así que al escribir "3,5" —la forma natural de
+escribir un decimal en castellano, y la que ofrece el teclado del teléfono—
+`value` llegaba vacío y no se guardaba nada.
+
+Pasa a `type="text"` con `inputMode="decimal"`, que conserva el teclado
+numérico en el teléfono, que era lo único que `type="number"` aportaba acá. El
+clamp, el redondeo y la coma ya estaban resueltos.
+
+### Lo tecleado que se perdía
+
+En los tres lugares donde se escribe un nombre que todavía no existe —marca,
+estilo, bar nuevo— había que encontrar y tocar el botón "Agregar". La tecla que
+sigue naturalmente a escribir un nombre es Enter, y Enter no hacía nada: lo
+tecleado quedaba ahí, aparentemente ignorado, y se perdía al salir del paso.
+Ahora Enter da de alta la marca y el estilo, y abre el alta a mano del bar con
+lo escrito.
+
+### Los comentarios, abajo de las fotos
+
+Estaban detrás de un ícono, en una hoja que había que abrir. El argumento era
+no convertir la pantalla en un muro; el efecto real es que no los leía nadie, y
+un comentario que nadie lee tampoco lo escribe nadie.
+
+Ahora están en la página, después de las fotos, que es el orden en que se mira
+una birra: cuánto sale, cómo se ve, qué dijeron. **De a diez, del más nuevo al
+más viejo**, con el resto detrás de un botón — así una birra con historia no
+alarga la ficha sin fin. La paginación es por `offset` y no por cursor: son
+decenas, no miles, y un cursor sería maquinaria para un problema que esta tabla
+no tiene. El orden se hizo estable (`created_at DESC, id DESC`) para que pedir
+la página siguiente no repita ni saltee filas.
+
+**La nota salió de ahí adentro.** Estaba en la misma caja que el texto porque
+el campo del decimal vivía en esa hoja, y eso obligaba a abrir los comentarios
+para poder puntuar. Ahora las estrellas guardan solas, con la birra, y el campo
+del decimal está al lado. Son dos acciones distintas —puntuar es una por
+persona, comentar son todas las que quieras— y ahora se ven como dos.
+
+135 tests de backend en verde (134 + 1: las páginas de comentarios no repiten
+ni saltean filas).
