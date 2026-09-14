@@ -2633,3 +2633,57 @@ del publicado es un APK que Android se niega a instalar, así que la versión se
 rehizo contra lo que hay hoy. De paso, lo nuevo se pasó a la escala de tokens
 que entró con el revamp: los 9,5 y 11,5 sueltos son justo lo que la escala vino
 a sacar.
+
+## 2026-09-14 (cont.) — v0.13.5: el pulgar, de nuevo y bien
+
+Felipe: "está pesimamente puesto el botón y encima cuando lo apretas
+desaparece". Las dos cosas eran ciertas y eran dos problemas distintos.
+
+**El bug.** No era de lógica: el revamp de la paleta borró `--amber` y lo
+renombró a `--acento`, y esta rama —que había nacido antes— se quedó con cinco
+`var(--amber)` colgados. Un `var()` que no existe no es un error visible: la
+declaración se descarta, el fondo del botón cae al `button { background: none }`
+global y queda transparente, y el ícono se pinta de `--base`, que es casi
+negro. O sea que al votar el botón no desaparecía: se volvía negro sobre la
+foto. Lo mismo le pasaba a la banda "DEL MES" y al borde de la foto del mes,
+que directamente nunca se vieron.
+
+La lección no es "revisar los tokens al mergear". Es que un token muerto se
+degrada en silencio, y que una rama larga contra una paleta que se está
+reescribiendo va a chocar con eso sí o sí. Barrí todo `web/src` comparando
+`var(--x)` contra lo definido en `theme.css`: no quedó ninguno.
+
+**El botón.** Auditado con las dos skills de UX. Daba 5/10 en el diagnóstico de
+microinteracciones: el trigger no se descubría, no mostraba su estado, el
+feedback no estaba a la altura del evento y un primerizo no podía entenderlo.
+
+Lo que cambió, y por qué:
+
+* **La miniatura vuelve a tener una sola acción: abrir la foto.** Tenía dos, y
+  la segunda era un pulgar de 24px en la esquina de un cuadrado de 108 — por
+  debajo del mínimo que se puede tocar, y pegado al borde del botón de abrir.
+  La mitad de los toques caían en el que no era.
+* **Se vota adentro del visor, que es donde estás mirando la foto.** Nadie
+  decide si le gusta una foto de 108px en una tira que scrollea. Ahí el botón
+  mide 44px de alto y tiene su etiqueta.
+* **La etiqueta ya no se va al votar.** Antes el texto se reemplazaba por el
+  número y quedaba un "1" suelto: el botón perdía lo único que decía qué hacía,
+  justo en el instante en que cambiaba de estado. El número va al lado y
+  apagado, porque es otro dato.
+* **En la miniatura queda el número, no el control.** No es un botón, es parte
+  de lo que la foto dice de sí misma —como la antigüedad al lado del precio— y
+  relleno significa que la votaste vos: de un barrido por la tira se ve cuáles
+  marcaste.
+* **Velo en degradado en vez de pastilla opaca.** La pastilla tapaba justo la
+  parte de la foto que uno quiere ver.
+* **Respuesta al toque por debajo de los 100ms** (`:active` hunde el botón) y
+  un golpe corto del pulgar al prenderse. El golpe va atado a *tu toque* y no
+  al estado: con el selector puesto en `[aria-pressed="true"]` se disparaba
+  también al abrir una foto ya marcada y al pasar a la de al lado, que es
+  festejar una navegación.
+
+El color sale de la rampa hueso y no del ámbar, y esta vez no por el token
+roto: la regla de la paleta nueva es "si tiene color, es un dato", y "me gusta
+esta foto" no es frescura, ni precio, ni peligro. El estado prendido se
+distingue por relleno y contraste, así que se lee con la pantalla en blanco y
+negro.

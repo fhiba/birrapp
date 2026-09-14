@@ -12,7 +12,7 @@ import { Confirm, Toast } from '../ui/Chrome'
 import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
 import { RatingField, Stars } from '../ui/Stars'
-import { PhotoStrip } from '../ui/PhotoStrip'
+import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
 
 /**
@@ -610,13 +610,11 @@ export function BarDetailScreen({
                 <PhotoStrip
                   photos={beerPhotos}
                   canAdd={user != null}
-                  canVote={user != null}
                   onAdd={async file => {
                     await api.uploadPhoto(barId, active.styleSlug, active.brandSlug, file)
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
-                  onVote={vote}
                 />
 
                 {/* Los comentarios, abajo de las fotos y no detrás de un
@@ -984,6 +982,15 @@ function PhotoViewer({
   const nav = useNavigate()
   const [i, setI] = useState(start)
   const touch = useRef<{ x: number; y: number } | null>(null)
+  // Marca el golpe del pulgar, y sólo el que produjo un toque tuyo. Se apaga
+  // sola y se apaga también al cambiar de foto: el golpe es de este toque.
+  const [pop, setPop] = useState(false)
+  useEffect(() => {
+    if (!pop) return
+    const t = setTimeout(() => setPop(false), 300)
+    return () => clearTimeout(t)
+  }, [pop])
+  useEffect(() => { setPop(false) }, [i])
 
   const go = useCallback((d: number) => {
     setI(n => Math.min(photos.length - 1, Math.max(0, n + d)))
@@ -1074,33 +1081,41 @@ function PhotoViewer({
           )}
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
-          {photo.topOfMonth && <> · <span style={{ color: 'var(--amber)' }}>foto del mes</span></>}
+          {photo.topOfMonth && <> · <span style={{ color: 'var(--acento)' }}>foto del mes</span></>}
         </span>
 
-        {/* Acá el pulgar es un botón de verdad y no la pastilla chiquita de
-            la tira: es el momento en que alguien está mirando la foto, que es
-            cuando decide si le gustó. Sin sesión queda el número solo. */}
+        {/*
+          * Acá es donde se vota, y en ningún otro lado.
+          *
+          * Es el momento en que alguien está mirando la foto: nadie decide si
+          * le gusta una foto de 108px en una tira que scrollea. Por eso el
+          * botón es de verdad —44px de alto, con su etiqueta— en vez de la
+          * pastilla de 24 que estaba encima de la miniatura.
+          *
+          * La etiqueta NO se va al votar. Antes el texto se reemplazaba por el
+          * número y el botón quedaba siendo un "1" suelto: perdía lo único que
+          * decía qué hacía, justo en el momento en que cambiaba de estado. El
+          * número va al lado, apagado, porque es otro dato.
+          */}
         {(canVote || photo.votes > 0) && (
           canVote ? (
             <button
-              onClick={() => onVote(photo)}
+              onClick={() => { if (!photo.votedByMe) setPop(true); onVote(photo) }}
               aria-pressed={photo.votedByMe}
-              className="lbl"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '9px 18px', borderRadius: 999, fontSize: 'var(--t-3)',
-                background: photo.votedByMe ? 'var(--amber)' : 'rgba(255,255,255,.14)',
-                color: photo.votedByMe ? 'var(--base)' : 'var(--cream)',
-              }}
+              data-pop={pop ? '1' : undefined}
+              className="like lbl"
             >
-              <ThumbIcon filled={photo.votedByMe} />
-              {photo.votes > 0
-                ? photo.votes
-                : photo.votedByMe ? 'Te gusta' : 'Me gusta'}
+              <Thumb filled={photo.votedByMe} />
+              {photo.votedByMe ? 'Te gusta' : 'Me gusta'}
+              {photo.votes > 0 && <span className="like-n">{photo.votes}</span>}
             </button>
           ) : (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ThumbIcon filled />
+            // Sin sesión no hay nada que tocar: queda el número, que es dato.
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
+              fontSize: 'var(--t-3)', color: 'var(--muted)',
+            }}>
+              <Thumb filled />
               {photo.votes}
             </span>
           )
@@ -1124,14 +1139,6 @@ function PhotoViewer({
     </div>
   )
 }
-
-const ThumbIcon = ({ filled }: { filled: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
-    fill={filled ? 'currentColor' : 'none'}
-    stroke="currentColor" strokeWidth={filled ? 0 : 1.8} strokeLinejoin="round">
-    <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm2 0 4.2-7.2a1 1 0 0 1 1.8.5V9h4.3a1.6 1.6 0 0 1 1.6 2l-1.7 8a1.6 1.6 0 0 1-1.6 1.3H9V10Z" />
-  </svg>
-)
 
 function ViewerArrow({
   side, disabled, onClick,
