@@ -2,6 +2,10 @@
  * Pinta llenándose. Misma idea que en Android: la espera existe porque se
  * está resolviendo la ubicación, y si el usuario va a mirar algo unos
  * segundos que sea algo de la app.
+ *
+ * El líquido va en `--birra` y no en el acento. Es la única ilustración de la
+ * app —todo lo demás que lleva color es un dato o un control— y con el acento
+ * en hueso quedaba líquido blanco debajo de espuma blanca: un vaso vacío.
  */
 export function PintLoader({ message }: { message: string }) {
   return (
@@ -19,7 +23,7 @@ export function PintLoader({ message }: { message: string }) {
           <g clipPath="url(#glass)">
             <rect x="0" y="0" width="58" height="76" fill="var(--film-1)" />
             <g>
-              <rect x="0" width="58" height="76" fill="var(--acento)" y="60">
+              <rect x="0" width="58" height="76" fill="var(--birra)" y="60">
                 <animate attributeName="y" values="66;12;66" dur="3.8s"
                   calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1" repeatCount="indefinite" />
               </rect>

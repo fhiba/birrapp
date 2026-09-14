@@ -33,6 +33,21 @@
   --acento-soft: rgba(237,230,216,.16);
   --acento-deep: #CEBA94;
 
+  /*
+   * El color de la birra cuando la birra es un dibujo.
+   *
+   * La regla de esta paleta es "si tiene color, es un dato", y el cromo es
+   * hueso. Esto es la excepción, y es una excepción de verdad y no una
+   * escapatoria: el líquido de la pinta que se llena mientras carga la app no
+   * es un botón ni un estado, es **una cerveza dibujada**. Pintarla de hueso
+   * la dejó blanca sobre espuma blanca — se veía un vaso vacío.
+   *
+   * Va como token propio y no reusando `--aging`, que es el mismo hex: ahí el
+   * ámbar significa "este precio tiene entre 14 y 45 días", y un día que ese
+   * umbral cambie de color, la birra no tiene por qué cambiar con él.
+   */
+  --birra: #FFB627;
+
   --cream: #F4F5F7;
   --muted: #9DA5AD;
   /*

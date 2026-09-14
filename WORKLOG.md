@@ -2417,3 +2417,29 @@ Queda afuera el ícono de la app. `icon.svg` y `favicon.svg` siguen con la pinta
 en esta máquina, así que cambiar sólo los vectoriales dejaría la pestaña y la
 pantalla de inicio con dos íconos distintos. Un ícono viejo y coherente es
 mejor que uno a medio migrar.
+
+---
+
+## 2026-09-14 (cont.) — v0.13.1: la birra del loader vuelve a ser birra
+
+Reportado al toque después de la 0.13.0: el vaso que se llena mientras carga la
+app quedó blanco.
+
+El líquido usaba `var(--amber)` y el renombre lo llevó a `var(--acento)`, que
+ahora es hueso. La espuma de arriba ya era `#FFFFFF`. Resultado: líquido blanco
+debajo de espuma blanca, contraste 1,00 entre los dos — un vaso vacío
+animándose.
+
+Es la excepción correcta a la regla nueva, y vale la pena escribir por qué es
+una excepción de verdad y no una escapatoria. La regla dice "si tiene color, es
+un dato, y el cromo es hueso". El líquido de la pinta no es cromo ni es un
+dato: **es una cerveza dibujada**. Es la única ilustración de la app — todo lo
+demás que lleva color es un precio, una antigüedad o un control.
+
+Va como token propio, `--birra`, y no reusando `--aging`, que casualmente es el
+mismo hex. Ahí el ámbar significa "este precio tiene entre 14 y 45 días"; el
+día que ese umbral cambie de color, la birra no tiene por qué cambiar con él.
+Dos cosas que valen lo mismo hoy y no significan lo mismo son dos tokens.
+
+Espuma sobre líquido pasa de 1,00 a 1,75, que para dos campos de color
+adyacentes en una ilustración es suficiente — no es texto.
