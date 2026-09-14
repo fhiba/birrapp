@@ -118,6 +118,31 @@ class VoteTest {
         assertTrue(lista.none { it.topOfMonth }, "destacar una foto que nadie votó no dice nada")
     }
 
+    @Test
+    fun `el repaso de fotos trae las últimas, con su contexto y sin las bajadas`() {
+        val a = TestDb.insertUser("a")
+        val b = TestDb.insertUser("b")
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+
+        val vieja = TestDb.insertPhoto(bar, "rubia", a)
+        val nueva = TestDb.insertPhoto(bar, "ipa", b)
+        val bajada = TestDb.insertPhoto(bar, "ipa", a)
+        backdate(vieja, days = 4)
+        photos.vote(nueva, a, on = true)
+        photos.remove(bajada)
+
+        val lista = photos.recent()
+        assertEquals(listOf(nueva, vieja), lista.map { it.id },
+            "de la más nueva a la más vieja, y la bajada no está")
+
+        val primera = lista.first()
+        assertEquals("El Bar", primera.barName)
+        assertEquals("IPA", primera.beerName, "el nombre de la birra, no el slug")
+        assertEquals("b", primera.authorName, "quién la subió es la mitad de la decisión")
+        assertEquals(1, primera.votes)
+        assertEquals(4, lista.last().ageDays, "y hace cuánto, la otra mitad")
+    }
+
     // ---------- retirar la nota (BIR-11) ----------
 
     @Test

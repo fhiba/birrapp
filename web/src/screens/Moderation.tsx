@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { BarPin, BeerStyle, Brand, Flag } from '../data/types'
+import type { BarPin, BeerStyle, Brand, Flag, ModeratedPhoto } from '../data/types'
+import { Confirm } from '../ui/Chrome'
 
 export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   const nav = useNavigate()
@@ -9,16 +10,21 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   const [flags, setFlags] = useState<Flag[]>([])
   const [newBrands, setNewBrands] = useState<Brand[]>([])
   const [newStyles, setNewStyles] = useState<BeerStyle[]>([])
+  const [photos, setPhotos] = useState<ModeratedPhoto[]>([])
+  const [killPhoto, setKillPhoto] = useState<ModeratedPhoto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [p, f, b, st] = await Promise.all([
+      const [p, f, b, st, ph] = await Promise.all([
         api.pendingBars(), api.openFlags(), api.pendingBrands(), api.pendingStyles(),
+        // El repaso de fotos no puede tirar abajo el resto de la pantalla: es
+        // lo último que se mira y lo primero que conviene que falle solo.
+        api.recentPhotos().catch(() => []),
       ])
-      setPending(p); setFlags(f); setNewBrands(b); setNewStyles(st)
+      setPending(p); setFlags(f); setNewBrands(b); setNewStyles(st); setPhotos(ph)
     } catch (e) { setError((e as Error).message) } finally { setLoading(false) }
   }, [])
 
@@ -29,6 +35,8 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     catch (e) { setError((e as Error).message) }
   }
 
+  // Las fotos quedan afuera del contador a propósito: el repaso nunca llega a
+  // cero, y un número que siempre está prendido deja de leerse a la semana.
   const total = pending.length + flags.length + newBrands.length + newStyles.length
 
   return (
@@ -155,6 +163,76 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           </div>
         </div>
       ))}
+
+      {/* Repaso de fotos (BIR-10).
+          Va último y sin contador porque no es trabajo pendiente: las fotos se
+          publican al subirlas y así se quedan —retenerlas hasta que alguien
+          las mire haría que subir una no tenga efecto visible, y nadie sube
+          una segunda—. Esto es la pantalla donde mirar lo que entró, que hasta
+          ahora no existía: una foto sólo se revisaba si alguien la denunciaba,
+          o sea después de que ya pasó por la pantalla de todos. Con los
+          pulgares subiendo el premio a subir fotos, esperar la denuncia deja
+          de alcanzar. */}
+      {photos.length > 0 && <H>Fotos recientes · {photos.length}</H>}
+      {photos.length > 0 && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+          gap: 10, padding: '0 18px',
+        }}>
+          {photos.map(ph => (
+            <div key={ph.id} style={{
+              borderRadius: 13, overflow: 'hidden', background: 'var(--elevated)',
+            }}>
+              <button onClick={() => nav(`/bar/${ph.barId}`)} style={{
+                display: 'block', padding: 0, width: '100%', aspectRatio: '1',
+              }}>
+                <img src={ph.url} alt={ph.beerName} loading="lazy" style={{
+                  width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                }} />
+              </button>
+              <div style={{ padding: '8px 10px 10px' }}>
+                <div className="lbl" style={{ fontSize: 12.5 }}>{ph.barName}</div>
+                <div style={{ color: 'var(--faint)', fontSize: 11, marginTop: 2 }}>
+                  {ph.beerName}
+                </div>
+                <div style={{ color: 'var(--faint)', fontSize: 11, marginTop: 2 }}>
+                  {/* Quién y hace cuánto: es el contexto que decide. Una foto
+                      rara de una cuenta de ayer no es lo mismo que una de
+                      alguien que viene cargando precios hace meses. */}
+                  {ph.authorName ?? 'sin autor'}
+                  {' · '}
+                  {ph.ageDays <= 0 ? 'hoy' : ph.ageDays === 1 ? 'ayer' : `hace ${ph.ageDays} d`}
+                  {ph.votes > 0 && ` · ${ph.votes} 👍`}
+                </div>
+                <button onClick={() => setKillPhoto(ph)} style={{
+                  marginTop: 8, fontSize: 12, color: 'var(--danger)',
+                }}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {killPhoto && (
+        <Confirm
+          title="¿Eliminar esta foto?"
+          body={<>
+            Se borra el archivo del bucket, no sólo de la lista.
+            <br /><br />
+            Es distinto de bajar un precio o una reseña: las fotos se sirven
+            desde una URL pública, así que mientras el archivo exista cualquiera
+            con el link la sigue viendo. Por eso hay que borrarlo, y por eso
+            esto no se puede deshacer.
+          </>}
+          confirmLabel="Eliminar" danger
+          onCancel={() => setKillPhoto(null)}
+          onConfirm={() => {
+            const ph = killPhoto
+            setKillPhoto(null)
+            act(() => api.removePhoto(ph.id))
+          }}
+        />
+      )}
       </div>
     </div>
   )

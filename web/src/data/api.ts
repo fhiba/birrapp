@@ -1,7 +1,7 @@
 import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
-  ModerationSummary, MyContributions,
+  ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -475,6 +475,16 @@ export const approveBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/reject`, { auth: true })
+/**
+ * Las últimas fotos subidas, para repasarlas (BIR-10).
+ *
+ * No es una cola de aprobación: las fotos se publican al subirlas. Esto es la
+ * pantalla donde un moderador mira lo que entró, que hasta ahora no existía —
+ * una foto sólo se revisaba si alguien la denunciaba.
+ */
+export const recentPhotos = () =>
+  req<ModeratedPhoto[]>('GET', '/moderation/photos/recent', { auth: true })
+
 export const pendingStyles = () =>
   req<BeerStyle[]>('GET', '/moderation/styles/pending', { auth: true })
 export const approveStyle = (slug: string) =>

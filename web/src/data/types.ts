@@ -162,6 +162,22 @@ export interface Flag {
 }
 
 /**
+ * Una foto en la pantalla de repaso de moderación (BIR-10). Trae el contexto
+ * para decidir sin abrir el bar.
+ */
+export interface ModeratedPhoto {
+  id: number
+  url: string
+  barId: number
+  barName: string
+  beerName: string
+  authorId: number | null
+  authorName: string | null
+  ageDays: number
+  votes: number
+}
+
+/**
  * El perfil de otra persona (BIR-6). Sin email: lo que se ve de alguien es lo
  * que aportó, que ya está firmado con su nombre en el mapa.
  */

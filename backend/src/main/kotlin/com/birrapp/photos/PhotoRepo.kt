@@ -53,6 +53,23 @@ data class PhotoDto(
     val topOfMonth: Boolean = false,
 )
 
+/**
+ * Una foto en la cola de revisión. Lleva el contexto que hace falta para
+ * decidir sin abrir el bar: qué birra es, quién la subió y hace cuánto.
+ */
+@Serializable
+data class ModeratedPhotoDto(
+    val id: Long,
+    val url: String,
+    val barId: Long,
+    val barName: String,
+    val beerName: String,
+    val authorId: Long?,
+    val authorName: String?,
+    val ageDays: Int,
+    val votes: Int,
+)
+
 private const val TZ = "America/Argentina/Buenos_Aires"
 
 class PhotoRepo(private val db: Db, private val r2: R2) {
@@ -218,6 +235,63 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
         c.queryOne("SELECT count(*)::int AS n FROM photo_votes WHERE photo_id = ?", photoId) {
             it.getInt("n")
         } ?: 0
+    }
+
+    /**
+     * Las últimas fotos subidas, para que un moderador las pueda mirar
+     * (BIR-10).
+     *
+     * NO es una cola de aprobación: las fotos se publican al subirlas y van a
+     * seguir así. Retenerlas hasta que alguien las mire haría que subir una
+     * foto no tenga efecto visible, y nadie sube una segunda. Esto es el otro
+     * lado: una pantalla donde repasar lo que entró.
+     *
+     * Existe porque los pulgares le suben el premio a subir fotos. Hasta ahora
+     * una foto sólo se revisaba si alguien la denunciaba, que es esperar a que
+     * el problema ya haya pasado por la pantalla de todos.
+     *
+     * Por lo mismo no entra en el contador de moderación: esto nunca llega a
+     * cero, y un número que siempre está prendido en Perfil deja de leerse a
+     * la semana.
+     *
+     * Sin paginar: son las últimas [limit] y alcanza para un repaso. El día
+     * que el volumen lo pida, un `before` con la fecha de la última.
+     */
+    fun recent(limit: Int = 60): List<ModeratedPhotoDto> = db.conn {
+        it.query(
+            """
+            SELECT p.id, p.object_key, p.bar_id, p.user_id,
+                   ba.name AS bar_name, s.name_es AS style_name, b.name AS brand_name,
+                   u.display_name,
+                   EXTRACT(DAY FROM (now() - p.created_at))::int AS age_days,
+                   (SELECT count(*)::int FROM photo_votes pv WHERE pv.photo_id = p.id) AS votes
+            FROM bar_photos p
+            JOIN bars ba ON ba.id = p.bar_id
+            JOIN beer_styles s ON s.id = p.style_id
+            LEFT JOIN brands b ON b.id = p.brand_id
+            LEFT JOIN users u ON u.id = p.user_id
+            WHERE p.status = 'active'
+            ORDER BY p.created_at DESC
+            LIMIT ?
+            """.trimIndent(),
+            limit,
+        ) { rs ->
+            val style = rs.getString("style_name")
+            val brand = rs.getString("brand_name")
+            ModeratedPhotoDto(
+                id = rs.getLong("id"),
+                url = r2.publicUrl(rs.getString("object_key")),
+                barId = rs.getLong("bar_id"),
+                barName = rs.getString("bar_name"),
+                // Mismo nombre que en la ficha: el estilo solo no alcanza para
+                // saber qué birra es cuando el bar tiene dos IPA.
+                beerName = brand?.let { "$style · $it" } ?: style,
+                authorId = rs.getLong("user_id").takeUnless { rs.wasNull() },
+                authorName = rs.getString("display_name"),
+                ageDays = rs.getInt("age_days"),
+                votes = rs.getInt("votes"),
+            )
+        }
     }
 
     /**

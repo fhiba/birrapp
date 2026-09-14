@@ -571,6 +571,19 @@ fun Route.apiRoutes(
              * viendo: se sirve desde una URL pública, no desde acá. Por eso
              * esto no se puede deshacer.
              */
+            /**
+             * Las últimas fotos subidas, para repasarlas (BIR-10).
+             *
+             * No es una cola de aprobación —las fotos se publican al subirlas
+             * y así se quedan— sino la pantalla donde mirar lo que entró.
+             * Existe porque los pulgares le suben el premio a subir fotos, y
+             * hasta acá una foto sólo se revisaba si alguien la denunciaba.
+             */
+            get("/photos/recent") {
+                call.requireRole(Role.moderator)
+                call.respond(photos.recent())
+            }
+
             post("/photos/{id}/remove") {
                 call.requireRole(Role.moderator)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")

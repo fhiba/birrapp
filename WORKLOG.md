@@ -2243,7 +2243,7 @@ pésima"— y cuenta para el promedio.
 **Migración V18 y no V17.** El V17 se lo llevó la rama de bloqueo entre
 usuarios, que ya lo había aplicado a la base de tests compartida. Los tests de
 esta rama corrieron contra una base propia (`birrapp_test_bir10`) para no
-pisar la del otro agente: 144 verdes, 9 nuevos en `VoteTest`.
+pisar la del otro agente: 145 verdes, 10 nuevos en `VoteTest`.
 
 Al mergear `dev` (0.10.3) la rama se encontró con dos cosas que habían pasado
 mientras tanto y que la tocan de cerca:
@@ -2256,6 +2256,23 @@ mientras tanto y que la tocan de cerca:
 * **Las estrellas se mudaron de la hoja de comentarios a la birra.** El botón
   de retirar la nota se fue con ellas, que es donde tiene sentido: al lado del
   voto que retira.
+
+**La cola de moderación de fotos, que el ticket pedía primero.** BIR-10
+advertía que los votos le suben el premio a subir fotos y que conviene tener
+dónde repasarlas *antes* de encender los pulgares, no después. Hasta ahora una
+foto sólo se miraba si alguien la denunciaba — o sea, cuando el problema ya
+pasó por la pantalla de todo el mundo.
+
+`GET /moderation/photos/recent` y una grilla al final de Moderación con las
+últimas 60. No es una cola de aprobación y no va a serlo: retener las fotos
+hasta que alguien las mire haría que subir una no tenga efecto visible, y
+nadie sube una segunda. Tampoco entra en el contador de pendientes — el
+repaso nunca llega a cero, y un número siempre prendido en Perfil deja de
+leerse a la semana.
+
+Cada foto viene con quién la subió y hace cuánto, que es el contexto que
+decide: una foto rara de una cuenta de ayer no es lo mismo que una de alguien
+que viene cargando precios hace meses.
 
 Sólo web y backend. La app de Android sigue sin esto, igual que sin el
 contador de birras y los favoritos: va todo junto en BIR-38.
