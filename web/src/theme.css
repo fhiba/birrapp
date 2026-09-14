@@ -531,6 +531,82 @@ a { color: var(--acento); }
   to   { opacity: 1; transform: none; }
 }
 
+/* ---------- El pulgar de una foto (BIR-10) ----------
+ *
+ * Vive acá y no en un `style` inline porque los dos estados que hacen que se
+ * sienta un botón —el hundido al tocarlo y el golpe al prenderse— son
+ * `:active` y una animación, y ninguno de los dos se puede escribir inline.
+ *
+ * El color sale de la rampa hueso, no del ámbar: acá arriba dice que si tiene
+ * color es un dato, y "me gusta esta foto" no es frescura, ni precio, ni
+ * peligro. El estado prendido se lee por relleno y contraste, que es lo que
+ * hay que hacer igual — el botón tiene que distinguirse con la pantalla en
+ * blanco y negro.
+ */
+.like {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  /* 44px de alto real: es un botón que se toca con el pulgar sobre una foto,
+     no una etiqueta. Lo de antes medía 24 y había que apuntarle. */
+  min-height: 44px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: 999px;
+  font-size: var(--t-3);
+  background: var(--film-2);
+  color: var(--cream);
+  box-shadow: inset 0 0 0 1px var(--film-3);
+  transition: transform .12s ease-out, background-color .16s ease-out,
+              color .16s ease-out, box-shadow .16s ease-out;
+}
+
+/* Respuesta al toque, por debajo de los 100ms: sin esto no hay forma de saber
+   si el tap entró, y en una red lenta se termina tocando dos veces. */
+.like:active { transform: scale(.94); }
+
+.like[aria-pressed="true"] {
+  background: var(--acento);
+  color: var(--base);
+  box-shadow: none;
+}
+
+/* El golpe al prenderse, una sola vez y corto. Es el único adorno del gesto.
+ *
+ * Va por `data-pop` y no por `[aria-pressed="true"]`, que era lo primero que
+ * salió: con el atributo, la animación arranca cada vez que el selector
+ * empieza a coincidir, o sea también al abrir una foto que ya tenías marcada
+ * y al pasar a la de al lado. Festejar una navegación es ruido — el golpe es
+ * la respuesta a tu toque, y sólo a tu toque.
+ *
+ * Tampoco va en el apagado: celebrar que alguien se arrepintió no tiene
+ * sentido. */
+.like[data-pop="1"] .like-ico { animation: like-pop .26s ease-out; }
+
+@keyframes like-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.32); }
+  100% { transform: scale(1); }
+}
+
+/* El contador, al lado y en segundo plano: el botón dice qué hace, el número
+   dice cuántos. Con el número solo —que es como estaba— el botón perdía su
+   etiqueta justo al votar y quedaba un "1" suelto encima de la foto. */
+.like-n { font-variant-numeric: tabular-nums; opacity: .72; }
+
+/* Velo para lo que se apoya sobre una foto.
+ *
+ * Una pastilla opaca encima de la imagen tapa justo la parte que uno quiere
+ * ver. Un degradado desde abajo oscurece sólo lo necesario para que el texto
+ * tenga contraste y deja la foto entera a la vista. */
+.foto-velo {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46%;
+  border-radius: 0 0 var(--r-3) var(--r-3);
+  background: linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,0));
+  pointer-events: none;
+}
+
 /* La variante hoja: pegada abajo, ancho completo y esquinas sólo arriba.
    `max-height` en `dvh` y no `vh` porque en Safari la barra de herramientas se
    colapsa al scrollear y con `vh` la hoja quedaba más alta que la pantalla. */
