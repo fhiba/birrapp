@@ -59,6 +59,62 @@ export const groupThousands = (digits: string) => {
   return Number.isFinite(n) ? new Intl.NumberFormat(AR).format(n) : digits
 }
 
+/**
+ * Un segmento que es SÓLO un código postal.
+ *
+ * Cubre lo que devuelve Google donde puede haber bares: el CPA argentino
+ * (B1640HEM), los cuatro o cinco dígitos de media Europa y Estados Unidos, el
+ * CEP brasileño (01310-100), el código británico (NW6 1NR), el canadiense
+ * (M5V 3L9) y el holandés (1012 AB).
+ *
+ * Un segmento de calle nunca es sólo dígitos —es "Serrano 1590", no "1590"—
+ * así que dar por postal un segmento de cuatro o cinco números no se lleva
+ * puesta ninguna dirección.
+ */
+const SOLO_CODIGO_POSTAL =
+  /^(?:[A-Z]\d{4}[A-Z]{3}|\d{4,5}(?:-\d{3,4})?|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}|[A-Z]\d[A-Z]\s?\d[A-Z]\d|\d{4}\s?[A-Z]{2})$/i
+
+/**
+ * El CPA argentino pegado adelante de la localidad: "B1640HEM Martínez".
+ *
+ * Sólo esta forma, que no se confunde con nada. Sacar cuatro dígitos sueltos
+ * del principio le comería la altura a las direcciones que empiezan con el
+ * número —"1600 Pennsylvania Ave"— y eso es perder el dato, no limpiar ruido.
+ */
+const CPA_ADELANTE = /^[A-Z]\d{4}[A-Z]{3}\s+/i
+
+/**
+ * La dirección, sin el ruido: lo más parecido a calle y altura que haya.
+ *
+ * Google devuelve `formattedAddress` entera —"Av. Corrientes 1234, C1043AAZ
+ * CABA, Argentina"— y eso, en la ficha de un bar que estás mirando porque está
+ * a cuatrocientos metros, son tres datos que ya sabés ocupando el renglón del
+ * que no sabés.
+ *
+ * No alcanza con cortar en la primera coma: hay lugares cuya dirección
+ * **empieza** por el código postal ("B1640HEM, Martínez, Provincia de Buenos
+ * Aires, Argentina"), y ahí cortar en la coma deja en pantalla exactamente el
+ * dato más inútil de todos. Pasó con un bar de Martínez.
+ *
+ * Entonces: se recorren los segmentos y se devuelve el primero que no sea un
+ * código postal, sacándole el CPA de adelante si lo tiene. Si el bar no tiene
+ * calle, lo que queda es la localidad — peor que la calle, mejor que el
+ * código postal, y es lo que de verdad sabemos.
+ *
+ * Se hace al mostrar y no al guardar: la dirección completa es un dato real y
+ * sirve para desambiguar bares homónimos en moderación. Lo que sobra es
+ * mostrarla entera, no tenerla.
+ */
+export function shortAddress(address: string | null | undefined): string | null {
+  if (!address) return null
+  for (const parte of address.split(',').map(p => p.trim()).filter(Boolean)) {
+    if (SOLO_CODIGO_POSTAL.test(parte)) continue
+    const limpio = parte.replace(CPA_ADELANTE, '').trim()
+    if (limpio) return limpio
+  }
+  return null
+}
+
 export const formatDistance = (m: number | null | undefined) =>
   m == null ? null
     : m < 1000 ? `a ${Math.round(m)} m`

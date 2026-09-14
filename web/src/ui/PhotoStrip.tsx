@@ -44,7 +44,16 @@ export function PhotoStrip({
   if (photos.length === 0 && !canAdd) return null
 
   return (
-    <div style={{ marginTop: 14 }}>
+    <div style={{ marginTop: 18 }}>
+      {/* Rótulo de sección, igual que en los comentarios de abajo: con las dos
+          cosas una arriba de la otra y sin nada que las separe, la tira de
+          fotos parecía parte de la fila de puntaje. */}
+      <h3 className="lbl" style={{
+        fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+      }}>
+        {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
+      </h3>
+
       <div data-tour="bar-photos" style={{
         display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
         scrollSnapType: 'x mandatory',

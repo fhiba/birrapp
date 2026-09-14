@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
+import * as api from '../data/api'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
 import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
@@ -9,7 +10,7 @@ import { StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
 import { Segmented } from '../ui/Segmented'
 import { AddMenu, type AddAction } from '../ui/AddMenu'
-import { PickBarSheet } from '../ui/PickBar'
+import { ReportFlow } from './ReportFlow'
 import { LogBeerSheet } from './LogBeer'
 import { Toast } from '../ui/Chrome'
 
@@ -29,6 +30,8 @@ interface Props {
   brands: Brand[]
   onBrandCreated: (b: Brand) => void
   onStyleCreated: (s: BeerStyle) => void
+  /** Invalida la caché de bares: un precio nuevo cambia el pin. */
+  onChanged: () => void
   center: google.maps.LatLngLiteral | null
   simulated: google.maps.LatLngLiteral | null
   radius: number; styleFilter?: string
@@ -280,6 +283,40 @@ export function MapScreen(p: Props) {
         )}
 
         {/*
+          Zona sin un solo bar cargado.
+          
+          Desde que se pueden cargar bares de cualquier parte del mundo, éste
+          pasó a ser el primer contacto más probable de alguien nuevo: abre la
+          app en una ciudad donde nadie cargó nada y ve un mapa mudo, sin una
+          palabra que le diga si la app está rota, si está mal parado, o si
+          simplemente no hay nada todavía.
+          
+          Sólo cuando terminó de cargar y el zoom alcanza: con el mapa lejos ya
+          lo dice el cartel de arriba, y mientras carga decir "no hay nada"
+          sería mentir por un segundo.
+        */}
+        {!p.loading && !p.tooZoomedOut && p.bars.length === 0 && (
+          <div className="glass" style={{
+            pointerEvents: 'auto', maxWidth: 340, borderRadius: 16,
+            padding: '14px 16px', textAlign: 'center',
+          }}>
+            <p className="lbl" style={{ margin: 0, fontSize: 14 }}>
+              Por acá no hay bares cargados
+            </p>
+            <p style={{
+              margin: '6px 0 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5,
+            }}>
+              El mapa lo hacemos entre todos. Si conocés uno en esta zona,
+              cargalo y queda para el resto.
+            </p>
+            <button onClick={() => nav('/agregar')} className="lbl" style={{
+              marginTop: 12, padding: '11px 18px', borderRadius: 12, fontSize: 13.5,
+              minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+            }}>Agregar un bar</button>
+          </div>
+        )}
+
+        {/*
           Sin esto, un mapa centrado en el Obelisco es indistinguible de un
           mapa centrado en vos. Ya no hay punto azul mintiendo, pero el
           encuadre solo sigue sugiriendo que estás ahí: hay que decirlo con
@@ -356,14 +393,32 @@ export function MapScreen(p: Props) {
         />
       )}
 
+      {/* Desde el mapa se pregunta todo: estilo, marca y bar, y recién ahí el
+          monto. Antes esto elegía el bar y te dejaba en su ficha con el
+          teclado abierto; el resto de la birra lo tenías que resolver ahí
+          arriba, encima del teclado. */}
       {action === 'price' && (
-        <PickBarSheet
-          title="¿En qué bar?" nearby={p.bars} center={p.myLocation ?? p.camera?.center ?? null}
-          onClose={() => setAction(null)}
-          // `precio=1` abre la carga de precio apenas entra al bar: quien
-          // eligió "cargar un precio" ya dijo lo que venía a hacer, y dejarlo
-          // en la pantalla del bar sería pedírselo de nuevo.
-          onPick={b => { setAction(null); nav(`/bar/${b.id}?precio=1`) }}
+        <ReportFlow
+          styles={p.styles} brands={p.brands} user={p.user}
+          nearby={p.bars} center={p.myLocation ?? p.camera?.center ?? null}
+          onStyleCreated={p.onStyleCreated}
+          onBrandCreated={p.onBrandCreated}
+          // Se pierde el flujo, y no hay forma de que no se pierda: el precio
+          // necesita un bar que exista. Al menos no es un callejón.
+          onAddBar={() => { setAction(null); nav('/agregar') }}
+          onCancel={() => setAction(null)}
+          onSubmit={async ({ bar, styleSlug, brandSlug, price, sizeMl }) => {
+            setAction(null)
+            try {
+              const r = await api.reportPrice({
+                barId: bar.id, styleSlug, brandSlug, price, sizeMl,
+              })
+              setToast(r.message)
+              // El pin tiene que reflejarlo al toque: es el agujero de BIR-23,
+              // que se arregló en la ficha del bar y volvería a aparecer acá.
+              p.onChanged()
+            } catch (e) { setToast((e as Error).message) }
+          }}
         />
       )}
 

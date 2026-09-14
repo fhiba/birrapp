@@ -35,6 +35,8 @@ data class PhotoDto(
     /** A qué birra pertenece: el estilo solo ya no la identifica. */
     val brandSlug: String?,
     val url: String,
+    /** Para abrir el perfil de quien la subió (BIR-6). Null si la cuenta se borró. */
+    val authorId: Long?,
     val authorName: String?,
     val ageDays: Int,
     val mine: Boolean,
@@ -106,7 +108,10 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
             req.barId, styleId, brandId, userId, req.key,
         ) { it.getLong("id") } ?: badRequest("no se pudo guardar la foto")
 
-        PhotoDto(id, req.styleSlug, req.brandSlug, r2.publicUrl(req.key), null, 0, true)
+        PhotoDto(
+            id, req.styleSlug, req.brandSlug, r2.publicUrl(req.key),
+            authorId = userId, authorName = null, ageDays = 0, mine = true,
+        )
     }
 
     /**
@@ -159,15 +164,21 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
             LEFT JOIN users u ON u.id = p.user_id
             LEFT JOIN v ON v.photo_id = p.id
             WHERE p.bar_id = ? AND p.status = 'active'
+              ${com.birrapp.auth.notBlocked("p.user_id")}
             ORDER BY (p.id = (SELECT id FROM top)) DESC, p.created_at DESC
             """.trimIndent(),
-            viewerId, barId, barId, barId,
+            // `top` queda sin el filtro de bloqueo a propósito: la foto del
+            // mes es la que ganó para todo el bar, no una por espectador. Si
+            // la subió alguien a quien bloqueaste no la vas a ver —el WHERE
+            // de abajo la saca igual— y simplemente no hay foto del mes.
+            viewerId, barId, barId, barId, viewerId, viewerId,
         ) { rs ->
             PhotoDto(
                 id = rs.getLong("id"),
                 styleSlug = rs.getString("slug"),
                 brandSlug = rs.getString("brand_slug"),
                 url = r2.publicUrl(rs.getString("object_key")),
+                authorId = rs.getLong("user_id").takeUnless { rs.wasNull() },
                 authorName = rs.getString("display_name"),
                 ageDays = rs.getInt("age_days"),
                 mine = viewerId != null && rs.getLong("user_id") == viewerId,

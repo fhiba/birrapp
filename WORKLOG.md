@@ -1766,7 +1766,435 @@ se comparó y en qué radio. Un moderador que ve "auto: 12000/L contra una
 mediana de 3000/L (ARS) entre los bares a menos de 25 km" puede decidir; con el
 mensaje viejo tenía que adivinar de dónde salía el número.
 
-## 2026-09-12 (cont.) — El voto, de los dos lados: BIR-10 y BIR-11
+---
+
+## 2026-09-12 (cont.) — v0.9.0: la persona detrás del contenido (BIR-6 + BIR-17)
+
+Los dos tickets juntos porque son la misma cosa vista de los dos lados, y lo
+dice el propio BIR-17: **el ban es la herramienta del moderador y el bloqueo la
+del usuario**. Hacen falta las dos, y las dos necesitaban lo mismo que no
+existía — una pantalla de la persona.
+
+### Perfil ajeno (BIR-6)
+
+`GET /users/{id}`, y `/usuario/:id` en la PWA. Se llega tocando el nombre en un
+comentario o en el visor de fotos, que es desde donde hace falta: la moderación
+llegaba hasta la fila —bajar el comentario— y no había forma de llegar a quién
+lo escribió. Bajar la fila no alcanza porque el autor la vuelve a mandar.
+
+Muestra nombre, foto, desde cuándo está y qué aportó. **No muestra el email**, y
+no por un `if` en la consulta: el DTO no tiene el campo, así que es una garantía
+de tipo. `banned` y `role` viajan sólo para moderadores — que una cuenta esté
+suspendida no es información pública, sería una lista de escarmiento.
+
+**El ban ahora corta al toque.** Era el "a decidir" del ticket: el rol y la
+identidad viajan en el JWT para no ir a la base en cada request, y para el rol
+el precio es aceptable, pero para el ban son hasta dos horas
+(`JWT_ACCESS_MINUTES`) de abuso sostenido *después* de haber apretado el botón —
+justo lo que la herramienta viene a cortar. Ahora hay un interceptor sobre el
+bloque entero de escritura que consulta `banned_at`. Va como interceptor y no
+como línea al principio de cada handler porque hay una docena, y el endpoint
+número trece se va a olvidar de ponerla.
+
+### Bloqueo (BIR-17)
+
+Tabla `user_blocks` con clave compuesta —bloquear dos veces no es un bloqueo
+nuevo— y **oculta en las dos direcciones**. Si A bloquea a B, A no ve los
+comentarios de B y B tampoco los de A. Una sola dirección deja a quien bloqueó
+igual de expuesto: el otro sigue leyendo lo que escribe y sigue teniendo a quién
+responderle, que es el problema que el bloqueo viene a cortar. Y la regla es más
+fácil de explicar: se dejan de ver, punto.
+
+El filtro vive en una constante con nombre (`notBlocked(columna)`) y no copiado
+en cada consulta: el día que se agregue otra lista de contenido firmado hay que
+acordarse de filtrarla, y tener un nombre para esto es la única pista de que
+hace falta. Hoy la usan comentarios y fotos.
+
+Los precios **no** se esconden: son datos sobre bares, no sobre personas.
+Esconderlos dejaría el mapa peor informado como efecto de un conflicto entre dos
+usuarios, y es la misma razón por la que borrar la cuenta tampoco se los lleva.
+
+La lista de bloqueados está en Configuración, que es el único lugar desde donde
+se puede deshacer: un bloqueo que no se puede levantar es una decisión que
+quedó para siempre por un toque.
+
+### Verificación
+
+134 tests de backend en verde (124 + 10). El filtro de bloqueo se verificó por
+mutación: desactivándolo caen tres tests, no cero.
+
+Un assert que había escrito mal —una cadena de `sorted().reversed()` sin
+sentido que pasaba igual— quedó corregido antes de commitear. Pasaba, pero no
+probaba lo que decía probar.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.1: cargar un precio, de a una pregunta por vez
+
+Pedido de Felipe, y tenía razón: la carga de precio era una sola pantalla con
+la fila de estilos, el selector de marca y el teclado del monto peleando por el
+mismo alto, con el bar dado por dónde hubieras entrado. Funciona cuando ya
+sabés usarlo; para alguien que entra por primera vez son tres decisiones
+encimadas, y lo que pasa es que carga el precio con el estilo que venía puesto.
+
+**Ahora son tres preguntas, en el orden en que se saben:** qué tipo de birra
+(se sabe siempre, se ve en el vaso), qué marca (no siempre, y "sin marca" es
+una respuesta y no un dato faltante) y en qué bar (casi siempre el de al lado,
+así que primero los cercanos). Recién con las tres contestadas aparece el
+teclado del monto.
+
+Cada paso muestra arriba lo que ya se contestó. Sin eso, tres pantallas
+seguidas se sienten como un formulario que no termina; ver "IPA · Antares"
+arriba es lo que dice que se está avanzando y sobre qué.
+
+**Los pasos ya contestados no se preguntan.** Entrando desde la ficha de un
+bar, el bar no se pregunta; desde "Otra marca" tampoco el estilo; desde
+"Actualizar" sobre una birra concreta se va derecho al monto. La lista de
+pasos se calcula al entrar y no cambia, así que "paso 2 de 3" no puede mentir.
+
+**Tres extracciones para no duplicar nada.** El flujo necesitaba, adentro de
+sus pasos, cosas que ya existían metidas en su propia cáscara: la lista de
+marcas con su alta (`BrandList`, sacada de `BrandPicker`), el buscador de bares
+(`BarSearchList`, sacado de `PickBarSheet`) y la grilla de estilos con su alta
+(`StyleChips` con `layout="grid"`). Ninguna lógica nueva: si se hubiera
+copiado, en dos meses habría dos formas distintas de proponer una marca.
+
+`ReportPrice` se queda con lo suyo —el teclado, la tecla 000, el separador de
+miles— y muestra la birra elegida arriba en vez de dejarte elegirla ahí. La
+flecha vuelve un paso, no sale del flujo: quien eligió tres cosas y se equivocó
+en la marca no tiene que empezar de nuevo.
+
+Se fue el `?precio=1`: el "+" del mapa abre el flujo entero y ya no pasa por la
+ficha del bar. Y el precio cargado desde el mapa invalida la caché de bares —
+es el agujero de BIR-23, que estaba arreglado en la ficha y habría vuelto a
+aparecer por la puerta nueva.
+
+### Y el ruido de la ficha del bar
+
+**La dirección se corta en la primera coma.** Google devuelve
+`formattedAddress` entera —"Av. Corrientes 1234, C1043AAZ CABA, Argentina"— y
+el código postal, la ciudad, la provincia y el país no le dicen nada a alguien
+que está parado a cuatrocientos metros: son tres datos que ya sabe ocupando el
+renglón del que no sabe. Se corta al mostrar y no al guardar: la dirección
+completa sirve para desambiguar bares homónimos en moderación. El barrio queda,
+que en una ciudad que no conocés sí ubica.
+
+**El rótulo con el estilo y la marca arriba del precio se fue.** Lo dicen las
+dos filas de pestañas que están justo encima, con la activa en ámbar: repetirlo
+gastaba el renglón de mayor jerarquía en algo que la persona acababa de tocar.
+Lo único que las pestañas no dicen es si la marca es artesanal, y eso se queda.
+
+134 tests de backend en verde (sin cambios de backend). `shortAddress` se
+verificó contra las formas reales que devuelve Google en tres países, más las
+direcciones a mano y los nulos.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.2: el código postal que sobrevivió, y la fila corrida
+
+Dos cosas que Felipe vio en pantalla y que yo no podía ver.
+
+**El código postal seguía ahí.** Cortar en la primera coma alcanzaba para "Av.
+Corrientes 1234, C1043AAZ CABA, Argentina", que es la forma que miré. Pero hay
+direcciones que **empiezan** por el código postal —"B1640HEM, Martínez,
+Provincia de Buenos Aires, Argentina", un bar de Martínez— y ahí cortar en la
+coma deja en pantalla exactamente el dato más inútil de todos. La regla parecía
+general porque los casos que probé eran todos del mismo molde.
+
+Ahora se recorren los segmentos y se devuelve el primero que no sea un código
+postal, sacándole el CPA de adelante si lo tiene ("B1640HEM Martínez" →
+"Martínez"). Si el bar no tiene calle, lo que queda es la localidad: peor que
+la calle, mejor que el código postal, y es lo que de verdad sabemos.
+
+El reconocedor cubre el CPA argentino, los cuatro o cinco dígitos de media
+Europa y Estados Unidos, el CEP brasileño, el británico, el canadiense y el
+holandés. **El CPA pegado adelante se saca sólo en su forma argentina**
+(letra + cuatro dígitos + tres letras), que no se confunde con nada: sacar
+cuatro dígitos sueltos del principio le comería la altura a "1600 Pennsylvania
+Avenue NW", y eso es perder el dato, no limpiar ruido. Verificado contra quince
+formas reales, incluida ésa.
+
+**La fila de birras estaba corrida.** La primera pestaña quedaba pegada al
+borde de la pantalla, desalineada de todo el resto de la ficha. No era el
+padding: es que al engancharse, el navegador alinea la pestaña contra el borde
+del scrollport, que está *antes* del padding, así que la fila se corría sola
+esos 18px. Se arregla con `scroll-padding-left` en las dos filas que enganchan
+—estilos y marcas—, que es el control que existe justamente para eso.
+
+---
+
+## 2026-09-12 (cont.) — v0.9.3: la nota con coma, lo tecleado que no se pierde, y los comentarios a la vista
+
+Tres cosas de la lista de Felipe.
+
+### La nota no aceptaba 3,5
+
+El bug no estaba donde parecía. `parseRating` siempre supo aceptar la coma
+—hace `replace(',', '.')` desde que existe— pero **nunca la veía**: el campo
+era `<input type="number">`, y ahí el navegador saneá el valor antes de que
+llegue a nuestro código. Cualquier cosa que no sea un número con punto se
+convierte en cadena vacía, así que al escribir "3,5" —la forma natural de
+escribir un decimal en castellano, y la que ofrece el teclado del teléfono—
+`value` llegaba vacío y no se guardaba nada.
+
+Pasa a `type="text"` con `inputMode="decimal"`, que conserva el teclado
+numérico en el teléfono, que era lo único que `type="number"` aportaba acá. El
+clamp, el redondeo y la coma ya estaban resueltos.
+
+### Lo tecleado que se perdía
+
+En los tres lugares donde se escribe un nombre que todavía no existe —marca,
+estilo, bar nuevo— había que encontrar y tocar el botón "Agregar". La tecla que
+sigue naturalmente a escribir un nombre es Enter, y Enter no hacía nada: lo
+tecleado quedaba ahí, aparentemente ignorado, y se perdía al salir del paso.
+Ahora Enter da de alta la marca y el estilo, y abre el alta a mano del bar con
+lo escrito.
+
+### Los comentarios, abajo de las fotos
+
+Estaban detrás de un ícono, en una hoja que había que abrir. El argumento era
+no convertir la pantalla en un muro; el efecto real es que no los leía nadie, y
+un comentario que nadie lee tampoco lo escribe nadie.
+
+Ahora están en la página, después de las fotos, que es el orden en que se mira
+una birra: cuánto sale, cómo se ve, qué dijeron. **De a diez, del más nuevo al
+más viejo**, con el resto detrás de un botón — así una birra con historia no
+alarga la ficha sin fin. La paginación es por `offset` y no por cursor: son
+decenas, no miles, y un cursor sería maquinaria para un problema que esta tabla
+no tiene. El orden se hizo estable (`created_at DESC, id DESC`) para que pedir
+la página siguiente no repita ni saltee filas.
+
+**La nota salió de ahí adentro.** Estaba en la misma caja que el texto porque
+el campo del decimal vivía en esa hoja, y eso obligaba a abrir los comentarios
+para poder puntuar. Ahora las estrellas guardan solas, con la birra, y el campo
+del decimal está al lado. Son dos acciones distintas —puntuar es una por
+persona, comentar son todas las que quieras— y ahora se ven como dos.
+
+135 tests de backend en verde (134 + 1: las páginas de comentarios no repiten
+ni saltean filas).
+
+---
+
+## 2026-09-12 (cont.) — v0.10.0: el piso de calidad que faltaba
+
+Felipe pidió una revisión de UX contra lo que se hace en la industria. Busqué
+skills y plugins de UX: no hay ninguno de eso en el catálogo, así que instalé
+`modern-web-guidance` —que sí trae guías de patrones web actuales— y trabajé
+contra las heurísticas de Nielsen, las guías de toque de Apple y Material, y
+WCAG 2.2 AA.
+
+Lo que sigue no es maquillaje: son las cosas que separan una app que se puede
+usar de una que se puede usar *si* la usás como el autor esperaba.
+
+### Accesibilidad, en un solo lugar
+
+**Foco visible.** No había ninguno. Moverse con teclado por la app era moverse
+a ciegas: el reset de `button` no saca el contorno, pero el que pone el
+navegador sobre fondo oscuro casi no se ve. Ahora hay un anillo ámbar en
+`:focus-visible` —no en `:focus`, así no aparece al tocar con el dedo—.
+
+**Movimiento reducido.** Quien marcó esa preferencia en su sistema ahora no ve
+las animaciones. No se esconde nada: aparece igual, sin el trayecto.
+
+**Área de toque.** Apple pide 44pt y Material 48dp; la app tenía quince botones
+redondos de 38px. `.icon-btn` deja el círculo donde está y agranda lo que se
+puede tocar.
+
+**Y el zoom volvió.** El HTML tenía `maximum-scale=1`, que bloquea agrandar la
+pantalla — incumplimiento de WCAG 1.4.4 y deja afuera a quien lo necesita.
+Estaba ahí para evitar que iOS acercara la pantalla al enfocar un campo, que es
+un problema con otra solución: los campos de texto ahora son de 16px, que es el
+umbral donde iOS deja de hacerlo.
+
+### Diálogos de verdad
+
+`Confirm` y las hojas inferiores eran `div` con `position: fixed`. Se veían
+bien y les faltaba todo lo que hace usable un modal: el foco se quedaba en la
+página de atrás —con teclado se podía tabular hasta los botones tapados—,
+Escape no cerraba, el botón de atrás del teléfono tampoco, y al cerrar el foco
+no volvía a donde estaba.
+
+Ahora los dos salen del `<dialog>` nativo con `showModal()`, que da las cuatro
+cosas y el `::backdrop` gratis, más `closedby="any"` para cerrar tocando afuera
+donde el navegador lo soporta.
+
+### El toast tenía un bug
+
+`setTimeout(onDone, 3200)` estaba suelto en el cuerpo del componente, así que
+se programaba otro temporizador en **cada render** — y el mapa se redibuja con
+cada movimiento de cámara. Un aviso podía cerrarse antes de tiempo por el
+temporizador de un render anterior. Va en un efecto, uno solo, y con
+`role="status"` para que un lector de pantalla lo anuncie: hasta ahora la única
+confirmación de que un precio se cargó era visual.
+
+### Los vacíos y las esperas
+
+Media docena de pantallas vacías resueltas con un renglón gris: "No hay bares
+cargados por acá todavía". Verdadero e inútil — quien lo lee no sabe qué hacer,
+y es justo el momento donde más sirve decirlo. Ahora cada vacío dice qué pasa,
+por qué no es culpa de nadie, y ofrece el paso siguiente: cargar un bar, ver
+todos, anotar la primera birra.
+
+Y la lista dejó de anunciar la carga con una barra de un pixel: ahora hay
+filas fantasma con la forma de las que vienen, así la pantalla no salta cuando
+llegan.
+
+### Palabras
+
+**"Reportar precio" era una trampa.** Es el botón de denunciar un precio mal
+cargado, y está al lado del de cargar uno: en esta app "reportar un precio" es
+exactamente lo otro. Pasa a "Este precio está mal".
+
+El botón final del flujo de carga decía "Enviar"; ahora dice "Cargar el
+precio", que es lo que hace. Y el de agregar un bar, "Agregar este bar" — con
+una línea abajo que explica por qué está apagado cuando lo está, en vez de
+dejar a la persona mirando un botón gris.
+
+El perfil recuperó la foto, que se había ido con la mudanza a configuración: un
+perfil sin cara es una lista de números con un nombre arriba.
+
+### Y lo que falla cuando las cosas salen mal
+
+**Sin conexión no se decía en ningún lado.** Esta app se usa parado en un bar,
+en un subsuelo, con una raya de señal: perder la conexión no es el caso raro,
+es un martes. Hasta ahora eso se veía como un error genérico o como una
+pantalla que no cargaba nunca, sin forma de distinguir "se cayó el servidor" de
+"estás sin datos". Ahora hay un aviso que dice las dos cosas que importan: que
+el problema es la conexión y que lo que ya está en pantalla sigue sirviendo.
+
+**Y si algo se rompe al dibujar, ya no queda la pantalla en blanco.** Era la
+peor falla posible: React desmonta el árbol entero, no queda ni un botón, y en
+una PWA instalada no hay ni barra de direcciones para recargar. Ahora hay una
+pantalla que lo dice y ofrece recargar. No intenta recuperarse sola: si el
+estado quedó roto, volver a dibujar lo mismo falla de nuevo.
+
+### El precio y su edad
+
+La antigüedad estaba chiquita, a la derecha, alineada con la última línea: se
+leía como un pie de página. En esta app un precio sin su edad al lado es
+información falsa —es la regla que no se negocia— así que ahora va debajo del
+monto, con su color, y cuando el precio está viejo el aviso se envuelve en una
+píldora para que sea lo primero que se lee.
+
+También aparecieron rótulos de sección en fotos y comentarios: con las dos
+cosas una arriba de la otra y nada que las separe, la tira de fotos parecía
+parte de la fila de puntaje.
+
+---
+
+## 2026-09-13 — v0.10.1: los flujos, de a uno
+
+Segunda tanda de la revisión de UX. Cuatro cosas, todas de flujo.
+
+**El teclado del precio no respondía al teclado.** El teclado propio existe
+porque en el teléfono el del sistema tapa media pantalla; en una notebook es al
+revés — hay un teclado físico adelante y la única forma de cargar un precio era
+apuntarle a los botones con el mouse, dígito por dígito. Ahora responde a los
+números, al borrado y a Enter.
+
+**Salir del flujo a mitad de camino tiraba lo elegido en silencio.** Es un
+formulario de varios pasos: irse sin avisar es la forma más rápida de perder
+tres respuestas. Ahora pregunta — pero sólo si hay algo que perder: en el
+primer paso, salir es salir. El diálogo se dibuja en las dos ramas del
+componente, porque el paso del monto sale por su propio `return` y ahí es
+justamente donde salir cuesta más caro.
+
+**La barra de abajo tenía dos pestañas sin nombre.** La etiqueta se dibuja sólo
+en la activa —es lo que mantiene la barra angosta— así que un lector de
+pantalla anunciaba las otras dos como enlaces sin nombre. El nombre va ahora en
+`aria-label`, que no ocupa lugar.
+
+**El menú del "+" prometía un teclado que no tiene.** Estaba declarado como
+`menu` con `menuitem`, y el patrón ARIA de menú promete flechas, Home y End.
+Acá se navega con Tab, como en cualquier grupo de botones, así que ahora dice
+lo que es. Declarar un menú que no se comporta como un menú es peor que no
+declarar nada.
+
+Y el orden de la lista se recuerda entre sesiones, en localStorage: es una
+preferencia de cómo mirás, no un dato de la cuenta, y quien usa la app sin
+cuenta también la tiene.
+
+---
+
+## 2026-09-13 (cont.) — v0.10.2: los dos callejones que dejó abrir el mundo
+
+Dos consecuencias de la 0.8.0 que no habíamos visto, las dos del mismo tipo:
+lugares donde alguien nuevo se queda sin nada que hacer.
+
+**El mapa vacío no decía nada.** Desde que se pueden cargar bares de cualquier
+parte del mundo, éste pasó a ser el primer contacto más probable de alguien
+nuevo: abre la app en una ciudad donde nadie cargó nada y ve un mapa mudo, sin
+una palabra que le diga si la app está rota, si está mal parado, o si
+simplemente no hay nada todavía. Ahora lo dice y ofrece cargar el primero.
+
+Aparece sólo cuando terminó de cargar y el zoom alcanza: con el mapa lejos ya
+lo dice el cartel de "acercá el mapa", y mientras carga decir "no hay nada"
+sería mentir por un segundo.
+
+**Y el paso 3 del flujo de carga era un callejón.** Si no hay bares cerca, la
+lista está vacía y no se puede seguir — no se puede cargar el precio de un bar
+que no existe. En Buenos Aires eso no pasa nunca; en una ciudad donde todavía
+no cargó nadie es el caso normal. Ahora hay una salida: "El bar no está —
+agregalo". Se pierde el flujo, y no hay forma de que no se pierda, pero al
+menos hay puerta.
+
+---
+
+## 2026-09-13 (cont.) — v0.10.3: el slider del radio no guardaba con teclado
+
+Bug propio, de la pantalla de configuración que salió con la 0.8.0. Guardaba en
+`onPointerUp`, que parecía suficiente porque cubre el dedo y el mouse — y deja
+afuera al teclado: con las flechas se movía el control y no se guardaba nunca.
+
+De paso, el número de arriba mostraba el valor guardado y no el que se estaba
+arrastrando, así que se quedaba quieto hasta soltar y parecía trabado.
+
+Ahora el control es controlado, el número sigue al dedo, y se guarda medio
+segundo después de que se deja de mover — que era el motivo original de no usar
+`onChange`: una consulta por pixel arrastrado.
+
+---
+
+## 2026-09-13 — Revisión de UX: resumen y lo que queda
+
+Cuatro versiones (v0.10.0 → v0.10.3) de la revisión pedida. Anotado acá junto
+porque las entradas de arriba cuentan cada tanda por separado y conviene tener
+el estado en un solo lugar.
+
+**Método.** No hay plugins ni skills de UX en el catálogo —lo busqué— así que
+se instaló `modern-web-guidance`, que trae guías de patrones web actuales y se
+usó para los diálogos y los formularios, y se trabajó contra las heurísticas de
+Nielsen, las guías de toque de Apple y Material, y WCAG 2.2 AA.
+
+**Lo que se encontró que era un bug y no una mejora:**
+
+1. El toast programaba un temporizador por cada render. El mapa se redibuja con
+   cada movimiento de cámara, así que un aviso podía cerrarse antes de tiempo
+   por el temporizador de un render anterior.
+2. El slider del radio en Configuración guardaba en `onPointerUp`: con teclado
+   no guardaba nunca. Bug propio, de la 0.8.0.
+3. Dos de las tres pestañas de la barra de abajo no tenían nombre accesible.
+4. El paso "¿en qué bar?" del flujo de carga era un callejón sin bares cerca.
+5. El mapa vacío no decía una palabra, que desde que se abrió al mundo es el
+   primer contacto más probable de alguien nuevo.
+
+**Lo que queda pendiente, en orden de importancia:**
+
+1. **Nada de esto está probado tocándolo.** `tsc` y build limpios, backend en
+   verde, pero la extensión de Chrome no conecta y el ambiente local todavía no
+   se abre desde la tailnet. Destrabar eso es lo primero: son cuatro versiones
+   de cambios de interfaz verificados sólo por compilación.
+2. **Escala tipográfica.** Los tamaños de letra están escritos a mano pantalla
+   por pantalla: 10, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5… Unificarlos en
+   tokens es un diff enorme y sin cambio visible, así que se deja anotado en
+   vez de hacerlo a las tres de la mañana.
+3. **El visor de fotos** sigue siendo un overlay propio y no un `<dialog>`.
+   Maneja Escape por su cuenta, así que anda, pero no atrapa el foco como los
+   demás.
+4. **La lista no tiene "tirar para actualizar"**, que sí tiene la ficha del
+   bar. Hay que pensarlo con el swipe horizontal que ya cambia el orden.
+
+## 2026-09-14 — El voto, de los dos lados: BIR-10 y BIR-11
 
 Dos tickets del mismo tema, en una rama: poder votar una foto y poder retirar
 la nota de una birra.
@@ -1815,7 +2243,19 @@ pésima"— y cuenta para el promedio.
 **Migración V18 y no V17.** El V17 se lo llevó la rama de bloqueo entre
 usuarios, que ya lo había aplicado a la base de tests compartida. Los tests de
 esta rama corrieron contra una base propia (`birrapp_test_bir10`) para no
-pisar la del otro agente: 133 verdes, 9 nuevos en `VoteTest`.
+pisar la del otro agente: 144 verdes, 9 nuevos en `VoteTest`.
+
+Al mergear `dev` (0.10.3) la rama se encontró con dos cosas que habían pasado
+mientras tanto y que la tocan de cerca:
+
+* **Bloqueo entre usuarios (BIR-17).** La lista de fotos ahora filtra a las
+  personas bloqueadas. La foto del mes se calcula **sin** ese filtro, a
+  propósito: es la que ganó para todo el bar, no una por espectador. Si la
+  subió alguien que bloqueaste, el WHERE la saca igual y para vos
+  simplemente no hay foto del mes.
+* **Las estrellas se mudaron de la hoja de comentarios a la birra.** El botón
+  de retirar la nota se fue con ellas, que es donde tiene sentido: al lado del
+  voto que retira.
 
 Sólo web y backend. La app de Android sigue sin esto, igual que sin el
 contador de birras y los favoritos: va todo junto en BIR-38.

@@ -47,6 +47,8 @@ export interface StylePrice {
 
 export interface Photo {
   id: number
+  /** Quién la subió. Null si borró la cuenta. */
+  authorId: number | null
   styleSlug: string
   brandSlug: string | null
   url: string
@@ -66,6 +68,8 @@ export interface Photo {
 
 export interface RatingComment {
   id: number
+  /** Para abrir su perfil desde el comentario. */
+  authorId: number
   authorName: string
   body: string | null
   ageDays: number
@@ -155,6 +159,27 @@ export interface PriceAccepted { id: number; heldForReview: boolean; message: st
 export interface Flag {
   id: number; targetType: string; targetId: number; reason: string
   createdAt: string; reporterName: string | null; targetSummary: string | null
+}
+
+/**
+ * El perfil de otra persona (BIR-6). Sin email: lo que se ve de alguien es lo
+ * que aportó, que ya está firmado con su nombre en el mapa.
+ */
+export interface Person {
+  id: number
+  displayName: string
+  avatarUrl: string | null
+  ageDays: number
+  prices: number
+  bars: number
+  photos: number
+  ratings: number
+  comments: number
+  /** Vos la bloqueaste. Null si mirás sin sesión. */
+  blocked: boolean | null
+  /** Sólo para moderadores; null para el resto. */
+  banned: boolean | null
+  role: string | null
 }
 
 export const isModerator = (u: User | null) =>

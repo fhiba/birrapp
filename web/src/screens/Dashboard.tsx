@@ -53,9 +53,7 @@ export function DashboardScreen() {
     }}>
       <div className="desk-wide">
         <div style={{ padding: '0 18px' }}>
-          <button onClick={() => nav(-1)} style={{
-            width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          }} aria-label="Volver">←</button>
+          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
           <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>Dashboard</h1>
           {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
         </div>

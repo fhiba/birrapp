@@ -9,6 +9,8 @@ import * as api from './data/api'
 import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
 import { AndroidPrompt } from './ui/AndroidPrompt'
+import { Crash } from './ui/Crash'
+import { OfflineBanner } from './ui/Offline'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
 import { Tour, type TourView } from './ui/Tour'
@@ -23,6 +25,7 @@ import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
 import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
+import { PersonScreen } from './screens/Person'
 import { useFavorites } from './data/useFavorites'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
@@ -37,7 +40,11 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <APIProvider apiKey={MAPS_KEY} libraries={['places']}>
-        <Shell />
+        {/* Adentro del router: desde la pantalla de error se puede recargar, y
+            si el error fue de una ruta puntual el resto de la app sigue. */}
+        <Crash>
+          <Shell />
+        </Crash>
         {/*
           Analytics de Vercel. Va adentro del router para que registre cada
           cambio de ruta y no sólo la primera carga: el 90% de la navegación
@@ -66,7 +73,24 @@ function Shell() {
   } = useBars()
   const favorites = useFavorites(user)
 
-  const [sort, setSort] = useState<Sort>('distance')
+  /**
+   * El orden de la lista se recuerda entre sesiones.
+   *
+   * Va en localStorage y no en la cuenta: es una preferencia de cómo mirás, no
+   * un dato tuyo, y quien usa la app sin cuenta también la tiene. Volver y
+   * encontrar la lista ordenada distinto de como la dejaste es de las cosas
+   * que más desorientan, sobre todo cuando el orden cambia qué bar aparece
+   * primero.
+   */
+  const [sort, setSort] = useState<Sort>(() => {
+    try {
+      const v = localStorage.getItem('birrapp.sort')
+      return v === 'cheapest' || v === 'rated' ? v : 'distance'
+    } catch { return 'distance' }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('birrapp.sort', sort) } catch { /* modo privado */ }
+  }, [sort])
   // El radio con el que abre la app sale de la configuración. `useState` sólo
   // lee el valor inicial, así que hay un efecto abajo para cuando la sesión
   // llega después del primer render — que es lo normal al abrir.
@@ -187,6 +211,7 @@ function Shell() {
             bars={bars} styles={styles} loading={loading}
             user={user} brands={brands} favorites={favorites.ids}
             onBrandCreated={addBrand} onStyleCreated={addStyle}
+            onChanged={afterChange}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
             colorBy={colorBy} onColorBy={setColorBy}
@@ -233,6 +258,9 @@ function Shell() {
         <Route path="/perfil" element={
           <ProfileScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
+        {/* El perfil de otra persona: se llega tocando su nombre en un
+            comentario o en una foto (BIR-6). */}
+        <Route path="/usuario/:id" element={<PersonScreen user={user} />} />
         <Route path="/config" element={
           <SettingsScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
@@ -254,6 +282,8 @@ function Shell() {
           Mostrárselo a quien sólo mira precios sería enseñarle botones que le
           van a pedir que se loguee. */}
       {tourView && user && <Tour view={tourView} userId={user.id} />}
+
+      <OfflineBanner />
 
       {showNav && <AndroidPrompt />}
       {showNav && <BottomNav />}

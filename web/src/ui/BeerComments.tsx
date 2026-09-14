@@ -1,78 +1,33 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { RatingComment } from '../data/types'
-import { Confirm, Sheet } from './Chrome'
+import { Confirm } from './Chrome'
 import { Stars } from './Stars'
 
-/**
- * Convierte lo tecleado en un puntaje de 0 a 5 con un decimal, o null si no
- * hay nada válido. Acepta coma (3,8), redondea y recorta al rango: el backend
- * valida igual, esto es sólo para no mandarle basura.
- */
-function parseRating(raw: string): number | null {
-  const n = parseFloat(raw.trim().replace(',', '.'))
-  if (Number.isNaN(n)) return null
-  return Math.min(5, Math.max(0, Math.round(n * 10) / 10))
-}
+/** Cuántos comentarios por página. Lo que entra en una pantalla. */
+const PAGE = 10
 
 /**
- * Campo para teclear la nota con decimal: la estrella sólo da enteras y para un
- * 3,8 hace falta escribirlo.
+ * Los comentarios de una birra, abajo de sus fotos.
  *
- * Controlado y con su propio texto, que se resincroniza contra `rating` al
- * salir del foco. Antes iba sin control y se reseteaba con `key`, así que si
- * tecleabas "abc" —o un valor que redondea a la nota ya guardada— el campo se
- * quedaba mostrando eso y no se mandaba nada: parecía guardado y no lo estaba.
- * Confirma con Enter o al salir del foco; `parseRating` hace clamp, redondeo y
- * acepta coma.
- */
-function RatingField({ rating, onCommit }: {
-  rating: number | null
-  onCommit: (n: number) => void
-}) {
-  const real = rating != null ? String(rating) : ''
-  const [text, setText] = useState(real)
-  useEffect(() => { setText(real) }, [real])
-
-  return (
-    <input
-      type="number" inputMode="decimal" min={0} max={5} step={0.1}
-      value={text}
-      aria-label="Puntaje de 0 a 5"
-      onChange={e => setText(e.currentTarget.value)}
-      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-      onBlur={() => {
-        const n = parseRating(text)
-        if (n != null && n !== rating) onCommit(n)
-        setText(n != null ? String(n) : real)
-      }}
-      style={{
-        width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
-        background: 'transparent', border: '1px solid var(--hairline)',
-        color: 'inherit', fontFamily: 'inherit',
-      }}
-    />
-  )
-}
-
-/**
- * Nota y comentarios de una birra, detrás del ícono.
+ * Estaban detrás de un ícono, en una hoja que había que abrir. El argumento
+ * era no convertir la pantalla en un muro, pero el efecto real es que nadie
+ * los lee: lo que no se ve no existe, y un comentario que nadie lee tampoco lo
+ * escribe nadie. Ahora están en la página, después de las fotos, que es el
+ * orden en que se mira una birra — cuánto sale, cómo se ve, qué dijeron.
  *
- * No están nunca a la vista por defecto: el contenido de la pantalla es el
- * precio y la nota. El texto es el detalle que se busca cuando ya decidiste
- * que te interesa, y sacarlo de la vista principal es lo que permite meter
- * varias birras en una sola pantalla sin que sea un muro.
+ * Se muestran de a diez, del más nuevo al más viejo, con el resto detrás de un
+ * botón: así una birra con historia no alarga la ficha sin fin.
  *
- * La nota y el comentario son dos acciones separadas, y eso se ve en la
- * pantalla. Las estrellas se guardan al tocarlas, sin botón: son una sola por
- * persona y por birra, así que tocarlas de nuevo corrige la anterior. El texto
- * tiene su propio botón, y cada vez que lo usás dejás un comentario más —
- * volviste seis meses después y la canilla cambió, y eso es algo nuevo que
- * decir, no una corrección de lo anterior.
+ * La nota NO está acá: vive con la birra, arriba, donde están las estrellas.
+ * Son dos acciones distintas —puntuar es una sola por persona, comentar son
+ * todas las que quieras— y tenerlas juntas en la misma caja era lo que hacía
+ * que puntuar pareciera parte de escribir.
  */
 export function BeerComments({
-  barId, styleSlug, brandSlug, title, canWrite, modMode, myRating, initialRating,
-  onClose, onWrote,
+  barId, styleSlug, brandSlug, canWrite, modMode, myRating,
+  onWrote,
 }: {
   barId: number
   styleSlug: string
@@ -83,72 +38,49 @@ export function BeerComments({
    * cuando probaste otra.
    */
   brandSlug: string | null
-  /** Estilo y marca juntos: el estilo solo ya no nombra a la birra. */
-  title: string
   canWrite: boolean
   /** Modo moderador prendido: aparecen las acciones destructivas. */
   modMode: boolean
+  /** Sólo para saber si ya puntuó, al pie del cuadro de escribir. */
   myRating: number | null
-  /** Estrella que se tocó para abrir esto, si se abrió desde las estrellas. */
-  initialRating?: number
-  onClose: () => void
   onWrote: () => void
 }) {
+  const nav = useNavigate()
   const [items, setItems] = useState<RatingComment[] | null>(null)
   const [body, setBody] = useState('')
-  const [rating, setRating] = useState(myRating)
   const [busy, setBusy] = useState(false)
-  const [savingStar, setSavingStar] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<RatingComment | null>(null)
-
-  const reload = () =>
-    api.beerComments(barId, styleSlug, brandSlug)
-      .then(setItems)
-      .catch(e => { setError((e as Error).message); setItems([]) })
-
-  useEffect(() => { reload() }, [barId, styleSlug, brandSlug])   // eslint-disable-line
-
-  // Si se abrió tocando una estrella, ese toque ya es el voto: pedirle además
-  // que confirme sería agregarle un paso a la acción más barata que tiene.
-  useEffect(() => {
-    if (initialRating != null && initialRating !== myRating) rate(initialRating)
-    // eslint-disable-next-line
-  }, [])
-
-  async function rate(n: number) {
-    setRating(n); setSavingStar(true); setError(null)
-    try {
-      await api.rateBeer({ barId, styleSlug, brandSlug, rating: n })
-      onWrote()
-    } catch (e) {
-      setError((e as Error).message)
-      setRating(myRating)   // se vuelve a lo que había: no quedó guardado
-    } finally { setSavingStar(false) }
-  }
+  /** Quedan más abajo. Se sabe porque la página vino llena. */
+  const [more, setMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   /**
-   * Retirar el puntaje (BIR-11).
+   * De a diez, del más nuevo al más viejo.
    *
-   * Hasta acá la nota se podía corregir tocando otra estrella pero no sacar,
-   * así que quien votó una birra que el bar dejó de tener seguía contando en
-   * el promedio de algo que ya no se sirve.
-   *
-   * Sin diálogo de confirmación, a diferencia de borrar un comentario: ahí se
-   * pierde un texto que no vuelve, acá se vuelve tocando una estrella. Pedir
-   * confirmación para algo que se deshace con un toque es un paso de más.
+   * Antes se traían cien de una y se dibujaban todos: en una birra con
+   * historia, eso es una hoja que no termina y una lista que tarda en
+   * aparecer. Diez es lo que entra en una pantalla, y lo que sigue se pide
+   * cuando alguien lo pide.
    */
-  async function retract() {
-    const antes = rating
-    setRating(null); setSavingStar(true); setError(null)
+  const reload = () =>
+    api.beerComments(barId, styleSlug, brandSlug, { limit: PAGE })
+      .then(r => { setItems(r); setMore(r.length === PAGE) })
+      .catch(e => { setError((e as Error).message); setItems([]); setMore(false) })
+
+  const loadMore = async () => {
+    if (!items) return
+    setLoadingMore(true)
     try {
-      await api.retractRating({ barId, styleSlug, brandSlug })
-      onWrote()
-    } catch (e) {
-      setError((e as Error).message)
-      setRating(antes)
-    } finally { setSavingStar(false) }
+      const r = await api.beerComments(barId, styleSlug, brandSlug, {
+        limit: PAGE, offset: items.length,
+      })
+      setItems([...items, ...r])
+      setMore(r.length === PAGE)
+    } catch (e) { setError((e as Error).message) } finally { setLoadingMore(false) }
   }
+
+  useEffect(() => { reload() }, [barId, styleSlug, brandSlug])   // eslint-disable-line
 
   const send = async () => {
     const text = body.trim()
@@ -164,36 +96,23 @@ export function BeerComments({
   }
 
   return (
-    <Sheet title={title} onClose={onClose}>
+    <section style={{ marginTop: 18 }}>
+      <h3 className="lbl" style={{
+        fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+      }}>
+        COMENTARIOS{items && items.length > 0 ? ` · ${items.length}${more ? '+' : ''}` : ''}
+      </h3>
       {canWrite && (
         <div style={{
           padding: 12, borderRadius: 14, background: 'var(--base)', marginBottom: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Stars value={rating} mine={rating != null} size={26} onRate={rate} />
-            <RatingField rating={rating} onCommit={rate} />
-            <span style={{ fontSize: 12, color: 'var(--faint)' }}>
-              {savingStar ? 'Guardando…'
-                : rating != null ? 'Tu puntaje — tocá una estrella o escribilo'
-                : 'Tu puntaje'}
-            </span>
-          </div>
-
-          {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene
-              qué retirar y sólo ocupa lugar. */}
-          {rating != null && (
-            <button onClick={retract} disabled={savingStar} style={{
-              marginTop: 8, fontSize: 12, color: 'var(--muted)',
-            }}>Retirar mi puntaje</button>
-          )}
-
           <textarea
             value={body} onChange={e => setBody(e.target.value)}
             placeholder="Cómo estaba (opcional)" rows={2} maxLength={600}
             style={{
               width: '100%', marginTop: 10, padding: '10px 12px', borderRadius: 11,
               background: 'transparent', border: '1px solid var(--hairline)',
-              resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
+              resize: 'vertical', fontFamily: 'inherit', fontSize: 16,
             }}
           />
           <button disabled={busy || !body.trim()} onClick={send} className="lbl" style={{
@@ -223,9 +142,21 @@ export function BeerComments({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* La nota puede faltar: se puede comentar sin votar. */}
             {c.rating != null && <Stars value={c.rating} mine={c.mine} size={13} />}
-            <span style={{ fontSize: 13, color: c.mine ? 'var(--amber)' : 'var(--muted)' }}>
-              {c.mine ? 'Vos' : c.authorName}
-            </span>
+            {/* El nombre abre su perfil (BIR-6): es desde acá que hace falta
+                llegar a la persona, no desde una pantalla de moderación. El
+                propio no, que no tiene sentido ir a mirarse a uno mismo. */}
+            {c.mine ? (
+              <span style={{ fontSize: 13, color: 'var(--amber)' }}>Vos</span>
+            ) : (
+              <button
+                onClick={() => nav(`/usuario/${c.authorId}`)}
+                className="lbl"
+                style={{
+                  fontSize: 13, color: 'var(--muted)', textDecoration: 'underline',
+                  textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                }}
+              >{c.authorName}</button>
+            )}
             {/* La edad va siempre pegada, igual que con los precios: un
                 comentario de hace dos años sobre una canilla que ya cambió
                 dice menos de lo que parece. */}
@@ -245,6 +176,19 @@ export function BeerComments({
           )}
         </div>
       ))}
+
+      {/* Abajo de todo y no un scroll infinito: los comentarios son el final
+          de la ficha, y cargar solo al llegar haría que la pantalla nunca
+          termine de crecer mientras se lee. */}
+      {more && (
+        <button
+          onClick={loadMore} disabled={loadingMore} className="lbl"
+          style={{
+            width: '100%', marginTop: 12, padding: 12, borderRadius: 12,
+            fontSize: 13.5, background: 'rgba(255,255,255,.06)', color: 'var(--muted)',
+          }}
+        >{loadingMore ? '…' : 'Ver comentarios más viejos'}</button>
+      )}
 
       {confirmDelete && (
         <Confirm
@@ -277,6 +221,6 @@ export function BeerComments({
           }}
         />
       )}
-    </Sheet>
+    </section>
   )
 }

@@ -4,6 +4,7 @@ import * as api from '../data/api'
 import type { MyComment, MyContributions, MyPhoto, MyPrice } from '../data/types'
 import { formatPrice } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
+import { Empty } from '../ui/Empty'
 
 /** Las cuatro listas, cada una con su pantalla. La ruta es `/mis-aportes/:tipo`. */
 type Kind = 'precios' | 'fotos' | 'comentarios' | 'bares'
@@ -15,11 +16,28 @@ const TITLE: Record<Kind, string> = {
   bares: 'Mis bares',
 }
 
-const EMPTY: Record<Kind, string> = {
-  precios: 'Todavía no cargaste ningún precio.',
-  fotos: 'Todavía no subiste ninguna foto.',
-  comentarios: 'Todavía no escribiste ningún comentario.',
-  bares: 'Todavía no agregaste ningún bar.',
+/** Qué decir cuando la lista está vacía, y cuál es el paso siguiente. */
+const EMPTY: Record<Kind, { title: string; hint: string; action: string }> = {
+  precios: {
+    title: 'Todavía no cargaste ningún precio',
+    hint: 'Un precio se carga desde el "+" del mapa o desde la ficha del bar. Es lo que mantiene vivo el mapa.',
+    action: 'Cargar un precio',
+  },
+  fotos: {
+    title: 'Todavía no subiste ninguna foto',
+    hint: 'Las fotos van en la birra, abajo del precio. Se achican en tu teléfono antes de subirse.',
+    action: 'Ir al mapa',
+  },
+  comentarios: {
+    title: 'Todavía no escribiste ningún comentario',
+    hint: 'Debajo de las fotos de cada birra hay un cuadro para contar cómo estaba.',
+    action: 'Ir al mapa',
+  },
+  bares: {
+    title: 'Todavía no agregaste ningún bar',
+    hint: 'Si conocés uno que no está en el mapa, cargalo: queda para todos.',
+    action: 'Agregar un bar',
+  },
 }
 
 /**
@@ -83,9 +101,7 @@ export function MyContributionsScreen(
     }}>
       <div className="desk-narrow">
         <div style={{ padding: '0 18px' }}>
-          <button onClick={() => nav(-1)} style={{
-            width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          }} aria-label="Volver">←</button>
+          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
           <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>
             {TITLE[kind]}
             {count != null && count > 0 && (
@@ -100,9 +116,12 @@ export function MyContributionsScreen(
         {!data && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
 
         {count === 0 && (
-          <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
-            {EMPTY[kind]}
-          </p>
+          <Empty
+            title={EMPTY[kind].title}
+            hint={EMPTY[kind].hint}
+            action={EMPTY[kind].action}
+            onAction={() => nav(kind === 'bares' ? '/agregar' : '/')}
+          />
         )}
 
         {kind === 'precios' && data?.prices.map(p => (

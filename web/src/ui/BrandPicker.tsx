@@ -71,14 +71,41 @@ export function BrandPicker({
  * A pantalla completa las dos cosas desaparecen: el buscador queda arriba,
  * fijo, y lo único que se mueve es la lista.
  */
-function BrandSheet({
-  brands, value, onClose, onPick, onCreated,
-}: {
+function BrandSheet(p: {
   brands: Brand[]
   value: string | null
   onClose: () => void
   onPick: (slug: string | null) => void
   onCreated: (b: Brand) => void
+}) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 90, background: 'var(--base)',
+      display: 'flex', flexDirection: 'column',
+      paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)',
+    }}>
+      <BrandList {...p} onBack={p.onClose} />
+    </div>
+  )
+}
+
+/**
+ * El cuerpo: buscador, alta y lista.
+ *
+ * Vive aparte de la cáscara porque lo usan dos cosas con posicionamiento
+ * distinto — esta hoja a pantalla completa y el paso 2 del flujo de carga de
+ * precio. Duplicarlo significaría dos altas de marca que se van separando.
+ */
+export function BrandList({
+  brands, value, onBack, onPick, onCreated, allowNone = true,
+}: {
+  brands: Brand[]
+  value: string | null
+  onBack: () => void
+  onPick: (slug: string | null) => void
+  onCreated: (b: Brand) => void
+  /** "Sin marca" como opción. Siempre, salvo que quien llame diga lo contrario. */
+  allowNone?: boolean
 }) {
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
@@ -88,10 +115,10 @@ function BrandSheet({
   // Cerrar con Escape: en escritorio es el gesto natural y acá no hay fondo
   // que tocar para salir.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onBack() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onBack])
 
   const norm = (s: string) =>
     s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -120,21 +147,19 @@ function BrandSheet({
   const industrial = shown.filter(b => !b.craft)
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 90, background: 'var(--base)',
-      display: 'flex', flexDirection: 'column',
-      paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <header style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
       }}>
-        <button onClick={onClose} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-          flexShrink: 0,
-        }} aria-label="Cancelar">←</button>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Cancelar">←</button>
         <input
           ref={input}
           value={q} onChange={e => setQ(e.target.value)}
+          // Enter da de alta lo escrito. Es la tecla que sigue naturalmente a
+          // escribir un nombre que no está en la lista, y sin esto no hacía
+          // nada: había que ver el botón de arriba y tocarlo, o lo tecleado se
+          // perdía al salir del paso.
+          onKeyDown={e => { if (e.key === 'Enter' && canCreate && !busy) create() }}
           placeholder="Buscar o escribir una marca" maxLength={60}
           autoComplete="off" autoCorrect="off" spellCheck={false}
           style={{
@@ -167,7 +192,7 @@ function BrandSheet({
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 14px 24px' }}>
-        {!typed && (
+        {!typed && allowNone && (
           <Option
             label="Sin marca" hint="No la sé o el bar no la declara"
             on={value === null} onClick={() => onPick(null)}

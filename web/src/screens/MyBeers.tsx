@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { Badge, BeerSummary } from '../data/types'
+import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
 
 /**
@@ -36,7 +37,12 @@ export function MyBeersScreen() {
 
   if (error) return (
     <Wrap onBack={() => nav(-1)}>
-      <p style={{ color: 'var(--danger)' }}>{error}</p>
+      <Empty
+        title="No pudimos traer tus birras"
+        hint={error}
+        action="Reintentar"
+        onAction={load}
+      />
     </Wrap>
   )
   if (!data) return <PintLoader message="Contando…" />
@@ -48,6 +54,18 @@ export function MyBeersScreen() {
   return (
     <Wrap onBack={() => nav(-1)}>
       <h1 className="ttl" style={{ fontSize: 28, margin: '0 0 18px' }}>Mis birras</h1>
+
+      {/* Sin una sola birra anotada, el calendario vacío y seis emblemas en
+          cero no dicen nada: lo que hace falta es contar para qué sirve esto
+          y dónde se anota la primera. */}
+      {data.total === 0 && (
+        <Empty
+          title="Anotá tu primera birra"
+          hint="Desde el “+” del mapa, en “Me tomé una birra”. Se anota de un toque: el bar donde estás viene puesto y el resto es opcional."
+          action="Ir al mapa"
+          onAction={() => nav('/')}
+        />
+      )}
 
       <div style={{ display: 'flex', gap: 10 }}>
         <Big value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
@@ -99,10 +117,10 @@ export function MyBeersScreen() {
                   </span>
                 )}
               </span>
-              <button onClick={() => remove(l.id)} aria-label="Borrar esta birra" style={{
-                width: 32, height: 32, borderRadius: '50%', color: 'var(--muted)',
-                background: 'rgba(255,255,255,.06)', fontSize: 13,
-              }}>✕</button>
+              <button onClick={() => remove(l.id)} aria-label="Borrar esta birra"
+                className="icon-btn"
+                style={{ color: 'var(--muted)', background: 'rgba(255,255,255,.06)', fontSize: 13 }}
+              >✕</button>
             </div>
           ))}
         </div>
@@ -272,10 +290,9 @@ function Wrap({ children, onBack }: { children: React.ReactNode; onBack: () => v
       position: 'absolute', inset: 0, overflowY: 'auto',
       padding: `calc(var(--safe-top) + 12px) 18px calc(24px + var(--nav-gap))`,
     }}>
-      <button onClick={onBack} style={{
-        width: 38, height: 38, borderRadius: '50%', background: 'var(--elevated)',
-        marginBottom: 12,
-      }} aria-label="Volver">←</button>
+      <button onClick={onBack} className="icon-btn"
+        style={{ background: 'var(--elevated)', marginBottom: 12 }}
+        aria-label="Volver">←</button>
       {children}
     </div>
   )

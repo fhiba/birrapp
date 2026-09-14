@@ -43,7 +43,12 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
 
       {open && (
         <div
-          role="menu"
+          // `group` y no `menu`: el patrón ARIA de menú promete flechas, Home
+          // y End, y acá se navega con Tab como en cualquier grupo de botones.
+          // Declarar un menú que no se comporta como un menú es peor que no
+          // declarar nada.
+          role="group"
+          aria-label="Qué querés agregar"
           className="glass"
           style={{
             position: 'absolute', right: 14, zIndex: 20,
@@ -65,7 +70,6 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
         onClick={() => setOpen(o => !o)}
         aria-label={open ? 'Cerrar el menú de agregar' : 'Agregar'}
         aria-expanded={open}
-        aria-haspopup="menu"
         style={{
           position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
           width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
@@ -97,7 +101,7 @@ function Item({ icon, label, onClick }: {
   icon: ReactNode; label: string; onClick: () => void
 }) {
   return (
-    <button role="menuitem" onClick={onClick} className="lbl" style={{
+    <button onClick={onClick} className="lbl" style={{
       display: 'flex', alignItems: 'center', gap: 11,
       padding: '11px 12px', borderRadius: 11, fontSize: 14.5,
       textAlign: 'left', width: '100%', color: 'var(--cream)',

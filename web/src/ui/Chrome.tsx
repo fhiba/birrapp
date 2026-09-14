@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const ICON = {
@@ -25,6 +25,10 @@ export function BottomNav() {
     <NavLink
       to={to}
       end
+      // El nombre accesible va acá y no en el texto: la etiqueta sólo se
+      // dibuja en la pestaña activa —es lo que mantiene la barra angosta— así
+      // que sin esto las otras dos se anunciaban como enlaces sin nombre.
+      aria-label={label}
       style={({ isActive }) => ({
         display: 'flex', alignItems: 'center', gap: 7,
         padding: isActive ? '11px 16px' : '11px 17px',
@@ -67,23 +71,62 @@ export function BottomNav() {
   )
 }
 
+/**
+ * Hoja anclada abajo. Sobre el mismo `<dialog>` que los diálogos del medio, y
+ * por lo mismo: el foco queda adentro, Escape y el botón de atrás del teléfono
+ * la cierran, y al cerrar el foco vuelve a donde estaba. Antes era un `div`
+ * que se veía bien y con teclado no existía.
+ */
 export function Sheet(
   { title, onClose, children }: { title?: string; onClose: () => void; children: ReactNode },
 ) {
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 60,
-      background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxHeight: '86vh', overflowY: 'auto',
-        background: 'var(--raised)', borderRadius: '22px 22px 0 0',
-        padding: `18px 20px calc(20px + var(--nav-gap))`,
-      }}>
+    <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
+      <div style={{ padding: `18px 20px calc(20px + var(--nav-gap))` }}>
         {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 20 }}>{title}</h2>}
         {children}
       </div>
-    </div>
+    </Modal>
+  )
+}
+
+/**
+ * Diálogo modal sobre el `<dialog>` nativo.
+ *
+ * Antes era un `div` con `position: fixed`. Se veía igual y le faltaba todo lo
+ * que hace usable un modal: el foco se quedaba en la página de atrás —con
+ * teclado se podía tabular hasta los botones tapados—, Escape no cerraba, el
+ * botón de atrás del teléfono tampoco, y al cerrar el foco no volvía a donde
+ * estaba. `showModal()` da las cuatro cosas y el `::backdrop` gratis.
+ *
+ * `closedby="any"` agrega cerrar tocando afuera donde el navegador lo soporta;
+ * donde no, sigue andando todo lo demás.
+ */
+function Modal({ label, onClose, variant = 'center', children }: {
+  label: string
+  onClose: () => void
+  /** `center` es el diálogo chico; `sheet`, la hoja pegada al borde de abajo. */
+  variant?: 'center' | 'sheet'
+  children: ReactNode
+}) {
+  const ref = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const d = ref.current
+    if (d && !d.open) d.showModal()
+  }, [])
+
+  return (
+    <dialog
+      ref={ref}
+      aria-label={label}
+      // Los tipos de React ya lo conocen; donde el navegador no, se ignora y
+      // el diálogo sigue cerrando con Escape y con el botón.
+      closedby="any"
+      onClose={onClose}
+      onCancel={onClose}
+      className={variant === 'sheet' ? 'modal modal-sheet' : 'modal'}
+    >{children}</dialog>
   )
 }
 
@@ -99,14 +142,8 @@ export function Confirm({
   const armed = !requireWord || typed.trim().toUpperCase() === requireWord
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,.6)',
-      display: 'grid', placeItems: 'center', padding: 22,
-    }}>
-      <div style={{
-        background: 'var(--raised)', borderRadius: 18, padding: 22,
-        maxWidth: 400, width: '100%',
-      }}>
+    <Modal label={title} onClose={onCancel}>
+      <div style={{ padding: 22 }}>
         <h3 className="ttl" style={{ margin: '0 0 10px', fontSize: 19 }}>{title}</h3>
         <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55 }}>{body}</div>
 
@@ -123,27 +160,53 @@ export function Confirm({
         )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-          <button onClick={onCancel} style={{ color: 'var(--muted)', padding: '10px 14px' }}>
+          <button onClick={onCancel} style={{
+            color: 'var(--muted)', padding: '12px 16px', minHeight: 44,
+          }}>
             Cancelar
           </button>
           <button disabled={!armed} onClick={onConfirm} style={{
-            padding: '10px 14px', fontWeight: 600,
+            padding: '12px 16px', fontWeight: 600, minHeight: 44,
             color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--amber)',
             cursor: armed ? 'pointer' : 'not-allowed',
           }}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 
+/**
+ * El aviso de "pasó algo", abajo y por unos segundos.
+ *
+ * El temporizador va en un efecto y no en el cuerpo del componente. Estaba
+ * suelto en el render: cada vez que el padre se volvía a dibujar —y se dibuja
+ * seguido, el mapa se redibuja con cada movimiento de cámara— se programaba
+ * otro `setTimeout`, así que un toast podía cerrarse antes de tiempo por el
+ * temporizador de un render anterior. Con el efecto hay uno solo, y se cancela
+ * si el texto cambia.
+ *
+ * `role="status"` es lo que hace que un lector de pantalla lo anuncie: sin
+ * eso, la única confirmación de que el precio se cargó es visual.
+ */
 export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
-  setTimeout(onDone, 3200)
+  useEffect(() => {
+    const t = setTimeout(onDone, 3800)
+    return () => clearTimeout(t)
+    // `onDone` suele ser una lambda nueva en cada render: incluirla reiniciaría
+    // el temporizador sin parar. Lo que manda es el texto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text])
+
   return (
-    <div style={{
-      position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
-      zIndex: 70, background: 'var(--elevated)', borderRadius: 14, padding: '13px 16px',
-      fontSize: 13.5, boxShadow: '0 8px 30px rgba(0,0,0,.45)',
-    }}>{text}</div>
+    <div
+      role="status" aria-live="polite"
+      style={{
+        position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
+        zIndex: 70, background: 'var(--elevated)', borderRadius: 14, padding: '13px 16px',
+        fontSize: 13.5, boxShadow: '0 8px 30px rgba(0,0,0,.45)',
+        animation: 'toast-in .18s ease-out',
+      }}
+    >{text}</div>
   )
 }

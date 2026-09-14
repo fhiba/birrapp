@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type {
   BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
 } from '../data/types'
 import { isModerator } from '../data/types'
-import { ageLabel, formatDistance, formatPrice, freshnessColor } from '../data/format'
+import {
+  ageLabel, formatDistance, formatPrice, freshnessColor, shortAddress,
+} from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
-import { ReportPrice } from './ReportPrice'
+import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
-import { Stars } from '../ui/Stars'
+import { RatingField, Stars } from '../ui/Stars'
 import { PhotoStrip } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
 
@@ -43,7 +45,6 @@ export function BarDetailScreen({
   const { id } = useParams()
   const barId = Number(id)
   const nav = useNavigate()
-  const [params, setParams] = useSearchParams()
   const isFavorite = favorites.ids.has(barId)
 
   const [bar, setBar] = useState<Bar | null>(null)
@@ -63,7 +64,6 @@ export function BarDetailScreen({
   // se actualiza un precio y la lista se reordena, un índice apuntaría a otra
   // cerveza.
   const [tab, setTab] = useState<{ style: string; brand: string | null } | null>(null)
-  const [comments, setComments] = useState<{ price: StylePrice; initial?: number } | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
   const [confirmPhoto, setConfirmPhoto] = useState<Photo | null>(null)
   const [confirmPrice, setConfirmPrice] = useState<StylePrice | null>(null)
@@ -123,20 +123,9 @@ export function BarDetailScreen({
     }
   }, [])
 
-  /**
-   * Llegar con `?precio=1` abre la carga de precio sola.
-   *
-   * Es cómo entra quien eligió "cargar un precio" en el menú del "+" (BIR-36):
-   * ya dijo lo que venía a hacer, y dejarlo en la ficha del bar sería
-   * pedírselo de nuevo. El parámetro se saca enseguida para que volver atrás
-   * —o recargar— no lo vuelva a abrir.
-   */
-  useEffect(() => {
-    if (params.get('precio') !== '1') return
-    setParams({}, { replace: true })
-    if (user) setReporting({})
-    else nav('/perfil')
-  }, [params, setParams, user, nav])
+  // Nota: hasta la 0.9.0 se entraba acá con `?precio=1` desde el mapa y la
+  // carga de precio se abría sola. Ya no: el "+" del mapa abre el flujo entero
+  // —estilo, marca, bar y recién el monto— sin pasar por la ficha.
 
   /**
    * El embudo de las tres mutaciones de precio: confirmar, cargar y borrar.
@@ -174,7 +163,9 @@ export function BarDetailScreen({
   )
   if (!bar) return <Centered><div className="spinner" /></Centered>
 
-  const meta = [formatDistance(bar.distanceMeters), bar.neighbourhood, bar.address]
+  // El barrio sí queda: en una ciudad que no conocés, "Palermo" ubica. Lo que
+  // se va es el resto de la dirección — ver `shortAddress`.
+  const meta = [formatDistance(bar.distanceMeters), bar.neighbourhood, shortAddress(bar.address)]
     .filter(Boolean).join(' · ')
 
   // El promedio del bar no se guarda: sale de sus birras. Guardarlo aparte
@@ -200,6 +191,43 @@ export function BarDetailScreen({
   const barAvg = votes > 0
     ? voted.reduce((n, p) => n + p.ratingRaw! * p.ratingCount, 0) / votes
     : null
+
+  /**
+   * Guarda la nota de una birra.
+   *
+   * Vivía adentro de la hoja de comentarios, que es de donde salió: puntuar
+   * obligaba a abrirla. Ahora las estrellas están con la birra y guardan solas
+   * — es una nota por persona, así que tocar de nuevo corrige la anterior.
+   */
+  const rate = async (p: StylePrice, n: number) => {
+    if (!user) return nav('/perfil')
+    try {
+      await api.rateBeer({
+        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,
+      })
+      await load()
+    } catch (e) { setToast((e as Error).message) }
+  }
+
+  /**
+   * Retirar la nota propia (BIR-11).
+   *
+   * Se podía corregir tocando otra estrella pero no sacar, así que quien votó
+   * una birra que el bar dejó de tener seguía contando para siempre en el
+   * promedio de algo que ya no se sirve.
+   *
+   * Sin diálogo de confirmación, a diferencia de borrar una foto o un
+   * comentario: ahí se pierde algo que no vuelve, acá se vuelve tocando una
+   * estrella. Confirmar lo que se deshace con un toque es un paso de más.
+   */
+  const retract = async (p: StylePrice) => {
+    try {
+      await api.retractRating({
+        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug,
+      })
+      await load()
+    } catch (e) { setToast((e as Error).message) }
+  }
 
   const myRatingOf = (p: StylePrice) =>
     mine.find(m => m.styleSlug === p.styleSlug && m.brandSlug === p.brandSlug)?.rating ?? null
@@ -232,7 +260,7 @@ export function BarDetailScreen({
   // Los diálogos y el visor de fotos son hijos de este contenedor, así que
   // sus toques burbujean hasta acá. Con uno abierto el arrastre es de él.
   const overlayOpen = !!(
-    reporting || confirmDelete || history || reportingBad || comments ||
+    reporting || confirmDelete || history || reportingBad ||
     viewing != null || confirmPhoto || confirmPrice
   )
 
@@ -292,9 +320,8 @@ export function BarDetailScreen({
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => nav(-1)} style={{
-            width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.07)',
-          }} aria-label="Volver">←</button>
+          <button onClick={() => nav(-1)} className="icon-btn"
+            style={{ background: 'rgba(255,255,255,.07)' }} aria-label="Volver">←</button>
           <span style={{ flex: 1 }} />
 
           {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
@@ -304,9 +331,9 @@ export function BarDetailScreen({
             onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
             aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
             aria-pressed={isFavorite}
+            className="icon-btn"
             style={{
-              width: 38, height: 38, borderRadius: '50%', marginRight: 8,
-              display: 'grid', placeItems: 'center',
+              marginRight: 8,
               background: isFavorite ? 'var(--amber-soft)' : 'rgba(255,255,255,.07)',
               color: isFavorite ? 'var(--amber)' : 'var(--muted)',
             }}
@@ -327,9 +354,8 @@ export function BarDetailScreen({
               onClick={() => setModMode(m => !m)}
               aria-label={modMode ? 'Salir del modo moderador' : 'Modo moderador'}
               aria-pressed={modMode}
+              className="icon-btn"
               style={{
-                width: 38, height: 38, borderRadius: '50%',
-                display: 'grid', placeItems: 'center',
                 background: modMode ? 'var(--amber)' : 'rgba(255,255,255,.07)',
                 color: modMode ? 'var(--base)' : 'var(--muted)',
               }}
@@ -422,9 +448,16 @@ export function BarDetailScreen({
           {/* La fila se muestra incluso con una sola birra: es donde vive el
               "+", y un control que aparece y desaparece según cuántas haya es
               un control que no se encuentra cuando se lo necesita. */}
+          {/* `scrollPaddingLeft` va con el `padding` y no es decoración: al
+              engancharse, el navegador alinea la pestaña contra el borde del
+              scrollport, que está ANTES del padding. O sea que la fila se
+              corría 18px sola y la primera pestaña terminaba pegada al borde
+              de la pantalla, desalineada de todo lo demás de la ficha. Con
+              esto, el enganche respeta el mismo margen que el resto. */}
           <div data-tour="bar-tabs" style={{
             display: 'flex', gap: 6, padding: '4px 18px 0',
             overflowX: 'auto', scrollSnapType: 'x proximity',
+            scrollPaddingLeft: 18,
           }}>
             {groups.map(g => {
               const on = g.slug === group?.slug
@@ -494,6 +527,7 @@ export function BarDetailScreen({
             <div style={{
               display: 'flex', gap: 6, padding: '8px 18px 0',
               overflowX: 'auto', scrollSnapType: 'x proximity',
+              scrollPaddingLeft: 18,
             }}>
               {group.beers.map(b => {
                 const on = b.brandSlug === active?.brandSlug
@@ -568,7 +602,9 @@ export function BarDetailScreen({
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active)}
-                  onOpen={n => setComments({ price: active, initial: n })}
+                  canRate={user != null}
+                  onRate={n => rate(active, n)}
+                  onRetract={() => retract(active)}
                 />
 
                 <PhotoStrip
@@ -581,6 +617,21 @@ export function BarDetailScreen({
                   }}
                   onOpen={setViewing}
                   onVote={vote}
+                />
+
+                {/* Los comentarios, abajo de las fotos y no detrás de un
+                    ícono: es el orden en que se mira una birra —cuánto sale,
+                    cómo se ve, qué dijeron— y lo que estaba escondido no lo
+                    leía nadie. */}
+                <BeerComments
+                  key={beerKey(active)}
+                  barId={barId}
+                  styleSlug={active.styleSlug}
+                  brandSlug={active.brandSlug}
+                  canWrite={user != null}
+                  modMode={modMode}
+                  myRating={myRatingOf(active)}
+                  onWrote={load}
                 />
               </div>
             </>
@@ -616,24 +667,27 @@ export function BarDetailScreen({
       )}
 
       {reporting && (
-        <ReportPrice
-          styles={styles} brands={brands}
-          currency={bar.currency}
-          defaultSizeMl={user?.defaultSizeMl ?? 473}
-          preselected={reporting.style} preselectedBrand={reporting.brand}
-          barName={bar.name}
-          onCancel={() => setReporting(null)}
+        <ReportFlow
+          styles={styles} brands={brands} user={user}
+          // Entrando desde la ficha, el bar ya está: el flujo no lo pregunta.
+          bar={{ id: bar.id, name: bar.name, currency: bar.currency }}
+          // `reporting` ya tiene la forma de lo que se sabe: vacío desde
+          // "Otra birra", con estilo desde "Otra marca", con los dos desde
+          // "Actualizar". El flujo pregunta sólo lo que falta.
+          preselected={reporting}
+          nearby={[]} center={center}
           onStyleCreated={onStyleCreated}
           onBrandCreated={onBrandCreated}
-          onSubmit={(slug, brandSlug, price, sizeMl) => {
+          onCancel={() => setReporting(null)}
+          onSubmit={({ styleSlug, brandSlug, price, sizeMl }) => {
             setReporting(null)
             // La birra cargada pasa a ser la que se está mirando: si no, se
             // carga la segunda IPA y la pantalla se queda mostrando la
             // primera, como si no hubiera pasado nada.
-            setTab({ style: slug, brand: brandSlug })
+            setTab({ style: styleSlug, brand: brandSlug })
             act(
-              () => api.reportPrice({ barId, styleSlug: slug, brandSlug, price, sizeMl }),
-              slug + '|' + (brandSlug ?? ''),
+              () => api.reportPrice({ barId, styleSlug, brandSlug, price, sizeMl }),
+              styleSlug + '|' + (brandSlug ?? ''),
             )
           }}
         />
@@ -693,21 +747,6 @@ export function BarDetailScreen({
               setToast('Reportado. Gracias, lo revisa un moderador.')
             } catch (e) { setToast((e as Error).message) }
           }}
-        />
-      )}
-
-      {comments && (
-        <BeerComments
-          barId={barId}
-          styleSlug={comments.price.styleSlug}
-          brandSlug={comments.price.brandSlug}
-          title={beerName(comments.price)}
-          canWrite={user != null}
-          modMode={modMode}
-          myRating={myRatingOf(comments.price)}
-          initialRating={comments.initial}
-          onClose={() => setComments(null)}
-          onWrote={load}
         />
       )}
 
@@ -792,8 +831,8 @@ function PriceRow({
       <div style={{
         padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
       }}>
-        <BeerLabel price={price} />
-        <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 14 }}>
+        {/* Sin rótulo: cuál birra es lo dicen las pestañas de arriba. */}
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14 }}>
           Esta birra no tiene precio cargado.
         </p>
         <button onClick={onUpdate} className="lbl" style={{
@@ -808,29 +847,53 @@ function PriceRow({
   const dim = price.freshness === 'stale'
   return (
     <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-      {/* Estilo y marca sobre el precio.
-          Cuando el estilo era toda la identidad esto sobraba —lo decía la
-          pestaña de arriba— pero con dos IPA a precios distintos el número
-          suelto no dice de cuál es, y las dos filas de pestañas se pueden
-          haber corrido de lado. El precio sin su birra no significa nada. */}
-      <BeerLabel price={price} />
+      {/* Acá iba otra vez el estilo y la marca. Lo dicen las dos filas de
+          pestañas que están justo arriba, con la activa en ámbar: repetirlo
+          era gastar el renglón de mayor jerarquía en algo que la persona
+          acababa de tocar.
+          Lo único que no está en las pestañas es si la marca es artesanal, y
+          eso sí queda. */}
+      {price.brandCraft && (
+        <span className="lbl" style={{
+          display: 'inline-block', fontSize: 10, letterSpacing: '.08em',
+          padding: '2px 7px', borderRadius: 999, marginBottom: 8,
+          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
+        }}>ARTESANAL</span>
+      )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <div className="num" style={{
-            fontSize: 30, color: dim ? 'var(--faint)' : 'var(--cream)',
+            fontSize: 34, letterSpacing: '-.02em',
+            color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!, currency)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+
+          {/* La antigüedad, debajo del número y con su color.
+              Estaba chiquita a la derecha, alineada con la última línea: se
+              leía como un pie de página. En esta app un precio sin su edad al
+              lado es información falsa, así que la edad tiene que verse tan
+              rápido como el monto — y cuando el precio está viejo, el aviso es
+              lo que hay que leer primero. */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 7,
+            padding: dim ? '4px 10px' : 0, borderRadius: 999,
+            background: dim ? 'rgba(255,255,255,.06)' : 'transparent',
+            fontSize: 12.5, color,
+          }}>
+            <span aria-hidden style={{
+              width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
+            }} />
             {ageLabel(price.ageDays!, price.freshness!)}
           </div>
-          {price.sizeMl !== 473 && (
-            <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{price.sizeMl} ml</div>
-          )}
-
         </div>
+        {/* El tamaño sólo cuando no es la pinta de 473: si es la de siempre,
+            decirlo es ruido; si no lo es, cambia el precio y hay que saberlo. */}
+        {price.sizeMl !== 473 && (
+          <div className="num" style={{
+            fontSize: 13, color: 'var(--muted)', flexShrink: 0,
+            padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.06)',
+          }}>{price.sizeMl} ml</div>
+        )}
       </div>
 
       {dim && (
@@ -859,14 +922,20 @@ function PriceRow({
         display: 'flex', alignItems: 'center', gap: 14, marginTop: 12,
         fontSize: 12, color: 'var(--faint)',
       }}>
-        <button onClick={onHistory} style={{ fontSize: 12, color: 'var(--muted)' }}>
+        <button onClick={onHistory} style={{
+          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+        }}>
           Ver historial
         </button>
         <span>·</span>
-        {/* Reportar lo puede usar cualquiera, no sólo moderadores: quien ve
-            el precio mal es el que está parado en el bar. */}
-        <button onClick={onFlag} style={{ fontSize: 12, color: 'var(--muted)' }}>
-          Reportar precio
+        {/* "Este precio está mal" y no "reportar precio", que era ambiguo con
+            cargar uno: en esta app "reportar un precio" es justamente lo que
+            hace el botón de al lado. Cualquiera puede usarlo, no sólo
+            moderadores — quien ve el precio mal es el que está parado ahí. */}
+        <button onClick={onFlag} style={{
+          fontSize: 12, color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+        }}>
+          Este precio está mal
         </button>
         {modMode && (
           <>
@@ -888,34 +957,6 @@ function PriceRow({
  * leerlos como una sola frase ("IPA · Antares") es más rápido que buscar cuál
  * de las dos pestañas está encendida.
  */
-function BeerLabel({ price }: { price: StylePrice }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
-      <span className="lbl" style={{
-        fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)',
-      }}>{price.styleName.toUpperCase()}</span>
-
-      {price.brandName ? (
-        <span className="lbl" style={{ fontSize: 13, color: 'var(--amber)' }}>
-          {price.brandName}
-        </span>
-      ) : (
-        // "Sin marca" se dice, no se omite: en un bar con dos IPA, una con
-        // marca y otra sin, el silencio se lee como que falta el dato.
-        <span className="lbl" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-          Sin marca
-        </span>
-      )}
-
-      {price.brandCraft && (
-        <span className="lbl" style={{
-          fontSize: 10, letterSpacing: '.08em', padding: '2px 7px', borderRadius: 999,
-          background: 'rgba(255,255,255,.07)', color: 'var(--faint)',
-        }}>ARTESANAL</span>
-      )}
-    </div>
-  )
-}
 
 /**
  * Foto ampliada.
@@ -936,6 +977,7 @@ function PhotoViewer({
   onRemove: (p: Photo) => void
   onVote: (p: Photo) => void
 }) {
+  const nav = useNavigate()
   const [i, setI] = useState(start)
   const touch = useRef<{ x: number; y: number } | null>(null)
 
@@ -1010,7 +1052,22 @@ function PhotoViewer({
         }}
       >
         <span>
-          {photo.authorName && <>{photo.mine ? 'Tu foto' : photo.authorName} · </>}
+          {photo.authorName && (
+            photo.mine ? <>Tu foto · </>
+              : photo.authorId != null ? (
+                <>
+                  {/* Abre su perfil: es el otro lugar donde aparece contenido
+                      firmado y desde donde hace falta poder actuar sobre la
+                      persona (BIR-6). */}
+                  <button onClick={() => nav(`/usuario/${photo.authorId}`)} className="lbl"
+                    style={{
+                      color: 'var(--muted)', fontSize: 12.5, textDecoration: 'underline',
+                      textDecorationColor: 'rgba(255,255,255,.2)', textUnderlineOffset: 3,
+                    }}>{photo.authorName}</button>
+                  {' · '}
+                </>
+              ) : <>{photo.authorName} · </>
+          )}
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
           {photo.topOfMonth && <> · <span style={{ color: 'var(--amber)' }}>foto del mes</span></>}
@@ -1109,23 +1166,40 @@ function ViewerArrow({
  * lo que aparenta.
  */
 function BeerRating({
-  price, myRating, onOpen,
+  price, myRating, canRate, onRate, onRetract,
 }: {
-  price: StylePrice; myRating: number | null; onOpen: (n?: number) => void
+  price: StylePrice; myRating: number | null
+  canRate: boolean
+  onRate: (n: number) => void
+  onRetract: () => void
 }) {
   const mine = myRating != null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} data-tour="bar-rating">
-      {/* Tocar una estrella abre el modal con ese valor ya elegido. Antes
-          eran decorativas y puntuar obligaba a encontrar el ícono de
-          comentarios, que es lo último donde alguien lo busca. */}
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    }} data-tour="bar-rating">
+      {/* Tocar una estrella guarda el voto, sin abrir nada. Antes abría la
+          hoja de comentarios con el valor elegido: un rodeo que existía sólo
+          porque el campo del decimal vivía allá adentro. */}
       <Stars
         value={mine ? myRating : price.ratingRaw} mine={mine} size={19}
-        onRate={n => onOpen(n)}
+        onRate={canRate ? onRate : undefined}
       />
 
+      {/* El campo del decimal, al lado de las estrellas: las estrellas dan
+          enteros y para un 3,5 hay que escribirlo. */}
+      {canRate && (
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 11.5, color: 'var(--faint)',
+        }}>
+          <span>tu nota</span>
+          <RatingField rating={myRating} onCommit={onRate} />
+        </label>
+      )}
+
       {price.ratingCount > 0 ? (
-        <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)' }}>
           {/* `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage y sirve
               para ordenar, pero mostrarle 3,8 a alguien que acaba de poner
               cinco estrellas hace que el número parezca roto. El conteo al
@@ -1135,18 +1209,19 @@ function BeerRating({
           {price.ratingAgeDays != null && price.ratingAgeDays > 45 && ' · sin votos nuevos'}
         </span>
       ) : (
-        <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>Sin votos</span>
+        <span style={{
+          marginLeft: 'auto', fontSize: 12.5, color: 'var(--faint)',
+        }}>Sin votos</span>
       )}
 
-      <button onClick={() => onOpen()} aria-label="Ver comentarios" style={{
-        marginLeft: 'auto', display: 'grid', placeItems: 'center',
-        width: 38, height: 38, borderRadius: '50%',
-        background: 'rgba(255,255,255,.07)', color: 'var(--muted)',
-      }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
-        </svg>
-      </button>
+      {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene qué
+          retirar. Va en su propio renglón y en gris: es la salida, no una
+          acción que haya que ofrecer a la altura de las estrellas. */}
+      {canRate && mine && (
+        <button onClick={onRetract} style={{
+          flexBasis: '100%', textAlign: 'left', fontSize: 11.5, color: 'var(--muted)',
+        }}>Retirar mi nota</button>
+      )}
     </div>
   )
 }
