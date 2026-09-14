@@ -48,6 +48,23 @@
    */
   --birra: #FFB627;
 
+  /*
+   * Texto secundario sobre vidrio que flota encima del mapa.
+   *
+   * `--muted` (#9DA5AD) da 2,48:1 cuando lo que pasa por detrás del panel es
+   * una cápsula de precio ámbar. Es el precio de que el vidrio sea vidrio de
+   * verdad: si se ve lo de atrás, lo de atrás a veces es brillante.
+   *
+   * Adentro del vidrio, entonces, el color deja de llevar jerarquía y la
+   * llevan el tamaño y el peso — que es lo que Refactoring UI dice que hay
+   * que hacer igual: combinar palancas, no multiplicarlas.
+   *
+   * No aplica a diálogos ni hojas: ahí lo de atrás es la pantalla de la app,
+   * que ya es oscura, y encima el `::backdrop` la oscurece antes. `--muted`
+   * normal da de sobra.
+   */
+  --sobre-vidrio: #DDE0E2;
+
   --cream: #F4F5F7;
   --muted: #9DA5AD;
   /*
@@ -217,27 +234,50 @@ a { color: var(--acento); }
  * pase por debajo.
  */
 .glass {
-  background:
-    linear-gradient(
-      rgba(255,255,255,.09),
-      rgba(255,255,255,.02) 42%,
-      rgba(255,255,255,.05)
-    ),
-    rgba(25,27,31,.72);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: .8px solid rgba(255,255,255,.16);
+  /*
+   * El tinte es casi nada. Lo que oscurece va **adentro** del
+   * `backdrop-filter`, en `brightness()`, y esa es toda la diferencia entre
+   * vidrio y no vidrio:
+   *
+   * - Una capa opaca encima TAPA lo de atrás. Podés bajarle la opacidad, pero
+   *   entonces no oscurece, y el texto queda a merced de lo que pase por
+   *   debajo. Es la disyuntiva que me hizo poner .72 la primera vez, que es
+   *   lo mismo que no hacerlo.
+   * - `brightness()` oscurece **lo de atrás mismo**. Seguís viendo las
+   *   formas, el color y el movimiento —una cápsula de precio que pasa por
+   *   debajo se ve pasar— pero ya bajada de luz, así que el contraste del
+   *   texto está garantizado sin tapar nada.
+   *
+   * El desenfoque es bajo a propósito (14px y no 30): a más desenfoque, más
+   * esmerilado y menos se reconoce lo que hay detrás. Con 14 se leen las
+   * calles del mapa a través del panel.
+   *
+   * El 0.45 sale de medir el peor caso real: una cápsula de precio ámbar
+   * justo detrás del panel. Ahí el texto principal da 5,67:1. Sobre el mapa
+   * oscuro, que es lo normal, da 15,96:1.
+   */
+  background: linear-gradient(
+    rgba(255,255,255,.11),
+    rgba(255,255,255,.03) 45%,
+    rgba(255,255,255,.07)
+  );
+  backdrop-filter: blur(14px) saturate(180%) brightness(.45);
+  -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(.45);
+  border: .8px solid rgba(255,255,255,.18);
   box-shadow:
     /* el canto de arriba, que es de donde "entra" la luz */
-    inset 0 1px 0 rgba(255,255,255,.26),
+    inset 0 1px 0 rgba(255,255,255,.28),
     /* el de abajo, apenas, para que la pieza tenga espesor */
-    inset 0 -1px 0 rgba(0,0,0,.22),
-    0 8px 32px rgba(0,0,0,.4);
+    inset 0 -1px 0 rgba(0,0,0,.25),
+    0 8px 32px rgba(0,0,0,.45);
 }
 
 /* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
    honesto. Un tinte translúcido sin desenfoque sobre un mapa es texto sobre
    ruido. */
+/* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
+   honesto. Un tinte translúcido sin desenfoque ni `brightness` sobre un mapa
+   es texto sobre ruido. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass { background: rgba(25,27,31,.97); }
 }
@@ -476,7 +516,7 @@ a { color: var(--acento); }
  * dónde estabas.
  */
 .modal::backdrop {
-  background: rgba(0, 0, 0, .28);
+  background: rgba(0, 0, 0, .18);
   backdrop-filter: blur(10px) saturate(120%);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
 }

@@ -206,7 +206,7 @@ export function MapScreen(p: Props) {
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24"
-              fill={radiusOpen ? 'var(--base)' : 'var(--muted)'} aria-hidden>
+              fill={radiusOpen ? 'var(--base)' : 'var(--sobre-vidrio)'} aria-hidden>
               <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
             </svg>
             {/* Ancho fijo: si la etiqueta crece al arrastrar ("15 km" contra
@@ -228,7 +228,7 @@ export function MapScreen(p: Props) {
           <div data-tour="map-color" className="pill glass" style={{
             display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
             padding: '0 var(--pill-pad)', height: 34, flexShrink: 0,
-            fontSize: 'var(--t-1)', color: 'var(--muted)', whiteSpace: 'nowrap',
+            fontSize: 'var(--t-1)', color: 'var(--sobre-vidrio)', whiteSpace: 'nowrap',
           }}>
             <span>barato</span>
             <Swatch />
@@ -252,7 +252,7 @@ export function MapScreen(p: Props) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ color: 'var(--muted)', fontSize: 'var(--t-2)', minWidth: 0,
+              <span style={{ color: 'var(--sobre-vidrio)', fontSize: 'var(--t-2)', minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
               </span>
@@ -272,7 +272,7 @@ export function MapScreen(p: Props) {
             />
             <div style={{
               display: 'flex', justifyContent: 'space-between',
-              color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 2,
+              color: 'var(--sobre-vidrio)', fontSize: 'var(--t-1)', marginTop: 2, opacity: .75,
             }}>
               <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
             </div>
@@ -281,7 +281,7 @@ export function MapScreen(p: Props) {
 
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
-            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
             pointerEvents: 'auto',
           }}>Acercá el mapa para ver bares</div>
         )}
@@ -308,7 +308,7 @@ export function MapScreen(p: Props) {
               Por acá no hay bares cargados
             </p>
             <p style={{
-              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--muted)', lineHeight: 1.5,
+              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)', lineHeight: 1.5,
             }}>
               El mapa lo hacemos entre todos. Si conocés uno en esta zona,
               cargalo y queda para el resto.
@@ -337,7 +337,7 @@ export function MapScreen(p: Props) {
         {p.locationUnknown && (
           <div className="glass pill" style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
             pointerEvents: 'auto', maxWidth: 'calc(100% - 28px)',
           }}>
             {p.locationBlocked ? (

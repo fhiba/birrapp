@@ -2443,3 +2443,59 @@ Dos cosas que valen lo mismo hoy y no significan lo mismo son dos tokens.
 
 Espuma sobre líquido pasa de 1,00 a 1,75, que para dos campos de color
 adyacentes en una ilustración es suficiente — no es texto.
+
+---
+
+## 2026-09-14 (cont.) — v0.13.2: el vidrio ahora deja ver
+
+Reportado: "ese `.glass` no es transparente, no se ve a través". Tenía razón, y
+lo que yo había contado como una decisión de contraste era en realidad la
+salida fácil.
+
+El `.glass` de la 0.12.0 tenía un tinte de `rgba(25,27,31,.72)`. Setenta y dos
+por ciento de opacidad no es vidrio: es un panel oscuro con un desenfoque
+decorativo detrás que casi no se ve. Lo justifiqué diciendo que hacía falta
+para el contraste del texto, y esa parte del problema era cierta — la solución
+no.
+
+**Lo que faltaba: el oscurecimiento va adentro del `backdrop-filter`.**
+
+Una capa opaca encima *tapa* lo de atrás. Se le puede bajar la opacidad, pero
+entonces deja de oscurecer y el texto queda a merced de lo que pase por debajo.
+Es una disyuntiva sin salida, y de ahí salió el .72.
+
+`brightness()` dentro del `backdrop-filter` oscurece **lo de atrás mismo**.
+Seguís viendo las formas, el color y el movimiento —una cápsula de precio que
+pasa por debajo se ve pasar— pero ya bajada de luz, así que el contraste está
+garantizado sin tapar nada. Es la diferencia entre pintar el vidrio y polarizarlo.
+
+Queda: tinte cero (sólo el degradado del canto), `blur(14px)` en vez de 30 —a
+más desenfoque, más esmerilado y menos se reconoce lo que hay detrás— y
+`brightness(.45)`, que sale de medir el peor caso real: una cápsula de precio
+ámbar justo debajo del panel.
+
+### El precio de que el vidrio sea vidrio
+
+Si se ve lo de atrás, lo de atrás a veces es brillante. Medido sobre una
+cápsula ámbar:
+
+| | sobre el mapa | sobre una cápsula ámbar |
+| --- | --- | --- |
+| `--cream` | 15,63:1 | 5,50:1 |
+| `--muted` | 12,86:1 | **2,48:1** |
+
+El texto principal aguanta; el secundario no, y no hay valor de `brightness`
+que lo arregle sin volver a tapar todo. Así que adentro del vidrio el color
+deja de llevar jerarquía y la llevan el tamaño y el peso — que es lo que
+Refactoring UI dice que hay que hacer igual: combinar palancas, no
+multiplicarlas.
+
+Token nuevo, `--sobre-vidrio` (#DDE0E2), para los textos secundarios que
+flotan sobre el mapa: la leyenda de colores, el panel del radio, el cartel de
+"acercá el mapa" y las pestañas inactivas de la barra. Esas últimas estaban en
+2,5:1 cuando pasaba una cápsula por detrás, y son navegación primaria.
+
+No aplica a diálogos ni hojas: ahí lo de atrás es la pantalla de la app, que ya
+es oscura, y encima el `::backdrop` la oscurece antes. Ese `::backdrop` bajó de
+.28 a .18 de negro, porque ahora el vidrio oscurece por su cuenta y apilar las
+dos cosas lo dejaba opaco de nuevo.

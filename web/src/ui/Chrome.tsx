@@ -34,7 +34,11 @@ export function BottomNav() {
         padding: isActive ? '11px 16px' : '11px 17px',
         borderRadius: 999, textDecoration: 'none',
         background: isActive ? 'var(--acento)' : 'transparent',
-        color: isActive ? 'var(--base)' : 'var(--muted)',
+        // Inactiva en --sobre-vidrio y no en --muted: la barra flota sobre el
+        // mapa, y con el vidrio transparente una cápsula de precio por detrás
+        // dejaba el texto en 2,5:1. La activa se distingue por la píldora
+        // rellena, no por el color del texto.
+        color: isActive ? 'var(--base)' : 'var(--sobre-vidrio)',
         fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-3)',
         transition: 'background .15s',
       })}
