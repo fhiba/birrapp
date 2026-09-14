@@ -116,10 +116,10 @@ function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean
   return (
     <div style={{
       padding: '12px 12px 12px', borderRadius: 'var(--r-3)',
-      background: accent ? 'var(--amber-soft)' : 'var(--film-1)',
+      background: accent ? 'var(--acento-soft)' : 'var(--film-1)',
     }}>
       <div className="num" style={{
-        fontSize: 'var(--t-7)', lineHeight: 1.1, color: accent ? 'var(--amber)' : 'var(--cream)',
+        fontSize: 'var(--t-7)', lineHeight: 1.1, color: accent ? 'var(--acento)' : 'var(--cream)',
       }}>{n}</div>
       <div style={{
         fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4, whiteSpace: 'pre-line',
@@ -154,7 +154,7 @@ function UserRow({ u }: { u: DashboardUser }) {
           {u.role !== 'user' && (
             <span className="lbl" style={{
               fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 8px', borderRadius: 999,
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              background: 'var(--acento-soft)', color: 'var(--acento)',
             }}>{u.role.toUpperCase()}</span>
           )}
           {u.banned && (
@@ -225,8 +225,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
 
   // Los que entran sin sesión van en gris y los que la tienen en ámbar: la
   // brecha entre las dos líneas es lo que el gráfico viene a mostrar.
+  //
+  // El ámbar acá es dato y no marca: es un color de serie, el mismo `#FFB627`
+  // de `--aging` y de `PRICE_STOPS`. Por eso no pasó a `--acento` con la
+  // paleta Hueso — una serie sin color deja de ser una serie.
   const trafficSeries = [
-    { label: 'sin sesión', color: '#8A7B6D', points: a.traffic.map(d => d.anon) },
+    { label: 'sin sesión', color: '#888E95', points: a.traffic.map(d => d.anon) },
     { label: 'con sesión', color: '#FFB627', points: a.traffic.map(d => d.authed) },
   ]
 
@@ -247,12 +251,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
         <LineChart
           x={a.weekly.map(w => w.week)}
           series={[
-            { label: 'se anotaron', color: '#8A7B6D', points: a.weekly.map(w => w.signups) },
+            { label: 'se anotaron', color: '#888E95', points: a.weekly.map(w => w.signups) },
             { label: 'aportaron',   color: '#FFB627', points: a.weekly.map(w => w.contributors) },
           ]}
         />
         <Legend series={[
-          { label: 'se anotaron', color: '#8A7B6D', points: [] },
+          { label: 'se anotaron', color: '#888E95', points: [] },
           { label: 'aportaron',   color: '#FFB627', points: [] },
         ]} />
       </Card>

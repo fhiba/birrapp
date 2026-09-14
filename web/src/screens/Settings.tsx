@@ -106,7 +106,7 @@ export function SettingsScreen({ user, onSession }: {
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               background: name.trim() !== user.displayName && name.trim().length >= 2
-                ? 'var(--amber)' : 'var(--elevated)',
+                ? 'var(--acento)' : 'var(--elevated)',
               color: name.trim() !== user.displayName && name.trim().length >= 2
                 ? 'var(--base)' : 'var(--faint)',
             }}
@@ -160,7 +160,7 @@ export function SettingsScreen({ user, onSession }: {
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>Radio de búsqueda</span>
             <span className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-4)',
+              marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-4)',
             }}>{formatRadius(radius)}</span>
           </div>
           {/*
@@ -215,7 +215,7 @@ export function SettingsScreen({ user, onSession }: {
                     loadBlocked()
                   }}
                   className="lbl"
-                  style={{ fontSize: 'var(--t-3)', color: 'var(--amber)' }}
+                  style={{ fontSize: 'var(--t-3)', color: 'var(--acento)' }}
                 >Desbloquear</button>
               </div>
             ))}

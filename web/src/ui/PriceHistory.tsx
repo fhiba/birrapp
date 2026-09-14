@@ -72,12 +72,12 @@ export function PriceHistory(
         {series.length >= 2 && (
           <>
             <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-hidden>
-              <path d={path} fill="none" stroke="var(--amber)" strokeWidth="2.5"
+              <path d={path} fill="none" stroke="var(--acento)" strokeWidth="2.5"
                 strokeLinecap="round" strokeLinejoin="round" />
               {series.map((p, i) => {
                 const x = (i / (series.length - 1)) * W
                 const y = H - ((p.price - min) / span) * (H - 12) - 6
-                return <circle key={i} cx={x} cy={y} r="3" fill="var(--amber)" />
+                return <circle key={i} cx={x} cy={y} r="3" fill="var(--acento)" />
               })}
             </svg>
 

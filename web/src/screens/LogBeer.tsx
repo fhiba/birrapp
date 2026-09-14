@@ -124,7 +124,7 @@ export function LogBeerSheet({
       {/* El detalle va plegado: quien quiera anotar cuál era la birra lo
           abre, y quien sólo lleva la cuenta no lo ve nunca. */}
       <button onClick={() => setDetail(d => !d)} className="lbl" style={{
-        display: 'block', marginTop: 24, fontSize: 'var(--t-3)', color: 'var(--amber)',
+        display: 'block', marginTop: 24, fontSize: 'var(--t-3)', color: 'var(--acento)',
       }}>
         {detail ? 'Listo' : '¿Cuál era? (opcional)'}
       </button>
@@ -149,7 +149,7 @@ export function LogBeerSheet({
 
       <button disabled={busy} onClick={submit} className="lbl" style={{
         width: '100%', marginTop: 24, padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-        background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
+        background: busy ? 'var(--acento-deep)' : 'var(--acento)', color: 'var(--base)',
       }}>{busy ? '…' : 'Anotar'}</button>
     </Sheet>
   )

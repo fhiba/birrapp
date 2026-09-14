@@ -45,7 +45,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
             <span className="num" style={{
               minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
               display: 'grid', placeItems: 'center', fontSize: 'var(--t-2)',
-              background: 'var(--amber)', color: 'var(--base)',
+              background: 'var(--acento)', color: 'var(--base)',
             }}>{total}</span>
           )}
         </div>
@@ -171,7 +171,7 @@ const Btn = ({ children, onClick, primary, danger }: {
 }) => (
   <button onClick={onClick} className="lbl" style={{
     padding: '8px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-    background: primary ? 'var(--amber)' : danger ? 'rgba(255,122,102,.14)' : 'var(--film-2)',
+    background: primary ? 'var(--acento)' : danger ? 'rgba(255,122,102,.14)' : 'var(--film-2)',
     color: primary ? 'var(--base)' : danger ? 'var(--danger)' : 'var(--cream)',
   }}>{children}</button>
 )

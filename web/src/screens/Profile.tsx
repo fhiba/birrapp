@@ -105,8 +105,8 @@ export function ProfileScreen({ user, onSession }: {
 
       <span className="lbl pill" style={{
         display: 'inline-block', marginTop: 16, padding: '8px 12px', fontSize: 'var(--t-2)',
-        background: isModerator(user) ? 'var(--amber-soft)' : 'var(--film-2)',
-        color: isModerator(user) ? 'var(--amber)' : 'var(--muted)',
+        background: isModerator(user) ? 'var(--acento-soft)' : 'var(--film-2)',
+        color: isModerator(user) ? 'var(--acento)' : 'var(--muted)',
       }}>
         {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderador' : 'Usuario'}
       </span>
@@ -189,7 +189,7 @@ const Row = ({ label, onClick, danger, badge }: {
       <span className="num" style={{
         minWidth: 22, height: 22, padding: '0 7px', borderRadius: 999,
         display: 'grid', placeItems: 'center', fontSize: 'var(--t-2)',
-        background: 'var(--amber)', color: 'var(--base)',
+        background: 'var(--acento)', color: 'var(--base)',
       }}>{badge}</span>
     )}
   </button>

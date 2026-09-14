@@ -64,7 +64,7 @@ export function AvatarPicker({
           position: 'absolute', right: 0, bottom: 0,
           width: 22, height: 22, borderRadius: '50%',
           display: 'grid', placeItems: 'center',
-          background: 'var(--amber)', color: 'var(--base)',
+          background: 'var(--acento)', color: 'var(--base)',
           border: '2px solid var(--base)',
         }}>
           {busy
@@ -82,7 +82,7 @@ export function AvatarPicker({
       <div style={{ minWidth: 0 }}>
         <button
           onClick={() => picker.current?.click()} disabled={busy}
-          className="lbl" style={{ fontSize: 'var(--t-3)', color: 'var(--amber)', padding: 0 }}
+          className="lbl" style={{ fontSize: 'var(--t-3)', color: 'var(--acento)', padding: 0 }}
         >{busy ? 'Subiendo…' : user.avatarUrl ? 'Cambiar foto' : 'Poner una foto'}</button>
 
         {/* Sólo si hay algo propio que sacar. Con la de Google no aplica: no es

@@ -33,7 +33,7 @@ export function BottomNav() {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: isActive ? '11px 16px' : '11px 17px',
         borderRadius: 999, textDecoration: 'none',
-        background: isActive ? 'var(--amber)' : 'transparent',
+        background: isActive ? 'var(--acento)' : 'transparent',
         color: isActive ? 'var(--base)' : 'var(--muted)',
         fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-3)',
         transition: 'background .15s',
@@ -53,7 +53,7 @@ export function BottomNav() {
       <div style={{
         position: 'fixed', left: 0, right: 0, bottom: 0, height: 88, zIndex: 40,
         pointerEvents: 'none',
-        background: 'linear-gradient(transparent, rgba(26,20,16,.9) 60%, var(--base))',
+        background: 'linear-gradient(transparent, rgba(15,16,18,.9) 60%, var(--base))',
       }} />
       {/* La barra también es vidrio, con la misma receta que el resto. Tenía
           su propia mezcla —otro tinte, otro desenfoque, otro borde— por haber
@@ -216,7 +216,7 @@ export function Confirm({
           </button>
           <button disabled={!armed} onClick={onConfirm} style={{
             padding: '12px 16px', fontWeight: 600, minHeight: 44,
-            color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--amber)',
+            color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--acento)',
             cursor: armed ? 'pointer' : 'not-allowed',
           }}>{confirmLabel}</button>
         </div>

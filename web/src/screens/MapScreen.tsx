@@ -201,7 +201,7 @@ export function MapScreen(p: Props) {
               display: 'flex', alignItems: 'center', gap: 8, height: 44,
               padding: '0 var(--pill-pad)', fontSize: 'var(--t-3)',
               flexShrink: 0, whiteSpace: 'nowrap',
-              background: radiusOpen ? 'var(--amber)' : undefined,
+              background: radiusOpen ? 'var(--acento)' : undefined,
               color: radiusOpen ? 'var(--base)' : undefined,
             }}
           >
@@ -213,7 +213,7 @@ export function MapScreen(p: Props) {
                 "1.5 km"), la fila cambia de ancho y el botón salta de
                 renglón mientras movés el slider. */}
             <span style={{
-              color: radiusOpen ? 'var(--base)' : 'var(--amber)',
+              color: radiusOpen ? 'var(--base)' : 'var(--acento)',
               minWidth: 46, textAlign: 'center',
             }}>
               {formatRadius(p.radius)}
@@ -257,7 +257,7 @@ export function MapScreen(p: Props) {
                 {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
               </span>
               <span className="lbl" style={{
-                marginLeft: 'auto', paddingLeft: 12, color: 'var(--amber)', fontSize: 'var(--t-4)',
+                marginLeft: 'auto', paddingLeft: 12, color: 'var(--acento)', fontSize: 'var(--t-4)',
                 whiteSpace: 'nowrap',
               }}>{formatRadius(p.radius)}</span>
             </div>
@@ -315,7 +315,7 @@ export function MapScreen(p: Props) {
             </p>
             <button onClick={() => nav('/agregar')} className="lbl" style={{
               marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-              minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+              minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
             }}>Agregar un bar</button>
           </div>
         )}
@@ -349,7 +349,7 @@ export function MapScreen(p: Props) {
               <>
                 <span>No pudimos ubicarte — esto es el centro</span>
                 <button onClick={p.onRecenter} className="lbl" style={{
-                  color: 'var(--amber)', fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
+                  color: 'var(--acento)', fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
                 }}>Reintentar</button>
               </>
             )}
@@ -375,7 +375,7 @@ export function MapScreen(p: Props) {
                 ubicación: es el color de cada uno de los dos puntos en el
                 mapa, así el botón dice a cuál va antes de tocarlo. */}
             <svg width="21" height="21" viewBox="0 0 24 24"
-              fill={p.simulated ? 'var(--cream)' : 'var(--amber)'} aria-hidden>
+              fill={p.simulated ? 'var(--cream)' : 'var(--acento)'} aria-hidden>
               <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
             </svg>
           </button>
@@ -566,7 +566,7 @@ function Pins({
 function resolve(color: string) {
   if (!color.startsWith('var(')) return color
   const name = color.slice(4, -1).trim()
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#FFB627'
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#EDE6D8'
 }
 
 const svgUrl = (svg: string) =>
@@ -598,14 +598,14 @@ function priceIcon(
   const pad = on ? 4 : 0
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w + pad * 2}" height="${h + pad * 2}">
     <rect x="${pad + 0.5}" y="${pad + 0.5}" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
-      fill="${fill}" stroke="${on ? '#FBF6EE' : 'rgba(255,255,255,.55)'}"
+      fill="${fill}" stroke="${on ? '#F4F5F7' : 'rgba(255,255,255,.55)'}"
       stroke-width="${on ? 2.5 : 1}"/>
     <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
       text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
       font-weight="700" font-variant-numeric="tabular-nums"
       style="font-variant-numeric:tabular-nums"
-      fill="#1A1410">${label}</text>
+      fill="#0F1012">${label}</text>
     ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
   </svg>`
   return {
@@ -622,7 +622,7 @@ function priceIcon(
  */
 function heartPath(x: number, y: number, size: number) {
   const k = size / 24
-  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#1A1410">
+  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#0F1012">
     <path d="M12 21 3.2 12.2a5.6 5.6 0 0 1 7.9-7.9l.9.9.9-.9a5.6 5.6 0 0 1 7.9 7.9L12 21Z"/>
   </g>`
 }
@@ -630,9 +630,16 @@ function heartPath(x: number, y: number, size: number) {
 /**
  * El punto, para los bares cuya etiqueta no entró.
  *
- * El favorito se marca con un aro ámbar y no con un corazón: a 9 píxeles, un
+ * El favorito se marca con un aro y no con un corazón: a 9 píxeles, un
  * corazón es una mancha. El aro se distingue igual y no pretende ser un
  * dibujo.
+ *
+ * El aro va en `--acento-deep` y no en `--acento` a secas. El favorito es
+ * marca ("es tuyo"), no dato, así que le toca la familia del acento; pero el
+ * aro del bar abierto ya es `--cream` (#F4F5F7) y el acento pleno (#EDE6D8)
+ * queda a un suspiro de ese blanco: con la paleta Hueso, dos aros de 2px a 9
+ * píxeles pasaban a ser el mismo aro. El paso oscuro del acento (#CEBA94)
+ * mantiene la distinción sin volver a meter un tono que signifique un precio.
  */
 function dotIcon(
   color: string, size: number, on = false, fav = false,
@@ -642,9 +649,9 @@ function dotIcon(
   const box = size + pad * 2
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}">
     ${on ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 2.5}"
-      fill="none" stroke="#FBF6EE" stroke-width="2.5"/>`
+      fill="none" stroke="#F4F5F7" stroke-width="2.5"/>`
       : fav ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 1.5}"
-      fill="none" stroke="#FFB627" stroke-width="2"/>` : ''}
+      fill="none" stroke="${resolve('var(--acento-deep)')}" stroke-width="2"/>` : ''}
     <circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(box / 2, box / 2) }
@@ -652,8 +659,8 @@ function dotIcon(
 
 function simulatedIcon(): google.maps.Icon {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">
-    <circle cx="13" cy="13" r="13" fill="rgba(251,246,238,.28)"/>
-    <circle cx="13" cy="13" r="6.5" fill="#FBF6EE"/>
+    <circle cx="13" cy="13" r="13" fill="rgba(244,245,247,.28)"/>
+    <circle cx="13" cy="13" r="6.5" fill="#F4F5F7"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(13, 13) }
 }

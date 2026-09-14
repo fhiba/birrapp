@@ -176,7 +176,7 @@ export function AddBarScreen(
               </div>
             </div>
             <button onClick={() => { setChosen(null); setQuery('') }} style={{
-              color: 'var(--amber)', fontSize: 'var(--t-3)', marginTop: 12,
+              color: 'var(--acento)', fontSize: 'var(--t-3)', marginTop: 12,
             }}>¿No es este?</button>
           </>
         ) : (
@@ -215,7 +215,7 @@ export function AddBarScreen(
                     {formatDistance(b.distanceMeters)}
                   </span>
                 </span>
-                <span style={{ color: 'var(--amber)', fontSize: 'var(--t-3)' }}>Ver</span>
+                <span style={{ color: 'var(--acento)', fontSize: 'var(--t-3)' }}>Ver</span>
               </button>
             ))}
 
@@ -226,7 +226,7 @@ export function AddBarScreen(
                 padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
               }}>
-                <span style={{ color: 'var(--amber)' }}>◈</span>
+                <span style={{ color: 'var(--acento)' }}>◈</span>
                 <span style={{ flex: 1 }}>
                   <span className="lbl" style={{ display: 'block', fontSize: 'var(--t-4)' }}>{s.primary}</span>
                   <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>{s.secondary}</span>
@@ -241,7 +241,7 @@ export function AddBarScreen(
                     display: 'flex', gap: 12, width: '100%', padding: 16,
                     borderRadius: 'var(--r-3)', background: 'var(--elevated)', textAlign: 'left',
                   }}>
-                    <span style={{ color: 'var(--amber)' }}>+</span>
+                    <span style={{ color: 'var(--acento)' }}>+</span>
                     <span>
                       <span className="lbl" style={{ display: 'block' }}>Agregar “{query}”</span>
                       <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
@@ -303,7 +303,7 @@ export function AddBarScreen(
       <button disabled={!canSend || sending} onClick={submit} className="lbl" style={{
         margin: `12px 18px calc(14px + var(--nav-gap))`, padding: 16,
         borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)', minHeight: 52,
-        background: canSend ? 'var(--amber)' : 'var(--elevated)',
+        background: canSend ? 'var(--acento)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',
       }}>{sending ? 'Enviando…' : 'Agregar este bar'}</button>
     </div>

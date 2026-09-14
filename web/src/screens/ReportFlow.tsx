@@ -202,7 +202,7 @@ export function ReportFlow({
               <button onClick={onAddBar} className="lbl" style={{
                 width: '100%', marginTop: 16, padding: 16, borderRadius: 'var(--r-2)',
                 fontSize: 'var(--t-3)', minHeight: 44, textAlign: 'center',
-                background: 'var(--film-2)', color: 'var(--amber)',
+                background: 'var(--film-2)', color: 'var(--acento)',
                 border: '1px dashed var(--hairline)',
               }}>El bar no está — agregalo</button>
             )}
@@ -261,7 +261,7 @@ function Header({ step, total, title, hint, chosen, onBack }: {
           {chosen.map(c => (
             <span key={c} className="lbl pill" style={{
               padding: '4px 12px', fontSize: 'var(--t-2)',
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              background: 'var(--acento-soft)', color: 'var(--acento)',
             }}>{c}</span>
           ))}
         </div>

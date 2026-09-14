@@ -41,7 +41,7 @@ export function StyleFilter({
           display: 'flex', alignItems: 'center', gap: 8,
           height: size, padding: active ? '0 14px' : 0, width: active ? undefined : size,
           justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
-          background: active ? 'var(--amber)'
+          background: active ? 'var(--acento)'
             : tone === 'plain' ? 'var(--film-2)' : undefined,
           color: active ? 'var(--base)' : 'var(--muted)',
           fontSize: 'var(--t-2)',
@@ -87,7 +87,7 @@ function MenuItem(
     <button onClick={onClick} className="lbl row-hover" style={{
       display: 'block', width: '100%', textAlign: 'left',
       padding: '12px 12px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-3)',
-      color: on ? 'var(--amber)' : 'var(--cream)',
+      color: on ? 'var(--acento)' : 'var(--cream)',
     }}>{children}</button>
   )
 }

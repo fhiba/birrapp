@@ -49,7 +49,7 @@ export function Tile({ value, label, hint, accent = true, onClick }: {
     }}>
       <div className="num" style={{
         fontSize: 'var(--t-8)', lineHeight: 1,
-        color: vacio ? 'var(--faint)' : accent ? 'var(--amber)' : 'var(--cream)',
+        color: vacio ? 'var(--faint)' : accent ? 'var(--acento)' : 'var(--cream)',
       }}>{value ?? '—'}</div>
       <div style={{
         fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 'var(--s-1)',
