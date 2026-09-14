@@ -1,23 +1,152 @@
 /* Misma paleta que Android. Los tokens se comparten a ojo, no por build:
    son doce colores y un build compartido no justifica la complejidad. */
+
+/* ---------- Hueso ----------
+ *
+ * El fondo pasa de marrón a un neutro apenas frío, y el acento de marca se
+ * queda sin color: blanco cálido en vez de ámbar.
+ *
+ * El motivo no es de gusto. El ámbar de la marca era `--amber: #FFB627`, que
+ * es *exactamente* el mismo hex que el punto "precio medio-alto" de
+ * `PRICE_STOPS` (data/format.ts) y que `--aging`. O sea que el color de los
+ * botones, de la pestaña activa y de los links era además un valor del dato:
+ * en un mapa con bares de precio medio, el pin de un bar y el botón "Sigue
+ * igual" eran indistinguibles. La marca le estaba robando un tono a la escala
+ * de precios, que es lo único que la app viene a contestar.
+ *
+ * De acá en más la regla es: **si tiene color, es un dato.** El cromo
+ * —fondos, texto, acento— vive en la rampa de grises hueso; el verde, el
+ * ámbar y el rojo quedan reservados para frescura, precio y peligro.
+ *
+ * Por eso `--fresh`, `--aging`, `--stale`, `--danger`, `PRICE_STOPS` y los
+ * escalones `.heat-*` no se tocan: son dato, no marca. Y por eso el token se
+ * llama `--acento` y ya no `--amber`: nombrar un token del cromo por su color
+ * es lo que dejó que esto pasara sin que nadie lo viera.
+ */
 :root {
-  --base:     #1A1410;
-  --raised:   #261E18;
-  --elevated: #332822;
+  --base:     #0F1012;
+  --raised:   #191B1F;
+  --elevated: #24272C;
   --hairline: rgba(255,255,255,.12);
 
-  --amber:      #FFB627;
-  --amber-soft: rgba(255,182,39,.20);
-  --amber-deep: #D98C00;
+  --acento:      #EDE6D8;
+  --acento-soft: rgba(237,230,216,.16);
+  --acento-deep: #CEBA94;
 
-  --cream: #FBF6EE;
-  --muted: #B6A899;
-  --faint: #8A7B6D;
+  /*
+   * El color de la birra cuando la birra es un dibujo.
+   *
+   * La regla de esta paleta es "si tiene color, es un dato", y el cromo es
+   * hueso. Esto es la excepción, y es una excepción de verdad y no una
+   * escapatoria: el líquido de la pinta que se llena mientras carga la app no
+   * es un botón ni un estado, es **una cerveza dibujada**. Pintarla de hueso
+   * la dejó blanca sobre espuma blanca — se veía un vaso vacío.
+   *
+   * Va como token propio y no reusando `--aging`, que es el mismo hex: ahí el
+   * ámbar significa "este precio tiene entre 14 y 45 días", y un día que ese
+   * umbral cambie de color, la birra no tiene por qué cambiar con él.
+   */
+  --birra: #FFB627;
+
+  /*
+   * Texto secundario sobre vidrio que flota encima del mapa.
+   *
+   * `--muted` (#9DA5AD) da 2,48:1 cuando lo que pasa por detrás del panel es
+   * una cápsula de precio ámbar. Es el precio de que el vidrio sea vidrio de
+   * verdad: si se ve lo de atrás, lo de atrás a veces es brillante.
+   *
+   * Adentro del vidrio, entonces, el color deja de llevar jerarquía y la
+   * llevan el tamaño y el peso — que es lo que Refactoring UI dice que hay
+   * que hacer igual: combinar palancas, no multiplicarlas.
+   *
+   * No aplica a diálogos ni hojas: ahí lo de atrás es la pantalla de la app,
+   * que ya es oscura, y encima el `::backdrop` la oscurece antes. `--muted`
+   * normal da de sobra.
+   */
+  --sobre-vidrio: #DDE0E2;
+
+  --cream: #F4F5F7;
+  --muted: #9DA5AD;
+  /*
+   * La rampa de grises se eligió con el contraste puesto, no después.
+   *
+   * `--faint` es el color de más de cien textos de 11 y 12px — justo el caso
+   * que cubre WCAG 1.4.3 — así que el piso se verifica contra la superficie
+   * más clara, que es el peor caso: 4,53:1 sobre --elevated. --muted da 6,01
+   * ahí mismo y --cream 13,73. Ninguno baja de 4,5:1 sobre ninguna de las tres
+   * superficies.
+   */
+  --faint: #888E95;
   --danger:#FF7A66;
 
   --fresh: #5FD98D;
   --aging: #FFB627;
-  --stale: #9C8C7C;
+  /* Sobre el fondo nuevo, que es más oscuro, este sube a 4,71:1 contra
+     --elevated (antes 4,40, que no llegaba). Es el único cálido que queda en
+     la rampa de grises, y se queda porque es dato: "precio viejo". */
+  --stale: #9D8E7E;
+
+  /* ---------- Escalas ----------
+   *
+   * Antes de esto la app tenía 26 tamaños de letra, 14 radios y 18 blancos
+   * translúcidos distintos, todos escritos a mano pantalla por pantalla. No
+   * es que estuvieran mal elegidos de a uno: es que elegirlos de a uno es el
+   * problema. Un valor por fuera de una escala no se nota solo, se nota
+   * apilado contra sus vecinos, y ahí es donde una interfaz deja de verse
+   * hecha y pasa a verse armada.
+   */
+
+  /* Tipografía, ~1,15-1,25 entre pasos. */
+  --t-1: 11px;   /* etiquetas en mayúscula con tracking */
+  --t-2: 12px;   /* metadatos, pies */
+  --t-3: 13px;   /* secundario */
+  --t-4: 15px;   /* cuerpo */
+  --t-5: 17px;   /* destacado */
+  --t-6: 20px;   /* título de hoja */
+  --t-7: 25px;   /* título de pantalla */
+  --t-8: 30px;   /* número grande */
+  --t-9: 38px;   /* el precio: el dato que la app viene a contestar */
+  --t-10: 48px;  /* el monto que se está tecleando, único en su pantalla */
+
+  /*
+   * Piso de los campos de texto, y no es una decisión de diseño.
+   *
+   * Safari en iOS acerca el viewport al enfocar un campo de menos de 16px, y
+   * al volver no lo aleja: quedás con la app en zoom y hay que pellizcar para
+   * salir. Antes lo tapaba `maximum-scale=1` en el meta viewport, pero eso
+   * bloquea el zoom de toda la página, que es un incumplimiento de WCAG 1.4.4
+   * y se sacó en v0.10.0. Desde entonces la única defensa es el tamaño.
+   *
+   * Al revisar quedó que estaban *todos* mal: seis campos a 15px, el de la nota
+   * a 13 y el de confirmación heredando 15. El de búsqueda tenía el comentario
+   * que explicaba los 16px justo arriba del 15.
+   */
+  --t-field: 16px;
+
+  /* Espaciado. La regla que lo hace funcionar no es la escala sino usarla
+     para agrupar: el aire entre grupos tiene que superar al de adentro. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Radios. Cuanto más grande la caja, más grande la esquina. */
+  --r-1: 8px;    /* píldoras chicas, barras de progreso */
+  --r-2: 12px;   /* controles, campos */
+  --r-3: 16px;   /* tarjetas */
+  --r-4: 22px;   /* hojas y lo que se apoya contra un borde */
+
+  /* Películas: "una superficie apenas elevada sobre la de atrás". Cuatro
+     pasos alcanzan para todo lo que la app hacía con dieciocho. */
+  --film-1: rgba(255,255,255,.04);   /* fondo de zona */
+  --film-2: rgba(255,255,255,.07);   /* control en reposo */
+  --film-3: rgba(255,255,255,.22);   /* borde de algo que flota */
+  /* Para bordes y separadores está --hairline, que ya existía y es este mismo
+     valor: dos nombres para una cosa es la inconsistencia que veníamos
+     sacando, en chico. */
 
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -60,23 +189,97 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* `textarea` va acá y no sólo `input`: sin esto usa el color por defecto del
    navegador, que sobre este fondo es negro sobre negro y el texto no se ve. */
 input, textarea { font: inherit; color: inherit; }
-a { color: var(--amber); }
+a { color: var(--acento); }
 
-.num { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
+/* Cifras tabulares en todo lo que sea un número.
+ *
+ * Con cifras proporcionales el 1 es más angosto que el 8, así que una columna
+ * de precios queda desalineada y comparar dos filas obliga a leerlas en vez de
+ * mirarlas. En una lista cuyo trabajo es justamente comparar precios, eso es
+ * el trabajo de la pantalla saliendo mal. También evita que un contador baile
+ * al pasar de 9 a 10. */
+.num {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
 .ttl { font-family: var(--display); font-weight: 700; letter-spacing: -.03em; }
 .lbl { font-family: var(--display); font-weight: 500; }
 
-/* Vidrio. En web sale más barato que en Android: backdrop-filter difumina
-   el fondo de forma nativa, sin librerías. */
+/* ---------- Vidrio ----------
+ *
+ * Una sola definición para todo lo que flota: controles del mapa, menú del
+ * "+", diálogos, hojas, preview del bar y el toast. Antes los seis primeros
+ * eran vidrio y los tres últimos un color sólido, así que la mitad de lo que
+ * se despega de la pantalla se veía como una tarjeta opaca pegada encima.
+ *
+ * Tres capas, que es lo que separa "translúcido" de vidrio:
+ *
+ * 1. **El desenfoque con saturación.** El `saturate` es la mitad del efecto:
+ *    sin él lo de atrás se ve lavado, y es justamente el color que sangra a
+ *    través lo que hace que la pieza parezca material y no una capa de
+ *    opacidad.
+ * 2. **El tinte.** Bajo, pero no cero — ver abajo.
+ * 3. **El brillo especular**: un borde interior claro arriba y uno oscuro
+ *    abajo, con la sombra grande y suave. Es lo que da el canto de un cristal
+ *    y lo que más se extraña cuando falta.
+ *
+ * **Sobre el tinte y por qué no es transparente del todo.** El vidrio de
+ * verdad transparente deja el contraste del texto a merced de lo que haya
+ * atrás, que acá es un mapa con manchas claras y oscuras — el texto pasaría a
+ * ser legible o no según dónde estés parado. A Apple se lo señalaron con su
+ * propia versión. Así que el tinte se queda en .72: alcanza para que lo de
+ * atrás se vea y se mueva, y garantiza el contraste del texto pase lo que
+ * pase por debajo.
+ */
 .glass {
-  background: linear-gradient(rgba(255,255,255,.10), rgba(255,255,255,.02));
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
-  border: .8px solid rgba(255,255,255,.22);
-  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+  /*
+   * El tinte es casi nada. Lo que oscurece va **adentro** del
+   * `backdrop-filter`, en `brightness()`, y esa es toda la diferencia entre
+   * vidrio y no vidrio:
+   *
+   * - Una capa opaca encima TAPA lo de atrás. Podés bajarle la opacidad, pero
+   *   entonces no oscurece, y el texto queda a merced de lo que pase por
+   *   debajo. Es la disyuntiva que me hizo poner .72 la primera vez, que es
+   *   lo mismo que no hacerlo.
+   * - `brightness()` oscurece **lo de atrás mismo**. Seguís viendo las
+   *   formas, el color y el movimiento —una cápsula de precio que pasa por
+   *   debajo se ve pasar— pero ya bajada de luz, así que el contraste del
+   *   texto está garantizado sin tapar nada.
+   *
+   * El desenfoque es bajo a propósito (14px y no 30): a más desenfoque, más
+   * esmerilado y menos se reconoce lo que hay detrás. Con 14 se leen las
+   * calles del mapa a través del panel.
+   *
+   * El 0.45 sale de medir el peor caso real: una cápsula de precio ámbar
+   * justo detrás del panel. Ahí el texto principal da 5,67:1. Sobre el mapa
+   * oscuro, que es lo normal, da 15,96:1.
+   */
+  background: linear-gradient(
+    rgba(255,255,255,.11),
+    rgba(255,255,255,.03) 45%,
+    rgba(255,255,255,.07)
+  );
+  backdrop-filter: blur(14px) saturate(180%) brightness(.45);
+  -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(.45);
+  border: .8px solid rgba(255,255,255,.18);
+  box-shadow:
+    /* el canto de arriba, que es de donde "entra" la luz */
+    inset 0 1px 0 rgba(255,255,255,.28),
+    /* el de abajo, apenas, para que la pieza tenga espesor */
+    inset 0 -1px 0 rgba(0,0,0,.25),
+    0 8px 32px rgba(0,0,0,.45);
 }
-@supports not (backdrop-filter: blur(1px)) {
-  .glass { background: rgba(38,30,24,.94); }
+
+/* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
+   honesto. Un tinte translúcido sin desenfoque sobre un mapa es texto sobre
+   ruido. */
+/* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
+   honesto. Un tinte translúcido sin desenfoque ni `brightness` sobre un mapa
+   es texto sobre ruido. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgba(25,27,31,.97); }
 }
 
 .pill { border-radius: 999px; }
@@ -110,7 +313,7 @@ a { color: var(--amber); }
  * El `input[type=range]` nativo trae una pista gruesa y un pulgar distinto en
  * cada navegador; en iOS además queda notablemente más alto. Se reemplaza por
  * la misma forma que usa el Slider de Material en Android: pista de 4px,
- * pulgar redondo ámbar de 18px.
+ * pulgar redondo de 18px, ahora en el acento.
  *
  * El relleno de la parte activa va como degradado y no como pseudo-elemento
  * porque WebKit no expone uno: se le pasa el porcentaje desde React en la
@@ -131,14 +334,14 @@ a { color: var(--amber); }
   height: 4px;
   border-radius: 2px;
   background:
-    linear-gradient(var(--amber), var(--amber)) 0 / var(--fill, 0%) 100% no-repeat,
+    linear-gradient(var(--acento), var(--acento)) 0 / var(--fill, 0%) 100% no-repeat,
     var(--hairline);
 }
 .range::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px; height: 18px;
   border: 0; border-radius: 50%;
-  background: var(--amber);
+  background: var(--acento);
   /* Centra el pulgar sobre una pista de 4px: (4 - 18) / 2. */
   margin-top: -7px;
 }
@@ -148,18 +351,18 @@ a { color: var(--amber); }
   height: 4px; border-radius: 2px; background: var(--hairline);
 }
 .range::-moz-range-progress {
-  height: 4px; border-radius: 2px; background: var(--amber);
+  height: 4px; border-radius: 2px; background: var(--acento);
 }
 .range::-moz-range-thumb {
   width: 18px; height: 18px;
   border: 0; border-radius: 50%;
-  background: var(--amber);
+  background: var(--acento);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner {
   width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--amber);
+  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--acento);
   animation: spin .7s linear infinite;
 }
 
@@ -199,7 +402,7 @@ a { color: var(--amber); }
 /* Con mouse conviene marcar lo tocable. */
 @media (hover: hover) {
   button:not(:disabled):hover, a:hover { filter: brightness(1.12); }
-  .row-hover:hover { background: rgba(255,255,255,.04); }
+  .row-hover:hover { background: var(--film-1); }
 }
 
 /* Los gráficos de análisis: en un teléfono el dashboard tiene que contestar
@@ -226,7 +429,7 @@ a { color: var(--amber); }
  * `:focus-visible` y no `:focus`: el anillo aparece navegando con teclado y no
  * cada vez que se toca un botón con el dedo. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--acento);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -294,16 +497,28 @@ a { color: var(--amber); }
   width: calc(100% - 44px);
   padding: 0;
   border: 0;
-  border-radius: 18px;
-  background: var(--raised);
+  border-radius: var(--r-4);
   color: var(--cream);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
   animation: modal-in .16s ease-out;
+  /* El vidrio va por `.glass` en el className, no repetido acá. */
 }
+
+/*
+ * El fondo del diálogo.
+ *
+ * Pasa de .6 a .28 de negro, y el desenfoque de 2px a 10px. El diálogo ahora
+ * es de vidrio, y un vidrio contra un fondo casi opaco no es vidrio: es una
+ * tarjeta sobre una pared. Lo que hace falta ver a través es la pantalla de
+ * atrás, no un gris.
+ *
+ * El desenfoque hace el trabajo que antes hacía la opacidad: separa las dos
+ * capas y evita que el texto de atrás compita con el de adelante, sin tapar
+ * dónde estabas.
+ */
 .modal::backdrop {
-  background: rgba(0, 0, 0, .6);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, .18);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
 }
 
 @keyframes modal-in {
@@ -325,11 +540,94 @@ a { color: var(--amber); }
   max-width: 560px;
   max-height: 86dvh;
   overflow-y: auto;
-  border-radius: 22px 22px 0 0;
+  border-radius: var(--r-4) var(--r-4) 0 0;
   animation: sheet-in .2s ease-out;
+  /* Apoyada contra el borde de abajo, el canto inferior no se ve: sólo el de
+     arriba, que es por donde la hoja "entra". */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    0 -8px 40px rgba(0,0,0,.45);
 }
 
 @keyframes sheet-in {
   from { transform: translateY(14px); opacity: 0; }
   to   { transform: none; opacity: 1; }
 }
+
+/* ---------- Piezas que se repetían ----------
+ *
+ * `SectionLabel` estaba definido cinco veces, con cinco combinaciones apenas
+ * distintas de tamaño, color y márgenes; la baldosa de estadística, tres. No
+ * eran variantes con intención: eran copias que se fueron separando. Acá van
+ * una vez, en CSS, y los componentes de React quedan en `ui/Kit.tsx`.
+ */
+
+/* El encabezado chico en mayúscula que separa zonas de una pantalla larga.
+   Va tracking porque la mayúscula sin él se lee apretada, y va --faint
+   porque una etiqueta acompaña al dato, no compite con él. */
+.section-label {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: var(--t-1);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: var(--s-5) 0 var(--s-2);
+}
+
+/* La baldosa de un número con su etiqueta. El número manda: grande, en la
+   tipografía de display; la etiqueta es chica y apagada. Es la jerarquía de
+   Refactoring UI para una métrica —dato grande, contexto chico— y es lo que
+   hace que el perfil se lea de un vistazo en vez de leerse. */
+.tile {
+  padding: var(--s-3);
+  border-radius: var(--r-3);
+  background: var(--raised);
+  min-width: 0;
+}
+
+/* Fila de lista con separador. El separador es el último recurso: agrupa
+   mejor el espaciado, pero en listas densas de datos comparables la línea
+   ayuda a seguir el renglón. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3) 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ---------- Mapa de calor del calendario (BIR-42) ----------
+ *
+ * Antes la intensidad era una sola rampa de opacidad continua sobre el mismo
+ * ámbar, relativa al mejor día del mes. Dos problemas: con un mes parejo
+ * todos los días quedaban casi del mismo tono —que es justo cuando el mapa de
+ * calor tendría que estar diciendo algo— y la opacidad sola no distingue dos
+ * niveles vecinos a simple vista.
+ *
+ * Ahora son cinco escalones discretos que además **se corren de tono**: del
+ * ámbar apagado al ámbar pleno. El ojo distingue un salto de tono mucho mejor
+ * que un salto de opacidad, y al ser escalones fijos "dos" se ve igual en
+ * enero que en julio.
+ *
+ * Los cortes son por cantidad absoluta y no por proporción del mejor día: el
+ * nivel tiene que significar lo mismo en todos los meses.
+ */
+.heat-0 { background: var(--film-1); color: var(--faint); }
+.heat-1 { background: #4A3B22; color: #E8D9BE; }
+.heat-2 { background: #7A5D1E; color: #FFF3DA; }
+.heat-3 { background: #B88710; color: var(--base); }
+/* El último escalón va a `--aging` y no a `--acento`, aunque hasta Hueso los
+   dos fueran el mismo `#FFB627`. La rampa entera es ámbar y el ámbar acá es
+   el dato: pintar el tope con el acento hueso rompería el degradado en el
+   último paso, que es justamente el que tiene que gritar. */
+.heat-4 { background: var(--aging); color: var(--base); }
+
+/* Red de seguridad del piso de 16px: cubre los campos que no traen tamaño
+   propio. Los que sí lo traen lo ponen inline, que gana por especificidad, así
+   que ahí la regla es usar --t-field y no un paso de la escala. */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea,
+select { font-size: var(--t-field); }

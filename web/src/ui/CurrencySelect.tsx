@@ -66,7 +66,7 @@ export function CurrencySelect({ value, onChange, id }: {
       onChange={e => onChange(e.target.value)}
       className="lbl"
       style={{
-        padding: '9px 11px', borderRadius: 11, fontSize: 13.5,
+        padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
         background: 'var(--elevated)', color: 'var(--cream)',
         border: '1px solid var(--hairline)',
       }}

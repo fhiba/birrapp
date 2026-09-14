@@ -44,12 +44,12 @@ export function PhotoStrip({
   if (photos.length === 0 && !canAdd) return null
 
   return (
-    <div style={{ marginTop: 18 }}>
+    <div style={{ marginTop: 16 }}>
       {/* Rótulo de sección, igual que en los comentarios de abajo: con las dos
           cosas una arriba de la otra y sin nada que las separe, la tira de
           fotos parecía parte de la fila de puntaje. */}
       <h3 className="lbl" style={{
-        fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 10px',
+        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 12px',
       }}>
         {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
       </h3>
@@ -67,7 +67,7 @@ export function PhotoStrip({
           }}>
             <button onClick={() => onOpen(i)} style={{
               display: 'block', padding: 0,
-              width: 108, height: 108, borderRadius: 14, overflow: 'hidden',
+              width: 108, height: 108, borderRadius: 'var(--r-3)', overflow: 'hidden',
               background: 'var(--elevated)',
               // La del mes se marca con el borde y no con un cartel encima:
               // el cartel taparía justo la foto que se está premiando.
@@ -83,7 +83,7 @@ export function PhotoStrip({
             {p.topOfMonth && (
               <span className="lbl" style={{
                 position: 'absolute', top: 5, left: 5, padding: '2px 7px',
-                borderRadius: 999, fontSize: 9.5, letterSpacing: '.06em',
+                borderRadius: 999, fontSize: 'var(--t-1)', letterSpacing: '.06em',
                 background: 'var(--amber)', color: 'var(--base)',
               }}>DEL MES</span>
             )}
@@ -97,8 +97,8 @@ export function PhotoStrip({
             onClick={() => picker.current?.click()} disabled={busy}
             aria-label="Agregar una foto"
             style={{
-              flex: '0 0 auto', width: 108, height: 108, borderRadius: 14,
-              border: '1px dashed rgba(255,255,255,.22)', color: 'var(--muted)',
+              flex: '0 0 auto', width: 108, height: 108, borderRadius: 'var(--r-3)',
+              border: '1px dashed var(--film-3)', color: 'var(--muted)',
               display: 'grid', placeItems: 'center', gap: 4,
             }}
           >
@@ -107,7 +107,7 @@ export function PhotoStrip({
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
                 </svg>
-                <span style={{ fontSize: 11 }}>Agregar</span>
+                <span style={{ fontSize: 'var(--t-1)' }}>Agregar</span>
               </>
             )}
           </button>
@@ -115,7 +115,7 @@ export function PhotoStrip({
       </div>
 
       {error && (
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--danger)' }}>{error}</p>
+        <p style={{ margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--danger)' }}>{error}</p>
       )}
 
       <input ref={picker} type="file" accept="image/*"
@@ -141,7 +141,7 @@ function VoteChip({ photo, canVote, onVote }: {
   const style = {
     position: 'absolute' as const, right: 5, bottom: 5,
     display: 'flex', alignItems: 'center', gap: 4,
-    padding: '3px 8px', borderRadius: 999, fontSize: 11.5,
+    padding: '3px 8px', borderRadius: 999, fontSize: 'var(--t-1)',
     // Fondo oscuro propio: el pulgar cae encima de la foto, y sobre una foto
     // clara un ícono claro directamente no se ve.
     background: on ? 'var(--amber)' : 'rgba(0,0,0,.55)',

@@ -53,7 +53,7 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
           style={{
             position: 'absolute', right: 14, zIndex: 20,
             bottom: `calc(72px + var(--nav-gap) + 60px)`,
-            borderRadius: 16, padding: 6, minWidth: 208,
+            borderRadius: 'var(--r-3)', padding: 8, minWidth: 208,
             display: 'flex', flexDirection: 'column',
             // Nace desde el botón, que es de donde viene.
             transformOrigin: 'bottom right',
@@ -72,7 +72,7 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
         aria-expanded={open}
         style={{
           position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
-          width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)',
+          width: 52, height: 52, borderRadius: '50%', background: 'var(--acento)',
           zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
           transition: 'transform .13s ease-out',
@@ -102,11 +102,11 @@ function Item({ icon, label, onClick }: {
 }) {
   return (
     <button onClick={onClick} className="lbl" style={{
-      display: 'flex', alignItems: 'center', gap: 11,
-      padding: '11px 12px', borderRadius: 11, fontSize: 14.5,
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
       textAlign: 'left', width: '100%', color: 'var(--cream)',
     }}>
-      <span style={{ display: 'grid', placeItems: 'center', width: 20, color: 'var(--amber)' }}>
+      <span style={{ display: 'grid', placeItems: 'center', width: 20, color: 'var(--acento)' }}>
         {icon}
       </span>
       {label}

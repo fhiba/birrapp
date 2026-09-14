@@ -61,31 +61,31 @@ export function BarSearchList({
         value={q} onChange={e => setQ(e.target.value)}
         placeholder="Buscar un bar" maxLength={60} autoComplete="off"
         style={{
-          width: '100%', padding: '12px 13px', borderRadius: 12,
+          width: '100%', padding: '12px 12px', borderRadius: 'var(--r-2)',
           background: 'var(--elevated)', border: '1px solid var(--hairline)',
-          fontSize: 16,
+          fontSize: 'var(--t-field)',
         }}
       />
 
       <div style={{ marginTop: 12 }}>
         {shown.map(b => (
           <button key={b.id} onClick={() => onPick(b)} style={{
-            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
             padding: '12px 4px', textAlign: 'left', borderBottom: '1px solid var(--hairline)',
           }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="lbl" style={{ fontSize: 14.5 }}>{b.name}</span>
-              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--faint)' }}>
+              <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{b.name}</span>
+              <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                 {formatDistance(b.distanceMeters) ?? 'sin distancia'}
               </span>
             </span>
             {/* El precio va con su antigüedad al lado, como en todos lados. */}
             {b.fromPrice != null && (
               <span style={{ textAlign: 'right' }}>
-                <span className="num" style={{ fontSize: 14 }}>
+                <span className="num" style={{ fontSize: 'var(--t-4)' }}>
                   {formatPrice(b.fromPrice, b.currency)}
                 </span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--faint)' }}>
+                <span style={{ display: 'block', fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
                   {shortAge(b.freshestAgeDays)}
                 </span>
               </span>
@@ -94,7 +94,7 @@ export function BarSearchList({
         ))}
 
         {shown.length === 0 && (
-          <p style={{ color: 'var(--muted)', fontSize: 13.5, padding: '14px 4px' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', padding: '16px 4px' }}>
             {busy ? 'Buscando…'
               : typed.length >= 2 ? 'No encontramos ese bar. Podés agregarlo desde el +.'
               : 'No hay bares cerca todavía.'}

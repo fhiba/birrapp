@@ -31,16 +31,16 @@ export class Crash extends Component<{ children: ReactNode }, { error: Error | n
       <div style={{
         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 12,
-        padding: 28, textAlign: 'center',
+        padding: 32, textAlign: 'center',
       }}>
-        <h1 className="ttl" style={{ fontSize: 22, margin: 0 }}>Se nos rompió algo</h1>
-        <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0, lineHeight: 1.55 }}>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Se nos rompió algo</h1>
+        <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: 0, lineHeight: 1.55 }}>
           No es tu conexión ni algo que hayas hecho mal. Recargá y seguí;
           si vuelve a pasar, contanos qué estabas haciendo.
         </p>
         <button onClick={() => location.reload()} className="lbl" style={{
-          marginTop: 8, padding: '13px 22px', borderRadius: 14, fontSize: 14.5,
-          minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+          marginTop: 8, padding: '12px 24px', borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+          minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
         }}>Recargar</button>
       </div>
     )

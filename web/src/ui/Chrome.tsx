@@ -30,12 +30,16 @@ export function BottomNav() {
       // que sin esto las otras dos se anunciaban como enlaces sin nombre.
       aria-label={label}
       style={({ isActive }) => ({
-        display: 'flex', alignItems: 'center', gap: 7,
+        display: 'flex', alignItems: 'center', gap: 8,
         padding: isActive ? '11px 16px' : '11px 17px',
         borderRadius: 999, textDecoration: 'none',
-        background: isActive ? 'var(--amber)' : 'transparent',
-        color: isActive ? 'var(--base)' : 'var(--muted)',
-        fontFamily: 'var(--display)', fontWeight: 500, fontSize: 13,
+        background: isActive ? 'var(--acento)' : 'transparent',
+        // Inactiva en --sobre-vidrio y no en --muted: la barra flota sobre el
+        // mapa, y con el vidrio transparente una cápsula de precio por detrás
+        // dejaba el texto en 2,5:1. La activa se distingue por la píldora
+        // rellena, no por el color del texto.
+        color: isActive ? 'var(--base)' : 'var(--sobre-vidrio)',
+        fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-3)',
         transition: 'background .15s',
       })}
     >
@@ -53,15 +57,15 @@ export function BottomNav() {
       <div style={{
         position: 'fixed', left: 0, right: 0, bottom: 0, height: 88, zIndex: 40,
         pointerEvents: 'none',
-        background: 'linear-gradient(transparent, rgba(26,20,16,.9) 60%, var(--base))',
+        background: 'linear-gradient(transparent, rgba(15,16,18,.9) 60%, var(--base))',
       }} />
-      <nav className="bottom-nav" style={{
+      {/* La barra también es vidrio, con la misma receta que el resto. Tenía
+          su propia mezcla —otro tinte, otro desenfoque, otro borde— por haber
+          salido antes que `.glass`. */}
+      <nav className="bottom-nav glass" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)',
         bottom: 'var(--nav-gap)', zIndex: 50,
-        display: 'flex', gap: 2, padding: 5, borderRadius: 999,
-        background: 'rgba(38,30,24,.94)',
-        border: '.8px solid rgba(255,255,255,.16)',
-        backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+        display: 'flex', gap: 2, padding: 4, borderRadius: 999,
       }}>
         {tab('/', 'Mapa', 'map')}
         {tab('/lista', 'Lista', 'list')}
@@ -76,14 +80,42 @@ export function BottomNav() {
  * por lo mismo: el foco queda adentro, Escape y el botón de atrás del teléfono
  * la cierran, y al cerrar el foco vuelve a donde estaba. Antes era un `div`
  * que se veía bien y con teclado no existía.
+ *
+ * **Lleva ✕ propio.** Salió confiando en que `closedby="any"` alcanzaba para
+ * cerrarla tocando afuera, y eso Safari no lo implementa. Escape no existe en
+ * un teléfono, y en la PWA instalada en iOS tampoco hay botón de atrás: quien
+ * abría "Me tomé una birra" desde un iPhone y se arrepentía quedaba adentro.
  */
 export function Sheet(
   { title, onClose, children }: { title?: string; onClose: () => void; children: ReactNode },
 ) {
   return (
     <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
-      <div style={{ padding: `18px 20px calc(20px + var(--nav-gap))` }}>
-        {title && <h2 className="ttl" style={{ margin: '0 0 14px', fontSize: 20 }}>{title}</h2>}
+      <div style={{ padding: `var(--s-3) var(--s-5) calc(var(--s-5) + var(--nav-gap))` }}>
+        {/* El manijón no hace nada por sí solo: está para que la hoja se lea
+            como algo que vino de abajo y se va para abajo, y no como una
+            pantalla que reemplazó a la anterior. */}
+        <div aria-hidden style={{
+          width: 38, height: 4, borderRadius: 2, margin: '0 auto var(--s-3)',
+          background: 'var(--film-3)',
+        }} />
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+          marginBottom: 'var(--s-4)',
+        }}>
+          {title && (
+            <h2 className="ttl" style={{ margin: 0, flex: 1, fontSize: 'var(--t-6)' }}>{title}</h2>
+          )}
+          <button onClick={onClose} aria-label="Cerrar" className="icon-btn"
+            style={{ marginLeft: 'auto', color: 'var(--muted)', background: 'var(--film-2)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
+              <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
         {children}
       </div>
     </Modal>
@@ -99,8 +131,11 @@ export function Sheet(
  * botón de atrás del teléfono tampoco, y al cerrar el foco no volvía a donde
  * estaba. `showModal()` da las cuatro cosas y el `::backdrop` gratis.
  *
- * `closedby="any"` agrega cerrar tocando afuera donde el navegador lo soporta;
- * donde no, sigue andando todo lo demás.
+ * Cerrar tocando afuera se hace **a mano** y no con `closedby="any"`. El
+ * atributo es lo correcto y donde está implementado hace exactamente esto,
+ * pero Safari todavía no lo trae — y Safari es el navegador de la mitad de los
+ * usuarios de una PWA. Se deja puesto igual: donde funciona, funciona, y el
+ * handler de abajo es idempotente.
  */
 function Modal({ label, onClose, variant = 'center', children }: {
   label: string
@@ -116,16 +151,34 @@ function Modal({ label, onClose, variant = 'center', children }: {
     if (d && !d.open) d.showModal()
   }, [])
 
+  /**
+   * Un toque en el fondo cierra.
+   *
+   * El click del fondo llega al `<dialog>` mismo, así que no alcanza con mirar
+   * el `target`: hay que comparar contra la caja. Lo que está fuera del
+   * rectángulo del diálogo es fondo.
+   *
+   * El `rect.width > 0` descarta el caso del diálogo que se está cerrando, que
+   * mide cero y haría que cualquier click cuente como "afuera".
+   */
+  const onBackdrop = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if (e.target !== ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    if (r.width === 0) return
+    const fuera = e.clientX < r.left || e.clientX > r.right
+      || e.clientY < r.top || e.clientY > r.bottom
+    if (fuera) onClose()
+  }
+
   return (
     <dialog
       ref={ref}
       aria-label={label}
-      // Los tipos de React ya lo conocen; donde el navegador no, se ignora y
-      // el diálogo sigue cerrando con Escape y con el botón.
       closedby="any"
+      onClick={onBackdrop}
       onClose={onClose}
       onCancel={onClose}
-      className={variant === 'sheet' ? 'modal modal-sheet' : 'modal'}
+      className={variant === 'sheet' ? 'glass modal modal-sheet' : 'glass modal'}
     >{children}</dialog>
   )
 }
@@ -143,23 +196,23 @@ export function Confirm({
 
   return (
     <Modal label={title} onClose={onCancel}>
-      <div style={{ padding: 22 }}>
-        <h3 className="ttl" style={{ margin: '0 0 10px', fontSize: 19 }}>{title}</h3>
-        <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.55 }}>{body}</div>
+      <div style={{ padding: 24 }}>
+        <h3 className="ttl" style={{ margin: '0 0 12px', fontSize: 'var(--t-5)' }}>{title}</h3>
+        <div style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', lineHeight: 1.55 }}>{body}</div>
 
         {requireWord && (
           <>
-            <p style={{ color: 'var(--faint)', fontSize: 12, margin: '16px 0 6px' }}>
+            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '16px 0 8px' }}>
               Escribí {requireWord} para confirmar
             </p>
             <input value={typed} onChange={e => setTyped(e.target.value)} style={{
-              width: '100%', padding: '11px 13px', borderRadius: 11,
+              width: '100%', padding: '12px 12px', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
             }} />
           </>
         )}
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 24 }}>
           <button onClick={onCancel} style={{
             color: 'var(--muted)', padding: '12px 16px', minHeight: 44,
           }}>
@@ -167,7 +220,7 @@ export function Confirm({
           </button>
           <button disabled={!armed} onClick={onConfirm} style={{
             padding: '12px 16px', fontWeight: 600, minHeight: 44,
-            color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--amber)',
+            color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--acento)',
             cursor: armed ? 'pointer' : 'not-allowed',
           }}>{confirmLabel}</button>
         </div>
@@ -201,10 +254,11 @@ export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
   return (
     <div
       role="status" aria-live="polite"
+      className="glass"
       style={{
         position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
-        zIndex: 70, background: 'var(--elevated)', borderRadius: 14, padding: '13px 16px',
-        fontSize: 13.5, boxShadow: '0 8px 30px rgba(0,0,0,.45)',
+        zIndex: 70, borderRadius: 'var(--r-3)', padding: '12px 16px',
+        fontSize: 'var(--t-3)',
         animation: 'toast-in .18s ease-out',
       }}
     >{text}</div>

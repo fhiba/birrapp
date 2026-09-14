@@ -2194,6 +2194,356 @@ Nielsen, las guías de toque de Apple y Material, y WCAG 2.2 AA.
 4. **La lista no tiene "tirar para actualizar"**, que sí tiene la ficha del
    bar. Hay que pensarlo con el swipe horizontal que ya cambia el orden.
 
+## 2026-09-13 — v0.10.4: el mapa deja de terminarse en la General Paz
+
+El recorte de `scripts/seed_osm.mjs` llegaba hasta Tigre por el norte y
+Quilmes por el sur. Alcanzaba para CABA y Zona Norte, pero apenas uno se
+corría del centro el mapa se veía vacío: no era que no hubiera bares, era que
+nunca los habíamos traído.
+
+Ahora el bbox es el AMBA entera —Escobar y Pilar arriba, Moreno y General
+Rodríguez al oeste, La Plata y Ensenada abajo—. El borde este queda en -57.88
+a propósito: un poco más y entra Colonia del Sacramento, que es otro país y
+otra moneda.
+
+740 → 995 bares aprobados, casi todo el crecimiento en el eje sur y oeste
+(La Plata, La Matanza, Morón). Después del seed se corrió
+`scripts/dedupe_bars.sql`, que fusionó 7 duplicados: OSM mapea el mismo local
+como nodo y como polígono, y el seed trae a los dos.
+
+### Precios: no hay API, y no la va a haber
+
+La otra mitad del pedido era pegarle a una API de precios. No existe: lo que
+hay publicado en Argentina son precios de góndola de supermercado (Precios
+Claros y derivados), que es cerveza envasada, no la pinta en el bar. Y aunque
+existiera, un precio importado no tiene reportante ni fecha de reporte, o sea
+que no se puede mostrar con su antigüedad al lado — que es la única regla que
+este proyecto no negocia. Los bares se pueden sembrar; los precios los pone
+la gente.
+
+---
+
+## 2026-09-13 (cont.) — v0.11.0: revamp con sistema de escalas
+
+Pedido: "utilizando lo que te bajaste y lo de uizze de stop ui slop, pegale un
+buen revamp" — de la app entera, no sólo del contador.
+
+**Herramientas.** Se instalaron seis plugins: `ui-ux-pro-max`, `taste-skill`,
+`daisyui`, `ux-design` (de wondelai/skills: trae Refactoring UI, heurísticas de
+usabilidad, microinteracciones, tipografía web), `uizze` (anti-ui-slop) y
+`accessibility-test-scanner`.
+
+Dos notas sobre eso. `wondelai-refactoring-ui` ya no existe en el marketplace
+de jeremylongshore —`plugins/design/` sólo tiene `brand-forge` y `uizze`—; se
+tomó de la fuente original, `wondelai/skills`, donde viene dentro del plugin
+`ux-design` junto con siete skills más. Y hay un mirror llamado exactamente
+`github-trending-wondelai-refactoring-ui` que adentro tiene
+`agent-context-manager`: no se usó.
+
+`daisyui` queda instalado pero no aplica: es una librería de componentes sobre
+Tailwind y acá los estilos son `theme.css` con variables propias.
+
+### El diagnóstico, medido antes de tocar nada
+
+| Qué | Cuántos |
+|---|---|
+| Tamaños de letra distintos | 26 (9,5 / 10 / 10,5 / 11 / 11,5 / 12 / 12,5 / 13 / 13,5 / 14 / 14,5 …) |
+| Radios de esquina | 14 |
+| Blancos translúcidos para "superficie apenas elevada" | 18 |
+| Combinaciones de padding | ~30 |
+| `SectionLabel` definido | 5 veces, con 5 márgenes distintos |
+
+No es que estuvieran mal elegidos de a uno. El problema es elegirlos de a uno:
+un valor fuera de escala no se nota solo, se nota apilado contra sus vecinos.
+
+### Lo que resultó ser un bug, no una mejora
+
+1. **Los nueve campos de texto estaban abajo del piso de 16px de iOS.** Safari
+   acerca el viewport al enfocar un campo más chico y al salir no lo aleja.
+   Antes lo tapaba `maximum-scale=1`, que se sacó en v0.10.0 por WCAG 1.4.4, así
+   que desde entonces la única defensa es el tamaño — y no lo cumplía ninguno:
+   seis a 15px, el de la nota a 13 y el de confirmación heredando 15. El de
+   búsqueda tenía el comentario que explicaba los 16px justo arriba del 15.
+2. **`--faint` falla contraste.** #8A7B6D daba 4,46:1 sobre `--base`, 4,01 sobre
+   `--raised` y 3,50 sobre `--elevated`, contra el 4,5:1 que pide WCAG 1.4.3
+   para texto chico. Es el color de 106 textos, casi todos de 11 y 12px.
+   `--stale` igual, a 4,40 sobre `--elevated`.
+3. **Cinco controles abajo de 44px**, el piso que la app declara cumplido desde
+   v0.10.0: cerrar la preview (30), borrar un aporte (36), las flechas de mes
+   (34), limpiar la búsqueda (30 de ancho) y la tuerca y salir del perfil (42).
+4. **El mapa de calor del calendario no mapeaba nada** (BIR-42). La intensidad
+   era proporcional al mejor día del mes, así que un mes de dos birras pintaba
+   su mejor día tan fuerte como un mes de quince: el color decía "lo más que
+   tomaste este mes", no "cuánto tomaste". Comparar dos meses era imposible.
+5. **El ancho de la cápsula del pin se estima en 8,6px por carácter** y el SVG
+   no pedía cifras tabulares, que es lo único que hace cierta esa cuenta. Sin
+   ellas "$11.111" nada en una cápsula de más y "$8.888" se sale.
+
+### El sistema
+
+10 pasos de tipografía, 7 de espaciado, 3 de radio, 3 de película, más
+`--t-field` (16px) para los campos con su regla de CSS de respaldo. 408 valores
+sueltos pasaron a salir de la escala; cero tamaños de letra fuera de ella.
+
+`--hairline` y el `--film-3` que había definido eran el mismo `rgba(…,.12)` con
+dos nombres: se colapsaron.
+
+### Jerarquía
+
+La regla de la casa es precio → antigüedad → nombre del bar, y no se cumplía:
+
+- En la lista el precio iba a 17px contra un nombre de bar de 15. Ahora es lo
+  más grande de la fila y con ancho mínimo, que es lo que arma una columna: sin
+  columna, comparar dos filas obliga a buscar el número en cada una.
+- En la ficha del bar el precio sube al paso más grande de la escala, que se usa
+  sólo ahí. Estaba a la misma altura que el número de una baldosa del perfil.
+- Cifras tabulares en todo `.num`.
+- En la preview del mapa la antigüedad pasa abajo del monto, como en la ficha.
+- Los cuatro cuadrados del perfil tenían el número en 17px y estaban sobre otra
+  superficie que las tres del contador, por ser dos copias de la misma baldosa.
+
+`ui/Kit.tsx`: `SectionLabel`, `Tile` y `Screen`, una vez.
+
+### Lo que no se hizo
+
+- **Nada de esto está probado tocándolo.** `tsc` y build limpios, pero es un
+  cambio visual grande verificado sólo por compilación. Sigue sin destrabarse el
+  ambiente local desde la tailnet.
+- La mitad de BIR-42 que son notificaciones push para la racha: es backend e
+  infra de push, no entra en un revamp. Queda en el ticket.
+- El visor de fotos sigue sin atrapar el foco.
+- La lista sigue sin "tirar para actualizar".
+
+---
+
+## 2026-09-14 — v0.12.0: la hoja sin salida, color sólo por precio, vidrio
+
+### El bug: la hoja no se podía cerrar en iPhone
+
+`Sheet` no tenía **ningún** control para cerrarse. Salió confiando en
+`closedby="any"` —el atributo nuevo de `<dialog>` que cierra tocando afuera— y
+Safari no lo implementa. Escape no existe en un teléfono, y en la PWA instalada
+en iOS tampoco hay botón de atrás. O sea: quien abría "Me tomé una birra" desde
+un iPhone y se arrepentía, quedaba adentro.
+
+Es de v0.10.0, de la misma tanda en que pasé los diálogos a `<dialog>` nativo.
+Gané el foco atrapado, Escape y el botón de atrás, y perdí lo único que un
+`div` con `position: fixed` sí tenía: una X.
+
+Ahora la hoja lleva ✕ y manijón, y cerrar tocando afuera se hace a mano
+comparando el click contra la caja del diálogo — funciona en todos lados. El
+atributo queda igual: donde está implementado hace lo mismo.
+
+### El color del mapa codifica precio, y sólo precio
+
+Había un interruptor frescura/precio. Verde/ámbar/rojo es una convención tan
+fuerte para barato/caro que ésa era la lectura por defecto aunque el modo
+dijera "Frescura": la mitad del tiempo el mapa decía una cosa y se leía otra.
+Un control que existe para desambiguar algo que no debería ser ambiguo es el
+síntoma, no la solución.
+
+En su lugar va una leyenda ("barato ▪▪▪▪ caro"). Era el interruptor quien decía
+qué significan los colores, así que sacarlo a secas dejaba el mapa pintado y
+mudo. La frescura no se pierde: sigue en el punto al lado de cada precio, donde
+es el dato de UN precio, que es lo que la frescura es.
+
+### Nombres de calle desde zoom 17
+
+A zoom de barrio compiten con las cápsulas de precio, que es lo que hay que
+leer. Encima de una manzana la pregunta ya cambió —el bar está elegido, ahora
+es cómo llegar— y ahí no saber en qué calle estás es una molestia gratuita.
+
+Dos arrays constantes de estilo, no una función: Google no soporta condiciones
+de zoom adentro del JSON, y pasarle a `<Map>` un array nuevo lo hace re-estilar
+entero.
+
+### Vidrio en todo lo que flota
+
+Diálogos, hojas, preview del bar, toast y barra de navegación eran color sólido
+o tenían cada uno su propia mezcla. Ahora sale de `.glass`: desenfoque con
+saturación —el `saturate` es la mitad del efecto, sin él lo de atrás se ve
+lavado— tinte bajo y brillo especular arriba y abajo. El fondo del diálogo baja
+de .6 a .28 de negro con más desenfoque: un vidrio contra un fondo casi opaco
+no es vidrio, es una tarjeta sobre una pared.
+
+El tinte se queda en .72 y no en cero a propósito. Con vidrio realmente
+transparente el contraste del texto queda a merced de lo que haya atrás, que
+acá es un mapa con manchas claras y oscuras — sería legible o no según dónde
+estés parado.
+
+### Paleta: cinco propuestas, sin decidir
+
+Comparadas sobre las mismas tres pantallas, con los contrastes medidos. La
+restricción que ordena todo: la escala de precio ya ocupa el verde, el amarillo
+y el rojo, así que el acento tiene que dejarlos libres.
+
+* **Espuma** (modo claro) queda descartada por medición, no por gusto: la
+  escala de precio rinde 1,4 a 2,3:1 sobre crema. Habría que rehacerla entera.
+* **Lúpulo** (verde de lúpulo) es la más linda y la que más choca: el acento
+  lima y el pin verde de "barato" son casi el mismo color.
+* **Cobre** y **Noche** son las que arreglan el problema real, que no es que el
+  marrón sea feo sino que el fondo marrón y el acento ámbar son vecinos de
+  tono, así que el ámbar nunca termina de saltar.
+
+Pendiente de decisión.
+
+---
+
+## 2026-09-13 — v0.13.0: Hueso, o sacarle el color a la marca
+
+La decisión que quedó pendiente en la 0.12.0. Ninguna de las cinco propuestas:
+el problema no era qué acento elegir sino que la marca tuviera acento de color.
+
+El ámbar de la marca era `--amber: #FFB627`, y ése es *exactamente* el mismo
+hex que el punto "precio medio-alto" de `PRICE_STOPS` y que `--aging`. O sea
+que el color de los botones, de la pestaña activa y de los links era además un
+valor del dato. En un mapa con bares de precio medio —que es la mayoría del
+mapa— el pin de un bar y el botón "Sigue igual" eran el mismo color, y no por
+un descuido de nadie: el token de marca y el token de dato nacieron con el
+mismo valor y nadie volvió a mirarlo. Las cinco propuestas de la 0.12.0
+buscaban un acento que dejara libres el verde, el amarillo y el rojo; Hueso
+deja de buscar y le saca el color al acento.
+
+El fondo pasa de marrón a un neutro apenas frío (`#0F1012` / `#191B1F` /
+`#24272C`) y el acento a blanco cálido (`#EDE6D8`). De acá en más la regla es
+**si tiene color, es un dato**: el cromo vive en la rampa de grises hueso, y el
+verde, el ámbar y el rojo quedan reservados para frescura, precio y peligro. El
+token se llama `--acento` y ya no `--amber`, porque nombrar un token del cromo
+por su color es justamente lo que dejó pasar esto sin que nadie lo viera.
+
+`--fresh`, `--aging`, `--stale`, `--danger`, `PRICE_STOPS` y los escalones
+`.heat-*` no se tocaron. Los contrastes se midieron sobre las tres superficies:
+el peor caso es `--faint` con 4,53:1 sobre `--elevated`, y ninguno baja del
+4,5:1 de WCAG 1.4.3. `--stale`, que en la paleta vieja se quedaba en 4,40 sobre
+`--elevated`, sube a 4,71 de regalo: el fondo nuevo es más oscuro.
+
+El reemplazo fue mecánico en unos cien usos, pero tres lugares no eran marca y
+había que sacarlos a mano. El escalón `.heat-4` del mapa de calor apuntaba a
+`--amber`: la rampa entera del calendario es ámbar y ahí el ámbar es el dato,
+así que ahora apunta a `--aging` —el mismo hex de siempre— en vez de quedar
+pintado de hueso justo en el paso que tiene que gritar. La serie `prices` de
+los gráficos y las series del dashboard se quedan en `#FFB627` por lo mismo:
+una serie sin color deja de ser una serie, y de los dos significados que
+compartían el hex el que se queda con el color es el dato.
+
+El tercero apareció recién al mirarlo. El aro del favorito en el mapa es marca
+—dice "es tuyo"—, así que le tocaba el acento; pero el aro del bar abierto ya
+era `--cream`, y con Hueso el acento queda a un suspiro de ese blanco: dos aros
+de 2px a nueve píxeles pasaban a ser el mismo aro. Va en `--acento-deep`, que
+mantiene la distinción sin volver a meter un tono que signifique un precio.
+
+Las estrellas de puntuación se quedan en el acento y no pasan a `--aging`. El
+color ahí no dice cuánto vale la nota —eso lo dice el relleno parcial— sino de
+quién es el voto, el tuyo contra el de la comunidad, que es lo mismo que el aro
+de favorito. Pintarlas de `--aging` diría "esta nota tiene entre 14 y 45 días",
+que es una frase sobre precios y en una estrella no significa nada.
+
+Queda afuera el ícono de la app. `icon.svg` y `favicon.svg` siguen con la pinta
+ámbar sobre el marrón viejo, y siguen así a propósito: los `icon-192.png` e
+`icon-512.png` son los que usa el manifest y no hay con qué rasterizar los SVG
+en esta máquina, así que cambiar sólo los vectoriales dejaría la pestaña y la
+pantalla de inicio con dos íconos distintos. Un ícono viejo y coherente es
+mejor que uno a medio migrar.
+
+---
+
+## 2026-09-14 (cont.) — v0.13.1: la birra del loader vuelve a ser birra
+
+Reportado al toque después de la 0.13.0: el vaso que se llena mientras carga la
+app quedó blanco.
+
+El líquido usaba `var(--amber)` y el renombre lo llevó a `var(--acento)`, que
+ahora es hueso. La espuma de arriba ya era `#FFFFFF`. Resultado: líquido blanco
+debajo de espuma blanca, contraste 1,00 entre los dos — un vaso vacío
+animándose.
+
+Es la excepción correcta a la regla nueva, y vale la pena escribir por qué es
+una excepción de verdad y no una escapatoria. La regla dice "si tiene color, es
+un dato, y el cromo es hueso". El líquido de la pinta no es cromo ni es un
+dato: **es una cerveza dibujada**. Es la única ilustración de la app — todo lo
+demás que lleva color es un precio, una antigüedad o un control.
+
+Va como token propio, `--birra`, y no reusando `--aging`, que casualmente es el
+mismo hex. Ahí el ámbar significa "este precio tiene entre 14 y 45 días"; el
+día que ese umbral cambie de color, la birra no tiene por qué cambiar con él.
+Dos cosas que valen lo mismo hoy y no significan lo mismo son dos tokens.
+
+Espuma sobre líquido pasa de 1,00 a 1,75, que para dos campos de color
+adyacentes en una ilustración es suficiente — no es texto.
+
+---
+
+## 2026-09-14 (cont.) — v0.13.2: el vidrio ahora deja ver
+
+Reportado: "ese `.glass` no es transparente, no se ve a través". Tenía razón, y
+lo que yo había contado como una decisión de contraste era en realidad la
+salida fácil.
+
+El `.glass` de la 0.12.0 tenía un tinte de `rgba(25,27,31,.72)`. Setenta y dos
+por ciento de opacidad no es vidrio: es un panel oscuro con un desenfoque
+decorativo detrás que casi no se ve. Lo justifiqué diciendo que hacía falta
+para el contraste del texto, y esa parte del problema era cierta — la solución
+no.
+
+**Lo que faltaba: el oscurecimiento va adentro del `backdrop-filter`.**
+
+Una capa opaca encima *tapa* lo de atrás. Se le puede bajar la opacidad, pero
+entonces deja de oscurecer y el texto queda a merced de lo que pase por debajo.
+Es una disyuntiva sin salida, y de ahí salió el .72.
+
+`brightness()` dentro del `backdrop-filter` oscurece **lo de atrás mismo**.
+Seguís viendo las formas, el color y el movimiento —una cápsula de precio que
+pasa por debajo se ve pasar— pero ya bajada de luz, así que el contraste está
+garantizado sin tapar nada. Es la diferencia entre pintar el vidrio y polarizarlo.
+
+Queda: tinte cero (sólo el degradado del canto), `blur(14px)` en vez de 30 —a
+más desenfoque, más esmerilado y menos se reconoce lo que hay detrás— y
+`brightness(.45)`, que sale de medir el peor caso real: una cápsula de precio
+ámbar justo debajo del panel.
+
+### El precio de que el vidrio sea vidrio
+
+Si se ve lo de atrás, lo de atrás a veces es brillante. Medido sobre una
+cápsula ámbar:
+
+| | sobre el mapa | sobre una cápsula ámbar |
+| --- | --- | --- |
+| `--cream` | 15,63:1 | 5,50:1 |
+| `--muted` | 12,86:1 | **2,48:1** |
+
+El texto principal aguanta; el secundario no, y no hay valor de `brightness`
+que lo arregle sin volver a tapar todo. Así que adentro del vidrio el color
+deja de llevar jerarquía y la llevan el tamaño y el peso — que es lo que
+Refactoring UI dice que hay que hacer igual: combinar palancas, no
+multiplicarlas.
+
+Token nuevo, `--sobre-vidrio` (#DDE0E2), para los textos secundarios que
+flotan sobre el mapa: la leyenda de colores, el panel del radio, el cartel de
+"acercá el mapa" y las pestañas inactivas de la barra. Esas últimas estaban en
+2,5:1 cuando pasaba una cápsula por detrás, y son navegación primaria.
+
+No aplica a diálogos ni hojas: ahí lo de atrás es la pantalla de la app, que ya
+es oscura, y encima el `::backdrop` la oscurece antes. Ese `::backdrop` bajó de
+.28 a .18 de negro, porque ahora el vidrio oscurece por su cuenta y apilar las
+dos cosas lo dejaba opaco de nuevo.
+
+## 2026-09-14 — v0.13.3: `master` de vuelta adentro de `dev`
+
+El PR de `dev` → `master` estaba en conflicto y no se podía deployar. No había
+choque de código: sólo los cuatro archivos de la versión y el WORKLOG, que es
+append-only y al que las dos ramas le habían agregado su tanda.
+
+Lo que hay que mirar acá es **por qué** chocaba la versión. `master` venía
+adelante de `dev`: 0.13.2 contra 0.10.4, porque el revamp de UI se fue
+commiteando sobre `master` mientras `dev` seguía en lo suyo. Eso da vuelta el
+flujo que dice AGENTS.md —todo sale de `dev` y `master` recibe— y el síntoma
+es este: cada rama que salga de `dev` va a nacer con una versión más baja que
+la publicada, y su `versionCode` con ella. Android rechaza instalar un código
+menor o igual al instalado, así que no es un detalle de prolijidad.
+
+Resuelto tomando la de `master` y subiendo una. Las ramas abiertas que salieron
+de `dev` con versión vieja tienen que volver a numerarse antes de mergear.
+
 ## 2026-09-14 — El voto, de los dos lados: BIR-10 y BIR-11
 
 Dos tickets del mismo tema, en una rama: poder votar una foto y poder retirar
@@ -2276,3 +2626,10 @@ que viene cargando precios hace meses.
 
 Sólo web y backend. La app de Android sigue sin esto, igual que sin el
 contador de birras y los favoritos: va todo junto en BIR-38.
+
+**Renumerada a 0.13.4 al mergear.** La rama había nacido en 0.10.x, y mientras
+tanto `master` se fue a 0.13.2 con el revamp de UI. Un `versionCode` por debajo
+del publicado es un APK que Android se niega a instalar, así que la versión se
+rehizo contra lo que hay hoy. De paso, lo nuevo se pasó a la escala de tokens
+que entró con el revamp: los 9,5 y 11,5 sueltos son justo lo que la escala vino
+a sacar.

@@ -47,24 +47,24 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 0' }}>
-          <h1 className="ttl" style={{ fontSize: 26, margin: 0 }}>Moderación</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>Moderación</h1>
           {!loading && total > 0 && (
             <span className="num" style={{
               minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
-              display: 'grid', placeItems: 'center', fontSize: 12.5,
-              background: 'var(--amber)', color: 'var(--base)',
+              display: 'grid', placeItems: 'center', fontSize: 'var(--t-2)',
+              background: 'var(--acento)', color: 'var(--base)',
             }}>{total}</span>
           )}
         </div>
-        {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
 
         {/* El dashboard vive detrás de moderación y no en el perfil: es la
             misma llave —hace falta el rol— y quien viene a moderar es quien
             quiere saber si la cuenta que cargó algo raro es de ayer. */}
         <button onClick={() => nav('/dashboard')} className="lbl" style={{
           display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          marginTop: 14, padding: '12px 14px', borderRadius: 13, fontSize: 13.5,
+          marginTop: 16, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
           background: 'var(--elevated)', color: 'var(--cream)',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -79,19 +79,19 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
       {!loading && pending.length === 0 && flags.length === 0
         && newBrands.length === 0 && newStyles.length === 0 && (
-        <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
+        <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 48 }}>
           Nada pendiente. Todo en orden.
         </p>
       )}
 
       {pending.length > 0 && <H>Bares pendientes · {pending.length}</H>}
       {pending.map(b => (
-        <div key={b.id} style={{ padding: '10px 18px', borderBottom: '1px solid var(--hairline)' }}>
+        <div key={b.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--hairline)' }}>
           <div className="lbl">{b.name}</div>
-          <div style={{ color: 'var(--faint)', fontSize: 11 }}>
+          <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.lat.toFixed(5)}, {b.lng.toFixed(5)}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveBar(b.id))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBar(b.id))}>Rechazar</Btn>
             <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>Eliminar</Btn>
@@ -108,13 +108,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       {newBrands.length > 0 && <H>Marcas nuevas · {newBrands.length}</H>}
       {newBrands.map(b => (
         <div key={b.slug} style={{
-          padding: '10px 18px', borderBottom: '1px solid var(--hairline)',
+          padding: '12px 16px', borderBottom: '1px solid var(--hairline)',
         }}>
           <div className="lbl">{b.name}</div>
-          <div style={{ color: 'var(--faint)', fontSize: 11 }}>
+          <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.craft ? 'artesanal' : 'industrial'} · {b.slug}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
           </div>
@@ -128,11 +128,11 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       {newStyles.length > 0 && <H>Estilos nuevos · {newStyles.length}</H>}
       {newStyles.map(st => (
         <div key={st.slug} style={{
-          padding: '10px 18px', borderBottom: '1px solid var(--hairline)',
+          padding: '12px 16px', borderBottom: '1px solid var(--hairline)',
         }}>
           <div className="lbl">{st.name}</div>
-          <div style={{ color: 'var(--faint)', fontSize: 11 }}>{st.slug}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>{st.slug}</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>Rechazar</Btn>
           </div>
@@ -141,13 +141,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
       {flags.length > 0 && <H>Denuncias abiertas · {flags.length}</H>}
       {flags.map(f => (
-        <div key={f.id} style={{ padding: '10px 18px', borderBottom: '1px solid var(--hairline)' }}>
-          <div className="lbl" style={{ fontSize: 14 }}>{f.targetType} #{f.targetId}</div>
-          <div style={{ fontSize: 13 }}>{f.reason}</div>
+        <div key={f.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--hairline)' }}>
+          <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>{f.targetType} #{f.targetId}</div>
+          <div style={{ fontSize: 'var(--t-3)' }}>{f.reason}</div>
           {f.targetSummary && (
-            <div style={{ color: 'var(--faint)', fontSize: 12 }}>→ {f.targetSummary}</div>
+            <div style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>→ {f.targetSummary}</div>
           )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             {f.targetType === 'price' ? (
               <>
                 <Btn primary onClick={() => act(async () => {
@@ -181,7 +181,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         }}>
           {photos.map(ph => (
             <div key={ph.id} style={{
-              borderRadius: 13, overflow: 'hidden', background: 'var(--elevated)',
+              borderRadius: 'var(--r-3)', overflow: 'hidden', background: 'var(--elevated)',
             }}>
               <button onClick={() => nav(`/bar/${ph.barId}`)} style={{
                 display: 'block', padding: 0, width: '100%', aspectRatio: '1',
@@ -191,11 +191,11 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                 }} />
               </button>
               <div style={{ padding: '8px 10px 10px' }}>
-                <div className="lbl" style={{ fontSize: 12.5 }}>{ph.barName}</div>
-                <div style={{ color: 'var(--faint)', fontSize: 11, marginTop: 2 }}>
+                <div className="lbl" style={{ fontSize: 'var(--t-2)' }}>{ph.barName}</div>
+                <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 2 }}>
                   {ph.beerName}
                 </div>
-                <div style={{ color: 'var(--faint)', fontSize: 11, marginTop: 2 }}>
+                <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 2 }}>
                   {/* Quién y hace cuánto: es el contexto que decide. Una foto
                       rara de una cuenta de ayer no es lo mismo que una de
                       alguien que viene cargando precios hace meses. */}
@@ -205,7 +205,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                   {ph.votes > 0 && ` · ${ph.votes} 👍`}
                 </div>
                 <button onClick={() => setKillPhoto(ph)} style={{
-                  marginTop: 8, fontSize: 12, color: 'var(--danger)',
+                  marginTop: 8, fontSize: 'var(--t-2)', color: 'var(--danger)',
                 }}>Eliminar</button>
               </div>
             </div>
@@ -240,7 +240,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
 const H = ({ children }: { children: React.ReactNode }) => (
   <h2 className="lbl" style={{
-    fontSize: 10, letterSpacing: '.12em', color: 'var(--faint)', padding: '22px 18px 8px', margin: 0,
+    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', padding: '24px 16px 8px', margin: 0,
   }}>{String(children).toUpperCase()}</h2>
 )
 
@@ -248,8 +248,8 @@ const Btn = ({ children, onClick, primary, danger }: {
   children: React.ReactNode; onClick: () => void; primary?: boolean; danger?: boolean
 }) => (
   <button onClick={onClick} className="lbl" style={{
-    padding: '9px 15px', borderRadius: 11, fontSize: 13,
-    background: primary ? 'var(--amber)' : danger ? 'rgba(255,122,102,.14)' : 'rgba(255,255,255,.07)',
+    padding: '8px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+    background: primary ? 'var(--acento)' : danger ? 'rgba(255,122,102,.14)' : 'var(--film-2)',
     color: primary ? 'var(--base)' : danger ? 'var(--danger)' : 'var(--cream)',
   }}>{children}</button>
 )

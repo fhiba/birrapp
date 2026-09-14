@@ -54,8 +54,8 @@ export function DashboardScreen() {
       <div className="desk-wide">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>Dashboard</h1>
-          {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>Dashboard</h1>
+          {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
         </div>
 
         {!summary && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
@@ -78,7 +78,7 @@ export function DashboardScreen() {
                 hoy la pregunta que la app viene a contestar. Un bar sin precio
                 fresco está en el mapa pero no sirve para nada. */}
             <p style={{
-              color: 'var(--faint)', fontSize: 11.5, lineHeight: 1.5, padding: '12px 18px 0',
+              color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5, padding: '12px 18px 0',
             }}>
               {summary.bars > 0 && (
                 <>Cobertura: {Math.round(summary.barsWithFreshPrice / summary.bars * 100)}%
@@ -90,10 +90,10 @@ export function DashboardScreen() {
 
         {analytics && <Charts a={analytics} />}
 
-        <div style={{ display: 'flex', gap: 7, padding: '20px 18px 4px' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '24px 16px 4px' }}>
           {(['nuevos', 'aportes'] as const).map(k => (
             <button key={k} onClick={() => setSort(k)} className="lbl pill" style={{
-              padding: '8px 14px', fontSize: 12.5,
+              padding: '8px 16px', fontSize: 'var(--t-2)',
               background: sort === k ? 'var(--cream)' : 'var(--elevated)',
               color: sort === k ? 'var(--base)' : 'var(--muted)',
             }}>{k === 'nuevos' ? 'Más nuevos' : 'Más aportes'}</button>
@@ -101,7 +101,7 @@ export function DashboardScreen() {
         </div>
 
         {shown?.length === 0 && (
-          <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>
+          <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 48 }}>
             Todavía no hay nadie registrado.
           </p>
         )}
@@ -115,14 +115,14 @@ export function DashboardScreen() {
 function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean }) {
   return (
     <div style={{
-      padding: '12px 12px 10px', borderRadius: 14,
-      background: accent ? 'var(--amber-soft)' : 'rgba(255,255,255,.05)',
+      padding: '12px 12px 12px', borderRadius: 'var(--r-3)',
+      background: accent ? 'var(--acento-soft)' : 'var(--film-1)',
     }}>
       <div className="num" style={{
-        fontSize: 24, lineHeight: 1.1, color: accent ? 'var(--amber)' : 'var(--cream)',
+        fontSize: 'var(--t-7)', lineHeight: 1.1, color: accent ? 'var(--acento)' : 'var(--cream)',
       }}>{n}</div>
       <div style={{
-        fontSize: 10.5, color: 'var(--faint)', marginTop: 3, whiteSpace: 'pre-line',
+        fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4, whiteSpace: 'pre-line',
       }}>{label}</div>
     </div>
   )
@@ -135,7 +135,7 @@ function UserRow({ u }: { u: DashboardUser }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
+      padding: '12px 16px', borderBottom: '1px solid var(--film-2)',
       opacity: u.banned ? 0.45 : 1,
     }}>
       {u.avatarUrl
@@ -145,26 +145,26 @@ function UserRow({ u }: { u: DashboardUser }) {
         : <div style={{
             width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
             display: 'grid', placeItems: 'center',
-            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 14,
+            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 'var(--t-4)',
           }}>{u.displayName.slice(0, 1).toUpperCase()}</div>}
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span className="lbl" style={{ fontSize: 14.5 }}>{u.displayName}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{u.displayName}</span>
           {u.role !== 'user' && (
             <span className="lbl" style={{
-              fontSize: 9.5, letterSpacing: '.08em', padding: '2px 6px', borderRadius: 999,
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 8px', borderRadius: 999,
+              background: 'var(--acento-soft)', color: 'var(--acento)',
             }}>{u.role.toUpperCase()}</span>
           )}
           {u.banned && (
-            <span className="lbl" style={{ fontSize: 10, color: 'var(--danger)' }}>
+            <span className="lbl" style={{ fontSize: 'var(--t-1)', color: 'var(--danger)' }}>
               BLOQUEADO
             </span>
           )}
         </div>
         <div style={{
-          fontSize: 11.5, color: 'var(--faint)',
+          fontSize: 'var(--t-2)', color: 'var(--faint)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {u.email} · se anotó {age}
@@ -175,8 +175,8 @@ function UserRow({ u }: { u: DashboardUser }) {
             confirma, que es justo lo que hay que poder distinguir. */}
         {total > 0 ? (
           <div style={{
-            display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 5,
-            fontSize: 11.5, color: 'var(--muted)',
+            display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4,
+            fontSize: 'var(--t-2)', color: 'var(--muted)',
           }}>
             {u.prices > 0 && <Chip n={u.prices} what="precios" />}
             {u.confirmations > 0 && <Chip n={u.confirmations} what="confirm." />}
@@ -185,7 +185,7 @@ function UserRow({ u }: { u: DashboardUser }) {
             {u.ratings > 0 && <Chip n={u.ratings} what="notas" />}
           </div>
         ) : (
-          <div style={{ fontSize: 11.5, color: 'var(--faint)', marginTop: 5 }}>
+          <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4 }}>
             Sin aportes todavía
           </div>
         )}
@@ -193,8 +193,8 @@ function UserRow({ u }: { u: DashboardUser }) {
 
       {u.lastActiveDays != null && (
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 10, color: 'var(--faint)' }}>último</div>
-          <div className="num" style={{ fontSize: 13, color: 'var(--muted)' }}>
+          <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>último</div>
+          <div className="num" style={{ fontSize: 'var(--t-3)', color: 'var(--muted)' }}>
             {u.lastActiveDays <= 0 ? 'hoy' : `${u.lastActiveDays} d`}
           </div>
         </div>
@@ -225,8 +225,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
 
   // Los que entran sin sesión van en gris y los que la tienen en ámbar: la
   // brecha entre las dos líneas es lo que el gráfico viene a mostrar.
+  //
+  // El ámbar acá es dato y no marca: es un color de serie, el mismo `#FFB627`
+  // de `--aging` y de `PRICE_STOPS`. Por eso no pasó a `--acento` con la
+  // paleta Hueso — una serie sin color deja de ser una serie.
   const trafficSeries = [
-    { label: 'sin sesión', color: '#8A7B6D', points: a.traffic.map(d => d.anon) },
+    { label: 'sin sesión', color: '#888E95', points: a.traffic.map(d => d.anon) },
     { label: 'con sesión', color: '#FFB627', points: a.traffic.map(d => d.authed) },
   ]
 
@@ -236,7 +240,7 @@ function Charts({ a }: { a: DashboardAnalytics }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-      gap: 14, padding: '20px 18px 0',
+      gap: 16, padding: '20px 18px 0',
     }}>
       <Card title="Aportes por día" hint="últimos 30 días">
         <StackedBars x={pulseX} series={pulseSeries} />
@@ -247,12 +251,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
         <LineChart
           x={a.weekly.map(w => w.week)}
           series={[
-            { label: 'se anotaron', color: '#8A7B6D', points: a.weekly.map(w => w.signups) },
+            { label: 'se anotaron', color: '#888E95', points: a.weekly.map(w => w.signups) },
             { label: 'aportaron',   color: '#FFB627', points: a.weekly.map(w => w.contributors) },
           ]}
         />
         <Legend series={[
-          { label: 'se anotaron', color: '#8A7B6D', points: [] },
+          { label: 'se anotaron', color: '#888E95', points: [] },
           { label: 'aportaron',   color: '#FFB627', points: [] },
         ]} />
       </Card>
@@ -304,11 +308,11 @@ function Card({ title, hint, deskOnly, children }: {
 }) {
   return (
     <div className={deskOnly ? 'desk-only' : undefined} style={{
-      padding: 14, borderRadius: 14, background: 'rgba(255,255,255,.04)',
+      padding: 16, borderRadius: 'var(--r-3)', background: 'var(--film-1)',
     }}>
-      <div className="lbl" style={{ fontSize: 12.5 }}>{title}</div>
+      <div className="lbl" style={{ fontSize: 'var(--t-2)' }}>{title}</div>
       {hint && (
-        <div style={{ fontSize: 11, color: 'var(--faint)', margin: '2px 0 10px' }}>{hint}</div>
+        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '2px 0 12px' }}>{hint}</div>
       )}
       {children}
     </div>

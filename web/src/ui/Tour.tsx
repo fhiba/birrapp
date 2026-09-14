@@ -75,9 +75,10 @@ const STEPS: Record<TourView, Step[]> = {
     {
       anchor: 'map-color',
       title: 'Qué te dice el color',
-      body: 'En Frescura, verde es un precio de esta semana y gris uno que ya '
-        + 'tiene más de 45 días. En Precio, verde es lo más barato y rojo lo '
-        + 'más caro de lo que estés viendo en pantalla.',
+      body: 'Verde es lo más barato y rojo lo más caro de lo que tengas en '
+        + 'pantalla, así que la escala se reacomoda al moverte: en Palermo lo '
+        + 'barato es otro número que en Liniers. Gris es un bar sin precio '
+        + 'cargado, no un bar caro.',
     },
     {
       anchor: 'map-style',
@@ -283,7 +284,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
           width: rect.width + pad * 2, height: rect.height + pad * 2,
           borderRadius: current.round ? '50%' : 14, pointerEvents: 'none',
           boxShadow: '0 0 0 9999px rgba(0,0,0,.74)',
-          outline: '2px solid var(--amber)',
+          outline: '2px solid var(--acento)',
         }} />
       )}
       {!rect && (
@@ -292,27 +293,27 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
 
       <div className="desk-narrow" onClick={e => e.stopPropagation()} style={{
         position: 'absolute', ...cardStyle, pointerEvents: 'auto',
-        background: 'var(--elevated)', borderRadius: 16, padding: '16px 18px',
+        background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: '16px 16px',
         boxShadow: '0 12px 40px rgba(0,0,0,.5)',
       }}>
         <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6,
+          display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8,
         }}>
-          <h3 className="ttl" style={{ margin: 0, fontSize: 17, flex: 1 }}>{current.title}</h3>
-          <span className="num" style={{ fontSize: 11, color: 'var(--faint)' }}>
+          <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)', flex: 1 }}>{current.title}</h3>
+          <span className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
             {step + 1}/{steps.length}
           </span>
         </div>
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: 'var(--muted)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--t-3)', lineHeight: 1.5, color: 'var(--muted)' }}>
           {current.body}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
           <button onClick={() => finish(true)} className="lbl" style={{
-            fontSize: 12.5, color: 'var(--faint)',
+            fontSize: 'var(--t-2)', color: 'var(--faint)',
           }}>No me lo muestres más</button>
           <button onClick={next} className="lbl" style={{
-            marginLeft: 'auto', padding: '9px 20px', borderRadius: 11, fontSize: 13,
-            background: 'var(--amber)', color: 'var(--base)',
+            marginLeft: 'auto', padding: '8px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+            background: 'var(--acento)', color: 'var(--base)',
           }}>{step + 1 >= steps.length ? 'Listo' : 'Dale'}</button>
         </div>
       </div>

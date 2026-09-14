@@ -87,25 +87,25 @@ export function ReportPrice({
               empezar de nuevo. Salir es la cruz. */}
           <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver al paso anterior">←</button>
           <span className="lbl" style={{
-            fontSize: 11, letterSpacing: '.1em', color: 'var(--faint)', flex: 1,
+            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', flex: 1,
           }}>ÚLTIMO PASO</span>
           <button onClick={onCancel} className="lbl" style={{
-            fontSize: 13, color: 'var(--muted)',
+            fontSize: 'var(--t-3)', color: 'var(--muted)',
           }} aria-label="Cancelar la carga">Cancelar</button>
         </div>
 
         {/* Qué se está cargando, en una línea. Es lo que evita el precio
             cargado sobre la birra equivocada: el monto va a quedar pegado a
             esto, así que tiene que estar a la vista mientras se teclea. */}
-        <div style={{ margin: '14px 0 0' }}>
-          <div className="ttl" style={{ fontSize: 21 }}>
+        <div style={{ margin: '16px 0 0' }}>
+          <div className="ttl" style={{ fontSize: 'var(--t-6)' }}>
             {styleName}
             {brandName && (
-              <span style={{ color: 'var(--amber)' }}> · {brandName}</span>
+              <span style={{ color: 'var(--acento)' }}> · {brandName}</span>
             )}
           </div>
           {barName && (
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 3 }}>
+            <div style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', marginTop: 4 }}>
               en {barName}
             </div>
           )}
@@ -114,21 +114,21 @@ export function ReportPrice({
 
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 6,
+        alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
         <button onClick={() => setEditingSize(false)} className="num" style={{
-          fontSize: 48, letterSpacing: '-.04em', padding: '8px 18px', borderRadius: 14,
-          background: editingSize ? 'transparent' : 'var(--amber-soft)',
+          fontSize: 'var(--t-10)', letterSpacing: '-.04em', padding: '8px 16px', borderRadius: 'var(--r-3)',
+          background: editingSize ? 'transparent' : 'var(--acento-soft)',
           color: digits === '' ? 'var(--faint)' : editingSize ? 'var(--muted)' : 'var(--cream)',
         }}>{currencyPrefix(currency)} {digits === '' ? '0' : groupThousands(digits)}</button>
 
         <button onClick={() => setEditingSize(true)} className="num pill" style={{
-          fontSize: editingSize ? 22 : 18, padding: '9px 16px', marginTop: 10,
-          background: editingSize ? 'var(--amber-soft)' : 'transparent',
-          color: editingSize ? 'var(--amber)' : 'var(--muted)',
+          fontSize: editingSize ? 22 : 18, padding: '8px 16px', marginTop: 12,
+          background: editingSize ? 'var(--acento-soft)' : 'transparent',
+          color: editingSize ? 'var(--acento)' : 'var(--muted)',
         }}>{size} ml</button>
 
-        <span style={{ color: 'var(--faint)', fontSize: 11 }}>
+        <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
           editando {editingSize ? 'el tamaño' : 'el precio'}
         </span>
       </div>
@@ -138,7 +138,7 @@ export function ReportPrice({
           <div key={i} style={{ display: 'flex' }}>
             {row.map(k => (
               <button key={k} onClick={() => press(k)} className="num" style={{
-                flex: 1, margin: 5, padding: '16px 0', borderRadius: 18,
+                flex: 1, margin: 4, padding: '16px 0', borderRadius: 'var(--r-3)',
                 background: 'var(--raised)', fontSize: k === '000' ? 20 : 24,
                 color: k === '⌫' ? 'var(--muted)' : 'var(--cream)',
               }}>{k}</button>
@@ -152,8 +152,8 @@ export function ReportPrice({
         onClick={() => onSubmit(price, sizeMl)}
         className="lbl"
         style={{
-          margin: '12px 18px 18px', padding: 16, borderRadius: 16, fontSize: 15,
-          background: valid ? 'var(--amber)' : 'var(--elevated)',
+          margin: '12px 16px 16px', padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+          background: valid ? 'var(--acento)' : 'var(--elevated)',
           color: valid ? 'var(--base)' : 'var(--faint)',
           cursor: valid ? 'pointer' : 'not-allowed',
         }}

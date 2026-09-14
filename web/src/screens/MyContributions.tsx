@@ -102,15 +102,15 @@ export function MyContributionsScreen(
       <div className="desk-narrow">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 26, margin: '18px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>
             {TITLE[kind]}
             {count != null && count > 0 && (
-              <span className="num" style={{ color: 'var(--faint)', fontSize: 18 }}>
+              <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-5)' }}>
                 {' '}· {count}
               </span>
             )}
           </h1>
-          {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</p>}
+          {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
         </div>
 
         {!data && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
@@ -174,7 +174,7 @@ export function MyContributionsScreen(
 
         {kind === 'bares' && data && data.bars.length > 0 && (
           <p style={{
-            color: 'var(--faint)', fontSize: 11.5, lineHeight: 1.5, padding: '14px 18px 0',
+            color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5, padding: '14px 18px 0',
           }}>
             Los bares no se borran desde acá: pueden tener precios y fotos de otra
             gente, así que borrarlos no deshace tu aporte, borra el de terceros. Si
@@ -264,42 +264,40 @@ function Item({
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,.06)',
+      padding: '12px 16px', borderBottom: '1px solid var(--film-2)',
     }}>
       {thumb && (
         <img src={thumb} alt="" loading="lazy" style={{
-          width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0,
+          width: 44, height: 44, borderRadius: 'var(--r-1)', objectFit: 'cover', flexShrink: 0,
         }} />
       )}
       <button onClick={onOpen} style={{
         flex: 1, textAlign: 'left', minWidth: 0, padding: 0,
       }}>
         <div className="lbl" style={{
-          fontSize: 15, color: highlight ? 'var(--cream)' : 'var(--muted)',
+          fontSize: 'var(--t-4)', color: highlight ? 'var(--cream)' : 'var(--muted)',
         }}>
           {title}
           {highlight && (
             <span style={{
-              marginLeft: 8, padding: '2px 7px', borderRadius: 999, fontSize: 10,
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              marginLeft: 8, padding: '2px 8px', borderRadius: 999, fontSize: 'var(--t-1)',
+              background: 'var(--acento-soft)', color: 'var(--acento)',
             }}>vigente</span>
           )}
           {tag && (
-            <span style={{ marginLeft: 8, fontSize: 10.5, color: 'var(--faint)' }}>{tag}</span>
+            <span style={{ marginLeft: 8, fontSize: 'var(--t-1)', color: 'var(--faint)' }}>{tag}</span>
           )}
         </div>
         <div style={{
-          fontSize: 12, color: 'var(--faint)', overflow: 'hidden',
+          fontSize: 'var(--t-2)', color: 'var(--faint)', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {sub} · {age <= 0 ? 'hoy' : age === 1 ? 'ayer' : `hace ${age} d`}
         </div>
       </button>
       {onRemove && (
-        <button onClick={onRemove} aria-label="Borrar" style={{
-          flexShrink: 0, width: 36, height: 36, borderRadius: '50%',
-          display: 'grid', placeItems: 'center', color: 'var(--danger)',
-          background: 'rgba(255,122,102,.1)',
+        <button onClick={onRemove} aria-label="Borrar" className="icon-btn" style={{
+          color: 'var(--danger)', background: 'rgba(255,122,102,.1)',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 2H8l1-2Z" />
