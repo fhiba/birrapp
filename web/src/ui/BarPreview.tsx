@@ -102,10 +102,10 @@ export function BarPreview({
         className="desk-narrow"
         style={{
           pointerEvents: 'auto',
-          background: 'var(--raised)', borderRadius: 22,
-          border: '.8px solid rgba(255,255,255,.14)',
+          background: 'var(--raised)', borderRadius: 'var(--r-4)',
+          border: '.8px solid var(--hairline)',
           boxShadow: '0 -6px 34px rgba(0,0,0,.5)',
-          padding: '8px 16px 14px',
+          padding: '8px 16px 16px',
         }}
       >
         {/* Zona de agarre: el manijón y el nombre. Los botones quedan afuera
@@ -118,29 +118,28 @@ export function BarPreview({
         >
           <div aria-hidden style={{
             width: 38, height: 4, borderRadius: 2, margin: '0 auto 10px',
-            background: 'rgba(255,255,255,.22)',
+            background: 'var(--film-3)',
           }} />
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 className="ttl" style={{
-                margin: 0, fontSize: 19, lineHeight: 1.25,
+                margin: 0, fontSize: 'var(--t-5)', lineHeight: 1.25,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{bar.name}</h2>
               {distance && (
-                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--faint)' }}>
+                <p style={{ margin: '4px 0 0', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                   {distance}
                 </p>
               )}
             </div>
 
+            {/* Era de 30px: por debajo del piso de 44 que la app ya dice
+                cumplir, y encima es el botón que se aprieta con el pulgar
+                mientras se camina. */}
             <button
-              onClick={onClose} aria-label="Cerrar"
-              style={{
-                flexShrink: 0, width: 30, height: 30, borderRadius: '50%',
-                display: 'grid', placeItems: 'center', color: 'var(--muted)',
-                background: 'rgba(255,255,255,.06)',
-              }}
+              onClick={onClose} aria-label="Cerrar" className="icon-btn"
+              style={{ color: 'var(--muted)', background: 'var(--film-2)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
                 <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
@@ -153,29 +152,32 @@ export function BarPreview({
         {/* La regla de la casa: el precio nunca va solo, la antigüedad va al
             lado. Un pin sin precio no tiene ninguno vigente —o los que hay
             son stale—, y eso también se dice. */}
-        <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 8,
-          margin: '12px 0 2px', minHeight: 30,
-        }}>
+        <div style={{ margin: '12px 0 2px', minHeight: 48 }}>
           {price != null ? (
             <>
-              <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>desde</span>
-              <span className="num" style={{ fontSize: 25, color: 'var(--cream)' }}>
-                {formatPrice(price, bar.currency)}
-              </span>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                marginLeft: 'auto', fontSize: 12, color: 'var(--muted)',
-                whiteSpace: 'nowrap',
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>desde</span>
+                <span className="num" style={{
+                  fontSize: 'var(--t-8)', lineHeight: 1.05, color: 'var(--cream)',
+                }}>{formatPrice(price, bar.currency)}</span>
+              </div>
+
+              {/* La antigüedad, debajo del monto y no al costado — misma forma
+                  que en la ficha del bar. Al costado y alineada al otro
+                  extremo se leía como un dato aparte; es parte del precio. */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
+                marginTop: 'var(--s-1)', fontSize: 'var(--t-2)', color: ageColor(age),
               }}>
                 <span aria-hidden style={{
-                  width: 7, height: 7, borderRadius: '50%', background: ageColor(age),
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: ageColor(age), flexShrink: 0,
                 }} />
                 {shortAge(age)}
-              </span>
+              </div>
             </>
           ) : (
-            <span style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+            <span style={{ fontSize: 'var(--t-3)', color: 'var(--muted)' }}>
               Sin precio vigente
             </span>
           )}
@@ -186,8 +188,8 @@ export function BarPreview({
             onClick={onOpen}
             className="lbl"
             style={{
-              flex: 1, height: 44, borderRadius: 14, fontSize: 14,
-              background: 'var(--amber)', color: 'var(--base)', fontWeight: 600,
+              flex: 1, height: 44, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+              background: 'var(--acento)', color: 'var(--base)', fontWeight: 600,
             }}
           >
             {price != null ? 'Ver el bar' : 'Cargar el primer precio'}
@@ -197,9 +199,9 @@ export function BarPreview({
             href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`}
             target="_blank" rel="noreferrer" aria-label="Cómo llegar"
             style={{
-              flexShrink: 0, width: 44, height: 44, borderRadius: 14,
+              flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--r-3)',
               display: 'grid', placeItems: 'center',
-              background: 'var(--elevated)', color: 'var(--amber)',
+              background: 'var(--elevated)', color: 'var(--acento)',
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

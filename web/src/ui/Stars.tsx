@@ -2,10 +2,18 @@ import { useEffect, useState } from 'react'
 /**
  * Cinco estrellas, en dos modos.
  *
- * Cuando ya votaste se pintan en ámbar; cuando no, en gris. Es la diferencia
- * que pediste: de un vistazo se ve dónde falta tu voto sin abrir nada. El
- * promedio de la comunidad va siempre como relleno parcial por debajo, así
- * que las dos cosas se leen juntas y no compiten.
+ * Cuando ya votaste se pintan en el acento; cuando no, en gris. Es la
+ * diferencia que pediste: de un vistazo se ve dónde falta tu voto sin abrir
+ * nada. El promedio de la comunidad va siempre como relleno parcial por
+ * debajo, así que las dos cosas se leen juntas y no compiten.
+ *
+ * El acento se queda acá, y no pasa a `--aging`, aunque la nota sea un dato.
+ * El color no codifica *cuánto* vale la nota —eso lo dice el relleno parcial,
+ * que es lo que un 3,7 y un 4,1 tienen de distinto— sino de *quién* es el
+ * voto: el tuyo contra el de la comunidad. Eso es lo mismo que el aro de
+ * favorito en el mapa, o sea marca. Pintarlas de `--aging` diría "esta nota
+ * tiene entre 14 y 45 días", que es una frase sobre precios y acá no
+ * significa nada.
  */
 export function Stars({
   value, mine, size = 18, onRate,
@@ -17,7 +25,7 @@ export function Stars({
   onRate?: (n: number) => void
 }) {
   const filled = value ?? 0
-  const color = mine ? 'var(--amber)' : 'var(--muted)'
+  const color = mine ? 'var(--acento)' : 'var(--muted)'
 
   return (
     <div style={{ display: 'flex', gap: 2 }} role={onRate ? 'group' : undefined}
@@ -36,14 +44,14 @@ export function Stars({
               padding: 0, lineHeight: 0, cursor: onRate ? 'pointer' : 'default',
               // Sin esto el área tocable son los ~14px del glifo, por debajo
               // del mínimo cómodo en un teléfono.
-              ...(onRate ? { padding: 3, margin: -3 } : {}),
+              ...(onRate ? { padding: 4, margin: -3 } : {}),
             }}
           >
             <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
               <defs>
                 <linearGradient id={`s${n}-${pct}-${mine}`}>
                   <stop offset={`${pct}%`} stopColor={color} />
-                  <stop offset={`${pct}%`} stopColor="rgba(255,255,255,.14)" />
+                  <stop offset={`${pct}%`} stopColor="var(--hairline)" />
                 </linearGradient>
               </defs>
               <path
@@ -113,7 +121,7 @@ export function RatingField({ rating, onCommit }: {
         setText(n != null ? String(n) : real)
       }}
       style={{
-        width: 52, padding: '4px 6px', borderRadius: 8, fontSize: 13,
+        width: 56, padding: '4px 8px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-field)',
         background: 'transparent', border: '1px solid var(--hairline)',
         color: 'inherit', fontFamily: 'inherit',
       }}

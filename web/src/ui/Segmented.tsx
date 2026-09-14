@@ -31,8 +31,8 @@ export function Segmented<T extends string>({
       data-tour={tourId}
       role="group"
       style={{
-        display: 'flex', padding: 3, flexShrink: 0, alignItems: 'center',
-        background: tone === 'plain' ? 'rgba(255,255,255,.07)' : undefined,
+        display: 'flex', padding: 4, flexShrink: 0, alignItems: 'center',
+        background: tone === 'plain' ? 'var(--film-2)' : undefined,
       }}
     >
       {options.map(o => {
@@ -45,14 +45,14 @@ export function Segmented<T extends string>({
             aria-pressed={on}
             aria-label={label?.(o)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, height,
+              display: 'flex', alignItems: 'center', gap: 8, height,
               // El activo respira un poco más: es lo que hace que la cápsula
               // se lea como una posición del interruptor y no como un botón
               // más de la fila.
               padding: on ? '0 12px' : '0 10px',
-              borderRadius: 999, fontSize: 12.5, whiteSpace: 'nowrap',
-              background: on ? 'var(--amber)' : 'transparent',
-              color: on ? 'var(--base)' : 'rgba(251,246,238,.7)',
+              borderRadius: 999, fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
+              background: on ? 'var(--acento)' : 'transparent',
+              color: on ? 'var(--base)' : 'rgba(244,245,247,.7)',
               transition: 'background .15s',
             }}
           >

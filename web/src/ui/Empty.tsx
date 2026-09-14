@@ -24,7 +24,7 @@ export function Empty({ title, hint, action, onAction }: {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      textAlign: 'center', padding: '44px 24px', gap: 8,
+      textAlign: 'center', padding: '48px 24px', gap: 8,
     }}>
       {/* Un vaso vacío, dibujado con el mismo trazo que el resto de la app y
           no un emoji, que cambia de forma y de color en cada sistema. */}
@@ -36,18 +36,18 @@ export function Empty({ title, hint, action, onAction }: {
         />
       </svg>
 
-      <p className="lbl" style={{ fontSize: 15, margin: 0 }}>{title}</p>
+      <p className="lbl" style={{ fontSize: 'var(--t-4)', margin: 0 }}>{title}</p>
 
       {hint && (
         <p style={{
-          color: 'var(--faint)', fontSize: 13, margin: 0, lineHeight: 1.55, maxWidth: 320,
+          color: 'var(--faint)', fontSize: 'var(--t-3)', margin: 0, lineHeight: 1.55, maxWidth: 320,
         }}>{hint}</p>
       )}
 
       {action && onAction && (
         <button onClick={onAction} className="lbl" style={{
-          marginTop: 10, padding: '12px 20px', borderRadius: 13, fontSize: 14,
-          minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+          marginTop: 12, padding: '12px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+          minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
         }}>{action}</button>
       )}
     </div>
@@ -66,15 +66,15 @@ export function SkeletonRows({ rows = 6, children }: { rows?: number; children?:
     <div aria-hidden style={{ padding: '10px 18px 0' }}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: 14,
-          padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,.06)',
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '15px 0', borderBottom: '1px solid var(--film-2)',
           // Se van apagando hacia abajo: dice "hay más" sin dibujar más filas.
           opacity: 1 - i * 0.13,
         }}>
           <div className="skeleton" style={{ width: 3, height: 34, borderRadius: 999 }} />
           <div style={{ flex: 1 }}>
             <div className="skeleton" style={{ height: 14, width: `${55 + (i % 3) * 12}%` }} />
-            <div className="skeleton" style={{ height: 10, width: '35%', marginTop: 7 }} />
+            <div className="skeleton" style={{ height: 10, width: '35%', marginTop: 8 }} />
           </div>
           <div className="skeleton" style={{ height: 18, width: 62 }} />
         </div>

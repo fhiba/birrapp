@@ -39,7 +39,7 @@ export function AvatarPicker({
   const initial = user.displayName.trim().slice(0, 1).toUpperCase() || '?'
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
       <button
         onClick={() => picker.current?.click()}
         disabled={busy}
@@ -54,7 +54,7 @@ export function AvatarPicker({
           ? <img src={user.avatarUrl} alt="" style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
             }} />
-          : <span className="ttl" style={{ fontSize: 24, color: 'var(--muted)' }}>
+          : <span className="ttl" style={{ fontSize: 'var(--t-7)', color: 'var(--muted)' }}>
               {initial}
             </span>}
 
@@ -64,7 +64,7 @@ export function AvatarPicker({
           position: 'absolute', right: 0, bottom: 0,
           width: 22, height: 22, borderRadius: '50%',
           display: 'grid', placeItems: 'center',
-          background: 'var(--amber)', color: 'var(--base)',
+          background: 'var(--acento)', color: 'var(--base)',
           border: '2px solid var(--base)',
         }}>
           {busy
@@ -82,23 +82,23 @@ export function AvatarPicker({
       <div style={{ minWidth: 0 }}>
         <button
           onClick={() => picker.current?.click()} disabled={busy}
-          className="lbl" style={{ fontSize: 13, color: 'var(--amber)', padding: 0 }}
+          className="lbl" style={{ fontSize: 'var(--t-3)', color: 'var(--acento)', padding: 0 }}
         >{busy ? 'Subiendo…' : user.avatarUrl ? 'Cambiar foto' : 'Poner una foto'}</button>
 
         {/* Sólo si hay algo propio que sacar. Con la de Google no aplica: no es
             nuestra para borrarla. */}
         {user.avatarUrl?.includes('/avatar/') && (
           <>
-            <span style={{ color: 'var(--faint)', margin: '0 7px' }}>·</span>
+            <span style={{ color: 'var(--faint)', margin: '0 8px' }}>·</span>
             <button
               onClick={() => setConfirmRemove(true)} disabled={busy}
-              style={{ fontSize: 13, color: 'var(--muted)', padding: 0 }}
+              style={{ fontSize: 'var(--t-3)', color: 'var(--muted)', padding: 0 }}
             >Sacarla</button>
           </>
         )}
 
         {error && (
-          <p style={{ color: 'var(--danger)', fontSize: 12, margin: '4px 0 0' }}>{error}</p>
+          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-2)', margin: '4px 0 0' }}>{error}</p>
         )}
       </div>
 

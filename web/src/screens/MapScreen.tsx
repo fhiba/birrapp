@@ -3,18 +3,31 @@ import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
-import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
+import { formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
-import { MAP_STYLE } from '../mapStyle'
+import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
-import { Segmented } from '../ui/Segmented'
 import { AddMenu, type AddAction } from '../ui/AddMenu'
 import { ReportFlow } from './ReportFlow'
 import { LogBeerSheet } from './LogBeer'
 import { Toast } from '../ui/Chrome'
 
-export type ColorBy = 'freshness' | 'price'
+/*
+ * El color del pin codifica el precio, y sólo el precio.
+ *
+ * Hasta la 0.11.0 había un interruptor para elegir entre frescura y precio.
+ * Verde/ámbar/rojo es una convención tan fuerte para barato/caro que ésa era
+ * la lectura por defecto aunque estuviera en modo frescura — o sea que la
+ * mitad del tiempo el mapa decía una cosa y se leía otra. Un control que
+ * existe para desambiguar algo que no debería ser ambiguo es el síntoma, no
+ * la solución.
+ *
+ * La frescura no se pierde: sigue en el punto de color al lado de cada
+ * precio, en la preview, en la ficha y en la barrita de la lista. Ahí es un
+ * dato de UN precio, que es lo que la frescura es. Pintar el mapa entero con
+ * ella la convertía en una segunda escala compitiendo con la primera.
+ */
 
 /** Los extremos del slider, en metros. Compartidos con las etiquetas de abajo
  *  para que no se puedan desincronizar del `min`/`max` reales. */
@@ -36,9 +49,6 @@ interface Props {
   simulated: google.maps.LatLngLiteral | null
   radius: number; styleFilter?: string
   tooZoomedOut: boolean
-  /** Qué codifica el color de los pines. Ver el comentario del toggle. */
-  colorBy: ColorBy
-  onColorBy: (c: ColorBy) => void
   onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onSimulate: (p: google.maps.LatLngLiteral | null) => void
@@ -87,6 +97,11 @@ export function MapScreen(p: Props) {
     p.onSimulate(pt)
   }, [p.onSimulate])
 
+  // Los nombres de calle aparecen recién de cerca. Dos arrays constantes: la
+  // identidad no cambia entre renders, así el mapa no se re-estila por nada.
+  const styles = (p.camera?.zoom ?? 0) >= CALLES_DESDE_ZOOM
+    ? MAP_STYLE_CON_CALLES : MAP_STYLE
+
   if (!p.center) return <PintLoader message="Buscando dónde estás…" />
 
   return (
@@ -96,7 +111,7 @@ export function MapScreen(p: Props) {
         defaultZoom={p.camera?.zoom ?? 15}
         disableDefaultUI
         gestureHandling="greedy"
-        styles={MAP_STYLE}
+        styles={styles}
         onClick={() => {
           if (Date.now() - longPressAt.current < 600) return
           // Un toque cierra lo que esté abierto, de arriba hacia abajo, y
@@ -118,7 +133,7 @@ export function MapScreen(p: Props) {
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
-        <Pins bars={p.bars} colorBy={p.colorBy} selectedId={preview?.id ?? null}
+        <Pins bars={p.bars} selectedId={preview?.id ?? null}
           favorites={p.favorites} onOpen={setPreview} />
       </Map>
 
@@ -183,53 +198,42 @@ export function MapScreen(p: Props) {
             data-tour="map-radius"
             className="lbl pill glass"
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, height: 44,
-              padding: '0 var(--pill-pad)', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 8, height: 44,
+              padding: '0 var(--pill-pad)', fontSize: 'var(--t-3)',
               flexShrink: 0, whiteSpace: 'nowrap',
-              background: radiusOpen ? 'var(--amber)' : undefined,
+              background: radiusOpen ? 'var(--acento)' : undefined,
               color: radiusOpen ? 'var(--base)' : undefined,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24"
-              fill={radiusOpen ? 'var(--base)' : 'var(--muted)'} aria-hidden>
+              fill={radiusOpen ? 'var(--base)' : 'var(--sobre-vidrio)'} aria-hidden>
               <path d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
             </svg>
             {/* Ancho fijo: si la etiqueta crece al arrastrar ("15 km" contra
                 "1.5 km"), la fila cambia de ancho y el botón salta de
                 renglón mientras movés el slider. */}
             <span style={{
-              color: radiusOpen ? 'var(--base)' : 'var(--amber)',
+              color: radiusOpen ? 'var(--base)' : 'var(--acento)',
               minWidth: 46, textAlign: 'center',
             }}>
               {formatRadius(p.radius)}
             </span>
           </button>
 
-          {/*
-            El color del pin codifica una cosa u otra, y hasta ahora codificaba
-            la frescura sin decirlo en ninguna parte. Verde/ámbar/rojo es una
-            convención tan fuerte para barato/caro que ésa era la lectura por
-            defecto, incluso para quien escribió la app.
-
-            El toggle resuelve las dos mitades del problema: deja elegir qué
-            mirar, y al nombrar el modo activo dice qué significan los colores.
-
-            Va en la misma fila que el estilo y el radio, y no en un renglón
-            propio: son los tres filtros del mapa y tenerlos en dos filas se
-            comía una franja de mapa entera para tres botones. Por eso el modo
-            apagado muestra sólo sus tres colores, sin texto — la fila no entra
-            en un teléfono angosto con las dos etiquetas puestas, y el nombre
-            del modo que importa es el del que está prendido.
-          */}
-          <Segmented<ColorBy>
-            options={[
-              { value: 'freshness', label: 'Frescura', icon: <Swatch mode="freshness" /> },
-              { value: 'price', label: 'Precio', icon: <Swatch mode="price" /> },
-            ]}
-            value={p.colorBy} onChange={p.onColorBy}
-            label={o => `Colorear por ${o.label.toLowerCase()}`}
-            tourId="map-color"
-          />
+          {/* La leyenda de los colores.
+              Ocupa el lugar que tenía el interruptor y por el mismo motivo por
+              el que el interruptor servía: era él quien decía qué significan
+              los colores. Sacarlo a secas dejaba el mapa pintado y mudo.
+              Como leyenda ocupa la mitad y no se puede tocar por error. */}
+          <div data-tour="map-color" className="pill glass" style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
+            padding: '0 var(--pill-pad)', height: 34, flexShrink: 0,
+            fontSize: 'var(--t-1)', color: 'var(--sobre-vidrio)', whiteSpace: 'nowrap',
+          }}>
+            <span>barato</span>
+            <Swatch />
+            <span>caro</span>
+          </div>
         </div>
 
         {/* El slider va acá, pegado a los controles: es el control que lo
@@ -244,16 +248,16 @@ export function MapScreen(p: Props) {
               // elegir entre 300 m y 15 km. Arrastrar de punta a punta
               // cambiaba el radio 8 metros por píxel.
               width: 'calc(100% - 28px)', maxWidth: 420, pointerEvents: 'auto',
-              borderRadius: 18, padding: '10px 18px 8px',
+              borderRadius: 'var(--r-3)', padding: '12px 16px 8px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ color: 'var(--muted)', fontSize: 12, minWidth: 0,
+              <span style={{ color: 'var(--sobre-vidrio)', fontSize: 'var(--t-2)', minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
               </span>
               <span className="lbl" style={{
-                marginLeft: 'auto', paddingLeft: 10, color: 'var(--amber)', fontSize: 14,
+                marginLeft: 'auto', paddingLeft: 12, color: 'var(--acento)', fontSize: 'var(--t-4)',
                 whiteSpace: 'nowrap',
               }}>{formatRadius(p.radius)}</span>
             </div>
@@ -268,7 +272,7 @@ export function MapScreen(p: Props) {
             />
             <div style={{
               display: 'flex', justifyContent: 'space-between',
-              color: 'var(--faint)', fontSize: 10.5, marginTop: 2,
+              color: 'var(--sobre-vidrio)', fontSize: 'var(--t-1)', marginTop: 2, opacity: .75,
             }}>
               <span>{formatRadius(RADIUS_MIN)}</span><span>{formatRadius(RADIUS_MAX)}</span>
             </div>
@@ -277,7 +281,7 @@ export function MapScreen(p: Props) {
 
         {p.tooZoomedOut && (
           <div className="glass pill" style={{
-            padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
             pointerEvents: 'auto',
           }}>Acercá el mapa para ver bares</div>
         )}
@@ -297,21 +301,21 @@ export function MapScreen(p: Props) {
         */}
         {!p.loading && !p.tooZoomedOut && p.bars.length === 0 && (
           <div className="glass" style={{
-            pointerEvents: 'auto', maxWidth: 340, borderRadius: 16,
-            padding: '14px 16px', textAlign: 'center',
+            pointerEvents: 'auto', maxWidth: 340, borderRadius: 'var(--r-3)',
+            padding: '16px 16px', textAlign: 'center',
           }}>
-            <p className="lbl" style={{ margin: 0, fontSize: 14 }}>
+            <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
               Por acá no hay bares cargados
             </p>
             <p style={{
-              margin: '6px 0 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5,
+              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)', lineHeight: 1.5,
             }}>
               El mapa lo hacemos entre todos. Si conocés uno en esta zona,
               cargalo y queda para el resto.
             </p>
             <button onClick={() => nav('/agregar')} className="lbl" style={{
-              marginTop: 12, padding: '11px 18px', borderRadius: 12, fontSize: 13.5,
-              minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+              marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+              minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
             }}>Agregar un bar</button>
           </div>
         )}
@@ -333,7 +337,7 @@ export function MapScreen(p: Props) {
         {p.locationUnknown && (
           <div className="glass pill" style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: '7px 14px', fontSize: 12, color: 'var(--muted)',
+            padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
             pointerEvents: 'auto', maxWidth: 'calc(100% - 28px)',
           }}>
             {p.locationBlocked ? (
@@ -345,7 +349,7 @@ export function MapScreen(p: Props) {
               <>
                 <span>No pudimos ubicarte — esto es el centro</span>
                 <button onClick={p.onRecenter} className="lbl" style={{
-                  color: 'var(--amber)', fontSize: 12, whiteSpace: 'nowrap',
+                  color: 'var(--acento)', fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
                 }}>Reintentar</button>
               </>
             )}
@@ -371,7 +375,7 @@ export function MapScreen(p: Props) {
                 ubicación: es el color de cada uno de los dos puntos en el
                 mapa, así el botón dice a cuál va antes de tocarlo. */}
             <svg width="21" height="21" viewBox="0 0 24 24"
-              fill={p.simulated ? 'var(--cream)' : 'var(--amber)'} aria-hidden>
+              fill={p.simulated ? 'var(--cream)' : 'var(--acento)'} aria-hidden>
               <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
             </svg>
           </button>
@@ -437,15 +441,10 @@ export function MapScreen(p: Props) {
 }
 
 /**
- * Los tres colores del modo, en miniatura.
- *
- * Es la leyenda: sin esto el toggle diría qué se está mirando pero no qué
- * significa cada color, que es la mitad que faltaba.
+ * La escala de precio en miniatura, del más barato al más caro.
  */
-function Swatch({ mode }: { mode: ColorBy }) {
-  const colors = mode === 'freshness'
-    ? ['var(--fresh)', 'var(--aging)', 'var(--stale)']
-    : [priceColor(0), priceColor(0.5), priceColor(1)]
+function Swatch() {
+  const colors = [priceColor(0), priceColor(0.35), priceColor(0.65), priceColor(1)]
   return (
     <span style={{ display: 'flex', gap: 2 }} aria-hidden>
       {colors.map(c => (
@@ -465,9 +464,9 @@ function Swatch({ mode }: { mode: ColorBy }) {
  * decide quién gana, no evita que la cápsula de abajo quede cortada.
  */
 function Pins({
-  bars, colorBy, selectedId, favorites, onOpen,
+  bars, selectedId, favorites, onOpen,
 }: {
-  bars: BarPin[]; colorBy: ColorBy
+  bars: BarPin[]
   selectedId: number | null
   favorites: Set<number>
   onOpen: (b: BarPin) => void
@@ -489,14 +488,14 @@ function Pins({
   // El puesto se calcula sobre lo que hay en pantalla, así que la escala se
   // reajusta al moverse: en Palermo lo barato es otro número que en Liniers, y
   // un color absoluto no diría nada en ninguno de los dos.
-  const ranks = colorBy === 'price'
-    ? priceRanks(bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]))
-    : null
+  const ranks = priceRanks(
+    bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
+  )
 
+  // Sin precio no hay puesto, y un bar sin precio no es "caro": es desconocido.
+  // Por eso va en gris y no en un extremo de la escala.
   const colorOf = (b: BarPin) =>
-    ranks != null
-      ? (ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)')
-      : (b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)')
+    ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)'
 
   /**
    * Centrar el bar tocado, pero arriba de la tarjeta y no debajo.
@@ -567,7 +566,7 @@ function Pins({
 function resolve(color: string) {
   if (!color.startsWith('var(')) return color
   const name = color.slice(4, -1).trim()
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#FFB627'
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#EDE6D8'
 }
 
 const svgUrl = (svg: string) =>
@@ -587,6 +586,11 @@ function priceIcon(
   const s = on ? 1.16 : 1
   // El corazón se lleva su ancho: sin esto se monta sobre el último dígito
   // del precio, que es justo el que no se puede perder.
+  //
+  // El ancho se estima como 8,6px por carácter, y eso sólo es cierto si todos
+  // los dígitos miden lo mismo — por eso el `<text>` de abajo pide cifras
+  // tabulares. Sin ellas, "$11.111" queda nadando en una cápsula de más y
+  // "$8.888" se sale por los costados.
   const w = (20 + label.length * 8.6 + (fav ? 13 : 0)) * s
   const h = 26 * s
   // El aro se dibuja por dentro del borde, así que el lienzo tiene que
@@ -594,12 +598,14 @@ function priceIcon(
   const pad = on ? 4 : 0
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w + pad * 2}" height="${h + pad * 2}">
     <rect x="${pad + 0.5}" y="${pad + 0.5}" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
-      fill="${fill}" stroke="${on ? '#FBF6EE' : 'rgba(255,255,255,.55)'}"
+      fill="${fill}" stroke="${on ? '#F4F5F7' : 'rgba(255,255,255,.55)'}"
       stroke-width="${on ? 2.5 : 1}"/>
     <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
       text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
-      font-weight="700" fill="#1A1410">${label}</text>
+      font-weight="700" font-variant-numeric="tabular-nums"
+      style="font-variant-numeric:tabular-nums"
+      fill="#0F1012">${label}</text>
     ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
   </svg>`
   return {
@@ -616,7 +622,7 @@ function priceIcon(
  */
 function heartPath(x: number, y: number, size: number) {
   const k = size / 24
-  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#1A1410">
+  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#0F1012">
     <path d="M12 21 3.2 12.2a5.6 5.6 0 0 1 7.9-7.9l.9.9.9-.9a5.6 5.6 0 0 1 7.9 7.9L12 21Z"/>
   </g>`
 }
@@ -624,9 +630,16 @@ function heartPath(x: number, y: number, size: number) {
 /**
  * El punto, para los bares cuya etiqueta no entró.
  *
- * El favorito se marca con un aro ámbar y no con un corazón: a 9 píxeles, un
+ * El favorito se marca con un aro y no con un corazón: a 9 píxeles, un
  * corazón es una mancha. El aro se distingue igual y no pretende ser un
  * dibujo.
+ *
+ * El aro va en `--acento-deep` y no en `--acento` a secas. El favorito es
+ * marca ("es tuyo"), no dato, así que le toca la familia del acento; pero el
+ * aro del bar abierto ya es `--cream` (#F4F5F7) y el acento pleno (#EDE6D8)
+ * queda a un suspiro de ese blanco: con la paleta Hueso, dos aros de 2px a 9
+ * píxeles pasaban a ser el mismo aro. El paso oscuro del acento (#CEBA94)
+ * mantiene la distinción sin volver a meter un tono que signifique un precio.
  */
 function dotIcon(
   color: string, size: number, on = false, fav = false,
@@ -636,9 +649,9 @@ function dotIcon(
   const box = size + pad * 2
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}">
     ${on ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 2.5}"
-      fill="none" stroke="#FBF6EE" stroke-width="2.5"/>`
+      fill="none" stroke="#F4F5F7" stroke-width="2.5"/>`
       : fav ? `<circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 + 1.5}"
-      fill="none" stroke="#FFB627" stroke-width="2"/>` : ''}
+      fill="none" stroke="${resolve('var(--acento-deep)')}" stroke-width="2"/>` : ''}
     <circle cx="${box / 2}" cy="${box / 2}" r="${size / 2 - 0.5}" fill="${fill}"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(box / 2, box / 2) }
@@ -646,8 +659,8 @@ function dotIcon(
 
 function simulatedIcon(): google.maps.Icon {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26">
-    <circle cx="13" cy="13" r="13" fill="rgba(251,246,238,.28)"/>
-    <circle cx="13" cy="13" r="6.5" fill="#FBF6EE"/>
+    <circle cx="13" cy="13" r="13" fill="rgba(244,245,247,.28)"/>
+    <circle cx="13" cy="13" r="6.5" fill="#F4F5F7"/>
   </svg>`
   return { url: svgUrl(svg), anchor: new google.maps.Point(13, 13) }
 }
