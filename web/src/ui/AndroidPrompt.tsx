@@ -42,7 +42,7 @@ export function AndroidPrompt() {
         </div>
       </div>
       <a href="/descargar" className="lbl pill" style={{
-        background: 'var(--amber)', color: 'var(--base)', textDecoration: 'none',
+        background: 'var(--acento)', color: 'var(--base)', textDecoration: 'none',
         padding: '8px 16px', fontSize: 'var(--t-3)', whiteSpace: 'nowrap',
       }}>Descargar</a>
       <button onClick={dismiss} aria-label="Cerrar" style={{

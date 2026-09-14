@@ -17,10 +17,10 @@
 export type Series = { label: string; color: string; points: number[] }
 
 /**
- * Paleta por tipo de aporte. Fondo único y oscuro (`--base: #1A1410`).
+ * Paleta por tipo de aporte. Fondo único y oscuro (`--base: #0F1012`).
  *
  * Validada con la skill `dataviz` sobre ese fondo (`validate_palette.js
- * --mode dark --surface #1A1410`). Contra esa vara, la propuesta de arranque
+ * --mode dark --surface #0F1012`). Contra esa vara, la propuesta de arranque
  * fallaba tres chequeos, así que se ajustó:
  *
  *  - `confirmations` era `#8A7B6D` (el token `--faint`): croma casi nulo, el
@@ -38,15 +38,21 @@ export type Series = { label: string; color: string; points: number[] }
  *    magenta de la paleta de referencia: el peor par adyacente bajo
  *    daltonismo queda en ΔE 15,9.
  *
- * `prices` conserva el ámbar de la marca (`--amber: #FFB627`) a pesar de que
- * su luminosidad queda por encima de la banda que pide la skill: es el token
- * de acento, es la serie que debe gritar más (el aporte que más importa) y es
- * un tono cálido único que ningún tipo de daltonismo confunde con los otros
- * cuatro. Pasa el chequeo de contraste; el de banda existe para que ninguna
- * serie eclipse al resto y acá esa jerarquía es deliberada.
+ * `prices` se queda en `#FFB627` a pesar de que su luminosidad queda por
+ * encima de la banda que pide la skill: es la serie que debe gritar más (el
+ * aporte que más importa) y es un tono cálido único que ningún tipo de
+ * daltonismo confunde con los otros cuatro. Pasa el chequeo de contraste; el
+ * de banda existe para que ninguna serie eclipse al resto y acá esa jerarquía
+ * es deliberada.
+ *
+ * Antes ese hex era además el del acento de marca, y ese doble uso es
+ * justamente lo que la paleta Hueso vino a cortar. Acá sobrevive porque de los
+ * dos significados el que se queda con el color es el dato: es el mismo ámbar
+ * de `--aging` y de `PRICE_STOPS`, o sea "esto habla de precios". Que sea una
+ * serie de un gráfico y no cromo es lo que lo hace legítimo.
  */
 export const KIND_COLORS = {
-  prices:        '#FFB627', // ámbar de la marca (--amber): la serie protagonista
+  prices:        '#FFB627', // el ámbar del precio (--aging): la serie protagonista
   // Violeta y no un oro apagado. El oro leía como "confirmación es un precio
   // más flojo", que es la idea correcta, pero quedaba pegado al ámbar en la
   // barra apilada: dos tonos de la misma familia con 2px de hueco en el medio.
@@ -215,7 +221,7 @@ export function HBars({
         const w = (r.value / max) * (W - labelW - 52)
         return (
           <g key={r.label}>
-            <text x={0} y={y + 16} {...LABEL} fontSize={11} fill="#B6A899">
+            <text x={0} y={y + 16} {...LABEL} fontSize={11} fill="#9DA5AD">
               {r.label.length > 18 ? `${r.label.slice(0, 17)}…` : r.label}
             </text>
             <rect x={labelW} y={y + 5} width={Math.max(2, w)} height={13} rx={3}
@@ -223,7 +229,7 @@ export function HBars({
               <title>{`${r.label}: ${r.hint ?? r.value}`}</title>
             </rect>
             <text x={labelW + Math.max(2, w) + 6} y={y + 16} {...LABEL} fontSize={11}
-              fill="#FBF6EE">{r.hint ?? r.value}</text>
+              fill="#F4F5F7">{r.hint ?? r.value}</text>
           </g>
         )
       })}

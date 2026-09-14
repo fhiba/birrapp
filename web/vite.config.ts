@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const BASE = process.env.VITE_BASE_PATH ?? '/app/'
-const VERSION = '0.12.0'
+const VERSION = '0.13.0'
 
 export default defineConfig({
   plugins: [
@@ -20,8 +20,8 @@ export default defineConfig({
         // standalone = sin barra del navegador cuando se agrega a la pantalla
         // de inicio. Es lo que la hace parecer una app en iOS.
         display: 'standalone',
-        background_color: '#1A1410',
-        theme_color: '#1A1410',
+        background_color: '#0F1012',
+        theme_color: '#0F1012',
         start_url: BASE,
         scope: BASE,
         id: BASE,

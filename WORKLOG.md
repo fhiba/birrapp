@@ -2359,3 +2359,61 @@ y el rojo, así que el acento tiene que dejarlos libres.
   tono, así que el ámbar nunca termina de saltar.
 
 Pendiente de decisión.
+
+---
+
+## 2026-09-13 — v0.13.0: Hueso, o sacarle el color a la marca
+
+La decisión que quedó pendiente en la 0.12.0. Ninguna de las cinco propuestas:
+el problema no era qué acento elegir sino que la marca tuviera acento de color.
+
+El ámbar de la marca era `--amber: #FFB627`, y ése es *exactamente* el mismo
+hex que el punto "precio medio-alto" de `PRICE_STOPS` y que `--aging`. O sea
+que el color de los botones, de la pestaña activa y de los links era además un
+valor del dato. En un mapa con bares de precio medio —que es la mayoría del
+mapa— el pin de un bar y el botón "Sigue igual" eran el mismo color, y no por
+un descuido de nadie: el token de marca y el token de dato nacieron con el
+mismo valor y nadie volvió a mirarlo. Las cinco propuestas de la 0.12.0
+buscaban un acento que dejara libres el verde, el amarillo y el rojo; Hueso
+deja de buscar y le saca el color al acento.
+
+El fondo pasa de marrón a un neutro apenas frío (`#0F1012` / `#191B1F` /
+`#24272C`) y el acento a blanco cálido (`#EDE6D8`). De acá en más la regla es
+**si tiene color, es un dato**: el cromo vive en la rampa de grises hueso, y el
+verde, el ámbar y el rojo quedan reservados para frescura, precio y peligro. El
+token se llama `--acento` y ya no `--amber`, porque nombrar un token del cromo
+por su color es justamente lo que dejó pasar esto sin que nadie lo viera.
+
+`--fresh`, `--aging`, `--stale`, `--danger`, `PRICE_STOPS` y los escalones
+`.heat-*` no se tocaron. Los contrastes se midieron sobre las tres superficies:
+el peor caso es `--faint` con 4,53:1 sobre `--elevated`, y ninguno baja del
+4,5:1 de WCAG 1.4.3. `--stale`, que en la paleta vieja se quedaba en 4,40 sobre
+`--elevated`, sube a 4,71 de regalo: el fondo nuevo es más oscuro.
+
+El reemplazo fue mecánico en unos cien usos, pero tres lugares no eran marca y
+había que sacarlos a mano. El escalón `.heat-4` del mapa de calor apuntaba a
+`--amber`: la rampa entera del calendario es ámbar y ahí el ámbar es el dato,
+así que ahora apunta a `--aging` —el mismo hex de siempre— en vez de quedar
+pintado de hueso justo en el paso que tiene que gritar. La serie `prices` de
+los gráficos y las series del dashboard se quedan en `#FFB627` por lo mismo:
+una serie sin color deja de ser una serie, y de los dos significados que
+compartían el hex el que se queda con el color es el dato.
+
+El tercero apareció recién al mirarlo. El aro del favorito en el mapa es marca
+—dice "es tuyo"—, así que le tocaba el acento; pero el aro del bar abierto ya
+era `--cream`, y con Hueso el acento queda a un suspiro de ese blanco: dos aros
+de 2px a nueve píxeles pasaban a ser el mismo aro. Va en `--acento-deep`, que
+mantiene la distinción sin volver a meter un tono que signifique un precio.
+
+Las estrellas de puntuación se quedan en el acento y no pasan a `--aging`. El
+color ahí no dice cuánto vale la nota —eso lo dice el relleno parcial— sino de
+quién es el voto, el tuyo contra el de la comunidad, que es lo mismo que el aro
+de favorito. Pintarlas de `--aging` diría "esta nota tiene entre 14 y 45 días",
+que es una frase sobre precios y en una estrella no significa nada.
+
+Queda afuera el ícono de la app. `icon.svg` y `favicon.svg` siguen con la pinta
+ámbar sobre el marrón viejo, y siguen así a propósito: los `icon-192.png` e
+`icon-512.png` son los que usa el manifest y no hay con qué rasterizar los SVG
+en esta máquina, así que cambiar sólo los vectoriales dejaría la pestaña y la
+pantalla de inicio con dos íconos distintos. Un ícono viejo y coherente es
+mejor que uno a medio migrar.

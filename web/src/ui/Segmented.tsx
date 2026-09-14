@@ -51,8 +51,8 @@ export function Segmented<T extends string>({
               // más de la fila.
               padding: on ? '0 12px' : '0 10px',
               borderRadius: 999, fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
-              background: on ? 'var(--amber)' : 'transparent',
-              color: on ? 'var(--base)' : 'rgba(251,246,238,.7)',
+              background: on ? 'var(--acento)' : 'transparent',
+              color: on ? 'var(--base)' : 'rgba(244,245,247,.7)',
               transition: 'background .15s',
             }}
           >

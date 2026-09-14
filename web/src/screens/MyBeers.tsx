@@ -135,7 +135,7 @@ export function MyBeersScreen() {
               borderBottom: '1px solid var(--hairline)',
             }}>
               <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{b.barName}</span>
-              <span className="num" style={{ fontSize: 'var(--t-4)', color: 'var(--amber)' }}>{b.qty}</span>
+              <span className="num" style={{ fontSize: 'var(--t-4)', color: 'var(--acento)' }}>{b.qty}</span>
             </button>
           ))}
         </>
@@ -252,11 +252,11 @@ function BadgeCard({ badge }: { badge: Badge }) {
   return (
     <div style={{
       padding: '12px 12px', borderRadius: 'var(--r-3)',
-      background: earned ? 'var(--amber-soft)' : 'var(--film-1)',
-      border: `1px solid ${earned ? 'rgba(255,182,39,.35)' : 'transparent'}`,
+      background: earned ? 'var(--acento-soft)' : 'var(--film-1)',
+      border: `1px solid ${earned ? 'rgba(237,230,216,.35)' : 'transparent'}`,
     }}>
       <div className="lbl" style={{
-        fontSize: 'var(--t-3)', color: earned ? 'var(--amber)' : 'var(--muted)',
+        fontSize: 'var(--t-3)', color: earned ? 'var(--acento)' : 'var(--muted)',
       }}>{badge.name}</div>
       <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
         {badge.detail}
@@ -270,7 +270,7 @@ function BadgeCard({ badge }: { badge: Badge }) {
           }}>
             <div style={{
               width: `${(badge.progress / badge.target) * 100}%`, height: '100%',
-              background: 'var(--amber-deep)',
+              background: 'var(--acento-deep)',
             }} />
           </div>
           <div className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4 }}>

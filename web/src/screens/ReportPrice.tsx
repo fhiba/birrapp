@@ -101,7 +101,7 @@ export function ReportPrice({
           <div className="ttl" style={{ fontSize: 'var(--t-6)' }}>
             {styleName}
             {brandName && (
-              <span style={{ color: 'var(--amber)' }}> · {brandName}</span>
+              <span style={{ color: 'var(--acento)' }}> · {brandName}</span>
             )}
           </div>
           {barName && (
@@ -118,14 +118,14 @@ export function ReportPrice({
       }}>
         <button onClick={() => setEditingSize(false)} className="num" style={{
           fontSize: 'var(--t-10)', letterSpacing: '-.04em', padding: '8px 16px', borderRadius: 'var(--r-3)',
-          background: editingSize ? 'transparent' : 'var(--amber-soft)',
+          background: editingSize ? 'transparent' : 'var(--acento-soft)',
           color: digits === '' ? 'var(--faint)' : editingSize ? 'var(--muted)' : 'var(--cream)',
         }}>{currencyPrefix(currency)} {digits === '' ? '0' : groupThousands(digits)}</button>
 
         <button onClick={() => setEditingSize(true)} className="num pill" style={{
           fontSize: editingSize ? 22 : 18, padding: '8px 16px', marginTop: 12,
-          background: editingSize ? 'var(--amber-soft)' : 'transparent',
-          color: editingSize ? 'var(--amber)' : 'var(--muted)',
+          background: editingSize ? 'var(--acento-soft)' : 'transparent',
+          color: editingSize ? 'var(--acento)' : 'var(--muted)',
         }}>{size} ml</button>
 
         <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
@@ -153,7 +153,7 @@ export function ReportPrice({
         className="lbl"
         style={{
           margin: '12px 16px 16px', padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-          background: valid ? 'var(--amber)' : 'var(--elevated)',
+          background: valid ? 'var(--acento)' : 'var(--elevated)',
           color: valid ? 'var(--base)' : 'var(--faint)',
           cursor: valid ? 'pointer' : 'not-allowed',
         }}

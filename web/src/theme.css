@@ -1,34 +1,57 @@
 /* Misma paleta que Android. Los tokens se comparten a ojo, no por build:
    son doce colores y un build compartido no justifica la complejidad. */
+
+/* ---------- Hueso ----------
+ *
+ * El fondo pasa de marrón a un neutro apenas frío, y el acento de marca se
+ * queda sin color: blanco cálido en vez de ámbar.
+ *
+ * El motivo no es de gusto. El ámbar de la marca era `--amber: #FFB627`, que
+ * es *exactamente* el mismo hex que el punto "precio medio-alto" de
+ * `PRICE_STOPS` (data/format.ts) y que `--aging`. O sea que el color de los
+ * botones, de la pestaña activa y de los links era además un valor del dato:
+ * en un mapa con bares de precio medio, el pin de un bar y el botón "Sigue
+ * igual" eran indistinguibles. La marca le estaba robando un tono a la escala
+ * de precios, que es lo único que la app viene a contestar.
+ *
+ * De acá en más la regla es: **si tiene color, es un dato.** El cromo
+ * —fondos, texto, acento— vive en la rampa de grises hueso; el verde, el
+ * ámbar y el rojo quedan reservados para frescura, precio y peligro.
+ *
+ * Por eso `--fresh`, `--aging`, `--stale`, `--danger`, `PRICE_STOPS` y los
+ * escalones `.heat-*` no se tocan: son dato, no marca. Y por eso el token se
+ * llama `--acento` y ya no `--amber`: nombrar un token del cromo por su color
+ * es lo que dejó que esto pasara sin que nadie lo viera.
+ */
 :root {
-  --base:     #1A1410;
-  --raised:   #261E18;
-  --elevated: #332822;
+  --base:     #0F1012;
+  --raised:   #191B1F;
+  --elevated: #24272C;
   --hairline: rgba(255,255,255,.12);
 
-  --amber:      #FFB627;
-  --amber-soft: rgba(255,182,39,.20);
-  --amber-deep: #D98C00;
+  --acento:      #EDE6D8;
+  --acento-soft: rgba(237,230,216,.16);
+  --acento-deep: #CEBA94;
 
-  --cream: #FBF6EE;
-  --muted: #B6A899;
+  --cream: #F4F5F7;
+  --muted: #9DA5AD;
   /*
-   * Aclarado de #8A7B6D a #9C8E82.
+   * La rampa de grises se eligió con el contraste puesto, no después.
    *
-   * El original daba 4,46:1 sobre --base, 4,01 sobre --raised y 3,50 sobre
-   * --elevated: por debajo del 4,5:1 que pide WCAG 1.4.3 para texto chico en
-   * las tres superficies. Y es el color de 106 textos de la app, casi todos
-   * de 11 y 12px — o sea, exactamente el caso que la regla cubre.
-   *
-   * El tono y la saturación no se tocan, sólo la luminosidad, lo justo para
-   * llegar a 4,50 sobre la superficie más clara (que es el peor caso).
+   * `--faint` es el color de más de cien textos de 11 y 12px — justo el caso
+   * que cubre WCAG 1.4.3 — así que el piso se verifica contra la superficie
+   * más clara, que es el peor caso: 4,53:1 sobre --elevated. --muted da 6,01
+   * ahí mismo y --cream 13,73. Ninguno baja de 4,5:1 sobre ninguna de las tres
+   * superficies.
    */
-  --faint: #9C8E82;
+  --faint: #888E95;
   --danger:#FF7A66;
 
   --fresh: #5FD98D;
   --aging: #FFB627;
-  /* Mismo caso que --faint: 4,40:1 sobre --elevated. */
+  /* Sobre el fondo nuevo, que es más oscuro, este sube a 4,71:1 contra
+     --elevated (antes 4,40, que no llegaba). Es el único cálido que queda en
+     la rampa de grises, y se queda porque es dato: "precio viejo". */
   --stale: #9D8E7E;
 
   /* ---------- Escalas ----------
@@ -134,7 +157,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* `textarea` va acá y no sólo `input`: sin esto usa el color por defecto del
    navegador, que sobre este fondo es negro sobre negro y el texto no se ve. */
 input, textarea { font: inherit; color: inherit; }
-a { color: var(--amber); }
+a { color: var(--acento); }
 
 /* Cifras tabulares en todo lo que sea un número.
  *
@@ -185,7 +208,7 @@ a { color: var(--amber); }
       rgba(255,255,255,.02) 42%,
       rgba(255,255,255,.05)
     ),
-    rgba(38,30,24,.72);
+    rgba(25,27,31,.72);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border: .8px solid rgba(255,255,255,.16);
@@ -201,7 +224,7 @@ a { color: var(--amber); }
    honesto. Un tinte translúcido sin desenfoque sobre un mapa es texto sobre
    ruido. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass { background: rgba(38,30,24,.97); }
+  .glass { background: rgba(25,27,31,.97); }
 }
 
 .pill { border-radius: 999px; }
@@ -235,7 +258,7 @@ a { color: var(--amber); }
  * El `input[type=range]` nativo trae una pista gruesa y un pulgar distinto en
  * cada navegador; en iOS además queda notablemente más alto. Se reemplaza por
  * la misma forma que usa el Slider de Material en Android: pista de 4px,
- * pulgar redondo ámbar de 18px.
+ * pulgar redondo de 18px, ahora en el acento.
  *
  * El relleno de la parte activa va como degradado y no como pseudo-elemento
  * porque WebKit no expone uno: se le pasa el porcentaje desde React en la
@@ -256,14 +279,14 @@ a { color: var(--amber); }
   height: 4px;
   border-radius: 2px;
   background:
-    linear-gradient(var(--amber), var(--amber)) 0 / var(--fill, 0%) 100% no-repeat,
+    linear-gradient(var(--acento), var(--acento)) 0 / var(--fill, 0%) 100% no-repeat,
     var(--hairline);
 }
 .range::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px; height: 18px;
   border: 0; border-radius: 50%;
-  background: var(--amber);
+  background: var(--acento);
   /* Centra el pulgar sobre una pista de 4px: (4 - 18) / 2. */
   margin-top: -7px;
 }
@@ -273,18 +296,18 @@ a { color: var(--amber); }
   height: 4px; border-radius: 2px; background: var(--hairline);
 }
 .range::-moz-range-progress {
-  height: 4px; border-radius: 2px; background: var(--amber);
+  height: 4px; border-radius: 2px; background: var(--acento);
 }
 .range::-moz-range-thumb {
   width: 18px; height: 18px;
   border: 0; border-radius: 50%;
-  background: var(--amber);
+  background: var(--acento);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner {
   width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--amber);
+  border: 2px solid rgba(255,255,255,.18); border-top-color: var(--acento);
   animation: spin .7s linear infinite;
 }
 
@@ -351,7 +374,7 @@ a { color: var(--amber); }
  * `:focus-visible` y no `:focus`: el anillo aparece navegando con teclado y no
  * cada vez que se toca un botón con el dedo. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--acento);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -541,7 +564,11 @@ a { color: var(--amber); }
 .heat-1 { background: #4A3B22; color: #E8D9BE; }
 .heat-2 { background: #7A5D1E; color: #FFF3DA; }
 .heat-3 { background: #B88710; color: var(--base); }
-.heat-4 { background: var(--amber); color: var(--base); }
+/* El último escalón va a `--aging` y no a `--acento`, aunque hasta Hueso los
+   dos fueran el mismo `#FFB627`. La rampa entera es ámbar y el ámbar acá es
+   el dato: pintar el tope con el acento hueso rompería el degradado en el
+   último paso, que es justamente el que tiene que gritar. */
+.heat-4 { background: var(--aging); color: var(--base); }
 
 /* Red de seguridad del piso de 16px: cubre los campos que no traen tamaño
    propio. Los que sí lo traen lo ponen inline, que gana por especificidad, así

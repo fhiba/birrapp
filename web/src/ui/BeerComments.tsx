@@ -118,7 +118,7 @@ export function BeerComments({
           <button disabled={busy || !body.trim()} onClick={send} className="lbl" style={{
             width: '100%', marginTop: 8, padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: !body.trim() ? 'var(--elevated)'
-              : busy ? 'var(--amber-deep)' : 'var(--amber)',
+              : busy ? 'var(--acento-deep)' : 'var(--acento)',
             color: !body.trim() ? 'var(--faint)' : 'var(--base)',
             cursor: body.trim() ? 'pointer' : 'not-allowed',
           }}>{busy ? '…' : 'Comentar'}</button>
@@ -146,7 +146,7 @@ export function BeerComments({
                 llegar a la persona, no desde una pantalla de moderación. El
                 propio no, que no tiene sentido ir a mirarse a uno mismo. */}
             {c.mine ? (
-              <span style={{ fontSize: 'var(--t-3)', color: 'var(--amber)' }}>Vos</span>
+              <span style={{ fontSize: 'var(--t-3)', color: 'var(--acento)' }}>Vos</span>
             ) : (
               <button
                 onClick={() => nav(`/usuario/${c.authorId}`)}

@@ -36,8 +36,8 @@ export function BrandPicker({
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
-          background: selected ? 'var(--amber-soft)' : 'var(--film-2)',
-          color: selected ? 'var(--amber)' : 'var(--muted)',
+          background: selected ? 'var(--acento-soft)' : 'var(--film-2)',
+          color: selected ? 'var(--acento)' : 'var(--muted)',
         }}
       >
         {selected ? selected.name : 'Sin marca'}
@@ -181,7 +181,7 @@ export function BrandList({
         <div style={{ padding: '4px 16px 12px' }}>
           <button disabled={busy} onClick={create} className="lbl" style={{
             width: '100%', padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-            background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
+            background: busy ? 'var(--acento-deep)' : 'var(--acento)', color: 'var(--base)',
           }}>{busy ? '…' : `Agregar "${typed}"`}</button>
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
@@ -234,8 +234,8 @@ function Option({
     <button onClick={onClick} className="lbl" style={{
       display: 'flex', alignItems: 'center', gap: 12, width: '100%',
       padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', textAlign: 'left',
-      background: on ? 'var(--amber-soft)' : 'transparent',
-      color: on ? 'var(--amber)' : 'var(--cream)',
+      background: on ? 'var(--acento-soft)' : 'transparent',
+      color: on ? 'var(--acento)' : 'var(--cream)',
     }}>
       <span style={{ flex: 1 }}>
         {label}

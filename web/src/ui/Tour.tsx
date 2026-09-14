@@ -284,7 +284,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
           width: rect.width + pad * 2, height: rect.height + pad * 2,
           borderRadius: current.round ? '50%' : 14, pointerEvents: 'none',
           boxShadow: '0 0 0 9999px rgba(0,0,0,.74)',
-          outline: '2px solid var(--amber)',
+          outline: '2px solid var(--acento)',
         }} />
       )}
       {!rect && (
@@ -313,7 +313,7 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
           }}>No me lo muestres más</button>
           <button onClick={next} className="lbl" style={{
             marginLeft: 'auto', padding: '8px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-            background: 'var(--amber)', color: 'var(--base)',
+            background: 'var(--acento)', color: 'var(--base)',
           }}>{step + 1 >= steps.length ? 'Listo' : 'Dale'}</button>
         </div>
       </div>

@@ -281,7 +281,7 @@ function Item({
           {highlight && (
             <span style={{
               marginLeft: 8, padding: '2px 8px', borderRadius: 999, fontSize: 'var(--t-1)',
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              background: 'var(--acento-soft)', color: 'var(--acento)',
             }}>vigente</span>
           )}
           {tag && (

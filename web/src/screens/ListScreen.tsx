@@ -277,7 +277,7 @@ export function ListScreen(p: Props) {
               aria-label={favOnly ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
               className="icon-btn"
               style={{
-                background: favOnly ? 'var(--amber)' : 'var(--film-2)',
+                background: favOnly ? 'var(--acento)' : 'var(--film-2)',
                 color: favOnly ? 'var(--base)' : 'var(--muted)',
               }}
             >
@@ -301,7 +301,7 @@ export function ListScreen(p: Props) {
                 : shown.length === 1 ? '1 resultado' : `${shown.length} resultados`}
             </span>
             <button onClick={() => setQuery('')} className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-3)',
+              marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-3)',
             }}>Volver a la lista</button>
           </div>
         ) : (
@@ -347,13 +347,13 @@ export function ListScreen(p: Props) {
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
             // sin esto no hay forma de saber desde dónde se mide.
             <button onClick={p.onClearSimulated} className="pill" style={{
-              background: 'var(--amber-soft)', color: 'var(--amber)',
+              background: 'var(--acento-soft)', color: 'var(--acento)',
               padding: '4px 12px', fontSize: 'var(--t-2)',
             }}>Desde el punto elegido ✕</button>
           ) : (
             <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>Desde tu ubicación</span>
           )}
-          <span className="lbl" style={{ marginLeft: 'auto', color: 'var(--amber)', fontSize: 'var(--t-3)' }}>
+          <span className="lbl" style={{ marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-3)' }}>
             {formatRadius(p.radius)}
           </span>
         </div>
@@ -441,7 +441,7 @@ export function ListScreen(p: Props) {
                       votos al lado por lo mismo que los precios van con su
                       antigüedad — un 5,0 de un voto no es un 5,0. */}
                   {b.rating != null && (
-                    <> · <span style={{ color: 'var(--amber)' }}>
+                    <> · <span style={{ color: 'var(--acento)' }}>
                       ★ {b.rating.toFixed(1).replace('.', ',')}
                     </span>
                     <span style={{ opacity: .8 }}> ({b.ratingCount})</span></>

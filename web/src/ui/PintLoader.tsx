@@ -19,11 +19,11 @@ export function PintLoader({ message }: { message: string }) {
           <g clipPath="url(#glass)">
             <rect x="0" y="0" width="58" height="76" fill="var(--film-1)" />
             <g>
-              <rect x="0" width="58" height="76" fill="var(--amber)" y="60">
+              <rect x="0" width="58" height="76" fill="var(--acento)" y="60">
                 <animate attributeName="y" values="66;12;66" dur="3.8s"
                   calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1" repeatCount="indefinite" />
               </rect>
-              <rect x="0" width="58" height="5" fill="#FFF0D0" y="60">
+              <rect x="0" width="58" height="5" fill="#FFFFFF" y="60">
                 <animate attributeName="y" values="66;12;66" dur="3.8s"
                   calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1" repeatCount="indefinite" />
               </rect>
@@ -38,7 +38,7 @@ export function PintLoader({ message }: { message: string }) {
             ))}
           </g>
           <path d="M11 2 L47 2 L43 68 Q42.5 74 36 74 L22 74 Q15.5 74 15 68 Z"
-            fill="none" stroke="rgba(251,246,238,.55)" strokeWidth="2" />
+            fill="none" stroke="rgba(244,245,247,.55)" strokeWidth="2" />
         </svg>
         <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', marginTop: 16 }}>{message}</p>
       </div>

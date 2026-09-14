@@ -131,7 +131,7 @@ export function BarDetailScreen({
       <p style={{ color: 'var(--muted)' }}>{error}</p>
       <button onClick={load} className="lbl" style={{
         marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
-        background: 'var(--amber)', color: 'var(--base)',
+        background: 'var(--acento)', color: 'var(--base)',
       }}>Reintentar</button>
     </Centered>
   )
@@ -288,8 +288,8 @@ export function BarDetailScreen({
             className="icon-btn"
             style={{
               marginRight: 8,
-              background: isFavorite ? 'var(--amber-soft)' : 'var(--film-2)',
-              color: isFavorite ? 'var(--amber)' : 'var(--muted)',
+              background: isFavorite ? 'var(--acento-soft)' : 'var(--film-2)',
+              color: isFavorite ? 'var(--acento)' : 'var(--muted)',
             }}
           >
             <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
@@ -310,7 +310,7 @@ export function BarDetailScreen({
               aria-pressed={modMode}
               className="icon-btn"
               style={{
-                background: modMode ? 'var(--amber)' : 'var(--film-2)',
+                background: modMode ? 'var(--acento)' : 'var(--film-2)',
                 color: modMode ? 'var(--base)' : 'var(--muted)',
               }}
             >
@@ -328,7 +328,7 @@ export function BarDetailScreen({
         {modMode && (
           <div style={{
             marginTop: 16, padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
-            background: 'var(--amber-soft)', color: 'var(--amber)',
+            background: 'var(--acento-soft)', color: 'var(--acento)',
           }}>
             Modo moderador — las acciones de esta vista no se pueden deshacer
           </div>
@@ -353,7 +353,7 @@ export function BarDetailScreen({
                 display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
               }}>
                 <svg width="15" height="15" viewBox="0 0 24 24"
-                  fill="var(--amber)" aria-hidden>
+                  fill="var(--acento)" aria-hidden>
                   <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
                 </svg>
                 <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
@@ -373,7 +373,7 @@ export function BarDetailScreen({
             style={{
               flexShrink: 0, width: 42, height: 42, borderRadius: '50%',
               display: 'grid', placeItems: 'center', marginTop: 2,
-              background: 'var(--elevated)', color: 'var(--amber)',
+              background: 'var(--elevated)', color: 'var(--acento)',
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -427,7 +427,7 @@ export function BarDetailScreen({
                     flex: '0 0 auto', scrollSnapAlign: 'start',
                     padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
                     whiteSpace: 'nowrap',
-                    background: on ? 'var(--amber)' : 'var(--film-2)',
+                    background: on ? 'var(--acento)' : 'var(--film-2)',
                     color: on ? 'var(--base)' : 'var(--muted)',
                   }}
                 >
@@ -458,8 +458,8 @@ export function BarDetailScreen({
                 flex: '0 0 auto', scrollSnapAlign: 'start',
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
-                whiteSpace: 'nowrap', color: 'var(--amber)',
-                border: '1px dashed rgba(255,182,39,.45)',
+                whiteSpace: 'nowrap', color: 'var(--acento)',
+                border: '1px dashed rgba(237,230,216,.45)',
               }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
@@ -495,9 +495,9 @@ export function BarDetailScreen({
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
                       whiteSpace: 'nowrap',
-                      background: on ? 'rgba(255,182,39,.16)' : 'transparent',
-                      color: on ? 'var(--amber)' : 'var(--faint)',
-                      border: `1px solid ${on ? 'rgba(255,182,39,.4)' : 'var(--hairline)'}`,
+                      background: on ? 'rgba(237,230,216,.16)' : 'transparent',
+                      color: on ? 'var(--acento)' : 'var(--faint)',
+                      border: `1px solid ${on ? 'rgba(237,230,216,.4)' : 'var(--hairline)'}`,
                     }}
                   >
                     {b.brandName ?? 'Sin marca'}
@@ -599,7 +599,7 @@ export function BarDetailScreen({
           {reviews.map(r => (
             <div key={r.id} style={{ padding: '10px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-3)' }}>
-                <span style={{ color: 'var(--amber)' }}>{'★'.repeat(r.rating)}</span>
+                <span style={{ color: 'var(--acento)' }}>{'★'.repeat(r.rating)}</span>
                 <span style={{ color: 'var(--muted)' }}>{r.authorName}</span>
               </div>
               {r.body && <p style={{ margin: '4px 0 0', fontSize: 'var(--t-4)' }}>{r.body}</p>}
@@ -786,7 +786,7 @@ function PriceRow({
         </p>
         <button onClick={onUpdate} className="lbl" style={{
           width: '100%', marginTop: 12, padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-          background: 'var(--amber)', color: 'var(--base)',
+          background: 'var(--acento)', color: 'var(--base)',
         }}>Cargar su precio</button>
       </div>
     )
@@ -861,7 +861,7 @@ function PriceRow({
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button disabled={busy} onClick={onConfirm} className="lbl" data-tour="bar-confirm" style={{
           flex: 1, padding: 12, borderRadius: 'var(--r-2)',
-          background: busy ? 'var(--amber-deep)' : 'var(--amber)', color: 'var(--base)',
+          background: busy ? 'var(--acento-deep)' : 'var(--acento)', color: 'var(--base)',
         }}>{busy ? '…' : 'Sigue igual'}</button>
         <button disabled={busy} onClick={onUpdate} className="lbl" style={{
           padding: '12px 24px', borderRadius: 'var(--r-2)', background: 'var(--film-2)',
@@ -1134,7 +1134,7 @@ function PrimaryAction({ label, onClick }: { label: string; onClick: () => void 
   return (
     <button onClick={onClick} className="lbl" style={{
       width: '100%', padding: 16, borderRadius: 'var(--r-3)', marginTop: 16,
-      background: 'var(--amber)', color: 'var(--base)',
+      background: 'var(--acento)', color: 'var(--base)',
     }}>{label}</button>
   )
 }

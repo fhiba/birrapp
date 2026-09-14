@@ -40,7 +40,7 @@ export class Crash extends Component<{ children: ReactNode }, { error: Error | n
         </p>
         <button onClick={() => location.reload()} className="lbl" style={{
           marginTop: 8, padding: '12px 24px', borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-          minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+          minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
         }}>Recargar</button>
       </div>
     )

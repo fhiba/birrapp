@@ -80,8 +80,8 @@ export function StyleChips({
         <button onClick={() => setTyping(t => !t)} className="lbl pill" style={{
           padding: grid ? '13px 16px' : '9px 15px',
           fontSize: grid ? 14 : 13, whiteSpace: 'nowrap', flexShrink: 0,
-          background: 'transparent', color: 'var(--amber)',
-          border: '1px dashed rgba(255,182,39,.5)',
+          background: 'transparent', color: 'var(--acento)',
+          border: '1px dashed rgba(237,230,216,.5)',
         }}>+ Otro</button>
       </div>
 
@@ -103,7 +103,7 @@ export function StyleChips({
           />
           <button disabled={!canCreate || busy} onClick={create} className="lbl" style={{
             padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-            background: canCreate && !busy ? 'var(--amber)' : 'var(--elevated)',
+            background: canCreate && !busy ? 'var(--acento)' : 'var(--elevated)',
             color: canCreate && !busy ? 'var(--base)' : 'var(--faint)',
           }}>{busy ? '…' : 'Agregar'}</button>
         </div>

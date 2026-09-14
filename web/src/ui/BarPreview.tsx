@@ -189,7 +189,7 @@ export function BarPreview({
             className="lbl"
             style={{
               flex: 1, height: 44, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-              background: 'var(--amber)', color: 'var(--base)', fontWeight: 600,
+              background: 'var(--acento)', color: 'var(--base)', fontWeight: 600,
             }}
           >
             {price != null ? 'Ver el bar' : 'Cargar el primer precio'}
@@ -201,7 +201,7 @@ export function BarPreview({
             style={{
               flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--r-3)',
               display: 'grid', placeItems: 'center',
-              background: 'var(--elevated)', color: 'var(--amber)',
+              background: 'var(--elevated)', color: 'var(--acento)',
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

@@ -47,7 +47,7 @@ export function Empty({ title, hint, action, onAction }: {
       {action && onAction && (
         <button onClick={onAction} className="lbl" style={{
           marginTop: 12, padding: '12px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
-          minHeight: 44, background: 'var(--amber)', color: 'var(--base)',
+          minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
         }}>{action}</button>
       )}
     </div>
