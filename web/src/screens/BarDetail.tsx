@@ -97,6 +97,32 @@ export function BarDetailScreen({
 
   useEffect(() => { load() }, [load])
 
+  /**
+   * El pulgar de una foto (BIR-10).
+   *
+   * Optimista: es la acción más barata de la pantalla y esperar al servidor
+   * para pintarla la vuelve cara. Si falla se vuelve atrás, que es lo único
+   * honesto cuando el número que se muestra no es el que quedó guardado.
+   *
+   * La foto del mes NO se recalcula acá: puede cambiar de dueña con este voto,
+   * pero saberlo pide preguntarle al servidor, y una banda que salta de foto
+   * mientras se vota se lee como un error. Se acomoda en la próxima carga.
+   */
+  const vote = useCallback(async (photo: Photo) => {
+    const on = !photo.votedByMe
+    const shift = (d: number) => setPhotos(cur => cur.map(x =>
+      x.id === photo.id ? { ...x, votedByMe: d > 0, votes: x.votes + d } : x))
+
+    shift(on ? 1 : -1)
+    try {
+      const r = await api.votePhoto(photo.id, on)
+      setPhotos(cur => cur.map(x => x.id === photo.id ? { ...x, ...r } : x))
+    } catch (e) {
+      shift(on ? -1 : 1)
+      setToast((e as Error).message)
+    }
+  }, [])
+
   // Nota: hasta la 0.9.0 se entraba acá con `?precio=1` desde el mapa y la
   // carga de precio se abría sola. Ya no: el "+" del mapa abre el flujo entero
   // —estilo, marca, bar y recién el monto— sin pasar por la ficha.
@@ -178,6 +204,26 @@ export function BarDetailScreen({
     try {
       await api.rateBeer({
         barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,
+      })
+      await load()
+    } catch (e) { setToast((e as Error).message) }
+  }
+
+  /**
+   * Retirar la nota propia (BIR-11).
+   *
+   * Se podía corregir tocando otra estrella pero no sacar, así que quien votó
+   * una birra que el bar dejó de tener seguía contando para siempre en el
+   * promedio de algo que ya no se sirve.
+   *
+   * Sin diálogo de confirmación, a diferencia de borrar una foto o un
+   * comentario: ahí se pierde algo que no vuelve, acá se vuelve tocando una
+   * estrella. Confirmar lo que se deshace con un toque es un paso de más.
+   */
+  const retract = async (p: StylePrice) => {
+    try {
+      await api.retractRating({
+        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug,
       })
       await load()
     } catch (e) { setToast((e as Error).message) }
@@ -558,16 +604,19 @@ export function BarDetailScreen({
                   myRating={myRatingOf(active)}
                   canRate={user != null}
                   onRate={n => rate(active, n)}
+                  onRetract={() => retract(active)}
                 />
 
                 <PhotoStrip
                   photos={beerPhotos}
                   canAdd={user != null}
+                  canVote={user != null}
                   onAdd={async file => {
                     await api.uploadPhoto(barId, active.styleSlug, active.brandSlug, file)
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
+                  onVote={vote}
                 />
 
                 {/* Los comentarios, abajo de las fotos y no detrás de un
@@ -704,8 +753,10 @@ export function BarDetailScreen({
       {viewing != null && (
         <PhotoViewer
           photos={beerPhotos} start={viewing} modMode={modMode}
+          canVote={user != null}
           onClose={() => setViewing(null)}
           onRemove={p => { setViewing(null); setConfirmPhoto(p) }}
+          onVote={vote}
         />
       )}
 
@@ -920,13 +971,15 @@ function PriceRow({
  * lado y no rompe la navegación.
  */
 function PhotoViewer({
-  photos, start, modMode, onClose, onRemove,
+  photos, start, modMode, canVote, onClose, onRemove, onVote,
 }: {
   photos: Photo[]
   start: number
   modMode: boolean
+  canVote: boolean
   onClose: () => void
   onRemove: (p: Photo) => void
+  onVote: (p: Photo) => void
 }) {
   const nav = useNavigate()
   const [i, setI] = useState(start)
@@ -1021,7 +1074,37 @@ function PhotoViewer({
           )}
           {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
+          {photo.topOfMonth && <> · <span style={{ color: 'var(--amber)' }}>foto del mes</span></>}
         </span>
+
+        {/* Acá el pulgar es un botón de verdad y no la pastilla chiquita de
+            la tira: es el momento en que alguien está mirando la foto, que es
+            cuando decide si le gustó. Sin sesión queda el número solo. */}
+        {(canVote || photo.votes > 0) && (
+          canVote ? (
+            <button
+              onClick={() => onVote(photo)}
+              aria-pressed={photo.votedByMe}
+              className="lbl"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 18px', borderRadius: 999, fontSize: 'var(--t-3)',
+                background: photo.votedByMe ? 'var(--amber)' : 'rgba(255,255,255,.14)',
+                color: photo.votedByMe ? 'var(--base)' : 'var(--cream)',
+              }}
+            >
+              <ThumbIcon filled={photo.votedByMe} />
+              {photo.votes > 0
+                ? photo.votes
+                : photo.votedByMe ? 'Te gusta' : 'Me gusta'}
+            </button>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ThumbIcon filled />
+              {photo.votes}
+            </span>
+          )
+        )}
         {/* Las propias se borran siempre, sin ser moderador. Hasta acá la
             única forma de sacar una foto tuya era ir a "Mis aportes", que es
             justo donde nadie la está mirando cuando se da cuenta. */}
@@ -1041,6 +1124,14 @@ function PhotoViewer({
     </div>
   )
 }
+
+const ThumbIcon = ({ filled }: { filled: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor" strokeWidth={filled ? 0 : 1.8} strokeLinejoin="round">
+    <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm2 0 4.2-7.2a1 1 0 0 1 1.8.5V9h4.3a1.6 1.6 0 0 1 1.6 2l-1.7 8a1.6 1.6 0 0 1-1.6 1.3H9V10Z" />
+  </svg>
+)
 
 function ViewerArrow({
   side, disabled, onClick,
@@ -1079,11 +1170,12 @@ function ViewerArrow({
  * lo que aparenta.
  */
 function BeerRating({
-  price, myRating, canRate, onRate,
+  price, myRating, canRate, onRate, onRetract,
 }: {
   price: StylePrice; myRating: number | null
   canRate: boolean
   onRate: (n: number) => void
+  onRetract: () => void
 }) {
   const mine = myRating != null
   return (
@@ -1126,6 +1218,14 @@ function BeerRating({
         }}>Sin votos</span>
       )}
 
+      {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene qué
+          retirar. Va en su propio renglón y en gris: es la salida, no una
+          acción que haya que ofrecer a la altura de las estrellas. */}
+      {canRate && mine && (
+        <button onClick={onRetract} style={{
+          flexBasis: '100%', textAlign: 'left', fontSize: 'var(--t-2)', color: 'var(--muted)',
+        }}>Retirar mi nota</button>
+      )}
     </div>
   )
 }

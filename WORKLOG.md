@@ -2543,3 +2543,93 @@ menor o igual al instalado, así que no es un detalle de prolijidad.
 
 Resuelto tomando la de `master` y subiendo una. Las ramas abiertas que salieron
 de `dev` con versión vieja tienen que volver a numerarse antes de mergear.
+
+## 2026-09-14 — El voto, de los dos lados: BIR-10 y BIR-11
+
+Dos tickets del mismo tema, en una rama: poder votar una foto y poder retirar
+la nota de una birra.
+
+**BIR-10 — pulgares en las fotos y foto del mes.** Tabla `photo_votes` nueva
+(V18), con la presencia de la fila como voto: un pulgar es binario y una
+columna `value` abría la puerta al pulgar abajo, que nadie pidió y que en una
+app donde las fotos las sube la misma gente que carga los precios sólo sirve
+para desalentar. Sin `status`, único contenido del proyecto que se borra de
+verdad al retirarse — un voto no es algo que haya que moderar, y moderar la
+foto se lo lleva por CASCADE.
+
+La **foto del mes** se resolvió por bar y adentro de la tira de fotos que ya
+existía: va primera, con borde ámbar y una banda "DEL MES". El ticket dejaba
+abierto dónde mostrarla y advertía que en la pantalla del bar compite con el
+precio; adentro de la tira no compite con nada, porque ahí ya se está mirando
+fotos. La versión global —la mejor foto del mes de toda la app— sigue sin
+lugar donde vivir hasta que exista la página de colaboradores (BIR-9).
+
+El mes es el de Buenos Aires y lo resuelve el servidor, por lo mismo que el
+día de las birras anotadas: con la zona del navegador, la foto del mes
+cambiaría según dónde esté parado quien mira. Empate de votos lo gana la más
+nueva: premiar a la que llegó primero sólo por llevar más días juntando
+pulgares convierte la foto del mes en la del día 1.
+
+El conteo vuelve del servidor en cada toque en vez de sumarse en el cliente.
+Con dos personas votando a la vez, sumar uno localmente muestra un número que
+no tiene nadie más.
+
+**BIR-11 — retirar el voto.** Faltaba desde que se separaron la nota y el
+comentario: la nota se podía corregir tocando otra estrella, pero no sacar, y
+quien votó una birra que el bar dejó de tener seguía contando para siempre en
+el promedio de algo que ya no se sirve. El texto del diálogo de borrar un
+comentario ya decía "borrar lo que escribiste no es retirar tu voto" — y
+retirarlo no se podía.
+
+Borra la fila, no la marca `removed`: `removed` es lo que deja un moderador, y
+además `upsert` revive las filas `removed`, así que volver a votar después
+tenía que encontrar el terreno limpio. Sin diálogo de confirmación, a
+diferencia de borrar un comentario: ahí se pierde un texto que no vuelve, acá
+se vuelve tocando una estrella.
+
+Mandar un 0 no es lo mismo que retirar: el 0 es un voto real —"estuvo
+pésima"— y cuenta para el promedio.
+
+**Migración V18 y no V17.** El V17 se lo llevó la rama de bloqueo entre
+usuarios, que ya lo había aplicado a la base de tests compartida. Los tests de
+esta rama corrieron contra una base propia (`birrapp_test_bir10`) para no
+pisar la del otro agente: 145 verdes, 10 nuevos en `VoteTest`.
+
+Al mergear `dev` (0.10.3) la rama se encontró con dos cosas que habían pasado
+mientras tanto y que la tocan de cerca:
+
+* **Bloqueo entre usuarios (BIR-17).** La lista de fotos ahora filtra a las
+  personas bloqueadas. La foto del mes se calcula **sin** ese filtro, a
+  propósito: es la que ganó para todo el bar, no una por espectador. Si la
+  subió alguien que bloqueaste, el WHERE la saca igual y para vos
+  simplemente no hay foto del mes.
+* **Las estrellas se mudaron de la hoja de comentarios a la birra.** El botón
+  de retirar la nota se fue con ellas, que es donde tiene sentido: al lado del
+  voto que retira.
+
+**La cola de moderación de fotos, que el ticket pedía primero.** BIR-10
+advertía que los votos le suben el premio a subir fotos y que conviene tener
+dónde repasarlas *antes* de encender los pulgares, no después. Hasta ahora una
+foto sólo se miraba si alguien la denunciaba — o sea, cuando el problema ya
+pasó por la pantalla de todo el mundo.
+
+`GET /moderation/photos/recent` y una grilla al final de Moderación con las
+últimas 60. No es una cola de aprobación y no va a serlo: retener las fotos
+hasta que alguien las mire haría que subir una no tenga efecto visible, y
+nadie sube una segunda. Tampoco entra en el contador de pendientes — el
+repaso nunca llega a cero, y un número siempre prendido en Perfil deja de
+leerse a la semana.
+
+Cada foto viene con quién la subió y hace cuánto, que es el contexto que
+decide: una foto rara de una cuenta de ayer no es lo mismo que una de alguien
+que viene cargando precios hace meses.
+
+Sólo web y backend. La app de Android sigue sin esto, igual que sin el
+contador de birras y los favoritos: va todo junto en BIR-38.
+
+**Renumerada a 0.13.4 al mergear.** La rama había nacido en 0.10.x, y mientras
+tanto `master` se fue a 0.13.2 con el revamp de UI. Un `versionCode` por debajo
+del publicado es un APK que Android se niega a instalar, así que la versión se
+rehizo contra lo que hay hoy. De paso, lo nuevo se pasó a la escala de tokens
+que entró con el revamp: los 9,5 y 11,5 sueltos son justo lo que la escala vino
+a sacar.

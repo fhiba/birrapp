@@ -1,7 +1,7 @@
 import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
-  ModerationSummary, MyContributions,
+  ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -288,6 +288,17 @@ export const rateBeer = (b: {
   barId: number; styleSlug: string; brandSlug: string | null; rating: number
 }) => req<unknown>('POST', '/ratings', { body: b, auth: true })
 
+/**
+ * Retirar la nota propia (BIR-11).
+ *
+ * No es mandar un 0: el 0 es un voto real —"estuvo pésima"— y cuenta para el
+ * promedio. Esto saca la fila, y la birra queda como si nunca la hubieras
+ * votado.
+ */
+export const retractRating = (b: {
+  barId: number; styleSlug: string; brandSlug: string | null
+}) => req<unknown>('POST', '/ratings/retract', { body: b, auth: true })
+
 /** Un comentario más. Se pueden dejar varios sobre la misma birra. */
 export const addComment = (b: {
   barId: number; styleSlug: string; brandSlug: string | null; body: string
@@ -419,6 +430,18 @@ export const removeMyPrice = (id: number) =>
 export const removeMyPhoto = (id: number) =>
   req<unknown>('POST', `/auth/me/photos/${id}/remove`, { auth: true })
 
+/**
+ * El pulgar de una foto (BIR-10).
+ *
+ * El conteo vuelve del servidor en vez de sumarse acá: con dos personas
+ * votando a la vez, sumar uno en el cliente muestra un número que no tiene
+ * nadie más.
+ */
+export const votePhoto = (id: number, on: boolean) =>
+  req<{ votes: number; votedByMe: boolean }>(
+    on ? 'POST' : 'DELETE', `/photos/${id}/vote`, { auth: true },
+  )
+
 export async function signOut() {
   try { await req<unknown>('POST', '/auth/logout', { auth: true }) } catch { /* da igual */ }
   clearSession()
@@ -452,6 +475,16 @@ export const approveBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/reject`, { auth: true })
+/**
+ * Las últimas fotos subidas, para repasarlas (BIR-10).
+ *
+ * No es una cola de aprobación: las fotos se publican al subirlas. Esto es la
+ * pantalla donde un moderador mira lo que entró, que hasta ahora no existía —
+ * una foto sólo se revisaba si alguien la denunciaba.
+ */
+export const recentPhotos = () =>
+  req<ModeratedPhoto[]>('GET', '/moderation/photos/recent', { auth: true })
+
 export const pendingStyles = () =>
   req<BeerStyle[]>('GET', '/moderation/styles/pending', { auth: true })
 export const approveStyle = (slug: string) =>

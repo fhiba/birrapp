@@ -55,6 +55,15 @@ export interface Photo {
   authorName: string | null
   ageDays: number
   mine: boolean
+  /** Pulgares (BIR-10). */
+  votes: number
+  votedByMe: boolean
+  /**
+   * La más votada de este mes en este bar. La decide el servidor: el mes es
+   * el de Buenos Aires, y resolverlo acá la haría cambiar según dónde esté
+   * parado quien mira.
+   */
+  topOfMonth: boolean
 }
 
 export interface RatingComment {
@@ -150,6 +159,22 @@ export interface PriceAccepted { id: number; heldForReview: boolean; message: st
 export interface Flag {
   id: number; targetType: string; targetId: number; reason: string
   createdAt: string; reporterName: string | null; targetSummary: string | null
+}
+
+/**
+ * Una foto en la pantalla de repaso de moderación (BIR-10). Trae el contexto
+ * para decidir sin abrir el bar.
+ */
+export interface ModeratedPhoto {
+  id: number
+  url: string
+  barId: number
+  barName: string
+  beerName: string
+  authorId: number | null
+  authorName: string | null
+  ageDays: number
+  votes: number
 }
 
 /**

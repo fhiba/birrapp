@@ -15,13 +15,16 @@ import { compressImage } from '../data/image'
  * nativo.
  */
 export function PhotoStrip({
-  photos, canAdd, onAdd, onOpen,
+  photos, canAdd, canVote, onAdd, onOpen, onVote,
 }: {
   photos: Photo[]
   canAdd: boolean
+  /** Con sesión el pulgar se toca; sin ella es sólo el número. */
+  canVote: boolean
   onAdd: (file: Blob) => Promise<void>
   /** Índice dentro de `photos`: el visor necesita la lista para swipear. */
   onOpen: (index: number) => void
+  onVote: (p: Photo) => void
 }) {
   const picker = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -56,16 +59,37 @@ export function PhotoStrip({
         scrollSnapType: 'x mandatory',
       }}>
         {photos.map((p, i) => (
-          <button key={p.id} onClick={() => onOpen(i)} style={{
-            flex: '0 0 auto', padding: 0, scrollSnapAlign: 'start',
-            width: 108, height: 108, borderRadius: 'var(--r-3)', overflow: 'hidden',
-            background: 'var(--elevated)',
+          // El pulgar no puede ir adentro del botón que abre la foto: un
+          // botón dentro de otro no es HTML válido y el toque se lo come el
+          // de afuera. Por eso el contenedor, con los dos como hermanos.
+          <div key={p.id} style={{
+            position: 'relative', flex: '0 0 auto', scrollSnapAlign: 'start',
           }}>
-            <img
-              src={p.url} alt={`Foto de ${p.styleSlug}`} loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </button>
+            <button onClick={() => onOpen(i)} style={{
+              display: 'block', padding: 0,
+              width: 108, height: 108, borderRadius: 'var(--r-3)', overflow: 'hidden',
+              background: 'var(--elevated)',
+              // La del mes se marca con el borde y no con un cartel encima:
+              // el cartel taparía justo la foto que se está premiando.
+              outline: p.topOfMonth ? '2px solid var(--amber)' : 'none',
+              outlineOffset: -2,
+            }}>
+              <img
+                src={p.url} alt={`Foto de ${p.styleSlug}`} loading="lazy"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </button>
+
+            {p.topOfMonth && (
+              <span className="lbl" style={{
+                position: 'absolute', top: 5, left: 5, padding: '2px 7px',
+                borderRadius: 999, fontSize: 'var(--t-1)', letterSpacing: '.06em',
+                background: 'var(--amber)', color: 'var(--base)',
+              }}>DEL MES</span>
+            )}
+
+            <VoteChip photo={p} canVote={canVote} onVote={onVote} />
+          </div>
         ))}
 
         {canAdd && (
@@ -99,3 +123,50 @@ export function PhotoStrip({
     </div>
   )
 }
+
+/**
+ * El pulgar de una foto (BIR-10).
+ *
+ * Sin votos y sin sesión no se dibuja: un cero pegado a cada foto es ruido, y
+ * el número recién dice algo cuando hay alguien del otro lado. Con sesión
+ * aparece siempre, porque si el botón no está no hay forma de descubrir que
+ * se puede votar.
+ */
+function VoteChip({ photo, canVote, onVote }: {
+  photo: Photo; canVote: boolean; onVote: (p: Photo) => void
+}) {
+  if (!canVote && photo.votes === 0) return null
+
+  const on = photo.votedByMe
+  const style = {
+    position: 'absolute' as const, right: 5, bottom: 5,
+    display: 'flex', alignItems: 'center', gap: 4,
+    padding: '3px 8px', borderRadius: 999, fontSize: 'var(--t-1)',
+    // Fondo oscuro propio: el pulgar cae encima de la foto, y sobre una foto
+    // clara un ícono claro directamente no se ve.
+    background: on ? 'var(--amber)' : 'rgba(0,0,0,.55)',
+    color: on ? 'var(--base)' : 'var(--cream)',
+  }
+
+  const inside = <><Thumb filled={on} />{photo.votes > 0 && photo.votes}</>
+
+  if (!canVote) return <span style={style}>{inside}</span>
+
+  return (
+    <button
+      onClick={() => onVote(photo)}
+      aria-pressed={on}
+      aria-label={on ? 'Sacar mi pulgar' : 'Me gusta esta foto'}
+      className="num"
+      style={style}
+    >{inside}</button>
+  )
+}
+
+const Thumb = ({ filled }: { filled: boolean }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor" strokeWidth={filled ? 0 : 1.8} strokeLinejoin="round">
+    <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm2 0 4.2-7.2a1 1 0 0 1 1.8.5V9h4.3a1.6 1.6 0 0 1 1.6 2l-1.7 8a1.6 1.6 0 0 1-1.6 1.3H9V10Z" />
+  </svg>
+)

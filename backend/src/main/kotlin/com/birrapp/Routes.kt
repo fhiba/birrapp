@@ -30,6 +30,9 @@ import com.birrapp.traffic.TrafficRepo
 @Serializable data class RoleChangeRequest(val role: String)
 @Serializable data class OkResponse(val ok: Boolean = true)
 
+/** Cómo quedó el pulgar de una foto después de tocarlo (BIR-10). */
+@Serializable data class PhotoVotes(val votes: Int, val votedByMe: Boolean)
+
 /**
  * Techos de `/bars`. Ver [CoverageBudget] para por qué existen estos números.
  *
@@ -471,6 +474,23 @@ fun Route.apiRoutes(
             call.respond(OkResponse())
         }
 
+        /**
+         * Retirar el voto (BIR-11).
+         *
+         * Va por POST con cuerpo y no por DELETE con la birra en la URL, por
+         * lo mismo que "Sigue igual": los slugs llevan acentos y guiones, y
+         * un `penon-del-aguila` en el path es una fuente de errores de
+         * encoding que no aporta nada.
+         *
+         * No tener voto que retirar no es un error: el botón es el reverso de
+         * la estrella y tocarlo dos veces tiene que terminar igual las dos.
+         */
+        post("/ratings/retract") {
+            val caller = call.caller()
+            ratings.retract(call.receive<RetractRatingRequest>(), caller.userId)
+            call.respond(OkResponse())
+        }
+
         /** Lo que votó quien mira, para pintar sus estrellas distinto. */
         get("/bars/{id}/my-ratings") {
             val caller = call.caller()
@@ -491,6 +511,24 @@ fun Route.apiRoutes(
         post("/photos") {
             val caller = call.caller()
             call.respond(photos.confirm(call.receive<ConfirmPhotoRequest>(), caller.userId))
+        }
+
+        /**
+         * El pulgar de una foto (BIR-10). Devuelve cuántos quedaron, para que
+         * el número de la pantalla salga del servidor y no de sumar uno acá:
+         * con dos personas votando a la vez, sumar en el cliente muestra un
+         * conteo que nadie tiene.
+         */
+        post("/photos/{id}/vote") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            call.respond(PhotoVotes(photos.vote(id, caller.userId, on = true), votedByMe = true))
+        }
+
+        delete("/photos/{id}/vote") {
+            val caller = call.caller()
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            call.respond(PhotoVotes(photos.vote(id, caller.userId, on = false), votedByMe = false))
         }
     }
 
@@ -533,6 +571,19 @@ fun Route.apiRoutes(
              * viendo: se sirve desde una URL pública, no desde acá. Por eso
              * esto no se puede deshacer.
              */
+            /**
+             * Las últimas fotos subidas, para repasarlas (BIR-10).
+             *
+             * No es una cola de aprobación —las fotos se publican al subirlas
+             * y así se quedan— sino la pantalla donde mirar lo que entró.
+             * Existe porque los pulgares le suben el premio a subir fotos, y
+             * hasta acá una foto sólo se revisaba si alguien la denunciaba.
+             */
+            get("/photos/recent") {
+                call.requireRole(Role.moderator)
+                call.respond(photos.recent())
+            }
+
             post("/photos/{id}/remove") {
                 call.requireRole(Role.moderator)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
