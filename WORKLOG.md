@@ -2286,3 +2286,76 @@ La regla de la casa es precio → antigüedad → nombre del bar, y no se cumpl�
   infra de push, no entra en un revamp. Queda en el ticket.
 - El visor de fotos sigue sin atrapar el foco.
 - La lista sigue sin "tirar para actualizar".
+
+---
+
+## 2026-09-14 — v0.12.0: la hoja sin salida, color sólo por precio, vidrio
+
+### El bug: la hoja no se podía cerrar en iPhone
+
+`Sheet` no tenía **ningún** control para cerrarse. Salió confiando en
+`closedby="any"` —el atributo nuevo de `<dialog>` que cierra tocando afuera— y
+Safari no lo implementa. Escape no existe en un teléfono, y en la PWA instalada
+en iOS tampoco hay botón de atrás. O sea: quien abría "Me tomé una birra" desde
+un iPhone y se arrepentía, quedaba adentro.
+
+Es de v0.10.0, de la misma tanda en que pasé los diálogos a `<dialog>` nativo.
+Gané el foco atrapado, Escape y el botón de atrás, y perdí lo único que un
+`div` con `position: fixed` sí tenía: una X.
+
+Ahora la hoja lleva ✕ y manijón, y cerrar tocando afuera se hace a mano
+comparando el click contra la caja del diálogo — funciona en todos lados. El
+atributo queda igual: donde está implementado hace lo mismo.
+
+### El color del mapa codifica precio, y sólo precio
+
+Había un interruptor frescura/precio. Verde/ámbar/rojo es una convención tan
+fuerte para barato/caro que ésa era la lectura por defecto aunque el modo
+dijera "Frescura": la mitad del tiempo el mapa decía una cosa y se leía otra.
+Un control que existe para desambiguar algo que no debería ser ambiguo es el
+síntoma, no la solución.
+
+En su lugar va una leyenda ("barato ▪▪▪▪ caro"). Era el interruptor quien decía
+qué significan los colores, así que sacarlo a secas dejaba el mapa pintado y
+mudo. La frescura no se pierde: sigue en el punto al lado de cada precio, donde
+es el dato de UN precio, que es lo que la frescura es.
+
+### Nombres de calle desde zoom 17
+
+A zoom de barrio compiten con las cápsulas de precio, que es lo que hay que
+leer. Encima de una manzana la pregunta ya cambió —el bar está elegido, ahora
+es cómo llegar— y ahí no saber en qué calle estás es una molestia gratuita.
+
+Dos arrays constantes de estilo, no una función: Google no soporta condiciones
+de zoom adentro del JSON, y pasarle a `<Map>` un array nuevo lo hace re-estilar
+entero.
+
+### Vidrio en todo lo que flota
+
+Diálogos, hojas, preview del bar, toast y barra de navegación eran color sólido
+o tenían cada uno su propia mezcla. Ahora sale de `.glass`: desenfoque con
+saturación —el `saturate` es la mitad del efecto, sin él lo de atrás se ve
+lavado— tinte bajo y brillo especular arriba y abajo. El fondo del diálogo baja
+de .6 a .28 de negro con más desenfoque: un vidrio contra un fondo casi opaco
+no es vidrio, es una tarjeta sobre una pared.
+
+El tinte se queda en .72 y no en cero a propósito. Con vidrio realmente
+transparente el contraste del texto queda a merced de lo que haya atrás, que
+acá es un mapa con manchas claras y oscuras — sería legible o no según dónde
+estés parado.
+
+### Paleta: cinco propuestas, sin decidir
+
+Comparadas sobre las mismas tres pantallas, con los contrastes medidos. La
+restricción que ordena todo: la escala de precio ya ocupa el verde, el amarillo
+y el rojo, así que el acento tiene que dejarlos libres.
+
+* **Espuma** (modo claro) queda descartada por medición, no por gusto: la
+  escala de precio rinde 1,4 a 2,3:1 sobre crema. Habría que rehacerla entera.
+* **Lúpulo** (verde de lúpulo) es la más linda y la que más choca: el acento
+  lima y el pin verde de "barato" son casi el mismo color.
+* **Cobre** y **Noche** son las que arreglan el problema real, que no es que el
+  marrón sea feo sino que el fondo marrón y el acento ámbar son vecinos de
+  tono, así que el ámbar nunca termina de saltar.
+
+Pendiente de decisión.
