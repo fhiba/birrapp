@@ -3,18 +3,31 @@ import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
-import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
+import { formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
-import { MAP_STYLE } from '../mapStyle'
+import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
-import { Segmented } from '../ui/Segmented'
 import { AddMenu, type AddAction } from '../ui/AddMenu'
 import { ReportFlow } from './ReportFlow'
 import { LogBeerSheet } from './LogBeer'
 import { Toast } from '../ui/Chrome'
 
-export type ColorBy = 'freshness' | 'price'
+/*
+ * El color del pin codifica el precio, y sólo el precio.
+ *
+ * Hasta la 0.11.0 había un interruptor para elegir entre frescura y precio.
+ * Verde/ámbar/rojo es una convención tan fuerte para barato/caro que ésa era
+ * la lectura por defecto aunque estuviera en modo frescura — o sea que la
+ * mitad del tiempo el mapa decía una cosa y se leía otra. Un control que
+ * existe para desambiguar algo que no debería ser ambiguo es el síntoma, no
+ * la solución.
+ *
+ * La frescura no se pierde: sigue en el punto de color al lado de cada
+ * precio, en la preview, en la ficha y en la barrita de la lista. Ahí es un
+ * dato de UN precio, que es lo que la frescura es. Pintar el mapa entero con
+ * ella la convertía en una segunda escala compitiendo con la primera.
+ */
 
 /** Los extremos del slider, en metros. Compartidos con las etiquetas de abajo
  *  para que no se puedan desincronizar del `min`/`max` reales. */
@@ -36,9 +49,6 @@ interface Props {
   simulated: google.maps.LatLngLiteral | null
   radius: number; styleFilter?: string
   tooZoomedOut: boolean
-  /** Qué codifica el color de los pines. Ver el comentario del toggle. */
-  colorBy: ColorBy
-  onColorBy: (c: ColorBy) => void
   onStyle: (s?: string) => void
   onRadius: (m: number) => void
   onSimulate: (p: google.maps.LatLngLiteral | null) => void
@@ -87,6 +97,11 @@ export function MapScreen(p: Props) {
     p.onSimulate(pt)
   }, [p.onSimulate])
 
+  // Los nombres de calle aparecen recién de cerca. Dos arrays constantes: la
+  // identidad no cambia entre renders, así el mapa no se re-estila por nada.
+  const styles = (p.camera?.zoom ?? 0) >= CALLES_DESDE_ZOOM
+    ? MAP_STYLE_CON_CALLES : MAP_STYLE
+
   if (!p.center) return <PintLoader message="Buscando dónde estás…" />
 
   return (
@@ -96,7 +111,7 @@ export function MapScreen(p: Props) {
         defaultZoom={p.camera?.zoom ?? 15}
         disableDefaultUI
         gestureHandling="greedy"
-        styles={MAP_STYLE}
+        styles={styles}
         onClick={() => {
           if (Date.now() - longPressAt.current < 600) return
           // Un toque cierra lo que esté abierto, de arriba hacia abajo, y
@@ -118,7 +133,7 @@ export function MapScreen(p: Props) {
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
-        <Pins bars={p.bars} colorBy={p.colorBy} selectedId={preview?.id ?? null}
+        <Pins bars={p.bars} selectedId={preview?.id ?? null}
           favorites={p.favorites} onOpen={setPreview} />
       </Map>
 
@@ -205,31 +220,20 @@ export function MapScreen(p: Props) {
             </span>
           </button>
 
-          {/*
-            El color del pin codifica una cosa u otra, y hasta ahora codificaba
-            la frescura sin decirlo en ninguna parte. Verde/ámbar/rojo es una
-            convención tan fuerte para barato/caro que ésa era la lectura por
-            defecto, incluso para quien escribió la app.
-
-            El toggle resuelve las dos mitades del problema: deja elegir qué
-            mirar, y al nombrar el modo activo dice qué significan los colores.
-
-            Va en la misma fila que el estilo y el radio, y no en un renglón
-            propio: son los tres filtros del mapa y tenerlos en dos filas se
-            comía una franja de mapa entera para tres botones. Por eso el modo
-            apagado muestra sólo sus tres colores, sin texto — la fila no entra
-            en un teléfono angosto con las dos etiquetas puestas, y el nombre
-            del modo que importa es el del que está prendido.
-          */}
-          <Segmented<ColorBy>
-            options={[
-              { value: 'freshness', label: 'Frescura', icon: <Swatch mode="freshness" /> },
-              { value: 'price', label: 'Precio', icon: <Swatch mode="price" /> },
-            ]}
-            value={p.colorBy} onChange={p.onColorBy}
-            label={o => `Colorear por ${o.label.toLowerCase()}`}
-            tourId="map-color"
-          />
+          {/* La leyenda de los colores.
+              Ocupa el lugar que tenía el interruptor y por el mismo motivo por
+              el que el interruptor servía: era él quien decía qué significan
+              los colores. Sacarlo a secas dejaba el mapa pintado y mudo.
+              Como leyenda ocupa la mitad y no se puede tocar por error. */}
+          <div data-tour="map-color" className="pill glass" style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
+            padding: '0 var(--pill-pad)', height: 34, flexShrink: 0,
+            fontSize: 'var(--t-1)', color: 'var(--muted)', whiteSpace: 'nowrap',
+          }}>
+            <span>barato</span>
+            <Swatch />
+            <span>caro</span>
+          </div>
         </div>
 
         {/* El slider va acá, pegado a los controles: es el control que lo
@@ -437,15 +441,10 @@ export function MapScreen(p: Props) {
 }
 
 /**
- * Los tres colores del modo, en miniatura.
- *
- * Es la leyenda: sin esto el toggle diría qué se está mirando pero no qué
- * significa cada color, que es la mitad que faltaba.
+ * La escala de precio en miniatura, del más barato al más caro.
  */
-function Swatch({ mode }: { mode: ColorBy }) {
-  const colors = mode === 'freshness'
-    ? ['var(--fresh)', 'var(--aging)', 'var(--stale)']
-    : [priceColor(0), priceColor(0.5), priceColor(1)]
+function Swatch() {
+  const colors = [priceColor(0), priceColor(0.35), priceColor(0.65), priceColor(1)]
   return (
     <span style={{ display: 'flex', gap: 2 }} aria-hidden>
       {colors.map(c => (
@@ -465,9 +464,9 @@ function Swatch({ mode }: { mode: ColorBy }) {
  * decide quién gana, no evita que la cápsula de abajo quede cortada.
  */
 function Pins({
-  bars, colorBy, selectedId, favorites, onOpen,
+  bars, selectedId, favorites, onOpen,
 }: {
-  bars: BarPin[]; colorBy: ColorBy
+  bars: BarPin[]
   selectedId: number | null
   favorites: Set<number>
   onOpen: (b: BarPin) => void
@@ -489,14 +488,14 @@ function Pins({
   // El puesto se calcula sobre lo que hay en pantalla, así que la escala se
   // reajusta al moverse: en Palermo lo barato es otro número que en Liniers, y
   // un color absoluto no diría nada en ninguno de los dos.
-  const ranks = colorBy === 'price'
-    ? priceRanks(bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]))
-    : null
+  const ranks = priceRanks(
+    bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
+  )
 
+  // Sin precio no hay puesto, y un bar sin precio no es "caro": es desconocido.
+  // Por eso va en gris y no en un extremo de la escala.
   const colorOf = (b: BarPin) =>
-    ranks != null
-      ? (ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)')
-      : (b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'rgba(255,255,255,.35)')
+    ranks.has(b.id) ? priceColor(ranks.get(b.id)!) : 'rgba(255,255,255,.35)'
 
   /**
    * Centrar el bar tocado, pero arriba de la tarjeta y no debajo.

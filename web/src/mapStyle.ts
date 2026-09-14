@@ -153,3 +153,44 @@ export const MAP_STYLE: google.maps.MapTypeStyle[] = [
     ]
   }
 ]
+
+/**
+ * A partir de qué zoom aparecen los nombres de las calles.
+ *
+ * 17 es más o menos "una cuadra ocupa buena parte de la pantalla". Más lejos
+ * los nombres no entran y Google los apila unos sobre otros; y más lejos
+ * tampoco sirven, porque a esa distancia lo que se mira es dónde hay bares
+ * baratos, no por qué calle caminar.
+ */
+export const CALLES_DESDE_ZOOM = 17
+
+/**
+ * El mismo estilo, con los nombres de calle prendidos.
+ *
+ * El estilo base los apaga: el mapa es contexto y los pines son el contenido,
+ * y a zoom de barrio los carteles de calle compiten con las cápsulas de
+ * precio, que es justo lo que hay que leer. Pero una vez que estás encima de
+ * una manzana la pregunta cambia —ya elegiste el bar, ahora querés llegar— y
+ * ahí no saber en qué calle estás es una molestia gratuita.
+ *
+ * Google no soporta condiciones de zoom adentro del JSON, así que son dos
+ * arrays y el componente elige. Constantes de módulo y no una función: así la
+ * identidad del array no cambia entre renders, y pasarle a `<Map>` un array
+ * nuevo lo hace re-estilar entero.
+ */
+export const MAP_STYLE_CON_CALLES: google.maps.MapTypeStyle[] = [
+  ...MAP_STYLE,
+  // Van después, así pisan la regla de `road / labels: off` del estilo base.
+  // Sólo el texto: los iconos de la calzada siguen apagados.
+  { featureType: 'road', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+  // Apagado a propósito: tiene que alcanzar para leer el nombre, no para
+  // competir con una cápsula de precio.
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9C8E82' }] },
+  // El contorno del color del mapa es lo que hace legible un texto claro sobre
+  // una calzada clara.
+  {
+    featureType: 'road',
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#221b16' }, { weight: 3 }],
+  },
+]

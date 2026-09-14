@@ -55,13 +55,13 @@ export function BottomNav() {
         pointerEvents: 'none',
         background: 'linear-gradient(transparent, rgba(26,20,16,.9) 60%, var(--base))',
       }} />
-      <nav className="bottom-nav" style={{
+      {/* La barra también es vidrio, con la misma receta que el resto. Tenía
+          su propia mezcla —otro tinte, otro desenfoque, otro borde— por haber
+          salido antes que `.glass`. */}
+      <nav className="bottom-nav glass" style={{
         position: 'fixed', left: '50%', transform: 'translateX(-50%)',
         bottom: 'var(--nav-gap)', zIndex: 50,
         display: 'flex', gap: 2, padding: 4, borderRadius: 999,
-        background: 'rgba(38,30,24,.94)',
-        border: '.8px solid var(--hairline)',
-        backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
       }}>
         {tab('/', 'Mapa', 'map')}
         {tab('/lista', 'Lista', 'list')}
@@ -76,14 +76,42 @@ export function BottomNav() {
  * por lo mismo: el foco queda adentro, Escape y el botón de atrás del teléfono
  * la cierran, y al cerrar el foco vuelve a donde estaba. Antes era un `div`
  * que se veía bien y con teclado no existía.
+ *
+ * **Lleva ✕ propio.** Salió confiando en que `closedby="any"` alcanzaba para
+ * cerrarla tocando afuera, y eso Safari no lo implementa. Escape no existe en
+ * un teléfono, y en la PWA instalada en iOS tampoco hay botón de atrás: quien
+ * abría "Me tomé una birra" desde un iPhone y se arrepentía quedaba adentro.
  */
 export function Sheet(
   { title, onClose, children }: { title?: string; onClose: () => void; children: ReactNode },
 ) {
   return (
     <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
-      <div style={{ padding: `18px 20px calc(20px + var(--nav-gap))` }}>
-        {title && <h2 className="ttl" style={{ margin: '0 0 16px', fontSize: 'var(--t-6)' }}>{title}</h2>}
+      <div style={{ padding: `var(--s-3) var(--s-5) calc(var(--s-5) + var(--nav-gap))` }}>
+        {/* El manijón no hace nada por sí solo: está para que la hoja se lea
+            como algo que vino de abajo y se va para abajo, y no como una
+            pantalla que reemplazó a la anterior. */}
+        <div aria-hidden style={{
+          width: 38, height: 4, borderRadius: 2, margin: '0 auto var(--s-3)',
+          background: 'var(--film-3)',
+        }} />
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+          marginBottom: 'var(--s-4)',
+        }}>
+          {title && (
+            <h2 className="ttl" style={{ margin: 0, flex: 1, fontSize: 'var(--t-6)' }}>{title}</h2>
+          )}
+          <button onClick={onClose} aria-label="Cerrar" className="icon-btn"
+            style={{ marginLeft: 'auto', color: 'var(--muted)', background: 'var(--film-2)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
+              <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
         {children}
       </div>
     </Modal>
@@ -99,8 +127,11 @@ export function Sheet(
  * botón de atrás del teléfono tampoco, y al cerrar el foco no volvía a donde
  * estaba. `showModal()` da las cuatro cosas y el `::backdrop` gratis.
  *
- * `closedby="any"` agrega cerrar tocando afuera donde el navegador lo soporta;
- * donde no, sigue andando todo lo demás.
+ * Cerrar tocando afuera se hace **a mano** y no con `closedby="any"`. El
+ * atributo es lo correcto y donde está implementado hace exactamente esto,
+ * pero Safari todavía no lo trae — y Safari es el navegador de la mitad de los
+ * usuarios de una PWA. Se deja puesto igual: donde funciona, funciona, y el
+ * handler de abajo es idempotente.
  */
 function Modal({ label, onClose, variant = 'center', children }: {
   label: string
@@ -116,16 +147,34 @@ function Modal({ label, onClose, variant = 'center', children }: {
     if (d && !d.open) d.showModal()
   }, [])
 
+  /**
+   * Un toque en el fondo cierra.
+   *
+   * El click del fondo llega al `<dialog>` mismo, así que no alcanza con mirar
+   * el `target`: hay que comparar contra la caja. Lo que está fuera del
+   * rectángulo del diálogo es fondo.
+   *
+   * El `rect.width > 0` descarta el caso del diálogo que se está cerrando, que
+   * mide cero y haría que cualquier click cuente como "afuera".
+   */
+  const onBackdrop = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if (e.target !== ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    if (r.width === 0) return
+    const fuera = e.clientX < r.left || e.clientX > r.right
+      || e.clientY < r.top || e.clientY > r.bottom
+    if (fuera) onClose()
+  }
+
   return (
     <dialog
       ref={ref}
       aria-label={label}
-      // Los tipos de React ya lo conocen; donde el navegador no, se ignora y
-      // el diálogo sigue cerrando con Escape y con el botón.
       closedby="any"
+      onClick={onBackdrop}
       onClose={onClose}
       onCancel={onClose}
-      className={variant === 'sheet' ? 'modal modal-sheet' : 'modal'}
+      className={variant === 'sheet' ? 'glass modal modal-sheet' : 'glass modal'}
     >{children}</dialog>
   )
 }
@@ -201,10 +250,11 @@ export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
   return (
     <div
       role="status" aria-live="polite"
+      className="glass"
       style={{
         position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
-        zIndex: 70, background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: '12px 16px',
-        fontSize: 'var(--t-3)', boxShadow: '0 8px 30px rgba(0,0,0,.45)',
+        zIndex: 70, borderRadius: 'var(--r-3)', padding: '12px 16px',
+        fontSize: 'var(--t-3)',
         animation: 'toast-in .18s ease-out',
       }}
     >{text}</div>

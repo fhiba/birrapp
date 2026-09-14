@@ -152,17 +152,56 @@ a { color: var(--amber); }
 .ttl { font-family: var(--display); font-weight: 700; letter-spacing: -.03em; }
 .lbl { font-family: var(--display); font-weight: 500; }
 
-/* Vidrio. En web sale más barato que en Android: backdrop-filter difumina
-   el fondo de forma nativa, sin librerías. */
+/* ---------- Vidrio ----------
+ *
+ * Una sola definición para todo lo que flota: controles del mapa, menú del
+ * "+", diálogos, hojas, preview del bar y el toast. Antes los seis primeros
+ * eran vidrio y los tres últimos un color sólido, así que la mitad de lo que
+ * se despega de la pantalla se veía como una tarjeta opaca pegada encima.
+ *
+ * Tres capas, que es lo que separa "translúcido" de vidrio:
+ *
+ * 1. **El desenfoque con saturación.** El `saturate` es la mitad del efecto:
+ *    sin él lo de atrás se ve lavado, y es justamente el color que sangra a
+ *    través lo que hace que la pieza parezca material y no una capa de
+ *    opacidad.
+ * 2. **El tinte.** Bajo, pero no cero — ver abajo.
+ * 3. **El brillo especular**: un borde interior claro arriba y uno oscuro
+ *    abajo, con la sombra grande y suave. Es lo que da el canto de un cristal
+ *    y lo que más se extraña cuando falta.
+ *
+ * **Sobre el tinte y por qué no es transparente del todo.** El vidrio de
+ * verdad transparente deja el contraste del texto a merced de lo que haya
+ * atrás, que acá es un mapa con manchas claras y oscuras — el texto pasaría a
+ * ser legible o no según dónde estés parado. A Apple se lo señalaron con su
+ * propia versión. Así que el tinte se queda en .72: alcanza para que lo de
+ * atrás se vea y se mueva, y garantiza el contraste del texto pase lo que
+ * pase por debajo.
+ */
 .glass {
-  background: linear-gradient(rgba(255,255,255,.10), rgba(255,255,255,.02));
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
-  border: .8px solid rgba(255,255,255,.22);
-  box-shadow: 0 4px 24px rgba(0,0,0,.35);
+  background:
+    linear-gradient(
+      rgba(255,255,255,.09),
+      rgba(255,255,255,.02) 42%,
+      rgba(255,255,255,.05)
+    ),
+    rgba(38,30,24,.72);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: .8px solid rgba(255,255,255,.16);
+  box-shadow:
+    /* el canto de arriba, que es de donde "entra" la luz */
+    inset 0 1px 0 rgba(255,255,255,.26),
+    /* el de abajo, apenas, para que la pieza tenga espesor */
+    inset 0 -1px 0 rgba(0,0,0,.22),
+    0 8px 32px rgba(0,0,0,.4);
 }
-@supports not (backdrop-filter: blur(1px)) {
-  .glass { background: rgba(38,30,24,.94); }
+
+/* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
+   honesto. Un tinte translúcido sin desenfoque sobre un mapa es texto sobre
+   ruido. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgba(38,30,24,.97); }
 }
 
 .pill { border-radius: 999px; }
@@ -380,16 +419,28 @@ a { color: var(--amber); }
   width: calc(100% - 44px);
   padding: 0;
   border: 0;
-  border-radius: 18px;
-  background: var(--raised);
+  border-radius: var(--r-4);
   color: var(--cream);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
   animation: modal-in .16s ease-out;
+  /* El vidrio va por `.glass` en el className, no repetido acá. */
 }
+
+/*
+ * El fondo del diálogo.
+ *
+ * Pasa de .6 a .28 de negro, y el desenfoque de 2px a 10px. El diálogo ahora
+ * es de vidrio, y un vidrio contra un fondo casi opaco no es vidrio: es una
+ * tarjeta sobre una pared. Lo que hace falta ver a través es la pantalla de
+ * atrás, no un gris.
+ *
+ * El desenfoque hace el trabajo que antes hacía la opacidad: separa las dos
+ * capas y evita que el texto de atrás compita con el de adelante, sin tapar
+ * dónde estabas.
+ */
 .modal::backdrop {
-  background: rgba(0, 0, 0, .6);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, .28);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
 }
 
 @keyframes modal-in {
@@ -411,8 +462,13 @@ a { color: var(--amber); }
   max-width: 560px;
   max-height: 86dvh;
   overflow-y: auto;
-  border-radius: 22px 22px 0 0;
+  border-radius: var(--r-4) var(--r-4) 0 0;
   animation: sheet-in .2s ease-out;
+  /* Apoyada contra el borde de abajo, el canto inferior no se ve: sólo el de
+     arriba, que es por donde la hoja "entra". */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    0 -8px 40px rgba(0,0,0,.45);
 }
 
 @keyframes sheet-in {

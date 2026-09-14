@@ -75,9 +75,10 @@ const STEPS: Record<TourView, Step[]> = {
     {
       anchor: 'map-color',
       title: 'Qué te dice el color',
-      body: 'En Frescura, verde es un precio de esta semana y gris uno que ya '
-        + 'tiene más de 45 días. En Precio, verde es lo más barato y rojo lo '
-        + 'más caro de lo que estés viendo en pantalla.',
+      body: 'Verde es lo más barato y rojo lo más caro de lo que tengas en '
+        + 'pantalla, así que la escala se reacomoda al moverte: en Palermo lo '
+        + 'barato es otro número que en Liniers. Gris es un bar sin precio '
+        + 'cargado, no un bar caro.',
     },
     {
       anchor: 'map-style',

@@ -14,7 +14,7 @@ import { OfflineBanner } from './ui/Offline'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
 import { Tour, type TourView } from './ui/Tour'
-import { MapScreen, type ColorBy } from './screens/MapScreen'
+import { MapScreen } from './screens/MapScreen'
 import { ListScreen } from './screens/ListScreen'
 import { BarDetailScreen } from './screens/BarDetail'
 import { AddBarScreen } from './screens/AddBar'
@@ -164,7 +164,6 @@ function Shell() {
   // Vive acá y no en MapScreen porque la pantalla se desmonta al cambiar de
   // pestaña: guardado adentro, el modo se perdía cada vez que se iba a la
   // lista y se volvía.
-  const [colorBy, setColorBy] = useState<ColorBy>('freshness')
 
   // El centro entra como último recurso SÓLO si ya sabemos que no vamos a
   // tener ubicación. Es de dónde consultar bares, no dónde está la persona:
@@ -214,7 +213,6 @@ function Shell() {
             onChanged={afterChange}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
-            colorBy={colorBy} onColorBy={setColorBy}
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
