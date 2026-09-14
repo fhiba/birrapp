@@ -2194,6 +2194,33 @@ Nielsen, las guías de toque de Apple y Material, y WCAG 2.2 AA.
 4. **La lista no tiene "tirar para actualizar"**, que sí tiene la ficha del
    bar. Hay que pensarlo con el swipe horizontal que ya cambia el orden.
 
+## 2026-09-13 — v0.10.4: el mapa deja de terminarse en la General Paz
+
+El recorte de `scripts/seed_osm.mjs` llegaba hasta Tigre por el norte y
+Quilmes por el sur. Alcanzaba para CABA y Zona Norte, pero apenas uno se
+corría del centro el mapa se veía vacío: no era que no hubiera bares, era que
+nunca los habíamos traído.
+
+Ahora el bbox es el AMBA entera —Escobar y Pilar arriba, Moreno y General
+Rodríguez al oeste, La Plata y Ensenada abajo—. El borde este queda en -57.88
+a propósito: un poco más y entra Colonia del Sacramento, que es otro país y
+otra moneda.
+
+740 → 995 bares aprobados, casi todo el crecimiento en el eje sur y oeste
+(La Plata, La Matanza, Morón). Después del seed se corrió
+`scripts/dedupe_bars.sql`, que fusionó 7 duplicados: OSM mapea el mismo local
+como nodo y como polígono, y el seed trae a los dos.
+
+### Precios: no hay API, y no la va a haber
+
+La otra mitad del pedido era pegarle a una API de precios. No existe: lo que
+hay publicado en Argentina son precios de góndola de supermercado (Precios
+Claros y derivados), que es cerveza envasada, no la pinta en el bar. Y aunque
+existiera, un precio importado no tiene reportante ni fecha de reporte, o sea
+que no se puede mostrar con su antigüedad al lado — que es la única regla que
+este proyecto no negocia. Los bares se pueden sembrar; los precios los pone
+la gente.
+
 ---
 
 ## 2026-09-13 (cont.) — v0.11.0: revamp con sistema de escalas
@@ -2499,3 +2526,20 @@ No aplica a diálogos ni hojas: ahí lo de atrás es la pantalla de la app, que 
 es oscura, y encima el `::backdrop` la oscurece antes. Ese `::backdrop` bajó de
 .28 a .18 de negro, porque ahora el vidrio oscurece por su cuenta y apilar las
 dos cosas lo dejaba opaco de nuevo.
+
+## 2026-09-14 — v0.13.3: `master` de vuelta adentro de `dev`
+
+El PR de `dev` → `master` estaba en conflicto y no se podía deployar. No había
+choque de código: sólo los cuatro archivos de la versión y el WORKLOG, que es
+append-only y al que las dos ramas le habían agregado su tanda.
+
+Lo que hay que mirar acá es **por qué** chocaba la versión. `master` venía
+adelante de `dev`: 0.13.2 contra 0.10.4, porque el revamp de UI se fue
+commiteando sobre `master` mientras `dev` seguía en lo suyo. Eso da vuelta el
+flujo que dice AGENTS.md —todo sale de `dev` y `master` recibe— y el síntoma
+es este: cada rama que salga de `dev` va a nacer con una versión más baja que
+la publicada, y su `versionCode` con ella. Android rechaza instalar un código
+menor o igual al instalado, así que no es un detalle de prolijidad.
+
+Resuelto tomando la de `master` y subiendo una. Las ramas abiertas que salieron
+de `dev` con versión vieja tienen que volver a numerarse antes de mergear.

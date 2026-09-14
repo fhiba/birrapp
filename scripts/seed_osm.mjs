@@ -16,12 +16,14 @@ import { execFileSync } from 'node:child_process';
 
 const DRY = process.argv.includes('--dry-run');
 
-// AMBA: CABA + GBA Norte (Vicente Lopez, Olivos, Martinez, San Isidro,
-// Beccar, San Fernando, Tigre) + parte de Oeste y Sur.
+// AMBA entera: CABA + los 40 partidos. Norte hasta Escobar/Pilar, oeste
+// hasta Moreno/Gral Rodriguez, sur hasta La Plata y Ensenada.
 //
-// El recorte anterior era solo CABA y dejaba afuera toda la Zona Norte, que
-// es justo donde hay mas cerveceria por metro cuadrado.
-const BBOX = { south: -34.72, west: -58.66, north: -34.36, east: -58.30 };
+// El recorte anterior llegaba a Tigre por el norte y a Quilmes por el sur, y
+// dejaba afuera Pilar, Moreno, La Matanza y todo el eje sur: el mapa se veia
+// vacio apenas uno se corria del centro. El borde este se queda en -57.88
+// para agarrar La Plata sin cruzar a Colonia, que es otro pais y otra moneda.
+const BBOX = { south: -34.95, west: -58.95, north: -34.30, east: -57.88 };
 
 const QUERY = `
 [out:json][timeout:300];
