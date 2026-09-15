@@ -815,6 +815,47 @@ export function BarDetailScreen({
  * sin la otra. "Sigue igual" es el botón sólido y "Actualizar" el fantasma —
  * confirmar tiene que costar menos que corregir, o el dataset envejece.
  */
+/**
+ * Quién respalda el número (BIR-8).
+ *
+ * El precio dejó de ser "lo último que alguien reportó" para ser la mediana de
+ * lo que reportó la gente en las últimas tres semanas, un voto por persona. Ese
+ * cambio no sirve de nada si en pantalla se ve igual que antes: la diferencia
+ * entre un número que cargó uno y uno que confirmaron seis es justamente lo
+ * que hay que poder ver.
+ *
+ * El rango sólo aparece cuando hay desacuerdo de verdad. Si los seis dicen lo
+ * mismo, mostrar "$5.000–$5.000" es ruido; si dicen cosas distintas, esconderlo
+ * sería precisión falsa — y esta app ya decide en otro lado que un número sin
+ * su contexto es peor que no tener número.
+ */
+function Consenso({ price, currency }: { price: StylePrice; currency: string }) {
+  // Menos de tres votantes es lo de siempre: el último reporte. No hay
+  // consenso del que hablar, y un "1 persona" colgado de cada precio del mapa
+  // sería un cartel permanente que nadie termina de leer.
+  if ((price.voters ?? 0) < 3) return null
+
+  const disperso = price.priceLow != null && price.priceHigh != null
+    && price.priceLow !== price.priceHigh
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+      marginTop: 6, fontSize: 'var(--t-2)', color: 'var(--faint)',
+    }}>
+      <span>consenso de {price.voters}</span>
+      {disperso && (
+        <>
+          <span aria-hidden>·</span>
+          <span className="num">
+            {formatPrice(price.priceLow!, currency)}–{formatPrice(price.priceHigh!, currency)}
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
 function PriceRow({
   price, currency, busy, modMode, onConfirm, onUpdate, onRemove, onHistory, onFlag,
 }: {
@@ -887,6 +928,8 @@ function PriceRow({
             }} />
             {ageLabel(price.ageDays!, price.freshness!)}
           </div>
+
+          <Consenso price={price} currency={currency} />
         </div>
         {/* El tamaño sólo cuando no es la pinta de 473: si es la de siempre,
             decirlo es ruido; si no lo es, cambia el precio y hay que saberlo. */}
