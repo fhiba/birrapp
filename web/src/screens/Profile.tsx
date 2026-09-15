@@ -141,6 +141,9 @@ export function ProfileScreen({ user, onSession }: {
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
         <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
+        {/* Arriba de "Cómo funcionan los precios" porque es lo que se va a
+            mirar seguido, no una sola vez. */}
+        <Row label="Colaboradores del mes" onClick={() => nav('/colaboradores')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}

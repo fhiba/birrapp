@@ -1,7 +1,7 @@
 import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
-  ModeratedPhoto, ModerationSummary, MyContributions,
+  Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -377,7 +377,15 @@ export const confirmPrice = (barId: number, styleSlug: string, brandSlug: string
 export const updateMe = (b: {
   displayName?: string; currency?: string
   defaultSizeMl?: number; defaultRadiusM?: number
+  /** Cadena vacía = sacar el alias y salir de la tabla pública. */
+  alias?: string
 }) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
+
+/**
+ * Los que más aportaron este mes (BIR-9). Sin sesión: la gracia es que se vea.
+ */
+export const leaderboard = (mes?: string) =>
+  req<Leaderboard>('GET', '/colaboradores', { params: { mes } })
 
 export const addBar = (b: {
   name: string; lat: number; lng: number; address?: string | null; googlePlaceId?: string | null

@@ -2687,3 +2687,67 @@ roto: la regla de la paleta nueva es "si tiene color, es un dato", y "me gusta
 esta foto" no es frescura, ni precio, ni peligro. El estado prendido se
 distingue por relleno y contraste, así que se lee con la pantalla en blanco y
 negro.
+
+## 2026-09-15 (cont.) — v0.16.0: página de colaboradores (BIR-9 + la foto del mes de BIR-10)
+
+La app agradecía los aportes en privado: "Mis aportes" lo ve sólo quien lo
+cargó, y no había nada que devolviera estatus en público. En una app que
+depende de que la gente releve precios gratis, era la palanca de retención más
+barata que quedaba sin usar.
+
+El ticket dejaba dos cosas abiertas. Las dos se resolvieron, y las dos son
+reversibles si no convencen.
+
+### 1. Qué nombre se muestra: el alias, y sólo el alias
+
+`display_name` viene de Google y muy seguido es nombre y apellido reales.
+Publicarlo no es una decisión de interfaz, es un cambio de privacidad: quien
+cargó un precio para que la app funcione no aceptó aparecer en una lista
+pública con su nombre completo.
+
+Por eso el alias es **opt-in y sin default**: sin alias no se aparece. La
+alternativa —sembrarlo con el nombre de pila de cada uno— publica a todos y
+después les avisa, que es el orden equivocado.
+
+La contra es real y conocida: al principio la tabla va a estar casi vacía. Se
+prefiere una tabla vacía a una tabla con gente que no pidió estar, y para que
+la página no mienta sobre cuánta gente sostiene esto, abajo dice cuántos
+aportaron sin alias puesto. De paso es la invitación más honesta a ponerse uno.
+
+Validación del alias: 3 a 20, letras/números/espacio/`. _ -`, tiene que
+arrancar con letra o número, único sin distinguir mayúsculas. El filtro no es
+prolijidad: la tabla pública es exactamente donde alguien mete emojis, saltos
+de línea y espacios invisibles para hacerse notar.
+
+### 2. Qué pesa cada aporte: lo que ya pesaba, con tope
+
+Se reusa `CONTRIBUTION_WEIGHT` —precio y bar 3, foto y nota 2, confirmación 1—
+que ya rankea gente en el dashboard, en vez de inventar una economía nueva.
+
+Lo que se agrega es el tope que pedía el ticket: **un aporte que puntúa por
+persona, tipo, bar y día**. Veinte precios en el mismo bar el mismo día valen
+lo mismo que uno.
+
+Es el punto entero del ranking. Hecho público, el score se vuelve un incentivo
+y la gente optimiza para el número; premiar el volumen crudo es invitar a
+cargar precios inventados, que es el ataque contra el que se defiende el resto
+de la app. Con el tope, la única forma de subir es tocar bares distintos o
+volver otro día — las dos cosas que el mapa necesita. Por eso la fila muestra
+**los bares** antes que los aportes: es el número que distingue a quien relevó
+la ciudad de quien apretó veinte veces en la esquina de su casa.
+
+El mes corre y se reinicia. Una tabla histórica la gana siempre el mismo y al
+que llega nuevo le dice que no tiene sentido empezar.
+
+### La foto del mes encontró dónde vivir
+
+Quedó pendiente en BIR-10: en la pantalla del bar competía con el precio, que
+es lo que la app viene a contestar. Acá no compite con nada — esta página **es**
+el reconocimiento. Va arriba de la tabla, con el bar, la birra, los pulgares y
+la firma del autor (su alias; sin alias se muestra igual pero sin firma).
+
+156 tests verdes, 11 nuevos en `LeaderboardTest` — los del tope y los de
+privacidad son los que importan.
+
+**Versión 0.16.0**: la 0.14.0 se la lleva PR #49 (paginación) y la 0.15.0 PR
+#50 (consenso), las dos abiertas en paralelo.
