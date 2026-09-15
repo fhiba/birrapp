@@ -42,6 +42,25 @@ data class StylePriceDto(
     val ratingCount: Int,
     /** Días desde el último voto. La nota tampoco se muestra sin su edad. */
     val ratingAgeDays: Int?,
+    /**
+     * Cuánta gente hay detrás del número (BIR-8).
+     *
+     * 1 = lo cargó alguien y nadie lo confirmó todavía. Desde 3 el precio que
+     * viaja en `price` es la mediana de los reportes de esa gente y no el
+     * último que entró, que es lo que hacía que un solo reporte falso fuera
+     * *el* precio del bar.
+     */
+    val voters: Int?,
+    /**
+     * El desacuerdo: el más barato y el más caro de los reportes que entraron
+     * en el consenso. Null con menos de 3 votantes, y iguales entre sí cuando
+     * todos coinciden.
+     *
+     * Viaja porque si los reportes están dispersos eso ES información: un
+     * número solo, en ese caso, es precisión falsa.
+     */
+    val priceLow: Double?,
+    val priceHigh: Double?,
 )
 
 /** Lo mínimo que necesita un pin del mapa. Se manda esto y nada más. */

@@ -278,6 +278,7 @@ class BarRepo(private val db: Db) {
             )
             SELECT s.slug AS style_slug, s.name_es AS style_name,
                    cp.id, cp.price, cp.size_ml, cp.age_days, cp.freshness,
+                   cp.voters, cp.price_low, cp.price_high,
                    br.slug AS brand_slug, br.name AS brand_name,
                    br.craft AS brand_craft,
                    sr.rating_raw, sr.rating_avg,
@@ -313,6 +314,9 @@ class BarRepo(private val db: Db) {
                 ratingAvg = rs.getBigDecimal("rating_avg")?.toDouble(),
                 ratingCount = rs.getInt("rating_count"),
                 ratingAgeDays = rs.getInt("rating_age_days").takeUnless { rs.wasNull() },
+                voters = rs.getInt("voters").takeUnless { rs.wasNull() },
+                priceLow = rs.getBigDecimal("price_low")?.toDouble(),
+                priceHigh = rs.getBigDecimal("price_high")?.toDouble(),
             )
         }
         bar.copy(prices = prices)

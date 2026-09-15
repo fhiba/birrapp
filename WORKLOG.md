@@ -2687,3 +2687,60 @@ roto: la regla de la paleta nueva es "si tiene color, es un dato", y "me gusta
 esta foto" no es frescura, ni precio, ni peligro. El estado prendido se
 distingue por relleno y contraste, así que se lee con la pantalla en blanco y
 negro.
+
+## 2026-09-15 (cont.) — v0.15.0: el precio pasa a ser el consenso (BIR-8)
+
+`v_current_prices` era un `DISTINCT ON` ordenado por fecha: **el último que
+reporta gana**, aunque sea uno contra veinte. Alcanzaba con que alguien cargara
+un número falso para que ese fuera *el* precio del bar. Es el agujero más
+grande que le quedaba al modelo de datos.
+
+No cambió nada de cómo se guarda, y ese es el punto: `PriceRepo.confirm` ya
+insertaba una fila completa con el valor vigente y `is_confirmation = true`,
+así que cada "Sigue igual" **ya era un voto por un número** — sólo que nadie
+los contaba. Efecto lateral bueno: confirmar pasa a valer más, no menos. Antes
+sólo rejuvenecía la fecha; ahora es peso detrás de un valor.
+
+Las cuatro decisiones, en orden de cuánto importan:
+
+1. **Un voto por persona, ANTES de la mediana.** Es el paso del que depende
+   todo. Sin él, el atacante reporta diez veces y *es* el consenso, y el modelo
+   queda más manipulable que el que había. Hay un test que carga diez reportes
+   del mismo usuario justamente para eso.
+2. **Mediana y no promedio.** Un valor absurdo entre cinco honestos no mueve la
+   mediana; al promedio lo arrastra, que es el ataque.
+3. **Ventana de 21 días.** Una mediana sobre 45 días en Argentina mezcla dos
+   niveles de precio y devuelve un número que no existió nunca.
+4. **Con menos de 3 votantes, el más reciente**, o sea lo de antes. Una
+   "mediana" de dos reportes es el promedio de dos números.
+
+**Lo que no se toca: la edad.** El consenso decide QUÉ número se muestra, no de
+cuándo es. `age_days` y `freshness` siguen saliendo del reporte más reciente.
+Tocar eso rompería la única regla que el proyecto no negocia, y hay un test que
+lo fija: tres reportes de hace 20 días más una confirmación de hoy da precio de
+consenso y `fresh`.
+
+**Dos cosas que no estaban en el ticket y aparecieron escribiendo la vista:**
+
+* **El tamaño.** La mediana tiene que ser entre reportes del mismo `size_ml` y
+  la misma moneda, o mezcla una pinta con un litro y devuelve un número que no
+  es el precio de ninguno de los dos. Se toma el tamaño del reporte más
+  reciente como referencia.
+* **`reported_by` puede ser NULL** —la cuenta se borró y el precio queda, que
+  es deliberado—. Cada una de esas filas cuenta como su propio votante: eran
+  personas distintas cuando se cargaron, y juntarlas en un voto sería inventar
+  un consenso que no hubo.
+
+En pantalla, debajo de la edad: "consenso de 6", y el rango cuando hay
+desacuerdo de verdad. Si los seis dicen lo mismo, mostrar "$5.000–$5.000" es
+ruido; si dicen cosas distintas, esconderlo sería precisión falsa.
+
+`percentile_cont` devuelve `double precision` aunque la columna sea `numeric`,
+y `round(double, 2)` no existe en Postgres. Se castea a numeric antes.
+
+154 tests verdes, 9 nuevos en `ConsensusTest`, y los dos que AGENTS.md exige
+para esta vista —`FreshnessTest` y `PriceReportTest`— pasan sin cambios.
+
+**Versión 0.15.0 y no 0.14.0**: la 0.14.0 se la lleva la rama de paginación
+(PR #49), que está abierta en paralelo. Dos ramas sin mergear no pueden
+reclamar el mismo número.

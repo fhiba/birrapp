@@ -43,6 +43,14 @@ export interface StylePrice {
   ratingCount: number
   /** Días desde el último voto: una nota sin su edad miente igual que un precio. */
   ratingAgeDays: number | null
+  /**
+   * Cuánta gente hay detrás del número (BIR-8). 1 = nadie lo confirmó.
+   * Desde 3, `price` es la mediana de esa gente y no el último reporte.
+   */
+  voters: number | null
+  /** El más barato y el más caro del consenso. Null con menos de 3 votantes. */
+  priceLow: number | null
+  priceHigh: number | null
 }
 
 export interface Photo {
