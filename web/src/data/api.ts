@@ -1,7 +1,7 @@
 import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
-  ModeratedPhoto, ModerationSummary, MyContributions,
+  ContributionKind, Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
   User, UserStats,
 } from './types'
@@ -377,7 +377,15 @@ export const confirmPrice = (barId: number, styleSlug: string, brandSlug: string
 export const updateMe = (b: {
   displayName?: string; currency?: string
   defaultSizeMl?: number; defaultRadiusM?: number
+  /** Cadena vacía = sacar el alias y salir de la tabla pública. */
+  alias?: string
 }) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
+
+/**
+ * Los que más aportaron este mes (BIR-9). Sin sesión: la gracia es que se vea.
+ */
+export const leaderboard = (mes?: string) =>
+  req<Leaderboard>('GET', '/colaboradores', { params: { mes } })
 
 export const addBar = (b: {
   name: string; lat: number; lng: number; address?: string | null; googlePlaceId?: string | null
@@ -423,8 +431,17 @@ export async function uploadAvatar(file: Blob): Promise<User> {
 /** Saca la foto propia. Vuelve la de Google, si la cuenta tenía. */
 export const removeAvatar = () => req<User>('DELETE', '/auth/me/avatar', { auth: true })
 export const myStats = () => req<UserStats>('GET', '/auth/me/stats', { auth: true })
-export const myContributions = () =>
-  req<MyContributions>('GET', '/auth/me/contributions', { auth: true })
+/**
+ * Los aportes propios, de a una clase por vez y por páginas (BIR-44).
+ *
+ * Sin `tipo` vuelven las cuatro listas, que es como lo pide Android. La web
+ * manda siempre uno: la pantalla muestra una sola clase, y bajarse las otras
+ * tres era traerse hasta ochocientas filas para dibujar una lista.
+ */
+export const myContributions = (tipo?: ContributionKind, before?: string | null) =>
+  req<MyContributions>('GET', '/auth/me/contributions', {
+    auth: true, params: { tipo, before: before ?? undefined },
+  })
 export const removeMyPrice = (id: number) =>
   req<unknown>('POST', `/auth/me/prices/${id}/remove`, { auth: true })
 export const removeMyPhoto = (id: number) =>

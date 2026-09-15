@@ -1,13 +1,40 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
-import type { MyComment, MyContributions, MyPhoto, MyPrice } from '../data/types'
+import type {
+  ContributionKind, MyComment, MyContributions, MyPhoto, MyPrice,
+} from '../data/types'
 import { formatPrice } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 import { Empty } from '../ui/Empty'
 
 /** Las cuatro listas, cada una con su pantalla. La ruta es `/mis-aportes/:tipo`. */
 type Kind = 'precios' | 'fotos' | 'comentarios' | 'bares'
+
+/**
+ * El nombre de la ruta es castellano y el de la API inglés, así que hace falta
+ * la traducción. Se pide UNA clase (BIR-44): antes la pantalla se bajaba las
+ * cuatro listas —hasta ochocientas filas— para dibujar la que se estaba
+ * mirando.
+ */
+const API_KIND: Record<Kind, ContributionKind> = {
+  precios: 'prices',
+  fotos: 'photos',
+  comentarios: 'comments',
+  bares: 'bars',
+}
+
+/** Pega la página nueva abajo de lo que ya había, sin perder el tipo. */
+function append(
+  prev: MyContributions, next: MyContributions, k: ContributionKind,
+): MyContributions {
+  switch (k) {
+    case 'bars': return { ...next, bars: [...prev.bars, ...next.bars] }
+    case 'prices': return { ...next, prices: [...prev.prices, ...next.prices] }
+    case 'photos': return { ...next, photos: [...prev.photos, ...next.photos] }
+    case 'comments': return { ...next, comments: [...prev.comments, ...next.comments] }
+  }
+}
 
 const TITLE: Record<Kind, string> = {
   precios: 'Mis precios',
@@ -81,17 +108,30 @@ export function MyContributionsScreen(
   const [killPhoto, setKillPhoto] = useState<MyPhoto | null>(null)
   const [killComment, setKillComment] = useState<MyComment | null>(null)
 
+  const [more, setMore] = useState(false)
+
   const load = useCallback(async () => {
-    try { setData(await api.myContributions()) }
+    // Al cambiar de solapa se limpia lo que había: si no, se ven los precios
+    // mientras cargan las fotos y parece que la pantalla se equivocó.
+    setData(null); setError(null)
+    try { setData(await api.myContributions(API_KIND[kind])) }
     catch (e) { setError((e as Error).message) }
-  }, [])
+  }, [kind])
 
   useEffect(() => { load() }, [load])
 
-  const list = data && data[
-    kind === 'precios' ? 'prices' : kind === 'fotos' ? 'photos'
-      : kind === 'comentarios' ? 'comments' : 'bars'
-  ]
+  /** La página siguiente, pegada abajo. */
+  const loadMore = async () => {
+    if (!data?.nextCursor || more) return
+    setMore(true)
+    try {
+      const next = await api.myContributions(API_KIND[kind], data.nextCursor)
+      setData(cur => cur && append(cur, next, API_KIND[kind]))
+    } catch (e) { setError((e as Error).message) }
+    finally { setMore(false) }
+  }
+
+  const list = data && data[API_KIND[kind]]
   const count = list?.length ?? null
 
   return (
@@ -106,7 +146,10 @@ export function MyContributionsScreen(
             {TITLE[kind]}
             {count != null && count > 0 && (
               <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-5)' }}>
-                {' '}· {count}
+                {/* El "+" cuando falta una página: con paginación, el número
+                    es cuántos se bajaron y no cuántos hay. Decir "30" cuando
+                    son ochenta es el mismo pecado que un precio sin su edad. */}
+                {' '}· {count}{data?.nextCursor ? '+' : ''}
               </span>
             )}
           </h1>
@@ -180,6 +223,18 @@ export function MyContributionsScreen(
             gente, así que borrarlos no deshace tu aporte, borra el de terceros. Si
             uno está mal cargado, reportalo desde el bar.
           </p>
+        )}
+
+        {/* "Ver más" y no scroll infinito: en una lista de aportes propios uno
+            viene a buscar algo puntual, y el scroll infinito le saca el final
+            de la pantalla justo cuando quiere saber cuántos lleva. */}
+        {data?.nextCursor && (
+          <div style={{ padding: '18px' }}>
+            <button onClick={loadMore} disabled={more} className="lbl" style={{
+              width: '100%', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
+              fontSize: 'var(--t-3)', background: 'var(--film-2)', color: 'var(--cream)',
+            }}>{more ? 'Cargando…' : 'Ver más'}</button>
+          </div>
         )}
       </div>
 

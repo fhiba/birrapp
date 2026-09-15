@@ -20,6 +20,7 @@ import { BarDetailScreen } from './screens/BarDetail'
 import { AddBarScreen } from './screens/AddBar'
 import { ProfileScreen } from './screens/Profile'
 import { InfoScreen } from './screens/Info'
+import { ContributorsScreen } from './screens/Contributors'
 import { ModerationScreen } from './screens/Moderation'
 import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
@@ -262,6 +263,7 @@ function Shell() {
         <Route path="/config" element={
           <SettingsScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
+        <Route path="/colaboradores" element={<ContributorsScreen user={user} />} />
         <Route path="/info" element={<InfoScreen />} />
         <Route path="/mis-birras" element={<MyBeersScreen />} />
         {/* Una pantalla por tipo de aporte. Sin `:tipo` se cae en precios,

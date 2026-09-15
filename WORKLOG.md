@@ -2687,3 +2687,207 @@ roto: la regla de la paleta nueva es "si tiene color, es un dato", y "me gusta
 esta foto" no es frescura, ni precio, ni peligro. El estado prendido se
 distingue por relleno y contraste, así que se lee con la pantalla en blanco y
 negro.
+
+## 2026-09-15 — v0.14.0: traer menos, y no traerlo de nuevo (BIR-44 + BIR-43)
+
+Dos tickets del mismo síntoma: la app se baja de más y se lo vuelve a bajar
+cada vez que entrás.
+
+### BIR-44 — paginar
+
+El peor caso era `/auth/me/contributions`: devolvía las **cuatro** listas de
+aportes, hasta 200 filas cada una. La pantalla web muestra una sola —la ruta ya
+es `/mis-aportes/:tipo`— así que abrir "precios" se bajaba además tus fotos,
+tus bares y tus comentarios. Hasta 800 filas para dibujar una lista.
+
+Ahora se pide `?tipo=` y viene una, de a 30, con cursor. Sin `tipo` siguen
+viniendo las cuatro, que es como lo llama la app de Android y no hacía falta
+romperlo para arreglar esto.
+
+El cursor compara la tupla `(created_at, id)` y no sólo la fecha. No es
+prolijidad: tres precios cargados seguidos caen en el mismo segundo, y con un
+corte por fecha sola el segundo y el tercero se saltean al pasar de página. Hay
+un test que carga seis aportes con la misma antigüedad justamente para eso.
+
+Se pide una fila de más para saber si hay página siguiente. Un `count(*)` por
+página cuesta recorrer la tabla entera para contestar un sí o un no.
+
+**Lo que se acotó sin paginar, y por qué.** `favorites` y las fotos de un bar
+no tenían techo — eran dos consultas sin `LIMIT`. Les puse un tope (200 y 60) y
+un comentario `ponytail:` con el techo y el camino de salida, en vez de un
+cursor: nadie marca doscientos bares como favoritos, y en la tira de fotos de
+un bar nadie llega a la sesenta. Poner un "ver más" ahí sería construir un
+mecanismo para un caso que no existe; lo que no se podía dejar era la consulta
+sin límite.
+
+El número del encabezado ahora lleva un "+" cuando falta una página. Con
+paginación, ese número es cuántos se bajaron y no cuántos hay, y mostrar "30"
+cuando son ochenta es el mismo pecado que un precio sin su edad al lado.
+
+### BIR-43 — que no arranque en blanco
+
+Felipe preguntó cuál era la mejor estrategia. Son dos cosas y la primera no es
+caché:
+
+**Una, había un pedido que no tenía que existir.** Perfil mostraba las birras
+tomadas y para conseguir ese entero llamaba a `/beers/summary`, que arma el
+calendario del mes, las rachas, los bares top y los emblemas. Era la consulta
+más cara de la pantalla, para leerle un campo. El total ahora viaja con los
+otros cuatro contadores, en la misma consulta: de dos viajes a uno, y la grilla
+deja de dibujarse en dos tiempos.
+
+**Dos, recién ahí, caché.** *Stale-while-revalidate* en `localStorage`
+(`data/cached.ts`), elegido sobre las otras dos opciones por lo que hace cada
+una cuando el dato cambió:
+
+* *Caché con vencimiento* (guardar 5 minutos): el número queda viejo justo en
+  el caso que importa — cargás un precio, volvés a Perfil y dice lo de antes.
+  Peor que tardar.
+* *Nada* (lo que había): siempre correcto, pero parpadea en cada entrada
+  aunque no haya cambiado nada.
+* *Esto*: se pinta lo guardado al instante y se pregunta igual, siempre. Si
+  cambió, se actualiza sin que la pantalla se vacíe. Nunca se muestra menos de
+  lo que ya se sabía.
+
+Va sólo para los cinco contadores de Perfil: datos chicos, propios y que se
+pueden mostrar un segundo viejos. **Nada de precios.** Un precio viejo pintado
+como fresco es exactamente lo que esta app existe para no hacer, y esa es la
+línea que la caché no cruza.
+
+Se limpia al cerrar sesión: son números de una persona.
+
+152 tests verdes, 7 nuevos en `PaginationTest`.
+
+## 2026-09-15 (cont.) — v0.15.0: el precio pasa a ser el consenso (BIR-8)
+
+`v_current_prices` era un `DISTINCT ON` ordenado por fecha: **el último que
+reporta gana**, aunque sea uno contra veinte. Alcanzaba con que alguien cargara
+un número falso para que ese fuera *el* precio del bar. Es el agujero más
+grande que le quedaba al modelo de datos.
+
+No cambió nada de cómo se guarda, y ese es el punto: `PriceRepo.confirm` ya
+insertaba una fila completa con el valor vigente y `is_confirmation = true`,
+así que cada "Sigue igual" **ya era un voto por un número** — sólo que nadie
+los contaba. Efecto lateral bueno: confirmar pasa a valer más, no menos. Antes
+sólo rejuvenecía la fecha; ahora es peso detrás de un valor.
+
+Las cuatro decisiones, en orden de cuánto importan:
+
+1. **Un voto por persona, ANTES de la mediana.** Es el paso del que depende
+   todo. Sin él, el atacante reporta diez veces y *es* el consenso, y el modelo
+   queda más manipulable que el que había. Hay un test que carga diez reportes
+   del mismo usuario justamente para eso.
+2. **Mediana y no promedio.** Un valor absurdo entre cinco honestos no mueve la
+   mediana; al promedio lo arrastra, que es el ataque.
+3. **Ventana de 21 días, y adentro el peso decae con la edad.** La ventana
+   sola no alcanzaba, y lo marcó Felipe al revisarlo: adentro de los 21 días un
+   reporte de hoy y uno de hace veinte valían igual, así que tres viejos que
+   coinciden le ganaban a uno de hoy que dice otra cosa — y el de hoy es
+   justamente el que más chance tiene de tener razón, porque el precio se
+   movió. Cada voto pesa `0.5 ^ (días / 10)`: hoy vale 1, a los diez días
+   medio, a los veinte un cuarto. La media vida de 10 días es **la perilla** de
+   la vista: subirla da un precio más estable y más lento para reaccionar a un
+   aumento, bajarla al revés.
+
+   El compromiso tiene dos lados y los dos están testeados: uno de hoy le gana
+   a tres de hace veinte, pero **no** da vuelta un consenso de hace cinco. Si
+   lo diera, alcanzaría con reportar último para mandar, que es justo lo que
+   esto vino a arreglar.
+
+   Efecto lateral lindo de la mediana ponderada: devuelve un precio que alguien
+   reportó de verdad, en vez del promedio de los dos del medio. El número que
+   se muestra existió.
+4. **Con menos de 3 votantes, el más reciente**, o sea lo de antes. Una
+   "mediana" de dos reportes es el promedio de dos números.
+
+**Lo que no se toca: la edad.** El consenso decide QUÉ número se muestra, no de
+cuándo es. `age_days` y `freshness` siguen saliendo del reporte más reciente.
+Tocar eso rompería la única regla que el proyecto no negocia, y hay un test que
+lo fija: tres reportes de hace 20 días más una confirmación de hoy da precio de
+consenso y `fresh`.
+
+**Dos cosas que no estaban en el ticket y aparecieron escribiendo la vista:**
+
+* **El tamaño.** La mediana tiene que ser entre reportes del mismo `size_ml` y
+  la misma moneda, o mezcla una pinta con un litro y devuelve un número que no
+  es el precio de ninguno de los dos. Se toma el tamaño del reporte más
+  reciente como referencia.
+* **`reported_by` puede ser NULL** —la cuenta se borró y el precio queda, que
+  es deliberado—. Cada una de esas filas cuenta como su propio votante: eran
+  personas distintas cuando se cargaron, y juntarlas en un voto sería inventar
+  un consenso que no hubo.
+
+En pantalla, debajo de la edad: "consenso de 6", y el rango cuando hay
+desacuerdo de verdad. Si los seis dicen lo mismo, mostrar "$5.000–$5.000" es
+ruido; si dicen cosas distintas, esconderlo sería precisión falsa.
+
+157 tests verdes, 12 nuevos en `ConsensusTest`, y los dos que AGENTS.md exige
+para esta vista —`FreshnessTest` y `PriceReportTest`— pasan sin cambios.
+
+**Versión 0.15.0 y no 0.14.0**: la 0.14.0 se la lleva la rama de paginación
+(PR #49), que está abierta en paralelo. Dos ramas sin mergear no pueden
+reclamar el mismo número.
+
+## 2026-09-15 (cont.) — v0.16.0: página de colaboradores (BIR-9 + la foto del mes de BIR-10)
+
+La app agradecía los aportes en privado: "Mis aportes" lo ve sólo quien lo
+cargó, y no había nada que devolviera estatus en público. En una app que
+depende de que la gente releve precios gratis, era la palanca de retención más
+barata que quedaba sin usar.
+
+El ticket dejaba dos cosas abiertas. Las dos se resolvieron, y las dos son
+reversibles si no convencen.
+
+### 1. Qué nombre se muestra: el alias, y sólo el alias
+
+`display_name` viene de Google y muy seguido es nombre y apellido reales.
+Publicarlo no es una decisión de interfaz, es un cambio de privacidad: quien
+cargó un precio para que la app funcione no aceptó aparecer en una lista
+pública con su nombre completo.
+
+Por eso el alias es **opt-in y sin default**: sin alias no se aparece. La
+alternativa —sembrarlo con el nombre de pila de cada uno— publica a todos y
+después les avisa, que es el orden equivocado.
+
+La contra es real y conocida: al principio la tabla va a estar casi vacía. Se
+prefiere una tabla vacía a una tabla con gente que no pidió estar, y para que
+la página no mienta sobre cuánta gente sostiene esto, abajo dice cuántos
+aportaron sin alias puesto. De paso es la invitación más honesta a ponerse uno.
+
+Validación del alias: 3 a 20, letras/números/espacio/`. _ -`, tiene que
+arrancar con letra o número, único sin distinguir mayúsculas. El filtro no es
+prolijidad: la tabla pública es exactamente donde alguien mete emojis, saltos
+de línea y espacios invisibles para hacerse notar.
+
+### 2. Qué pesa cada aporte: lo que ya pesaba, con tope
+
+Se reusa `CONTRIBUTION_WEIGHT` —precio y bar 3, foto y nota 2, confirmación 1—
+que ya rankea gente en el dashboard, en vez de inventar una economía nueva.
+
+Lo que se agrega es el tope que pedía el ticket: **un aporte que puntúa por
+persona, tipo, bar y día**. Veinte precios en el mismo bar el mismo día valen
+lo mismo que uno.
+
+Es el punto entero del ranking. Hecho público, el score se vuelve un incentivo
+y la gente optimiza para el número; premiar el volumen crudo es invitar a
+cargar precios inventados, que es el ataque contra el que se defiende el resto
+de la app. Con el tope, la única forma de subir es tocar bares distintos o
+volver otro día — las dos cosas que el mapa necesita. Por eso la fila muestra
+**los bares** antes que los aportes: es el número que distingue a quien relevó
+la ciudad de quien apretó veinte veces en la esquina de su casa.
+
+El mes corre y se reinicia. Una tabla histórica la gana siempre el mismo y al
+que llega nuevo le dice que no tiene sentido empezar.
+
+### La foto del mes encontró dónde vivir
+
+Quedó pendiente en BIR-10: en la pantalla del bar competía con el precio, que
+es lo que la app viene a contestar. Acá no compite con nada — esta página **es**
+el reconocimiento. Va arriba de la tabla, con el bar, la birra, los pulgares y
+la firma del autor (su alias; sin alias se muestra igual pero sin firma).
+
+156 tests verdes, 11 nuevos en `LeaderboardTest` — los del tope y los de
+privacidad son los que importan.
+
+**Versión 0.16.0**: la 0.14.0 se la lleva PR #49 (paginación) y la 0.15.0 PR
+#50 (consenso), las dos abiertas en paralelo.

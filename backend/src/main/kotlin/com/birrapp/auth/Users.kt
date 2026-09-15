@@ -28,6 +28,12 @@ data class User(
     val currency: String = com.birrapp.core.Currency.DEFAULT,
     val defaultSizeMl: Int = 473,
     val defaultRadiusM: Int = 2000,
+    /**
+     * Cómo te ves en público (BIR-9). Null = no estás en la tabla de
+     * colaboradores, que es el default: aparecer se elige, no se hereda del
+     * nombre que puso Google.
+     */
+    val alias: String? = null,
 ) {
     val isBanned: Boolean get() = bannedAt != null
 }
@@ -41,6 +47,17 @@ data class UserStats(
     val bars: Int,
     val reviews: Int,
     val photos: Int,
+    /**
+     * Birras anotadas (BIR-43).
+     *
+     * Viaja con el resto de los números en vez de tener su propio pedido:
+     * Perfil los muestra a los cinco juntos, y traerlos en dos viajes hacía
+     * que la grilla se dibujara en dos tiempos.
+     *
+     * Con default para que una app vieja que no lo manda —ni lo espera— siga
+     * deserializando esto sin romperse.
+     */
+    val beers: Int = 0,
 )
 
 @Serializable
@@ -57,12 +74,23 @@ data class UserDto(
     val currency: String = com.birrapp.core.Currency.DEFAULT,
     val defaultSizeMl: Int = 473,
     val defaultRadiusM: Int = 2000,
+    /**
+     * Cómo te ves en público (BIR-9). Null = no estás en la tabla de
+     * colaboradores, que es el default: aparecer se elige, no se hereda del
+     * nombre que puso Google.
+     */
+    val alias: String? = null,
 )
 
 /** Lo que una persona puede cambiar de sí misma. Todo opcional: se manda lo que cambió. */
 @Serializable
 data class UpdateMeRequest(
     val displayName: String? = null,
+    /**
+     * El nombre con el que aparecés en público (BIR-9). Cadena vacía = sacarlo
+     * y desaparecer de la tabla de colaboradores.
+     */
+    val alias: String? = null,
     val currency: String? = null,
     val defaultSizeMl: Int? = null,
     val defaultRadiusM: Int? = null,
@@ -70,7 +98,7 @@ data class UpdateMeRequest(
 
 fun User.toDto() = UserDto(
     id, email, displayName, avatarUrl, role.name,
-    currency, defaultSizeMl, defaultRadiusM,
+    currency, defaultSizeMl, defaultRadiusM, alias,
 )
 
 /** Lo que hay que limpiar fuera de la base después de borrar una cuenta. */
@@ -89,6 +117,7 @@ class UserRepo(private val db: Db) {
         currency = rs.getString("currency"),
         defaultSizeMl = rs.getInt("default_size_ml"),
         defaultRadiusM = rs.getInt("default_radius_m"),
+        alias = rs.getString("alias"),
     )
 
     fun findById(id: Long): User? = db.conn {
@@ -159,6 +188,30 @@ class UserRepo(private val db: Db) {
             if (name.length < 2) com.birrapp.core.badRequest("el nombre es demasiado corto")
             if (name.length > 60) com.birrapp.core.badRequest("el nombre es demasiado largo")
             c.update("UPDATE users SET display_name = ? WHERE id = ?", name, userId)
+        }
+        req.alias?.let { raw ->
+            val alias = raw.trim()
+            if (alias.isEmpty()) {
+                // Sacarse de la lista tiene que costar lo mismo que entrar.
+                c.update("UPDATE users SET alias = NULL WHERE id = ?", userId)
+                return@let
+            }
+            if (alias.length < 3) com.birrapp.core.badRequest("el alias es demasiado corto")
+            if (alias.length > 20) com.birrapp.core.badRequest("el alias es demasiado largo")
+            // Letras, números, espacio y guiones. Sin esto entran emojis,
+            // saltos de línea y espacios invisibles, y la tabla pública es
+            // justo donde eso se usa para hacerse notar.
+            if (!Regex("^[\\p{L}\\p{N}][\\p{L}\\p{N} ._-]*$").matches(alias)) {
+                com.birrapp.core.badRequest("el alias sólo puede llevar letras, números, espacios y . _ -")
+            }
+            // El índice único es el que decide de verdad: entre comprobar y
+            // escribir hay una carrera, y dos personas pidiendo el mismo alias
+            // a la vez es exactamente el caso que la carrera pierde.
+            val tomado = c.queryOne(
+                "SELECT 1 FROM users WHERE lower(alias) = lower(?) AND id <> ?", alias, userId,
+            ) { true } ?: false
+            if (tomado) com.birrapp.core.badRequest("ese alias ya está tomado")
+            c.update("UPDATE users SET alias = ? WHERE id = ?", alias, userId)
         }
         req.currency?.let { raw ->
             val cur = com.birrapp.core.Currency.normalize(raw)
@@ -253,9 +306,16 @@ class UserRepo(private val db: Db) {
               (SELECT count(*) FROM bars WHERE created_by = ?) AS bares,
               (SELECT count(*) FROM reviews WHERE user_id = ?) AS resenas,
               (SELECT count(*) FROM bar_photos
-                WHERE user_id = ? AND status = 'active') AS fotos
+                WHERE user_id = ? AND status = 'active') AS fotos,
+              -- El contador de birras viaja acá y no en su propio pedido
+              -- (BIR-43). Perfil mostraba un solo número y para conseguirlo
+              -- llamaba a `/beers/summary`, que arma el calendario del mes,
+              -- las rachas, los bares top y los emblemas. Era la consulta más
+              -- cara de la pantalla, para dibujar un entero.
+              (SELECT coalesce(sum(qty), 0)::int FROM beer_logs
+                WHERE user_id = ?) AS birras
             """.trimIndent(),
-            userId, userId, userId, userId, userId,
+            userId, userId, userId, userId, userId, userId,
         ) { rs ->
             UserStats(
                 prices = rs.getInt("precios"),
@@ -263,6 +323,7 @@ class UserRepo(private val db: Db) {
                 bars = rs.getInt("bares"),
                 reviews = rs.getInt("resenas"),
                 photos = rs.getInt("fotos"),
+                beers = rs.getInt("birras"),
             )
         } ?: UserStats(0, 0, 0, 0, 0)
     }

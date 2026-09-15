@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
+import { clearCached, useCached } from '../data/cached'
 import type { User, UserStats } from '../data/types'
 import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
@@ -13,17 +14,29 @@ export function ProfileScreen({ user, onSession }: {
   onSession: () => void
 }) {
   const nav = useNavigate()
-  const [stats, setStats] = useState<UserStats | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<'out' | null>(null)
   const [pendingWork, setPendingWork] = useState(0)
-  /** Cuántas birras llevás anotadas. Es el número que trae de vuelta acá. */
-  const [beers, setBeers] = useState<number | null>(null)
+
+  /*
+   * Los cinco números de la grilla, en un solo pedido y pintados de entrada
+   * con lo último que se supo (BIR-43).
+   *
+   * Eran dos viajes y el segundo era `/beers/summary`, que arma el calendario
+   * del mes, las rachas, los bares top y los emblemas — la consulta más cara
+   * de la pantalla, para leerle `total`. Ahora el contador de birras viene con
+   * el resto de los contadores.
+   *
+   * Y no se arranca en blanco: `useCached` pinta lo guardado al instante y
+   * pregunta igual, siempre. Ver el porqué de esa estrategia en `cached.ts`.
+   */
+  const { data: stats } = useCached<UserStats>(
+    user ? `stats:${user.id}` : null,
+    api.myStats,
+  )
 
   useEffect(() => {
-    if (user) api.myStats().then(setStats).catch(() => {})
-    if (user) api.beerSummary().then(s => setBeers(s.total)).catch(() => {})
     // Sólo los números, no las listas: es un endpoint aparte para no bajarse
     // los bares pendientes y sus reportes enteros para dibujar un número.
     if (isModerator(user)) {
@@ -127,7 +140,7 @@ export function ProfileScreen({ user, onSession }: {
         <Tile label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
         <Tile label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
         <Tile label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
-        <Tile label="Birras tomadas" value={beers ?? undefined}
+        <Tile label="Birras tomadas" value={stats?.beers}
           onClick={() => nav('/mis-birras')} />
       </div>
 
@@ -141,6 +154,9 @@ export function ProfileScreen({ user, onSession }: {
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
         <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
+        {/* Arriba de "Cómo funcionan los precios" porque es lo que se va a
+            mirar seguido, no una sola vez. */}
+        <Row label="Colaboradores del mes" onClick={() => nav('/colaboradores')} />
         <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}
@@ -160,7 +176,9 @@ export function ProfileScreen({ user, onSession }: {
           body="Vas a poder seguir mirando el mapa, pero no cargar precios hasta que vuelvas a entrar."
           confirmLabel="Cerrar sesión" danger
           onCancel={() => setConfirm(null)}
-          onConfirm={async () => { setConfirm(null); await api.signOut(); onSession() }}
+          onConfirm={async () => {
+            setConfirm(null); clearCached(); await api.signOut(); onSession()
+          }}
         />
       )}
     </Wrap>

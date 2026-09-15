@@ -43,6 +43,14 @@ export interface StylePrice {
   ratingCount: number
   /** Días desde el último voto: una nota sin su edad miente igual que un precio. */
   ratingAgeDays: number | null
+  /**
+   * Cuánta gente hay detrás del número (BIR-8). 1 = nadie lo confirmó.
+   * Desde 3, `price` es la mediana de esa gente y no el último reporte.
+   */
+  voters: number | null
+  /** El más barato y el más caro del consenso. Null con menos de 3 votantes. */
+  priceLow: number | null
+  priceHigh: number | null
 }
 
 export interface Photo {
@@ -117,6 +125,37 @@ export interface User {
   currency: string
   defaultSizeMl: number
   defaultRadiusM: number
+  /**
+   * Cómo te ves en público (BIR-9). Null = no estás en la tabla de
+   * colaboradores, que es el default: aparecer se elige.
+   */
+  alias: string | null
+}
+
+/** Una fila de la tabla de colaboradores del mes (BIR-9). */
+export interface Contributor {
+  userId: number
+  alias: string
+  avatarUrl: string | null
+  score: number
+  /** Aportes que puntuaron, con el tope por bar y día ya aplicado. */
+  contributions: number
+  bars: number
+}
+
+export interface PhotoOfMonth {
+  id: number; url: string
+  barId: number; barName: string; beerName: string
+  authorAlias: string | null
+  votes: number
+}
+
+export interface Leaderboard {
+  month: string
+  contributors: Contributor[]
+  /** Cuántos aportaron sin alias, y por eso no están en la lista. */
+  hidden: number
+  photo: PhotoOfMonth | null
 }
 export interface UserStats {
   prices: number
@@ -125,6 +164,8 @@ export interface UserStats {
   bars: number
   reviews: number
   photos: number
+  /** Birras anotadas. Viaja con el resto para que Perfil haga un solo pedido. */
+  beers: number
 }
 
 export interface MyBar {
@@ -148,8 +189,17 @@ export interface MyComment {
   brandName: string | null
   body: string; ageDays: number
 }
+export type ContributionKind = 'bars' | 'prices' | 'photos' | 'comments'
+
 export interface MyContributions {
   bars: MyBar[]; prices: MyPrice[]; photos: MyPhoto[]; comments: MyComment[]
+  /**
+   * Para pedir la página siguiente; `null` = no hay más (BIR-44).
+   *
+   * Es opaco: viene del servidor y se devuelve tal cual. Interpretarlo acá
+   * ataría el cliente al orden que usa la consulta.
+   */
+  nextCursor: string | null
 }
 export interface Session {
   accessToken: string; refreshToken: string
