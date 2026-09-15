@@ -2709,8 +2709,24 @@ Las cuatro decisiones, en orden de cuánto importan:
    del mismo usuario justamente para eso.
 2. **Mediana y no promedio.** Un valor absurdo entre cinco honestos no mueve la
    mediana; al promedio lo arrastra, que es el ataque.
-3. **Ventana de 21 días.** Una mediana sobre 45 días en Argentina mezcla dos
-   niveles de precio y devuelve un número que no existió nunca.
+3. **Ventana de 21 días, y adentro el peso decae con la edad.** La ventana
+   sola no alcanzaba, y lo marcó Felipe al revisarlo: adentro de los 21 días un
+   reporte de hoy y uno de hace veinte valían igual, así que tres viejos que
+   coinciden le ganaban a uno de hoy que dice otra cosa — y el de hoy es
+   justamente el que más chance tiene de tener razón, porque el precio se
+   movió. Cada voto pesa `0.5 ^ (días / 10)`: hoy vale 1, a los diez días
+   medio, a los veinte un cuarto. La media vida de 10 días es **la perilla** de
+   la vista: subirla da un precio más estable y más lento para reaccionar a un
+   aumento, bajarla al revés.
+
+   El compromiso tiene dos lados y los dos están testeados: uno de hoy le gana
+   a tres de hace veinte, pero **no** da vuelta un consenso de hace cinco. Si
+   lo diera, alcanzaría con reportar último para mandar, que es justo lo que
+   esto vino a arreglar.
+
+   Efecto lateral lindo de la mediana ponderada: devuelve un precio que alguien
+   reportó de verdad, en vez del promedio de los dos del medio. El número que
+   se muestra existió.
 4. **Con menos de 3 votantes, el más reciente**, o sea lo de antes. Una
    "mediana" de dos reportes es el promedio de dos números.
 
@@ -2735,10 +2751,7 @@ En pantalla, debajo de la edad: "consenso de 6", y el rango cuando hay
 desacuerdo de verdad. Si los seis dicen lo mismo, mostrar "$5.000–$5.000" es
 ruido; si dicen cosas distintas, esconderlo sería precisión falsa.
 
-`percentile_cont` devuelve `double precision` aunque la columna sea `numeric`,
-y `round(double, 2)` no existe en Postgres. Se castea a numeric antes.
-
-154 tests verdes, 9 nuevos en `ConsensusTest`, y los dos que AGENTS.md exige
+157 tests verdes, 12 nuevos en `ConsensusTest`, y los dos que AGENTS.md exige
 para esta vista —`FreshnessTest` y `PriceReportTest`— pasan sin cambios.
 
 **Versión 0.15.0 y no 0.14.0**: la 0.14.0 se la lleva la rama de paginación

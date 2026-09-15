@@ -118,6 +118,56 @@ class ConsensusTest {
         assertEquals(9000.0, p.price, "mezclar dos niveles de precio da un número que no existió")
     }
 
+    /**
+     * Los dos lados de la ponderación por antigüedad, que son un solo
+     * compromiso: el voto de hoy pesa más, pero no tanto como para que uno
+     * solo dé vuelta un consenso reciente.
+     */
+    @Test
+    fun `uno de hoy le gana a tres de hace veinte dias`() {
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+        // Tres coinciden, pero son de hace veinte días: el bar pudo aumentar
+        // en el medio y ninguno de los tres volvió a mirar.
+        repeat(3) {
+            TestDb.insertPrice(bar, "ipa", 5000.0, daysAgo = 20, userId = TestDb.insertUser("viejo$it"))
+        }
+        TestDb.insertPrice(bar, "ipa", 9000.0, daysAgo = 0, userId = TestDb.insertUser("hoy"))
+
+        val p = ipa(bar)
+        assertEquals(4, p.voters, "los cuatro votan: están todos adentro de la ventana")
+        assertEquals(9000.0, p.price, "pero el de hoy pesa cuatro veces más que los de hace 20")
+    }
+
+    @Test
+    fun `uno de hoy NO da vuelta un consenso reciente`() {
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+        // Mismos tres, pero de hace cinco días: siguen siendo buena información.
+        repeat(3) {
+            TestDb.insertPrice(bar, "ipa", 5000.0, daysAgo = 5, userId = TestDb.insertUser("fresco$it"))
+        }
+        TestDb.insertPrice(bar, "ipa", 99_000.0, daysAgo = 0, userId = TestDb.insertUser("troll"))
+
+        val p = ipa(bar)
+        assertEquals(5000.0, p.price,
+            "si no, alcanzaría con reportar último para mandar, que es lo que se vino a arreglar")
+    }
+
+    @Test
+    fun `el numero que se muestra es uno que alguien reporto`() {
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+        // Cuatro votantes: con mediana clásica el resultado sería el promedio
+        // de los dos del medio, un precio que nadie cargó nunca.
+        listOf(5000.0, 5100.0, 5200.0, 5300.0).forEachIndexed { i, precio ->
+            TestDb.insertPrice(bar, "ipa", precio, daysAgo = 4 - i, userId = TestDb.insertUser("u$i"))
+        }
+
+        val p = ipa(bar)
+        assertTrue(
+            p.price in listOf(5000.0, 5100.0, 5200.0, 5300.0),
+            "la mediana ponderada devuelve un precio real de la tabla, no un promedio: ${p.price}",
+        )
+    }
+
     @Test
     fun `una pinta y un litro no se promedian entre si`() {
         val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)

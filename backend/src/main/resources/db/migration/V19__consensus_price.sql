@@ -20,8 +20,15 @@
 --     consenso, y el modelo queda más manipulable que el anterior, no menos.
 --     Se toma el reporte más reciente de cada persona dentro de la ventana.
 --
---  3. **Ventana de 21 días.** Una mediana sobre 45 días en Argentina mezcla
---     dos niveles de precio y devuelve un número que no existió nunca.
+--  3. **Ventana de 21 días, y adentro de la ventana el peso decae con la
+--     edad.** Una mediana sobre 45 días en Argentina mezcla dos niveles de
+--     precio y devuelve un número que no existió nunca — de ahí la ventana.
+--     Pero el corte por ventana solo no alcanza: adentro, un reporte de hoy y
+--     uno de hace veinte días valían igual, y entonces tres reportes viejos
+--     que coinciden le ganaban a uno de hoy que dice otra cosa. El de hoy es
+--     justamente el que más chance tiene de tener razón, porque el precio se
+--     movió. Cada voto pesa `0.5 ^ (días / 10)`: hoy vale 1, a los diez días
+--     medio, a los veinte un cuarto.
 --
 --  4. **Con menos de 3 votantes, el más reciente**, que es lo de antes. Una
 --     "mediana" de dos reportes es el promedio de dos números, y llamar a eso
@@ -59,7 +66,14 @@ votes AS (
     -- hubo.
     SELECT DISTINCT ON (l.id, COALESCE(pr.reported_by::text, 'anon:' || pr.id))
            l.id AS latest_id,
-           pr.price
+           pr.price,
+           -- Media vida de 10 días. Es LA perilla de esta vista: subirla hace
+           -- el precio más estable y más lento para reaccionar a un aumento;
+           -- bajarla, al revés. Diez días contra una ventana de 21 da un
+           -- rango de 4x entre el voto más nuevo y el más viejo, que alcanza
+           -- para que uno de hoy le gane a tres de hace veinte.
+           power(0.5, EXTRACT(EPOCH FROM (now() - pr.created_at)) / 86400.0 / 10.0)
+               AS weight
     FROM latest l
     JOIN price_reports pr
       ON pr.bar_id = l.bar_id
@@ -73,17 +87,29 @@ votes AS (
      AND pr.created_at > now() - interval '21 days'
     ORDER BY l.id, COALESCE(pr.reported_by::text, 'anon:' || pr.id), pr.created_at DESC
 ),
+ranked AS (
+    -- Para la mediana ponderada: por cada voto, cuánto peso quedó por debajo
+    -- de él ordenando por precio, y cuánto pesa el total.
+    SELECT latest_id, price, weight,
+           sum(weight) OVER (PARTITION BY latest_id ORDER BY price
+                             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running,
+           sum(weight) OVER (PARTITION BY latest_id) AS total
+    FROM votes
+),
 consensus AS (
     SELECT latest_id,
-           -- `::numeric` y no el double que devuelve percentile_cont: el
-           -- precio es numeric(12,2) y `round(double, 2)` ni siquiera existe
-           -- en Postgres. De paso evita que la mediana de dos enteros salga
-           -- con cola de coma flotante.
-           (percentile_cont(0.5) WITHIN GROUP (ORDER BY price))::numeric AS median_price,
+           -- La mediana ponderada es el precio más barato cuyo peso acumulado
+           -- ya pasó la mitad del total. Como `running` sólo crece con el
+           -- precio, las filas que cumplen son exactamente la cola de arriba,
+           -- y la más barata de ellas es la que buscamos.
+           --
+           -- Sale un precio que alguien reportó de verdad, no el promedio de
+           -- los dos del medio: el número que se muestra existió.
+           min(price) FILTER (WHERE running >= total / 2.0) AS median_price,
            count(*)::int AS voters,
            min(price) AS price_low,
            max(price) AS price_high
-    FROM votes
+    FROM ranked
     GROUP BY latest_id
 )
 SELECT l.id,
@@ -95,7 +121,7 @@ SELECT l.id,
        b.slug         AS brand_slug,
        b.name         AS brand_name,
        b.craft        AS brand_craft,
-       CASE WHEN c.voters >= 3 THEN round(c.median_price, 2) ELSE l.price END AS price,
+       CASE WHEN c.voters >= 3 THEN c.median_price ELSE l.price END AS price,
        l.size_ml,
        l.currency,
        l.created_at,
