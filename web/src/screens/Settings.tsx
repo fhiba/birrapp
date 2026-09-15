@@ -32,6 +32,7 @@ export function SettingsScreen({ user, onSession }: {
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState(user?.displayName ?? '')
+  const [alias, setAlias] = useState(user?.alias ?? '')
   // Quiénes están bloqueados. Acá y no en otra pantalla: es el único lugar
   // desde donde se puede deshacer, y un bloqueo que no se puede levantar es
   // una decisión que quedó para siempre por un toque.
@@ -115,6 +116,48 @@ export function SettingsScreen({ user, onSession }: {
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
           Es el nombre con el que aparecen tus aportes. {user.email} no se muestra
           en ningún lado.
+        </p>
+
+        <label className="lbl" style={{
+          display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '24px 0 8px',
+        }} htmlFor="alias">Tu alias público</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            id="alias" value={alias} onChange={e => setAlias(e.target.value)}
+            maxLength={20} placeholder="Sin alias"
+            style={{
+              flex: 1, minWidth: 0, padding: '12px 16px', borderRadius: 'var(--r-2)',
+              background: 'var(--elevated)', border: '1px solid var(--hairline)',
+              fontSize: 'var(--t-field)',
+            }}
+          />
+          <button
+            disabled={alias.trim() === (user.alias ?? '')}
+            onClick={() => guardar(
+              { alias: alias.trim() },
+              alias.trim() ? 'Alias guardado' : 'Alias sacado',
+            )}
+            className="lbl"
+            style={{
+              padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+              background: alias.trim() !== (user.alias ?? '') ? 'var(--acento)' : 'var(--elevated)',
+              color: alias.trim() !== (user.alias ?? '') ? 'var(--base)' : 'var(--faint)',
+            }}
+          >Guardar</button>
+        </div>
+        {/*
+          El texto importa tanto como el campo: esto decide si tu nombre
+          aparece en una página pública, y eso tiene que quedar dicho antes de
+          que alguien escriba algo, no después.
+        */}
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
+          Es el único nombre que se muestra en{' '}
+          <button onClick={() => nav('/colaboradores')} style={{
+            color: 'var(--acento)', textDecoration: 'underline', textUnderlineOffset: 3,
+          }}>Colaboradores</button>, la tabla pública del mes.{' '}
+          {user.alias
+            ? 'Borralo y dejás de figurar; tus aportes siguen contando igual.'
+            : 'Sin alias no figurás, y tu nombre no se publica en ningún lado.'}
         </p>
 
         <SectionLabel>Al cargar precios</SectionLabel>

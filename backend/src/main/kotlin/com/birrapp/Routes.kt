@@ -72,6 +72,7 @@ fun Route.apiRoutes(
     reviews: ReviewRepo,
     ratings: RatingRepo,
     photos: PhotoRepo,
+    leaderboard: com.birrapp.community.LeaderboardRepo,
     moderation: ModerationRepo,
     analytics: AnalyticsRepo,
     users: UserRepo,
@@ -110,6 +111,21 @@ fun Route.apiRoutes(
     }
 
     get("/brands") { call.respond(prices.brands()) }
+
+    /**
+     * Los que más aportaron este mes (BIR-9). Pública y sin sesión: la gracia
+     * es que se vea, y esconderla detrás del login la deja sin público.
+     *
+     * Sólo sale quien eligió un alias. Ver `LeaderboardRepo` por qué.
+     */
+    get("/colaboradores") {
+        call.respond(
+            leaderboard.ofMonth(
+                month = call.request.queryParameters["mes"],
+                limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50,
+            ),
+        )
+    }
 
     // ---------- lectura pública ----------
     // El mapa se puede mirar sin cuenta. Pedir login para ver precios mataría

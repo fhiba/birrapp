@@ -77,6 +77,7 @@ fun Application.module(cfg: Config, db: Db) {
         publicBase = cfg.r2PublicBase,
     )
     val photos = com.birrapp.photos.PhotoRepo(db, r2)
+    val leaderboard = com.birrapp.community.LeaderboardRepo(db, r2)
     val contributions = com.birrapp.auth.ContributionRepo(db, r2)
 
     // Una sola definición del borrado en el bucket, compartida por la
@@ -212,7 +213,7 @@ fun Application.module(cfg: Config, db: Db) {
 
     routing {
         apiRoutes(
-            bars, prices, beers, people, reviews, ratings, photos, moderation, analytics,
+            bars, prices, beers, people, reviews, ratings, photos, leaderboard, moderation, analytics,
             users, traffic,
             // Vive tanto como el proceso y no se persiste: la clave es la IP.
             // Apagado salvo que COVERAGE_BUDGET_PER_DAY diga otra cosa — ver

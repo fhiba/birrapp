@@ -125,6 +125,37 @@ export interface User {
   currency: string
   defaultSizeMl: number
   defaultRadiusM: number
+  /**
+   * Cómo te ves en público (BIR-9). Null = no estás en la tabla de
+   * colaboradores, que es el default: aparecer se elige.
+   */
+  alias: string | null
+}
+
+/** Una fila de la tabla de colaboradores del mes (BIR-9). */
+export interface Contributor {
+  userId: number
+  alias: string
+  avatarUrl: string | null
+  score: number
+  /** Aportes que puntuaron, con el tope por bar y día ya aplicado. */
+  contributions: number
+  bars: number
+}
+
+export interface PhotoOfMonth {
+  id: number; url: string
+  barId: number; barName: string; beerName: string
+  authorAlias: string | null
+  votes: number
+}
+
+export interface Leaderboard {
+  month: string
+  contributors: Contributor[]
+  /** Cuántos aportaron sin alias, y por eso no están en la lista. */
+  hidden: number
+  photo: PhotoOfMonth | null
 }
 export interface UserStats {
   prices: number
