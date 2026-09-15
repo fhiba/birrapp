@@ -2687,3 +2687,73 @@ roto: la regla de la paleta nueva es "si tiene color, es un dato", y "me gusta
 esta foto" no es frescura, ni precio, ni peligro. El estado prendido se
 distingue por relleno y contraste, así que se lee con la pantalla en blanco y
 negro.
+
+## 2026-09-15 — v0.14.0: traer menos, y no traerlo de nuevo (BIR-44 + BIR-43)
+
+Dos tickets del mismo síntoma: la app se baja de más y se lo vuelve a bajar
+cada vez que entrás.
+
+### BIR-44 — paginar
+
+El peor caso era `/auth/me/contributions`: devolvía las **cuatro** listas de
+aportes, hasta 200 filas cada una. La pantalla web muestra una sola —la ruta ya
+es `/mis-aportes/:tipo`— así que abrir "precios" se bajaba además tus fotos,
+tus bares y tus comentarios. Hasta 800 filas para dibujar una lista.
+
+Ahora se pide `?tipo=` y viene una, de a 30, con cursor. Sin `tipo` siguen
+viniendo las cuatro, que es como lo llama la app de Android y no hacía falta
+romperlo para arreglar esto.
+
+El cursor compara la tupla `(created_at, id)` y no sólo la fecha. No es
+prolijidad: tres precios cargados seguidos caen en el mismo segundo, y con un
+corte por fecha sola el segundo y el tercero se saltean al pasar de página. Hay
+un test que carga seis aportes con la misma antigüedad justamente para eso.
+
+Se pide una fila de más para saber si hay página siguiente. Un `count(*)` por
+página cuesta recorrer la tabla entera para contestar un sí o un no.
+
+**Lo que se acotó sin paginar, y por qué.** `favorites` y las fotos de un bar
+no tenían techo — eran dos consultas sin `LIMIT`. Les puse un tope (200 y 60) y
+un comentario `ponytail:` con el techo y el camino de salida, en vez de un
+cursor: nadie marca doscientos bares como favoritos, y en la tira de fotos de
+un bar nadie llega a la sesenta. Poner un "ver más" ahí sería construir un
+mecanismo para un caso que no existe; lo que no se podía dejar era la consulta
+sin límite.
+
+El número del encabezado ahora lleva un "+" cuando falta una página. Con
+paginación, ese número es cuántos se bajaron y no cuántos hay, y mostrar "30"
+cuando son ochenta es el mismo pecado que un precio sin su edad al lado.
+
+### BIR-43 — que no arranque en blanco
+
+Felipe preguntó cuál era la mejor estrategia. Son dos cosas y la primera no es
+caché:
+
+**Una, había un pedido que no tenía que existir.** Perfil mostraba las birras
+tomadas y para conseguir ese entero llamaba a `/beers/summary`, que arma el
+calendario del mes, las rachas, los bares top y los emblemas. Era la consulta
+más cara de la pantalla, para leerle un campo. El total ahora viaja con los
+otros cuatro contadores, en la misma consulta: de dos viajes a uno, y la grilla
+deja de dibujarse en dos tiempos.
+
+**Dos, recién ahí, caché.** *Stale-while-revalidate* en `localStorage`
+(`data/cached.ts`), elegido sobre las otras dos opciones por lo que hace cada
+una cuando el dato cambió:
+
+* *Caché con vencimiento* (guardar 5 minutos): el número queda viejo justo en
+  el caso que importa — cargás un precio, volvés a Perfil y dice lo de antes.
+  Peor que tardar.
+* *Nada* (lo que había): siempre correcto, pero parpadea en cada entrada
+  aunque no haya cambiado nada.
+* *Esto*: se pinta lo guardado al instante y se pregunta igual, siempre. Si
+  cambió, se actualiza sin que la pantalla se vacíe. Nunca se muestra menos de
+  lo que ya se sabía.
+
+Va sólo para los cinco contadores de Perfil: datos chicos, propios y que se
+pueden mostrar un segundo viejos. **Nada de precios.** Un precio viejo pintado
+como fresco es exactamente lo que esta app existe para no hacer, y esa es la
+línea que la caché no cruza.
+
+Se limpia al cerrar sesión: son números de una persona.
+
+152 tests verdes, 7 nuevos en `PaginationTest`.

@@ -123,7 +123,20 @@ class BarRepo(private val db: Db) {
      * con el componente que ya tienen. `distance_meters` es null salvo que se
      * pase un punto: los favoritos se miran sin estar cerca de ninguno.
      */
-    fun favorites(userId: Long, fromLat: Double?, fromLng: Double?): List<BarPinDto> = db.conn {
+    /**
+     * Los favoritos de una persona.
+     *
+     * Con techo y sin cursor (BIR-44). El corte a 200 no es paginación: es que
+     * esto no puede ser una consulta sin límite, y a la vez nadie marca
+     * doscientos bares como favoritos. El día que alguien lo haga, el que
+     * doscientos uno no aparezca es un problema mucho más chico que bajarse la
+     * lista entera en cada apertura de la pantalla.
+     *
+     * ponytail: techo duro, cursor cuando alguien pase de 200 favoritos.
+     */
+    fun favorites(
+        userId: Long, fromLat: Double?, fromLng: Double?, limit: Int = 200,
+    ): List<BarPinDto> = db.conn {
         it.query(
             """
             SELECT b.id, b.name,
@@ -141,8 +154,9 @@ class BarRepo(private val db: Db) {
             LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE f.user_id = ?
             ORDER BY f.created_at DESC
+            LIMIT ?
             """.trimIndent(),
-            fromLat, fromLng, fromLat, userId,
+            fromLat, fromLng, fromLat, userId, limit.coerceIn(1, 500),
             map = ::mapPin,
         )
     }

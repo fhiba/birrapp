@@ -212,10 +212,33 @@ fun Route.authRoutes(
             call.respond(users.stats(caller.userId))
         }
 
-        /** Todo lo que cargó quien pregunta, para poder revisarlo de un lugar. */
+        /**
+         * Lo que cargó quien pregunta, para poder revisarlo de un lugar.
+         *
+         * `tipo` acota a una sola clase de aporte y `before` pide la página
+         * siguiente (BIR-44). Sin `tipo` vienen las cuatro listas, que es como
+         * nació y como lo sigue llamando la app de Android: la web pide una,
+         * que es la única que dibuja.
+         *
+         * Un `tipo` que no existe es un pedido mal escrito y no una lista
+         * vacía: contestar 200 con nada adentro esconde el error del lado del
+         * cliente hasta que alguien mira por qué la pantalla está en blanco.
+         */
         get("/me/contributions") {
             val caller = call.caller()
-            call.respond(contributions.forUser(caller.userId))
+            val raw = call.request.queryParameters["tipo"]
+            val kind = raw?.let {
+                runCatching { ContributionKind.valueOf(it) }
+                    .getOrElse { badRequest("no existe ese tipo de aporte: $raw") }
+            }
+            call.respond(
+                contributions.forUser(
+                    caller.userId,
+                    kind = kind,
+                    limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 30,
+                    before = call.request.queryParameters["before"],
+                ),
+            )
         }
 
         /**

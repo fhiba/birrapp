@@ -125,6 +125,8 @@ export interface UserStats {
   bars: number
   reviews: number
   photos: number
+  /** Birras anotadas. Viaja con el resto para que Perfil haga un solo pedido. */
+  beers: number
 }
 
 export interface MyBar {
@@ -148,8 +150,17 @@ export interface MyComment {
   brandName: string | null
   body: string; ageDays: number
 }
+export type ContributionKind = 'bars' | 'prices' | 'photos' | 'comments'
+
 export interface MyContributions {
   bars: MyBar[]; prices: MyPrice[]; photos: MyPhoto[]; comments: MyComment[]
+  /**
+   * Para pedir la página siguiente; `null` = no hay más (BIR-44).
+   *
+   * Es opaco: viene del servidor y se devuelve tal cual. Interpretarlo acá
+   * ataría el cliente al orden que usa la consulta.
+   */
+  nextCursor: string | null
 }
 export interface Session {
   accessToken: string; refreshToken: string

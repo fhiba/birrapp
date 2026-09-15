@@ -41,6 +41,17 @@ data class UserStats(
     val bars: Int,
     val reviews: Int,
     val photos: Int,
+    /**
+     * Birras anotadas (BIR-43).
+     *
+     * Viaja con el resto de los números en vez de tener su propio pedido:
+     * Perfil los muestra a los cinco juntos, y traerlos en dos viajes hacía
+     * que la grilla se dibujara en dos tiempos.
+     *
+     * Con default para que una app vieja que no lo manda —ni lo espera— siga
+     * deserializando esto sin romperse.
+     */
+    val beers: Int = 0,
 )
 
 @Serializable
@@ -253,9 +264,16 @@ class UserRepo(private val db: Db) {
               (SELECT count(*) FROM bars WHERE created_by = ?) AS bares,
               (SELECT count(*) FROM reviews WHERE user_id = ?) AS resenas,
               (SELECT count(*) FROM bar_photos
-                WHERE user_id = ? AND status = 'active') AS fotos
+                WHERE user_id = ? AND status = 'active') AS fotos,
+              -- El contador de birras viaja acá y no en su propio pedido
+              -- (BIR-43). Perfil mostraba un solo número y para conseguirlo
+              -- llamaba a `/beers/summary`, que arma el calendario del mes,
+              -- las rachas, los bares top y los emblemas. Era la consulta más
+              -- cara de la pantalla, para dibujar un entero.
+              (SELECT coalesce(sum(qty), 0)::int FROM beer_logs
+                WHERE user_id = ?) AS birras
             """.trimIndent(),
-            userId, userId, userId, userId, userId,
+            userId, userId, userId, userId, userId, userId,
         ) { rs ->
             UserStats(
                 prices = rs.getInt("precios"),
@@ -263,6 +281,7 @@ class UserRepo(private val db: Db) {
                 bars = rs.getInt("bares"),
                 reviews = rs.getInt("resenas"),
                 photos = rs.getInt("fotos"),
+                beers = rs.getInt("birras"),
             )
         } ?: UserStats(0, 0, 0, 0, 0)
     }

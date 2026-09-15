@@ -134,13 +134,18 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
     /**
      * Las fotos de un bar, con sus pulgares.
      *
+     * Con techo y sin cursor (BIR-44): la tira scrollea, nadie llega al final
+     * de sesenta fotos, y la del mes —que es la que importa— va primera igual.
+     * ponytail: techo duro, cursor el día que un bar pase de 60 fotos y a
+     * alguien le importe ver la 61.
+     *
      * La foto del mes va primero y no ordenada por votos entre todas: el
      * orden sigue siendo cronológico porque quien mira quiere ver lo último
      * que se subió, y un ranking permanente dejaría la misma foto arriba para
      * siempre. La del mes se corre al principio y se marca; el mes que viene
      * es otra.
      */
-    fun forBar(barId: Long, viewerId: Long?): List<PhotoDto> = db.conn {
+    fun forBar(barId: Long, viewerId: Long?, limit: Int = 60): List<PhotoDto> = db.conn {
         it.query(
             """
             WITH v AS (
@@ -183,12 +188,13 @@ class PhotoRepo(private val db: Db, private val r2: R2) {
             WHERE p.bar_id = ? AND p.status = 'active'
               ${com.birrapp.auth.notBlocked("p.user_id")}
             ORDER BY (p.id = (SELECT id FROM top)) DESC, p.created_at DESC
+            LIMIT ?
             """.trimIndent(),
             // `top` queda sin el filtro de bloqueo a propósito: la foto del
             // mes es la que ganó para todo el bar, no una por espectador. Si
             // la subió alguien a quien bloqueaste no la vas a ver —el WHERE
             // de abajo la saca igual— y simplemente no hay foto del mes.
-            viewerId, barId, barId, barId, viewerId, viewerId,
+            viewerId, barId, barId, barId, viewerId, viewerId, limit.coerceIn(1, 200),
         ) { rs ->
             PhotoDto(
                 id = rs.getLong("id"),
