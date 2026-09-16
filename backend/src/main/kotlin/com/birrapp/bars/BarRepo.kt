@@ -133,16 +133,71 @@ class BarRepo(private val db: Db) {
      * lista entera en cada apertura de la pantalla.
      *
      * ponytail: techo duro, cursor cuando alguien pase de 200 favoritos.
+     *
+     * **Acepta el mismo filtro y el mismo orden que `nearby`, y no por
+     * simetría.** Prendido el filtro de favoritos, la lista dejaba de
+     * responder a la píldora de estilo y a "más cerca"/"más barata": los
+     * controles seguían ahí, se podían tocar, y no pasaba nada. Esto ordenaba
+     * siempre por cuándo lo habías marcado.
+     *
+     * Lo del orden tiene una consecuencia que no se ve hasta usarlo: con el
+     * punto secundario puesto —mantener apretado el mapa para mirar otra
+     * zona— la distancia SÍ se calculaba desde ese punto, así que cada fila
+     * decía bien a cuánto estaba, pero la lista venía ordenada por otra cosa.
+     * O sea "a 200 m" debajo de "a 4,1 km", que se lee como un error de la
+     * app.
      */
     fun favorites(
-        userId: Long, fromLat: Double?, fromLng: Double?, limit: Int = 200,
+        userId: Long,
+        fromLat: Double?,
+        fromLng: Double?,
+        sort: BarSort = BarSort.distance,
+        styleSlug: String? = null,
+        limit: Int = 200,
     ): List<BarPinDto> = db.conn {
+        // Con filtro de estilo el precio de la fila tiene que ser el DE ESE
+        // estilo, no el más barato del bar: es el mismo JOIN que usa `nearby`,
+        // y por el mismo motivo.
+        val filtered = styleSlug != null
+        val joins = if (filtered) {
+            """
+            JOIN v_current_prices cp
+              ON cp.bar_id = b.id AND cp.style_slug = ? AND cp.freshness <> 'stale'
+            """.trimIndent()
+        } else {
+            "LEFT JOIN v_bar_headline h ON h.bar_id = b.id"
+        }
+        val price = if (filtered) "cp.price AS from_price, cp.age_days AS freshest_age_days"
+                    else "h.from_price, h.freshest_age_days"
+
+        // Sin ubicación no hay distancia, así que ordenar por ella deja todo
+        // empatado en NULL. En ese caso cae a lo de siempre: el último que
+        // marcaste, arriba.
+        val porDistancia = if (fromLat != null) "distance_meters ASC" else "f.created_at DESC"
+        val orderBy = when (sort) {
+            BarSort.distance -> porDistancia
+            BarSort.cheapest ->
+                if (filtered) "cp.price ASC, $porDistancia"
+                else "h.from_price ASC NULLS LAST, $porDistancia"
+            BarSort.rated -> "r.rating_sort DESC NULLS LAST, $porDistancia"
+        }
+
+        // `buildList<Any?>` explícito: sin el tipo, Kotlin infiere la
+        // intersección de Double/String/Long y `vararg` reificado se queda con
+        // el supertipo común, que es un aviso de compilación y una fuente
+        // silenciosa de líos al pasar los parámetros.
+        val args = buildList<Any?> {
+            add(fromLat); add(fromLng); add(fromLat)
+            if (filtered) add(styleSlug)
+            add(userId); add(limit.coerceIn(1, 500))
+        }
+
         it.query(
             """
             SELECT b.id, b.name,
                    ST_Y(b.location::geometry) AS lat,
                    ST_X(b.location::geometry) AS lng,
-                   h.from_price, h.freshest_age_days,
+                   $price,
                    b.currency,
                    r.rating_raw, coalesce(r.rating_count, 0) AS rating_count,
                    CASE WHEN ?::float8 IS NULL THEN NULL
@@ -150,13 +205,13 @@ class BarRepo(private val db: Db) {
                         AS distance_meters
             FROM favorites f
             JOIN bars b ON b.id = f.bar_id AND b.status = 'approved'
-            LEFT JOIN v_bar_headline h ON h.bar_id = b.id
+            $joins
             LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE f.user_id = ?
-            ORDER BY f.created_at DESC
+            ORDER BY $orderBy
             LIMIT ?
             """.trimIndent(),
-            fromLat, fromLng, fromLat, userId, limit.coerceIn(1, 500),
+            *args.toTypedArray(),
             map = ::mapPin,
         )
     }

@@ -402,11 +402,24 @@ fun Route.apiRoutes(
         /** Los bares favoritos de quien mira (BIR-37 / BIR-5). */
         get("/favorites") {
             val caller = call.caller()
+            val q = call.request.queryParameters
+            // Mismos parámetros que `/bars`: con el filtro de favoritos
+            // prendido, la lista tiene que seguir respondiendo a la píldora de
+            // estilo y al orden. Antes los ignoraba y los controles quedaban
+            // de adorno.
+            val sort = when (q["sort"]) {
+                null, "distance" -> BarSort.distance
+                "cheapest" -> BarSort.cheapest
+                "rated" -> BarSort.rated
+                else -> badRequest("sort inválido: usar distance, cheapest o rated")
+            }
             call.respond(
                 bars.favorites(
                     caller.userId,
-                    call.request.queryParameters["lat"]?.toDoubleOrNull(),
-                    call.request.queryParameters["lng"]?.toDoubleOrNull(),
+                    q["lat"]?.toDoubleOrNull(),
+                    q["lng"]?.toDoubleOrNull(),
+                    sort = sort,
+                    styleSlug = q["style"]?.takeIf { it.isNotBlank() },
                 ),
             )
         }

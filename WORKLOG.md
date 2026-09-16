@@ -2907,3 +2907,29 @@ pantalla el tutorial lo saltea solo, así que quedaba como configuración muerta
 caro sino un bar sin precio cargado. Eso se mudó a "Cómo funcionan los precios",
 que es donde alguien lo va a buscar. La confusión es real y cara: leer el gris
 como "caro" es leer el mapa al revés justo en los bares donde falta el aporte.
+
+## 2026-09-16 (cont.) — v0.16.2: los filtros de la lista con favoritos puesto
+
+Felipe: "no funcionan los filtros en la vista de listas cuando tengo puesto el
+botón de favoritos, y tampoco le da bola al punto secundario".
+
+Las dos cosas, y las dos en el backend. Con el filtro de favoritos prendido la
+lista salía de `/favorites`, que no aceptaba ni `style` ni `sort` y ordenaba
+siempre por `f.created_at DESC`. Los controles seguían en pantalla, se podían
+tocar, y no pasaba nada: la píldora de estilo y el interruptor de orden estaban
+de adorno.
+
+Lo del punto secundario es la mitad más confusa del bug, y vale anotarla porque
+el síntoma no señala la causa. La distancia **sí** se calculaba desde el punto
+elegido, así que cada fila decía bien a cuánto estaba; lo que no cambiaba era el
+orden. O sea que se veía "a 200 m" debajo de "a 4,1 km" — que no se lee como un
+problema de orden sino como que la app calcula mal las distancias.
+
+`favorites()` ahora toma los mismos `sort` y `styleSlug` que `nearby`, con el
+mismo JOIN contra `v_current_prices` para que, filtrando por estilo, el precio
+de la fila sea el de ESE estilo y no el más barato del bar. Sin ubicación cae al
+orden de antes —el último que marcaste, arriba—, porque ordenar por una
+distancia que es NULL en todas las filas deja el orden a gusto de Postgres.
+
+179 tests verdes, 4 nuevos en `FavoriteTest`. El de distancia prueba las dos
+puntas: desde el Obelisco y desde el punto secundario, y la lista se da vuelta.
