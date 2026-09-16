@@ -73,14 +73,6 @@ const STEPS: Record<TourView, Step[]> = {
         + 'kilómetros ya no.',
     },
     {
-      anchor: 'map-color',
-      title: 'Qué te dice el color',
-      body: 'Verde es lo más barato y rojo lo más caro de lo que tengas en '
-        + 'pantalla, así que la escala se reacomoda al moverte: en Palermo lo '
-        + 'barato es otro número que en Liniers. Gris es un bar sin precio '
-        + 'cargado, no un bar caro.',
-    },
-    {
       anchor: 'map-style',
       title: 'Una birra a la vez',
       body: 'Filtrá por estilo y comparás IPA contra IPA. Sin filtro, cada pin '

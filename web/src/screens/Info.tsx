@@ -40,6 +40,15 @@ export function InfoScreen() {
         Si nadie confirma, todo el mapa envejece.
       </Section>
 
+      {/* El único dato de la leyenda que no era obvio. La pastilla
+          "barato ●●●● caro" se sacó del mapa —verde/rojo se lee solo— pero
+          que el gris NO sea "caro" hay que decirlo en algún lado. */}
+      <Section title="Los pines grises no son bares caros">
+        El color del pin va del verde al rojo según lo barato que esté respecto de
+        lo que tengas en pantalla, así que la escala se reacomoda al moverte. Un pin
+        gris es otra cosa: es un bar al que todavía nadie le cargó el precio.
+      </Section>
+
       <Section title="De dónde salen los bares">
         La base inicial viene de OpenStreetMap, y la comunidad agrega los que faltan.
         Los precios los carga siempre la gente: no hay ninguno estimado ni calculado
