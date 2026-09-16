@@ -160,6 +160,24 @@ export function SettingsScreen({ user, onSession }: {
             : 'Sin alias no figurás, y tu nombre no se publica en ningún lado.'}
         </p>
 
+        {/* Las birras favoritas viven acá y no en su propia sección: son una
+            preferencia de cuenta, igual que el alias y el nombre. */}
+        <button onClick={() => nav('/preferencias')} className="lbl" style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+          marginTop: 'var(--s-5)', padding: '14px 16px', borderRadius: 'var(--r-2)',
+          fontSize: 'var(--t-4)', background: 'var(--film-2)', color: 'var(--cream)',
+          textAlign: 'left',
+        }}>
+          <span style={{ flex: 1 }}>Tus birras favoritas</span>
+          <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>
+            {user.favoriteStyles.length + user.favoriteBrands.length || '—'}
+          </span>
+          <span style={{ color: 'var(--faint)' }}>›</span>
+        </button>
+        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
+          Deciden cuáles son las tres birras que se ven primero en cada bar.
+        </p>
+
         <SectionLabel>Al cargar precios</SectionLabel>
 
         <Field

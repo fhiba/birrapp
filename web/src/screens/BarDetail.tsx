@@ -11,7 +11,8 @@ import {
 import { Confirm, Toast } from '../ui/Chrome'
 import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
-import { RatingField, Stars } from '../ui/Stars'
+import { Stars } from '../ui/Stars'
+import { PillRow } from '../ui/PillRow'
 import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
 
@@ -46,6 +47,11 @@ export function BarDetailScreen({
   const barId = Number(id)
   const nav = useNavigate()
   const isFavorite = favorites.ids.has(barId)
+  // Las birras favoritas de quien mira, para decidir qué tres pastillas van
+  // adelante. Sin sesión quedan vacías y manda la puntuación, que es el
+  // desempate para el que no eligió nada.
+  const favStyles = new Set(user?.favoriteStyles ?? [])
+  const favBrands = new Set(user?.favoriteBrands ?? [])
 
   const [bar, setBar] = useState<Bar | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
@@ -334,11 +340,11 @@ export function BarDetailScreen({
             className="icon-btn"
             style={{
               marginRight: 8,
-              background: isFavorite ? 'var(--acento-soft)' : 'var(--film-2)',
-              color: isFavorite ? 'var(--acento)' : 'var(--muted)',
+              background: isFavorite ? 'var(--favorito-soft)' : 'var(--film-2)',
+              color: isFavorite ? 'var(--favorito)' : 'var(--muted)',
             }}
           >
-            <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+            <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden
               fill={isFavorite ? 'currentColor' : 'none'}
               stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.9}>
               <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
@@ -398,8 +404,8 @@ export function BarDetailScreen({
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
               }}>
-                <svg width="15" height="15" viewBox="0 0 24 24"
-                  fill="var(--acento)" aria-hidden>
+                <svg width="17" height="17" viewBox="0 0 24 24"
+                  fill="var(--nota)" aria-hidden>
                   <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
                 </svg>
                 <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
@@ -427,7 +433,15 @@ export function BarDetailScreen({
             </svg>
           </a>
         </div>
-        {meta && <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)', margin: 0 }}>{meta}</p>}
+        {/* El aire de abajo no es decoración: sin él la dirección quedaba
+            pegada a la fila de pastillas y se leía como si fuera su rótulo.
+            El espacio entre grupos tiene que superar al de adentro del grupo,
+            y acá el grupo es "nombre + nota + dirección". */}
+        {meta && (
+          <p style={{
+            color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '0 0 var(--s-3)',
+          }}>{meta}</p>
+        )}
 
       </div>
 
@@ -454,67 +468,63 @@ export function BarDetailScreen({
               corría 18px sola y la primera pestaña terminaba pegada al borde
               de la pantalla, desalineada de todo lo demás de la ficha. Con
               esto, el enganche respeta el mismo margen que el resto. */}
-          <div data-tour="bar-tabs" style={{
-            display: 'flex', gap: 8, padding: '4px 18px 0',
-            overflowX: 'auto', scrollSnapType: 'x proximity',
-            scrollPaddingLeft: 18,
-          }}>
-            {groups.map(g => {
-              const on = g.slug === group?.slug
-              return (
-                <button
-                  key={g.slug}
-                  // Cambiar de estilo cae en su primera marca. Conservar la
-                  // marca anterior llevaría a pedir una birra que no existe:
-                  // "rubia de Juguetes Perdidos" porque venías mirando su IPA.
-                  onClick={() => setTab({ style: g.slug, brand: g.beers[0].brandSlug })}
-                  className="lbl" aria-pressed={on}
-                  style={{
-                    flex: '0 0 auto', scrollSnapAlign: 'start',
-                    padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
-                    whiteSpace: 'nowrap',
-                    background: on ? 'var(--acento)' : 'var(--film-2)',
-                    color: on ? 'var(--base)' : 'var(--muted)',
-                  }}
-                >
-                  {g.name}
-                  {/* Cuántas marcas hay de este estilo. Sin esto, que una
-                      solapa esconda tres cervezas y otra una sola no se ve
-                      hasta entrar. */}
-                  {g.beers.length > 1 && (
-                    <span style={{
-                      marginLeft: 8, fontSize: 'var(--t-1)',
-                      opacity: on ? 0.65 : 1,
-                      color: on ? 'inherit' : 'var(--faint)',
-                    }}>{g.beers.length}</span>
-                  )}
-                </button>
-              )
-            })}
-
-            {/* Última posición de la lista: es donde se agrega otra, como las
-                solapas de un navegador. Antes esto era un botón ancho abajo
-                que decía "Cargar precio", y con precios ya cargados eso
-                describía mal lo que hace: no carga *el* precio, agrega otra
-                birra. */}
-            <button
-              onClick={() => user ? setReporting({}) : nav('/perfil')}
-              className="lbl" aria-label="Cargar otra birra"
-              style={{
-                flex: '0 0 auto', scrollSnapAlign: 'start',
+          <PillRow
+            dataTour="bar-tabs"
+            sheetTitle="Qué birra"
+            selected={group?.slug ?? null}
+            items={groups.map(g => ({
+              key: g.slug,
+              label: g.name,
+              favorita: favStyles.has(g.slug),
+              // `ratingAvg` y no `ratingRaw`: éste lleva shrinkage, o sea que
+              // un 5,0 con un voto no le gana a un 4,6 con cuarenta. Para
+              // ordenar es exactamente lo que hace falta.
+              score: Math.max(...g.beers.map(b => b.ratingAvg ?? -1)),
+              extra: g.beers.length > 1
+                ? <span style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
+                    {g.beers.length}
+                  </span>
+                : undefined,
+            }))}
+            // Cambiar de estilo cae en su primera marca. Conservar la marca
+            // anterior llevaría a pedir una birra que no existe: "rubia de
+            // Juguetes Perdidos" porque venías mirando su IPA.
+            onPick={slug => {
+              const g = groups.find(x => x.slug === slug)
+              if (g) setTab({ style: g.slug, brand: g.beers[0].brandSlug })
+            }}
+            renderPill={(p, on) => (
+              <span style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
-                whiteSpace: 'nowrap', color: 'var(--acento)',
-                border: '1px dashed rgba(237,230,216,.45)',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
-                <path d="M12 5v14M5 12h14" stroke="currentColor"
-                  strokeWidth="2.6" strokeLinecap="round" />
-              </svg>
-              Otra birra
-            </button>
-          </div>
+                whiteSpace: 'nowrap',
+                background: on ? 'var(--acento)' : 'var(--film-2)',
+                color: on ? 'var(--base)' : 'var(--muted)',
+              }}>
+                {p.label}
+                {p.extra}
+              </span>
+            )}
+            trailing={
+              <button
+                onClick={() => user ? setReporting({}) : nav('/perfil')}
+                className="lbl" aria-label="Cargar otra birra"
+                style={{
+                  flex: '0 0 auto',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
+                  whiteSpace: 'nowrap', color: 'var(--acento)',
+                  border: '1px dashed rgba(237,230,216,.45)',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12 5v14M5 12h14" stroke="currentColor"
+                    strokeWidth="2.6" strokeLinecap="round" />
+                </svg>
+                Otra birra
+              </button>
+            }
+          />
 
           {/* Segunda fila: las marcas de ese estilo.
               Se ve una marca por vez y se alterna entre ellas — mostrar dos
@@ -524,58 +534,56 @@ export function BarDetailScreen({
               control que aparece y desaparece según cuántas haya es un control
               que no se encuentra cuando se lo necesita. */}
           {group && (
-            <div style={{
-              display: 'flex', gap: 8, padding: '8px 18px 0',
-              overflowX: 'auto', scrollSnapType: 'x proximity',
-              scrollPaddingLeft: 18,
-            }}>
-              {group.beers.map(b => {
-                const on = b.brandSlug === active?.brandSlug
-                return (
-                  <button
-                    key={b.brandSlug ?? '_'}
-                    onClick={() => setTab({ style: group.slug, brand: b.brandSlug })}
-                    className="lbl" aria-pressed={on}
-                    style={{
-                      flex: '0 0 auto', scrollSnapAlign: 'start',
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
-                      whiteSpace: 'nowrap',
-                      background: on ? 'rgba(237,230,216,.16)' : 'transparent',
-                      color: on ? 'var(--acento)' : 'var(--faint)',
-                      border: `1px solid ${on ? 'rgba(237,230,216,.4)' : 'var(--hairline)'}`,
-                    }}
-                  >
-                    {b.brandName ?? 'Sin marca'}
-                    {b.price != null && (
-                      <span className="num" style={{ opacity: 0.75 }}>
-                        {formatPrice(b.price, bar.currency)}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-
-              <button
-                onClick={() => user
-                  ? setReporting({ style: group.slug })
-                  : nav('/perfil')}
-                className="lbl" aria-label="Cargar otra marca"
-                style={{
-                  flex: '0 0 auto', scrollSnapAlign: 'start',
-                  display: 'flex', alignItems: 'center', gap: 4,
+            <PillRow
+              sheetTitle={`Qué ${group.name.toLowerCase()}`}
+              selected={active?.brandSlug ?? '_'}
+              items={group.beers.map(b => ({
+                key: b.brandSlug ?? '_',
+                label: b.brandName ?? 'Sin marca',
+                favorita: b.brandSlug != null && favBrands.has(b.brandSlug),
+                score: b.ratingAvg ?? -1,
+                extra: b.price != null
+                  ? <span className="num" style={{ opacity: 0.75 }}>
+                      {formatPrice(b.price, bar.currency)}
+                    </span>
+                  : undefined,
+              }))}
+              onPick={key => setTab({ style: group.slug, brand: key === '_' ? null : key })}
+              renderPill={(p, on) => (
+                <span style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
-                  whiteSpace: 'nowrap', color: 'var(--muted)',
-                  border: '1px dashed var(--hairline)',
-                }}
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden>
-                  <path d="M12 5v14M5 12h14" stroke="currentColor"
-                    strokeWidth="2.6" strokeLinecap="round" />
-                </svg>
-                Otra marca
-              </button>
-            </div>
+                  whiteSpace: 'nowrap',
+                  background: on ? 'rgba(237,230,216,.16)' : 'transparent',
+                  color: on ? 'var(--acento)' : 'var(--faint)',
+                  border: `1px solid ${on ? 'rgba(237,230,216,.4)' : 'var(--hairline)'}`,
+                }}>
+                  {p.label}
+                  {p.extra}
+                </span>
+              )}
+              trailing={
+                <button
+                  onClick={() => user
+                    ? setReporting({ style: group.slug })
+                    : nav('/perfil')}
+                  className="lbl" aria-label="Cargar otra marca"
+                  style={{
+                    flex: '0 0 auto',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
+                    whiteSpace: 'nowrap', color: 'var(--muted)',
+                    border: '1px dashed var(--hairline)',
+                  }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden>
+                    <path d="M12 5v14M5 12h14" stroke="currentColor"
+                      strokeWidth="2.6" strokeLinecap="round" />
+                  </svg>
+                  Otra marca
+                </button>
+              }
+            />
           )}
 
           {active && (
@@ -1232,24 +1240,22 @@ function BeerRating({
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
     }} data-tour="bar-rating">
-      {/* Tocar una estrella guarda el voto, sin abrir nada. Antes abría la
-          hoja de comentarios con el valor elegido: un rodeo que existía sólo
-          porque el campo del decimal vivía allá adentro. */}
+      {/* Se arrastra el dedo y la nota lo sigue, de a medio punto. Grandes
+          porque el tamaño acá es la resolución del gesto: con estrellas de 19
+          píxeles, medio punto son cuatro píxeles de recorrido. */}
       <Stars
-        value={mine ? myRating : price.ratingRaw} mine={mine} size={19}
+        value={mine ? myRating : price.ratingRaw} mine={mine}
+        size={canRate ? 34 : 19}
         onRate={canRate ? onRate : undefined}
       />
 
-      {/* El campo del decimal, al lado de las estrellas: las estrellas dan
-          enteros y para un 3,5 hay que escribirlo. */}
-      {canRate && (
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          fontSize: 'var(--t-2)', color: 'var(--faint)',
-        }}>
-          <span>tu nota</span>
-          <RatingField rating={myRating} onCommit={onRate} />
-        </label>
+      {/* Tu nota en número, al lado de las estrellas y sólo si votaste. Antes
+          esto era un campo de texto siempre presente; ahora es la lectura de
+          lo que dicen las estrellas, que es todo lo que hacía falta. */}
+      {canRate && mine && (
+        <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--nota)' }}>
+          {myRating!.toFixed(1)}
+        </span>
       )}
 
       {price.ratingCount > 0 ? (

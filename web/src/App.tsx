@@ -26,6 +26,7 @@ import { DashboardScreen } from './screens/Dashboard'
 import { MyContributionsScreen } from './screens/MyContributions'
 import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
+import { PreferencesScreen } from './screens/Preferences'
 import { PersonScreen } from './screens/Person'
 import { useFavorites } from './data/useFavorites'
 
@@ -153,11 +154,27 @@ function Shell() {
       .then(s => {
         api.saveSession(s)
         setToast(`¡Hola, ${s.user.displayName}!`)
-        // Al mapa, no a donde se había tocado "Entrar". El tutorial empieza
-        // ahí y arranca explicando de qué va la app; caer en Perfil recién
-        // logueado deja la primera pantalla del tutorial en el lugar
-        // equivocado.
-        nav('/', { replace: true })
+        /*
+         * Recién llegado y sin birras elegidas: se ofrece elegirlas una vez.
+         *
+         * Se pregunta acá y no en el mapa porque es el único momento en que la
+         * persona ya decidió quedarse —acaba de crear la cuenta— y todavía no
+         * vino a hacer otra cosa. Interrumpirla más tarde sería cortarle algo.
+         *
+         * `vioBienvenida` es lo que hace que sea UNA vez y no en cada login.
+         * Sin esa marca, quien decide no elegir ninguna se come la pantalla
+         * cada vez que entra, que es la forma más rápida de que una pantalla
+         * opcional se vuelva molesta.
+         *
+         * Al mapa en los demás casos, no a donde se había tocado "Entrar": el
+         * tutorial empieza ahí y arranca explicando de qué va la app.
+         */
+        if (s.user.favoriteStyles.length === 0 && !vioBienvenida(s.user.id)) {
+          marcarBienvenida(s.user.id)
+          nav('/bienvenida', { replace: true })
+        } else {
+          nav('/', { replace: true })
+        }
       })
       .catch(() => setToast('El inicio de sesión expiró. Probá de nuevo.'))
   }, [nav])
@@ -264,6 +281,21 @@ function Shell() {
           <SettingsScreen user={user} onSession={() => setUser(api.currentUser())} />
         } />
         <Route path="/colaboradores" element={<ContributorsScreen user={user} />} />
+        <Route path="/preferencias" element={
+          <PreferencesScreen
+            user={user} styles={styles} brands={brands}
+            onSession={() => setUser(api.currentUser())}
+          />
+        } />
+        {/* La misma pantalla, pero llegando recién de iniciar sesión: sin
+            botón de volver —no hay a dónde— y con salida al mapa. */}
+        <Route path="/bienvenida" element={
+          <PreferencesScreen
+            user={user} styles={styles} brands={brands}
+            onSession={() => setUser(api.currentUser())}
+            primeraVez
+          />
+        } />
         <Route path="/info" element={<InfoScreen />} />
         <Route path="/mis-birras" element={<MyBeersScreen />} />
         {/* Una pantalla por tipo de aporte. Sin `:tipo` se cae en precios,
@@ -293,4 +325,26 @@ function Shell() {
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </>
   )
+}
+
+/**
+ * Si a esta cuenta ya se le ofreció elegir sus birras.
+ *
+ * Por cuenta y no global: en un teléfono compartido, que una persona haya
+ * dicho "ahora no" no puede dejar a la siguiente sin la oferta.
+ *
+ * En `localStorage` y no en la base porque es una preferencia de esta
+ * instalación sobre una pantalla, no un dato de la persona. Si se limpia el
+ * sitio y vuelve a aparecer una vez, no pasa nada.
+ */
+const BIENVENIDA = 'birrapp:bienvenida:'
+
+function vioBienvenida(userId: number): boolean {
+  try { return localStorage.getItem(BIENVENIDA + userId) != null }
+  catch { return false }
+}
+
+function marcarBienvenida(userId: number) {
+  try { localStorage.setItem(BIENVENIDA + userId, '1') }
+  catch { /* modo privado: se vuelve a ofrecer, y no es grave */ }
 }

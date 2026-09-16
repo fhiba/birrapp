@@ -49,6 +49,35 @@
   --birra: #FFB627;
 
   /*
+   * Favorito, y la nota.
+   *
+   * La regla de esta paleta es "si tiene color, es un dato", y por eso el
+   * cromo es hueso. Estos dos son la excepción, y conviene decir por qué cada
+   * uno, porque una excepción sin motivo es el principio del final de la
+   * regla:
+   *
+   *  - `--favorito` es rojo porque el corazón rojo es una convención más
+   *    fuerte que cualquier paleta. Un corazón hueso relleno no se lee como
+   *    "es mío", se lee como un ícono más. Va aparte de `--danger` a
+   *    propósito: ese rojo significa "peligro, esto no se deshace" y aparece
+   *    en borrar cuenta y eliminar foto. Marcar un bar que te gusta no puede
+   *    compartir color con eso.
+   *  - `--nota` es el ámbar de la estrella, que también es convención. Hasta
+   *    acá las estrellas iban en `--acento`, o sea del mismo hueso que el
+   *    nombre del bar, el botón de "Sigue igual" y las pestañas: todo pesaba
+   *    igual y nada sobresalía. La nota es el segundo dato que la gente mira
+   *    después del precio y necesita su propio tono.
+   *
+   * No entran en conflicto con la escala de precios —que va de verde a rojo
+   * por `PRICE_STOPS`— porque ninguno de los dos aparece sobre un pin del
+   * mapa: el favorito ahí es un corazón oscuro sobre la cápsula de color, y
+   * la nota no se dibuja en el mapa.
+   */
+  --favorito: #FF4D5E;
+  --favorito-soft: rgba(255,77,94,.16);
+  --nota: #FFC24D;
+
+  /*
    * Texto secundario sobre vidrio que flota encima del mapa.
    *
    * `--muted` (#9DA5AD) da 2,48:1 cuando lo que pasa por detrás del panel es
