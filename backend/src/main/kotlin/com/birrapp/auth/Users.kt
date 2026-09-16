@@ -34,6 +34,9 @@ data class User(
      * nombre que puso Google.
      */
     val alias: String? = null,
+    /** Slugs de los estilos y marcas favoritos. Ver `V21__beer_preferences.sql`. */
+    val favoriteStyles: List<String> = emptyList(),
+    val favoriteBrands: List<String> = emptyList(),
 ) {
     val isBanned: Boolean get() = bannedAt != null
 }
@@ -80,6 +83,12 @@ data class UserDto(
      * nombre que puso Google.
      */
     val alias: String? = null,
+    /**
+     * Las birras favoritas (V21). La ficha del bar las usa para decidir qué
+     * tres pastillas van adelante cuando hay más de tres.
+     */
+    val favoriteStyles: List<String> = emptyList(),
+    val favoriteBrands: List<String> = emptyList(),
 )
 
 /** Lo que una persona puede cambiar de sí misma. Todo opcional: se manda lo que cambió. */
@@ -91,6 +100,12 @@ data class UpdateMeRequest(
      * y desaparecer de la tabla de colaboradores.
      */
     val alias: String? = null,
+    /**
+     * Las birras favoritas. Lista vacía = sacarlas todas; ausente = no tocar.
+     * Son dos campos y no uno porque se eligen en dos pasos distintos.
+     */
+    val favoriteStyles: List<String>? = null,
+    val favoriteBrands: List<String>? = null,
     val currency: String? = null,
     val defaultSizeMl: Int? = null,
     val defaultRadiusM: Int? = null,
@@ -99,6 +114,7 @@ data class UpdateMeRequest(
 fun User.toDto() = UserDto(
     id, email, displayName, avatarUrl, role.name,
     currency, defaultSizeMl, defaultRadiusM, alias,
+    favoriteStyles, favoriteBrands,
 )
 
 /** Lo que hay que limpiar fuera de la base después de borrar una cuenta. */
@@ -118,6 +134,8 @@ class UserRepo(private val db: Db) {
         defaultSizeMl = rs.getInt("default_size_ml"),
         defaultRadiusM = rs.getInt("default_radius_m"),
         alias = rs.getString("alias"),
+        favoriteStyles = slugs(rs, "favorite_styles"),
+        favoriteBrands = slugs(rs, "favorite_brands"),
     )
 
     fun findById(id: Long): User? = db.conn {
@@ -212,6 +230,24 @@ class UserRepo(private val db: Db) {
             ) { true } ?: false
             if (tomado) com.birrapp.core.badRequest("ese alias ya está tomado")
             c.update("UPDATE users SET alias = ? WHERE id = ?", alias, userId)
+        }
+        // Las favoritas. Se validan contra el vocabulario real: un slug
+        // inventado acá no rompe nada al escribir, pero después no coincide
+        // con nada y la persona ve que "no le guardó la preferencia" sin
+        // entender por qué.
+        req.favoriteStyles?.let { pedidos ->
+            c.update(
+                "UPDATE users SET favorite_styles = ? WHERE id = ?",
+                c.createArrayOf("text", limpiar(c, pedidos, "beer_styles").toTypedArray()),
+                userId,
+            )
+        }
+        req.favoriteBrands?.let { pedidos ->
+            c.update(
+                "UPDATE users SET favorite_brands = ? WHERE id = ?",
+                c.createArrayOf("text", limpiar(c, pedidos, "brands").toTypedArray()),
+                userId,
+            )
         }
         req.currency?.let { raw ->
             val cur = com.birrapp.core.Currency.normalize(raw)
@@ -403,4 +439,37 @@ class RefreshTokenRepo(private val db: Db) {
     private fun sha256(s: String): String =
         MessageDigest.getInstance("SHA-256").digest(s.toByteArray())
             .joinToString("") { "%02x".format(it) }
+}
+
+/** Lee una columna `text[]`, tolerando null. */
+private fun slugs(rs: ResultSet, col: String): List<String> {
+    val arr = rs.getArray(col) ?: return emptyList()
+    @Suppress("UNCHECKED_CAST")
+    return (arr.array as Array<String?>).filterNotNull()
+}
+
+/** Cuántas favoritas se aceptan por lista. */
+private const val MAX_FAVORITAS = 10
+
+/**
+ * Deja sólo los slugs que existen de verdad, sin repetir y con un techo.
+ *
+ * El techo no es por espacio: la ficha del bar muestra tres, así que guardar
+ * cincuenta no le sirve a nadie y sí es una forma de que alguien meta un array
+ * enorme en cada perfil.
+ */
+private fun limpiar(
+    c: java.sql.Connection, pedidos: List<String>, tabla: String,
+): List<String> {
+    val unicos = pedidos.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    if (unicos.isEmpty()) return emptyList()
+    if (unicos.size > MAX_FAVORITAS) {
+        com.birrapp.core.badRequest("son demasiadas favoritas (máximo $MAX_FAVORITAS)")
+    }
+    val existen = c.query(
+        "SELECT slug FROM $tabla WHERE slug = ANY (?)",
+        c.createArrayOf("text", unicos.toTypedArray()),
+    ) { it.getString("slug") }.toSet()
+    // Se conserva el orden en que las eligió: es el orden en que las va a ver.
+    return unicos.filter { it in existen }
 }

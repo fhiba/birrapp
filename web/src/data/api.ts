@@ -379,6 +379,9 @@ export const updateMe = (b: {
   defaultSizeMl?: number; defaultRadiusM?: number
   /** Cadena vacía = sacar el alias y salir de la tabla pública. */
   alias?: string
+  /** Lista vacía = sacarlas todas; ausente = no tocarlas. */
+  favoriteStyles?: string[]
+  favoriteBrands?: string[]
 }) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
 
 /**
