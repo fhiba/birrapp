@@ -2891,3 +2891,83 @@ privacidad son los que importan.
 
 **Versión 0.16.0**: la 0.14.0 se la lleva PR #49 (paginación) y la 0.15.0 PR
 #50 (consenso), las dos abiertas en paralelo.
+
+## 2026-09-16 (cont.) — v0.17.0: birras favoritas, tres pastillas, y el rating se arrastra
+
+Cuatro pedidos de Felipe mirando la app, que resultaron tener poco que ver
+entre sí salvo que los cuatro eran "esto está incómodo".
+
+### La fila de birras: tres y un "⋯"
+
+La ficha mostraba TODOS los estilos en una fila horizontal que scrollea. Con
+seis birras, la cuarta y la quinta **no existen** para quien no descubra que la
+fila se arrastra — y una fila horizontal adentro de una página que ya scrollea
+vertical es de los gestos que menos se descubren solos.
+
+Ahora se ven tres y el resto está detrás de un "⋯" que abre la lista completa.
+Cuáles son los tres, en orden y sin repetir:
+
+1. **La que estás mirando.** Si la solapa activa se escondiera detrás del "⋯",
+   la fila diría que estás viendo algo que no está.
+2. **Tus favoritas**, en el orden en que las elegiste.
+3. **Las mejor puntuadas**, para quien no eligió ninguna. Por `ratingAvg` —el
+   que lleva shrinkage— así que un 5,0 con un voto no le gana a un 4,6 con
+   cuarenta.
+
+Se dibujan en el orden original de la lista, no en el orden en que se eligieron:
+si no, las pastillas se reacomodan cada vez que tocás una y la fila baila
+debajo del dedo.
+
+### Las favoritas: V21, y por qué arrays
+
+`favorite_styles` y `favorite_brands` como `text[]` en `users`, no dos tablas de
+relación. Son un puñado de slugs por persona, se leen siempre enteros y junto
+con el resto del usuario, y no hay una sola consulta que quiera cruzarlos. Dos
+tablas serían dos joins en cada lectura de perfil para guardar seis palabras.
+
+Se eligen al crear la cuenta, **una vez y salteable**. Esto mejora la app, no la
+habilita: sin preferencias el desempate por puntuación es razonable. Un
+onboarding que bloquea la entrada por algo opcional es la forma más rápida de
+que alguien cierre la app antes de ver un precio, que es a lo que vino. La marca
+de "ya se le ofreció" va en `localStorage` **por cuenta**: en un teléfono
+compartido, que uno diga "ahora no" no puede dejar al siguiente sin la oferta.
+
+### El rating: se arrastra, no se teclea
+
+Eran cinco botones que daban sólo enteros y, al lado, un campo de texto
+permanente para el decimal. El campo estaba siempre a la vista aunque no lo
+usaras, el número salía descentrado, y pedirle a alguien que **escriba** "3,5"
+para puntuar una birra es pedirle que abra el teclado para algo que el dedo ya
+sabe hacer.
+
+Ahora se apoya el dedo y se corre; la nota engancha de a medio punto. Por eso
+las estrellas de edición pasaron de 19 a 34 píxeles: con estrellas chicas, medio
+punto son cuatro píxeles de recorrido y no hay pulgar que lo acierte. **El
+tamaño acá no es estética, es la resolución del control.** El valor se manda al
+soltar, no en cada movimiento.
+
+### Color: dos tokens nuevos, y por qué son una excepción
+
+La paleta Hueso dice "si tiene color, es un dato" y el cromo va en la rampa de
+grises. El resultado era que el nombre del bar, la nota, cada pastilla y el
+corazón de favorito pesaban todos lo mismo y nada sobresalía. Dos excepciones,
+cada una con su motivo:
+
+* **`--favorito` (#FF4D5E).** El corazón rojo es una convención más fuerte que
+  cualquier paleta; uno hueso relleno no se lee como "es mío". Va aparte de
+  `--danger` a propósito: ese rojo significa "esto no se deshace" y aparece en
+  borrar cuenta. Marcar un bar que te gusta no puede compartir color con eso.
+* **`--nota` (#FFC24D).** El ámbar de la estrella, también convención. La nota
+  es el segundo dato que se mira después del precio y necesita su tono.
+
+El corazón del mapa pasó a la izquierda del precio, de 10 a 14 píxeles y a rojo.
+Estaba a la derecha, calzado contra el borde con un ancho extra de 13 — o sea
+que su "padding" no era un padding sino la diferencia entre dos números que
+nadie había vuelto a mirar. A la izquierda funciona mejor por cómo se lee un
+pin: el ojo entra por ahí, y "es tuyo" es lo primero que querés saber de un bar
+que marcaste.
+
+Y la dirección del bar se despegó de la fila de pastillas, que estaba tan pegada
+que la dirección se leía como su rótulo.
+
+179 tests verdes, 6 nuevos en `PreferencesTest`.
