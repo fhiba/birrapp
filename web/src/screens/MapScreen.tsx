@@ -219,21 +219,6 @@ export function MapScreen(p: Props) {
               {formatRadius(p.radius)}
             </span>
           </button>
-
-          {/* La leyenda de los colores.
-              Ocupa el lugar que tenía el interruptor y por el mismo motivo por
-              el que el interruptor servía: era él quien decía qué significan
-              los colores. Sacarlo a secas dejaba el mapa pintado y mudo.
-              Como leyenda ocupa la mitad y no se puede tocar por error. */}
-          <div data-tour="map-color" className="pill glass" style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
-            padding: '0 var(--pill-pad)', height: 34, flexShrink: 0,
-            fontSize: 'var(--t-1)', color: 'var(--sobre-vidrio)', whiteSpace: 'nowrap',
-          }}>
-            <span>barato</span>
-            <Swatch />
-            <span>caro</span>
-          </div>
         </div>
 
         {/* El slider va acá, pegado a los controles: es el control que lo
@@ -437,22 +422,6 @@ export function MapScreen(p: Props) {
         />
       )}
     </div>
-  )
-}
-
-/**
- * La escala de precio en miniatura, del más barato al más caro.
- */
-function Swatch() {
-  const colors = [priceColor(0), priceColor(0.35), priceColor(0.65), priceColor(1)]
-  return (
-    <span style={{ display: 'flex', gap: 2 }} aria-hidden>
-      {colors.map(c => (
-        <span key={c} style={{
-          width: 6, height: 6, borderRadius: '50%', background: c,
-        }} />
-      ))}
-    </span>
   )
 }
 
