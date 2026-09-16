@@ -553,14 +553,26 @@ function priceIcon(
 ): google.maps.Icon {
   const fill = resolve(color)
   const s = on ? 1.16 : 1
-  // El corazón se lleva su ancho: sin esto se monta sobre el último dígito
-  // del precio, que es justo el que no se puede perder.
-  //
+  /*
+   * El corazón va a la izquierda de todo y grande.
+   *
+   * Estaba a la derecha, de 10px y calzado contra el borde con un ancho extra
+   * de 13: o sea que su "padding" no era un padding sino la diferencia entre
+   * dos números que nadie había vuelto a mirar, y quedaba pegado al canto y
+   * apretado contra el último dígito.
+   *
+   * A la izquierda funciona mejor por cómo se lee un pin: el ojo entra por ahí,
+   * y "es tuyo" es la primera cosa que querés saber de un bar que marcaste,
+   * antes que el número. De paso el precio queda entero y centrado en lo que
+   * le sobra, sin nada encima.
+   */
+  const heart = 14 * s          // el dibujo
+  const heartBox = fav ? 20 * s : 0   // lo que reserva, dibujo + aire
   // El ancho se estima como 8,6px por carácter, y eso sólo es cierto si todos
   // los dígitos miden lo mismo — por eso el `<text>` de abajo pide cifras
   // tabulares. Sin ellas, "$11.111" queda nadando en una cápsula de más y
   // "$8.888" se sale por los costados.
-  const w = (20 + label.length * 8.6 + (fav ? 13 : 0)) * s
+  const w = 20 * s + label.length * 8.6 * s + heartBox
   const h = 26 * s
   // El aro se dibuja por dentro del borde, así que el lienzo tiene que
   // agrandarse o WebKit lo recorta a la mitad.
@@ -569,13 +581,13 @@ function priceIcon(
     <rect x="${pad + 0.5}" y="${pad + 0.5}" rx="${(h - 1) / 2}" width="${w - 1}" height="${h - 1}"
       fill="${fill}" stroke="${on ? '#F4F5F7' : 'rgba(255,255,255,.55)'}"
       stroke-width="${on ? 2.5 : 1}"/>
-    <text x="${pad + (w - (fav ? 13 * s : 0)) / 2}" y="${pad + h / 2 + 4.5 * s}"
+    <text x="${pad + heartBox + (w - heartBox) / 2}" y="${pad + h / 2 + 4.5 * s}"
       text-anchor="middle"
       font-family="Bricolage Grotesque, system-ui, sans-serif" font-size="${13 * s}"
       font-weight="700" font-variant-numeric="tabular-nums"
       style="font-variant-numeric:tabular-nums"
       fill="#0F1012">${label}</text>
-    ${fav ? heartPath(pad + w - 15 * s, pad + h / 2 - 5 * s, 10 * s) : ''}
+    ${fav ? heartPath(pad + 8 * s, pad + (h - heart) / 2, heart) : ''}
   </svg>`
   return {
     url: svgUrl(svg),
@@ -591,7 +603,13 @@ function priceIcon(
  */
 function heartPath(x: number, y: number, size: number) {
   const k = size / 24
-  return `<g transform="translate(${x} ${y}) scale(${k})" fill="#0F1012">
+  // Rojo, no el gris del texto: es la misma marca que el corazón de la ficha,
+  // y sobre una cápsula que va de verde a rojo según el precio, el oscuro se
+  // confundía con un dígito más. El borde claro lo despega del fondo cuando la
+  // cápsula justo cae en un rojo parecido.
+  return `<g transform="translate(${x} ${y}) scale(${k})"
+      fill="${resolve('var(--favorito)')}" stroke="#0F1012" stroke-width="1.6"
+      stroke-linejoin="round" paint-order="stroke">
     <path d="M12 21 3.2 12.2a5.6 5.6 0 0 1 7.9-7.9l.9.9.9-.9a5.6 5.6 0 0 1 7.9 7.9L12 21Z"/>
   </g>`
 }

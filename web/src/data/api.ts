@@ -258,8 +258,17 @@ export const unblockPerson = (id: number) =>
 export const blockedPeople = () => req<Person[]>('GET', '/blocks', { auth: true })
 
 // ---------- favoritos (BIR-37 / BIR-5) ----------
-export const favorites = (lat?: number, lng?: number) =>
-  req<BarPin[]>('GET', '/favorites', { params: { lat, lng }, auth: true })
+/**
+ * Los favoritos, con el mismo filtro y el mismo orden que la lista normal.
+ *
+ * `sort` y `style` no son opcionales por comodidad: con el filtro de favoritos
+ * prendido, la píldora de estilo y el orden seguían en pantalla y no hacían
+ * nada, porque esto los ignoraba y el servidor ordenaba por cuándo lo habías
+ * marcado.
+ */
+export const favorites = (
+  lat?: number, lng?: number, sort?: string, style?: string,
+) => req<BarPin[]>('GET', '/favorites', { params: { lat, lng, sort, style }, auth: true })
 export const addFavorite = (barId: number) =>
   req<unknown>('POST', `/favorites/${barId}`, { auth: true })
 export const removeFavorite = (barId: number) =>
@@ -379,6 +388,9 @@ export const updateMe = (b: {
   defaultSizeMl?: number; defaultRadiusM?: number
   /** Cadena vacía = sacar el alias y salir de la tabla pública. */
   alias?: string
+  /** Lista vacía = sacarlas todas; ausente = no tocarlas. */
+  favoriteStyles?: string[]
+  favoriteBrands?: string[]
 }) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
 
 /**

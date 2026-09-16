@@ -104,12 +104,16 @@ export function ListScreen(p: Props) {
     if (!favOnly) return
     let alive = true
     setFavBusy(true)
-    api.favorites(p.center?.lat, p.center?.lng)
+    api.favorites(p.center?.lat, p.center?.lng, p.sort, p.styleFilter)
       .then(r => { if (alive) setFavBars(r) })
       .catch(() => { if (alive) setFavBars([]) })
       .finally(() => { if (alive) setFavBusy(false) })
     return () => { alive = false }
-  }, [favOnly, p.center?.lat, p.center?.lng, p.favorites.size])
+    // `sort` y `styleFilter` en las dependencias: son los que hacían que
+    // tocar la píldora de estilo o cambiar el orden no hiciera nada con el
+    // filtro de favoritos puesto. Y `center` ya estaba, que es lo que mueve
+    // la lista cuando se elige un punto secundario en el mapa.
+  }, [favOnly, p.center?.lat, p.center?.lng, p.sort, p.styleFilter, p.favorites.size])
 
   const shown = isSearch ? (found ?? []) : favOnly ? (favBars ?? []) : p.bars
   const busy = isSearch ? searching : favOnly ? favBusy : p.loading

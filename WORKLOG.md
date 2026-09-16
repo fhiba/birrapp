@@ -2907,3 +2907,109 @@ pantalla el tutorial lo saltea solo, así que quedaba como configuración muerta
 caro sino un bar sin precio cargado. Eso se mudó a "Cómo funcionan los precios",
 que es donde alguien lo va a buscar. La confusión es real y cara: leer el gris
 como "caro" es leer el mapa al revés justo en los bares donde falta el aporte.
+
+## 2026-09-16 (cont.) — v0.16.2: los filtros de la lista con favoritos puesto
+
+Felipe: "no funcionan los filtros en la vista de listas cuando tengo puesto el
+botón de favoritos, y tampoco le da bola al punto secundario".
+
+Las dos cosas, y las dos en el backend. Con el filtro de favoritos prendido la
+lista salía de `/favorites`, que no aceptaba ni `style` ni `sort` y ordenaba
+siempre por `f.created_at DESC`. Los controles seguían en pantalla, se podían
+tocar, y no pasaba nada: la píldora de estilo y el interruptor de orden estaban
+de adorno.
+
+Lo del punto secundario es la mitad más confusa del bug, y vale anotarla porque
+el síntoma no señala la causa. La distancia **sí** se calculaba desde el punto
+elegido, así que cada fila decía bien a cuánto estaba; lo que no cambiaba era el
+orden. O sea que se veía "a 200 m" debajo de "a 4,1 km" — que no se lee como un
+problema de orden sino como que la app calcula mal las distancias.
+
+`favorites()` ahora toma los mismos `sort` y `styleSlug` que `nearby`, con el
+mismo JOIN contra `v_current_prices` para que, filtrando por estilo, el precio
+de la fila sea el de ESE estilo y no el más barato del bar. Sin ubicación cae al
+orden de antes —el último que marcaste, arriba—, porque ordenar por una
+distancia que es NULL en todas las filas deja el orden a gusto de Postgres.
+
+179 tests verdes, 4 nuevos en `FavoriteTest`. El de distancia prueba las dos
+puntas: desde el Obelisco y desde el punto secundario, y la lista se da vuelta.
+
+## 2026-09-16 (cont.) — v0.17.0: birras favoritas, tres pastillas, y el rating se arrastra
+
+Cuatro pedidos de Felipe mirando la app, que resultaron tener poco que ver
+entre sí salvo que los cuatro eran "esto está incómodo".
+
+### La fila de birras: tres y un "⋯"
+
+La ficha mostraba TODOS los estilos en una fila horizontal que scrollea. Con
+seis birras, la cuarta y la quinta **no existen** para quien no descubra que la
+fila se arrastra — y una fila horizontal adentro de una página que ya scrollea
+vertical es de los gestos que menos se descubren solos.
+
+Ahora se ven tres y el resto está detrás de un "⋯" que abre la lista completa.
+Cuáles son los tres, en orden y sin repetir:
+
+1. **La que estás mirando.** Si la solapa activa se escondiera detrás del "⋯",
+   la fila diría que estás viendo algo que no está.
+2. **Tus favoritas**, en el orden en que las elegiste.
+3. **Las mejor puntuadas**, para quien no eligió ninguna. Por `ratingAvg` —el
+   que lleva shrinkage— así que un 5,0 con un voto no le gana a un 4,6 con
+   cuarenta.
+
+Se dibujan en el orden original de la lista, no en el orden en que se eligieron:
+si no, las pastillas se reacomodan cada vez que tocás una y la fila baila
+debajo del dedo.
+
+### Las favoritas: V21, y por qué arrays
+
+`favorite_styles` y `favorite_brands` como `text[]` en `users`, no dos tablas de
+relación. Son un puñado de slugs por persona, se leen siempre enteros y junto
+con el resto del usuario, y no hay una sola consulta que quiera cruzarlos. Dos
+tablas serían dos joins en cada lectura de perfil para guardar seis palabras.
+
+Se eligen al crear la cuenta, **una vez y salteable**. Esto mejora la app, no la
+habilita: sin preferencias el desempate por puntuación es razonable. Un
+onboarding que bloquea la entrada por algo opcional es la forma más rápida de
+que alguien cierre la app antes de ver un precio, que es a lo que vino. La marca
+de "ya se le ofreció" va en `localStorage` **por cuenta**: en un teléfono
+compartido, que uno diga "ahora no" no puede dejar al siguiente sin la oferta.
+
+### El rating: se arrastra, no se teclea
+
+Eran cinco botones que daban sólo enteros y, al lado, un campo de texto
+permanente para el decimal. El campo estaba siempre a la vista aunque no lo
+usaras, el número salía descentrado, y pedirle a alguien que **escriba** "3,5"
+para puntuar una birra es pedirle que abra el teclado para algo que el dedo ya
+sabe hacer.
+
+Ahora se apoya el dedo y se corre; la nota engancha de a medio punto. Por eso
+las estrellas de edición pasaron de 19 a 34 píxeles: con estrellas chicas, medio
+punto son cuatro píxeles de recorrido y no hay pulgar que lo acierte. **El
+tamaño acá no es estética, es la resolución del control.** El valor se manda al
+soltar, no en cada movimiento.
+
+### Color: dos tokens nuevos, y por qué son una excepción
+
+La paleta Hueso dice "si tiene color, es un dato" y el cromo va en la rampa de
+grises. El resultado era que el nombre del bar, la nota, cada pastilla y el
+corazón de favorito pesaban todos lo mismo y nada sobresalía. Dos excepciones,
+cada una con su motivo:
+
+* **`--favorito` (#FF4D5E).** El corazón rojo es una convención más fuerte que
+  cualquier paleta; uno hueso relleno no se lee como "es mío". Va aparte de
+  `--danger` a propósito: ese rojo significa "esto no se deshace" y aparece en
+  borrar cuenta. Marcar un bar que te gusta no puede compartir color con eso.
+* **`--nota` (#FFC24D).** El ámbar de la estrella, también convención. La nota
+  es el segundo dato que se mira después del precio y necesita su tono.
+
+El corazón del mapa pasó a la izquierda del precio, de 10 a 14 píxeles y a rojo.
+Estaba a la derecha, calzado contra el borde con un ancho extra de 13 — o sea
+que su "padding" no era un padding sino la diferencia entre dos números que
+nadie había vuelto a mirar. A la izquierda funciona mejor por cómo se lee un
+pin: el ojo entra por ahí, y "es tuyo" es lo primero que querés saber de un bar
+que marcaste.
+
+Y la dirección del bar se despegó de la fila de pastillas, que estaba tan pegada
+que la dirección se leía como su rótulo.
+
+179 tests verdes, 6 nuevos en `PreferencesTest`.

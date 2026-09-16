@@ -130,6 +130,12 @@ export interface User {
    * colaboradores, que es el default: aparecer se elige.
    */
   alias: string | null
+  /**
+   * Las birras favoritas (V21). La ficha del bar las usa para decidir qué tres
+   * pastillas van adelante cuando hay más de tres.
+   */
+  favoriteStyles: string[]
+  favoriteBrands: string[]
 }
 
 /** Una fila de la tabla de colaboradores del mes (BIR-9). */
