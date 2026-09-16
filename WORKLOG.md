@@ -2891,3 +2891,19 @@ privacidad son los que importan.
 
 **Versión 0.16.0**: la 0.14.0 se la lleva PR #49 (paginación) y la 0.15.0 PR
 #50 (consenso), las dos abiertas en paralelo.
+
+## 2026-09-16 — v0.16.1: fuera la leyenda de barato/caro
+
+Felipe, mirando el mapa: "es obvio y además quedó feo". Tiene razón en las dos.
+Verde a rojo para barato/caro es una convención lo bastante fuerte como para no
+gastar una pastilla del encabezado en explicarla, y esa franja ya venía cargada
+—filtro, radio, y esto— encima de un cartel de error cuando no hay ubicación.
+
+Se fue la pastilla, el componente `Swatch` que la dibujaba y el paso del
+tutorial que la señalaba. El paso había que sacarlo igual: sin su ancla en
+pantalla el tutorial lo saltea solo, así que quedaba como configuración muerta.
+
+**Lo único que la leyenda decía y no era obvio** es que el pin gris no es un bar
+caro sino un bar sin precio cargado. Eso se mudó a "Cómo funcionan los precios",
+que es donde alguien lo va a buscar. La confusión es real y cara: leer el gris
+como "caro" es leer el mapa al revés justo en los bares donde falta el aporte.
