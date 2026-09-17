@@ -12,12 +12,14 @@ import { Segmented } from '../ui/Segmented'
 interface Props {
   bars: BarPin[]; loading: boolean
   sort: Sort; radius: number; simulated: google.maps.LatLngLiteral | null
-  styleFilter?: string
+  styleFilter: string[]
+  minRating?: number
+  onMinRating: (n?: number) => void
   styles: BeerStyle[]
   /** Desde dónde se miden las distancias de los resultados de búsqueda. */
   center: google.maps.LatLngLiteral | null
   onSort: (s: Sort) => void
-  onStyle: (s?: string) => void
+  onStyle: (s: string[]) => void
   onRadius: (m: number) => void
   onClearSimulated: () => void
   /** Ids favoritos, para el filtro. Vacío sin sesión. */
@@ -104,7 +106,7 @@ export function ListScreen(p: Props) {
     if (!favOnly) return
     let alive = true
     setFavBusy(true)
-    api.favorites(p.center?.lat, p.center?.lng, p.sort, p.styleFilter)
+    api.favorites(p.center?.lat, p.center?.lng, p.sort, p.styleFilter, p.minRating)
       .then(r => { if (alive) setFavBars(r) })
       .catch(() => { if (alive) setFavBars([]) })
       .finally(() => { if (alive) setFavBusy(false) })
@@ -113,7 +115,7 @@ export function ListScreen(p: Props) {
     // tocar la píldora de estilo o cambiar el orden no hiciera nada con el
     // filtro de favoritos puesto. Y `center` ya estaba, que es lo que mueve
     // la lista cuando se elige un punto secundario en el mapa.
-  }, [favOnly, p.center?.lat, p.center?.lng, p.sort, p.styleFilter, p.favorites.size])
+  }, [favOnly, p.center?.lat, p.center?.lng, p.sort, p.styleFilter, p.minRating, p.favorites.size])
 
   const shown = isSearch ? (found ?? []) : favOnly ? (favBars ?? []) : p.bars
   const busy = isSearch ? searching : favOnly ? favBusy : p.loading
@@ -250,6 +252,7 @@ export function ListScreen(p: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <StyleFilter
             styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
+            minRating={p.minRating} onMinRating={p.onMinRating}
             tone="plain" size={38} tourId="list-style"
           />
 

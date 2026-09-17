@@ -19,7 +19,8 @@ import { formatPrice, formatRadius, shortAge } from '../data/format'
 export function AreaStatsCard({ center, radius, styleFilter, styles }: {
   center: google.maps.LatLngLiteral | null
   radius: number
-  styleFilter?: string
+  /** Varios estilos; las stats de la zona son de todos ellos juntos. */
+  styleFilter: string[]
   styles: BeerStyle[]
 }) {
   const nav = useNavigate()
@@ -44,7 +45,11 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
   // significa nada.
   if (!data || data.samples < 3 || data.medianPint == null) return null
 
-  const styleName = styles.find(s => s.slug === styleFilter)?.name
+  // Con un estilo va su nombre; con varios, el número. La tarjeta dice de qué
+  // es el promedio, y "IPA, APA, Stout · 2 km a la redonda" no entra.
+  const styleName = styleFilter.length === 1
+    ? styles.find(s => s.slug === styleFilter[0])?.name
+    : styleFilter.length > 1 ? `${styleFilter.length} estilos` : null
 
   return (
     <div style={{ margin: '12px 16px 0', borderRadius: 'var(--r-3)', background: 'var(--raised)' }}>

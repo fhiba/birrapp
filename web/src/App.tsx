@@ -99,7 +99,11 @@ function Shell() {
   // lee el valor inicial, así que hay un efecto abajo para cuando la sesión
   // llega después del primer render — que es lo normal al abrir.
   const [radius, setRadius] = useState(user?.defaultRadiusM ?? 2000)
-  const [styleFilter, setStyleFilter] = useState<string | undefined>()
+  // Varios estilos a la vez, y un piso de estrellas. Los dos viven acá y no
+  // en cada pantalla: el mapa y la lista muestran lo mismo filtrado igual, y
+  // que se desincronicen al cambiar de pestaña sería el bug obvio.
+  const [styleFilter, setStyleFilter] = useState<string[]>([])
+  const [minRating, setMinRating] = useState<number | undefined>()
   const [simulated, setSimulated] = useState<google.maps.LatLngLiteral | null>(null)
   // La cámara vive acá y no en la pantalla del mapa: al ir a otra pestaña el
   // componente se desmonta, y sin esto al volver arrancaba mostrando medio
@@ -193,8 +197,8 @@ function Shell() {
 
   const refresh = useCallback((force = false) => {
     if (!queryPoint) return
-    load(queryPoint, radius, sort, { style: styleFilter, force, zoom: camera?.zoom })
-  }, [queryPoint, radius, sort, styleFilter, camera?.zoom, load])
+    load(queryPoint, radius, sort, { style: styleFilter, minRating, force, zoom: camera?.zoom })
+  }, [queryPoint, radius, sort, styleFilter, minRating, camera?.zoom, load])
 
   useEffect(() => { refresh() }, [refresh])
 
@@ -234,6 +238,7 @@ function Shell() {
             onChanged={afterChange}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
+            minRating={minRating} onMinRating={setMinRating}
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
@@ -261,6 +266,7 @@ function Shell() {
             bars={bars} loading={loading} sort={sort} radius={radius}
             center={queryPoint ?? null}
             styles={styles} styleFilter={styleFilter} onStyle={setStyleFilter}
+            minRating={minRating} onMinRating={setMinRating}
             simulated={simulated} favorites={favorites.ids}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />

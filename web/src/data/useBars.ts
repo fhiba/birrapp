@@ -18,6 +18,9 @@ const OVER_FETCH = 2.5
 const MAX_RADIUS = 20_000
 const MAX_LIMIT = 200
 const MAX_AGE_MS = 5 * 60_000
+
+/** Los filtros que acotan QUÉ bares se traen. El orden y el radio van aparte. */
+type Filtro = { style?: string[]; minRating?: number }
 const MIN_QUERY_ZOOM = 12
 
 export type Sort = 'distance' | 'cheapest' | 'rated'
@@ -60,8 +63,18 @@ export function useBars() {
   )
   const seq = useRef(0)
 
-  /** '' es "sin filtro". Sirve de clave y no choca con ningún slug. */
-  const keyOf = (style?: string) => style ?? ''
+  /**
+   * La clave de la caché, que ahora es la combinación entera de filtros.
+   *
+   * Era sólo el slug del estilo. Con varios estilos y un piso de estrellas,
+   * usar el primero —o cualquiera— haría que "IPA" y "IPA + APA" compartan
+   * caché: al agregar el segundo estilo se verían los bares del primero.
+   *
+   * Se ordenan los slugs para que ["ipa","apa"] y ["apa","ipa"] sean la misma
+   * clave: es la misma pregunta escrita en otro orden.
+   */
+  const keyOf = (f: Filtro = {}) =>
+    `${[...(f.style ?? [])].sort().join(',')}|${f.minRating ?? ''}`
 
   useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
   useEffect(() => { api.brands().then(setBrands).catch(() => {}) }, [])
@@ -82,20 +95,20 @@ export function useBars() {
     setStyles(cur => cur.some(x => x.slug === s.slug) ? cur : [...cur, s])
   }, [])
 
-  const covers = (c: google.maps.LatLngLiteral, radius: number, style?: string) => {
-    const cur = covered.current.get(keyOf(style))
+  const covers = (c: google.maps.LatLngLiteral, radius: number, f: Filtro) => {
+    const cur = covered.current.get(keyOf(f))
     if (!cur) return false
     if (Date.now() - cur.at > MAX_AGE_MS) return false
     return haversine(cur.center, c) + radius <= cur.radius
   }
 
   const project = useCallback((
-    c: google.maps.LatLngLiteral, radius: number, sort: Sort, style?: string,
+    c: google.maps.LatLngLiteral, radius: number, sort: Sort, f: Filtro,
   ): BarPin[] => {
     // Ya no se filtra por estilo acá: lo hace el servidor, y con el precio
     // del estilo correcto. El filtro que había —descartar los que no tienen
     // precio— no filtraba por estilo en absoluto.
-    const out = [...(known.current.get(style ?? '') ?? new Map<number, BarPin>()).values()]
+    const out = [...(known.current.get(keyOf(f)) ?? new Map<number, BarPin>()).values()]
       .map(b => ({ ...b, distanceMeters: haversine(c, { lat: b.lat, lng: b.lng }) }))
       .filter(b => b.distanceMeters! <= radius)
     // NULLS LAST igual que el servidor, en los dos rankings: ni un bar sin
@@ -120,12 +133,12 @@ export function useBars() {
 
   const load = useCallback(async (
     c: google.maps.LatLngLiteral, radius: number, sort: Sort,
-    opts: { style?: string; force?: boolean; zoom?: number } = {},
+    opts: Filtro & { force?: boolean; zoom?: number } = {},
   ) => {
     if (opts.zoom !== undefined && opts.zoom < MIN_QUERY_ZOOM) { setLoading(false); return }
 
-    if (!opts.force && covers(c, radius, opts.style)) {
-      setBars(project(c, radius, sort, opts.style)); setLoading(false); return
+    if (!opts.force && covers(c, radius, opts)) {
+      setBars(project(c, radius, sort, opts)); setLoading(false); return
     }
 
     const mine = ++seq.current
@@ -138,9 +151,11 @@ export function useBars() {
       const big = Math.min(MAX_RADIUS, Math.max(1000, Math.round(radius * OVER_FETCH)))
       // El estilo VA en el pedido. Antes iba `undefined` y el filtro no
       // llegaba nunca al servidor.
-      const fresh = await api.nearbyBars(c.lat, c.lng, big, 'distance', opts.style, MAX_LIMIT)
+      const fresh = await api.nearbyBars(
+        c.lat, c.lng, big, 'distance', opts.style, MAX_LIMIT, opts.minRating,
+      )
       if (mine !== seq.current) return   // llegó una respuesta vieja, se descarta
-      const k = keyOf(opts.style)
+      const k = keyOf(opts)
       known.current.set(k, new Map(fresh.map(b => [b.id, b])))
       // Si la respuesta vino llena, el servidor recortó por `limit` y lo que
       // realmente se cubrió no es `big` sino hasta el bar más lejano que llegó
@@ -154,13 +169,13 @@ export function useBars() {
         ? big
         : Math.max(1000, Math.round(fresh[fresh.length - 1]?.distanceMeters ?? big))
       covered.current.set(k, { center: c, radius: reached, at: Date.now() })
-      setBars(project(c, radius, sort, opts.style))
+      setBars(project(c, radius, sort, opts))
     } catch (e) {
       if (mine !== seq.current) return
       // Con datos en pantalla no se molesta con un cartel: sigue siendo
       // usable, sólo que sin refrescar.
-      if ((known.current.get(keyOf(opts.style))?.size ?? 0) === 0) setError((e as Error).message)
-      else setBars(project(c, radius, sort, opts.style))
+      if ((known.current.get(keyOf(opts))?.size ?? 0) === 0) setError((e as Error).message)
+      else setBars(project(c, radius, sort, opts))
     } finally {
       if (mine === seq.current) setLoading(false)
     }

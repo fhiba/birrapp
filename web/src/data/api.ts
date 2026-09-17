@@ -193,11 +193,21 @@ async function req<T>(
 
 // ---------- lectura pública ----------
 export const nearbyBars = (
-  lat: number, lng: number, radius = 2000, sort = 'distance', style?: string, limit = 200,
-) => req<BarPin[]>('GET', '/bars', { params: { lat, lng, radius, sort, style, limit } })
+  lat: number, lng: number, radius = 2000, sort = 'distance',
+  style?: string[], limit = 200, minRating?: number,
+) => req<BarPin[]>('GET', '/bars', {
+  // Los estilos viajan separados por coma. Con uno solo queda `?style=ipa`,
+  // que es exactamente lo que mandaba antes: el servidor no distingue.
+  params: {
+    lat, lng, radius, sort, limit, minRating,
+    style: style?.length ? style.join(',') : undefined,
+  },
+})
 
 export const barDetail = (id: number, lat?: number, lng?: number) =>
-  req<BarDetail>('GET', `/bars/${id}`, { params: { lat, lng } })
+  // `auth: true` con sesión opcional del lado del servidor: sin cuenta se ve
+  // igual, y con token viene además cuántas birras anotaste acá.
+  req<BarDetail>('GET', `/bars/${id}`, { params: { lat, lng }, auth: true })
 
 export const searchBars = (q: string, lat?: number, lng?: number, limit?: number) =>
   req<BarPin[]>('GET', '/bars/search', { params: { q, lat, lng, limit } })
@@ -227,8 +237,10 @@ export const createStyle = (name: string) =>
  * recorriendo el mapa, sumado.
  */
 export const areaStats = (
-  lat: number, lng: number, radius: number, style?: string, brand?: string,
-) => req<AreaStats>('GET', '/stats/prices', { params: { lat, lng, radius, style, brand } })
+  lat: number, lng: number, radius: number, style?: string[], brand?: string,
+) => req<AreaStats>('GET', '/stats/prices', {
+  params: { lat, lng, radius, brand, style: style?.length ? style.join(',') : undefined },
+})
 
 // ---------- contador de birras (BIR-34) ----------
 
@@ -267,8 +279,14 @@ export const blockedPeople = () => req<Person[]>('GET', '/blocks', { auth: true 
  * marcado.
  */
 export const favorites = (
-  lat?: number, lng?: number, sort?: string, style?: string,
-) => req<BarPin[]>('GET', '/favorites', { params: { lat, lng, sort, style }, auth: true })
+  lat?: number, lng?: number, sort?: string, style?: string[], minRating?: number,
+) => req<BarPin[]>('GET', '/favorites', {
+  params: {
+    lat, lng, sort, minRating,
+    style: style?.length ? style.join(',') : undefined,
+  },
+  auth: true,
+})
 export const addFavorite = (barId: number) =>
   req<unknown>('POST', `/favorites/${barId}`, { auth: true })
 export const removeFavorite = (barId: number) =>

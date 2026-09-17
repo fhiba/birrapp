@@ -108,6 +108,8 @@ export interface BarDetail {
   currency: string
   countryCode: string | null
   prices: StylePrice[]
+  /** Cuántas birras anotaste vos acá. Null sin sesión. */
+  myBeers: number | null
   avgRating: number | null
   reviewCount: number
 }

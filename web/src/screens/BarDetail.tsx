@@ -425,6 +425,28 @@ export function BarDetailScreen({
             </div>
           )}
 
+          {/* Las birras que te tomaste acá.
+              Es dato tuyo, no del bar, así que va en su propia columna y en el
+              ámbar de la birra — no compite con la nota de la comunidad, que
+              es lo de al lado y significa otra cosa. Sólo si tomaste alguna:
+              un "0" en cada bar al que entrás es ruido. */}
+          {(bar.myBeers ?? 0) > 0 && (
+            <div style={{ flexShrink: 0, textAlign: 'right', marginRight: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24"
+                  fill="var(--birra)" aria-hidden>
+                  <path d="M6 3h12l-1.3 17.2a1 1 0 0 1-1 .8H8.3a1 1 0 0 1-1-.8L6 3Zm1.8 5 .9 11.5h6.6L16.2 8H7.8Z" />
+                </svg>
+                <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
+                  {bar.myBeers}
+                </span>
+              </div>
+              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
+                {bar.myBeers === 1 ? 'tuya' : 'tuyas'}
+              </div>
+            </div>
+          )}
+
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`
               + (bar.googlePlaceId ? `&query_place_id=${bar.googlePlaceId}` : '')}
