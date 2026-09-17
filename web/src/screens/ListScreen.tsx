@@ -428,27 +428,37 @@ export function ListScreen(p: Props) {
                   ? ageColor(b.freshestAgeDays) : 'var(--hairline)',
               }} />
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span className="lbl" style={{
-                  display: 'block', fontSize: 'var(--t-4)', whiteSpace: 'nowrap',
-                  overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{b.name}</span>
+                {/* La nota sube al renglón del nombre.
+                    Estaba tercera en la línea de metadatos, después de la
+                    distancia y de la antigüedad, y en ese renglón todo pesa
+                    igual: para saber si un bar es bueno había que leer una
+                    lista de datos sueltos. Es el segundo criterio después del
+                    precio, así que va donde se lo busca — pegada al nombre y
+                    en el ámbar de la nota, no en el hueso de todo lo demás.
+                    El conteo de votos al lado por lo mismo que los precios van
+                    con su antigüedad: un 5,0 de un voto no es un 5,0. */}
+                <span style={{
+                  display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0,
+                }}>
+                  <span className="lbl" style={{
+                    fontSize: 'var(--t-4)', whiteSpace: 'nowrap',
+                    overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+                  }}>{b.name}</span>
+                  {b.rating != null && (
+                    <span className="num" style={{
+                      flexShrink: 0, fontSize: 'var(--t-2)', color: 'var(--nota)',
+                    }}>
+                      ★ {b.rating.toFixed(1).replace('.', ',')}
+                      <span style={{ color: 'var(--faint)' }}> ({b.ratingCount})</span>
+                    </span>
+                  )}
+                </span>
                 <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
                   {formatDistance(b.distanceMeters)}
                   {b.freshestAgeDays != null && (
                     <> · <span style={{ color: ageColor(b.freshestAgeDays) }}>
                       {shortAge(b.freshestAgeDays)}
                     </span></>
-                  )}
-                  {/* La nota se ve siempre, no sólo ordenando por ella:
-                      ordenar por algo invisible es pedir que se confíe en un
-                      ranking sin mostrar de dónde sale. Va con la cantidad de
-                      votos al lado por lo mismo que los precios van con su
-                      antigüedad — un 5,0 de un voto no es un 5,0. */}
-                  {b.rating != null && (
-                    <> · <span style={{ color: 'var(--acento)' }}>
-                      ★ {b.rating.toFixed(1).replace('.', ',')}
-                    </span>
-                    <span style={{ opacity: .8 }}> ({b.ratingCount})</span></>
                   )}
                 </span>
               </span>

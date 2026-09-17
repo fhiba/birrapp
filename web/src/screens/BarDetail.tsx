@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
+import * as fb from '../data/feedback'
 import type {
   BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
 } from '../data/types'
@@ -116,6 +117,7 @@ export function BarDetailScreen({
    */
   const vote = useCallback(async (photo: Photo) => {
     const on = !photo.votedByMe
+    fb.tap()
     const shift = (d: number) => setPhotos(cur => cur.map(x =>
       x.id === photo.id ? { ...x, votedByMe: d > 0, votes: x.votes + d } : x))
 
@@ -150,11 +152,15 @@ export function BarDetailScreen({
     setBusy(slug ?? '·')
     try {
       const r = await fn() as { message?: string }
+      // Acá pasan las tres mutaciones de precio, que son el aporte que más se
+      // repite: confirmar, cargar y borrar. Es el mejor lugar para el aviso,
+      // porque es el único por el que pasan las tres.
+      fb.exito()
       setToast(r?.message ?? 'Listo')
       await load()
       onChanged()
     }
-    catch (e) { setToast((e as Error).message) }
+    catch (e) { fb.error(); setToast((e as Error).message) }
     finally { setBusy(null) }
   }
 
@@ -207,6 +213,7 @@ export function BarDetailScreen({
    */
   const rate = async (p: StylePrice, n: number) => {
     if (!user) return nav('/perfil')
+    fb.tap()
     try {
       await api.rateBeer({
         barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,

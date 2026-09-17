@@ -290,13 +290,25 @@ export function useLocation() {
     )
   }, [])
 
-  /** Pedido explícito —el botón de centrar—. Ahí sí vale mostrar el cartel. */
+  /**
+   * Pedido explícito —el botón de centrar, o "Reintentar" en el cartel—.
+   *
+   * El atajo por frescura vale **sólo con el permiso ya dado**. Antes valía
+   * siempre, y ahí estaba el bug: a quien tenía una posición guardada de una
+   * sesión anterior pero el permiso todavía en `prompt` —permisos reseteados,
+   * la PWA reinstalada, el navegador limpiando el sitio sin limpiar el
+   * `localStorage`— el botón le salía por acá sin llegar nunca a
+   * `getCurrentPosition`. O sea que **el navegador nunca preguntaba**, y la
+   * única forma de dar el permiso era no tener el botón que lo pide.
+   *
+   * Con el permiso dado, el atajo se queda: dos toques seguidos no tienen por
+   * qué encender el GPS de nuevo.
+   */
   const request = useCallback(() => {
     if (!navigator.geolocation) { setDenied(true); return }
-    // Ya sabemos dónde estás y es reciente: no hay nada que preguntar.
-    if (Date.now() - lastAt.current < FIX_FRESH_MS) return
+    if (permission === 'granted' && Date.now() - lastAt.current < FIX_FRESH_MS) return
     locate()
-  }, [locate])
+  }, [locate, permission])
 
   useEffect(() => {
     if (askedThisLoad) return
@@ -321,10 +333,19 @@ export function useLocation() {
       }
       if (status.state === 'granted') { locate(); return }
       if (status.state === 'denied') { setDenied(true); return }
-      // 'prompt': con una posición guardada la app ya abre bien, así que el
-      // cartel espera al botón. Sin ella no hay alternativa: se pregunta.
-      if (stored) setDenied(false)
-      else locate()
+      // 'prompt', o sea que todavía no decidió.
+      //
+      // Con una posición guardada la app abre bien y no se interrumpe al
+      // entrar: pedir el permiso de arranque, antes de que se vea para qué
+      // sirve, es la forma más rápida de que lo nieguen para siempre.
+      //
+      // Pero antes acá se marcaba `denied = false` y se terminaba, y eso
+      // dejaba a esa persona sin cartel y sin pedido: la app usaba una
+      // posición vieja para siempre y nunca preguntaba nada. Ahora el pedido
+      // no desaparece, sólo espera al botón — que con el arreglo de `request`
+      // sí llega a `getCurrentPosition`.
+      if (stored) { setDenied(false); return }
+      locate()
     }).catch(() => locate())
   }, [locate, stored])
 

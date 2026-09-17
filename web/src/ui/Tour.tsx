@@ -172,7 +172,25 @@ export function tourPending(userId: number): boolean {
 
 // ---------- componente ----------
 
-export function Tour({ view, userId }: { view: TourView; userId: number | null }) {
+/**
+ * Id con el que se guarda el avance de quien no inició sesión.
+ *
+ * El tutorial no arranca solo sin cuenta —habla de aportar, y nada de eso se
+ * puede hacer sin una— pero sí se puede pedir desde el "?". Y si alguien lo
+ * pidió y lo terminó, no hay por qué volver a ofrecérselo: eso necesita una
+ * clave donde anotarlo.
+ */
+export const TOUR_ANON = 0
+
+export function Tour({ view, userId, autoStart, openToken = 0 }: {
+  view: TourView
+  /** Real con sesión, [TOUR_ANON] sin ella: es dónde se guarda el avance. */
+  userId: number
+  /** Arrancar solo al entrar. Sin sesión va en false; ver el comentario. */
+  autoStart: boolean
+  /** Cambia cuando alguien toca el "?": abre el tutorial de esta pantalla. */
+  openToken?: number
+}) {
   const [step, setStep] = useState(0)
   const [active, setActive] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
@@ -181,19 +199,25 @@ export function Tour({ view, userId }: { view: TourView; userId: number | null }
   // para que la pantalla haya terminado de dibujarse: sin eso el ancla puede
   // no existir todavía y el paso se saltearía por nada.
   useEffect(() => {
-    if (userId == null) { setActive(false); return }
+    if (!autoStart) { setActive(false); return }
     const s = read(userId)
     if (s.skipped || s.done.includes(view)) { setActive(false); return }
     const t = setTimeout(() => { setStep(0); setActive(true) }, 550)
     return () => clearTimeout(t)
-  }, [view, userId])
+  }, [view, userId, autoStart])
+
+  // Pedido a mano. Va sin el retraso de arriba: la pantalla ya está dibujada
+  // —se está mirando— y esperar medio segundo después de tocar un botón se
+  // siente como que el botón no anduvo.
+  useEffect(() => {
+    if (openToken > 0) { setStep(0); setActive(true) }
+  }, [openToken])
 
   const steps = STEPS[view]
   const current = steps[step]
 
   const finish = useCallback((skipAll: boolean) => {
     setActive(false)
-    if (userId == null) return
     const s = read(userId)
     write(userId, skipAll
       ? { ...s, skipped: true }

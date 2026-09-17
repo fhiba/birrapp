@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
+import * as fb from '../data/feedback'
 import type { Person, User } from '../data/types'
 import { formatRadius } from '../data/format'
 import { AvatarPicker } from '../ui/AvatarPicker'
@@ -33,6 +34,8 @@ export function SettingsScreen({ user, onSession }: {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState(user?.displayName ?? '')
   const [alias, setAlias] = useState(user?.alias ?? '')
+  const [sonido, setSonido] = useState(fb.sonidoPrendido())
+  const [vibrar, setVibrar] = useState(fb.vibrarPrendido())
   // Quiénes están bloqueados. Acá y no en otra pantalla: es el único lugar
   // desde donde se puede deshacer, y un bloqueo que no se puede levantar es
   // una decisión que quedó para siempre por un toque.
@@ -177,6 +180,23 @@ export function SettingsScreen({ user, onSession }: {
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
           Deciden cuáles son las tres birras que se ven primero en cada bar.
         </p>
+
+        <SectionLabel>Avisos</SectionLabel>
+        {/* Los dos por separado y no un solo interruptor: en un bar con gente
+            el sonido molesta y la vibración no, y quien quiera apagar uno casi
+            nunca quiere apagar el otro. */}
+        <Interruptor
+          label="Vibración"
+          hint="Un toque corto al votar, confirmar un precio o marcar un favorito."
+          on={vibrar}
+          onChange={v => { setVibrar(v); fb.setVibrar(v); if (v) fb.tap() }}
+        />
+        <Interruptor
+          label="Sonido"
+          hint="Lo mismo, con un tono corto. En iPhone es el único de los dos que funciona."
+          on={sonido}
+          onChange={v => { setSonido(v); fb.setSonido(v); if (v) fb.tap() }}
+        />
 
         <SectionLabel>Al cargar precios</SectionLabel>
 
@@ -338,3 +358,44 @@ function Field({ label, hint, children }: {
   )
 }
 
+/** Un interruptor con su explicación, para las preferencias de a dos estados. */
+function Interruptor({ label, hint, on, onChange }: {
+  label: string; hint: string; on: boolean; onChange: (v: boolean) => void
+}) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      role="switch" aria-checked={on}
+      className="lbl"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+        marginTop: 'var(--s-2)', padding: '12px 14px', borderRadius: 'var(--r-2)',
+        background: 'var(--film-2)', textAlign: 'left',
+      }}
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--t-4)', color: 'var(--cream)' }}>
+          {label}
+        </span>
+        <span style={{
+          display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)',
+          marginTop: 2, lineHeight: 1.4, whiteSpace: 'normal',
+        }}>{hint}</span>
+      </span>
+      {/* Riel y perilla, que es lo que se reconoce como interruptor. Una
+          tilde diría "elegido de una lista" y esto es prendido/apagado. */}
+      <span aria-hidden style={{
+        flexShrink: 0, width: 44, height: 26, borderRadius: 999,
+        background: on ? 'var(--acento)' : 'var(--film-3)',
+        display: 'flex', alignItems: 'center',
+        padding: 3, transition: 'background-color .16s ease-out',
+      }}>
+        <span style={{
+          width: 20, height: 20, borderRadius: '50%', background: 'var(--base)',
+          transform: on ? 'translateX(18px)' : 'none',
+          transition: 'transform .16s ease-out',
+        }} />
+      </span>
+    </button>
+  )
+}
