@@ -66,7 +66,14 @@ export function CurrencySelect({ value, onChange, id }: {
       onChange={e => onChange(e.target.value)}
       className="lbl"
       style={{
-        padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+        padding: 'var(--s-2) var(--s-3)', borderRadius: 'var(--r-2)',
+        /*
+         * `--t-field` y no un paso de la escala: esto es un campo, y abajo de
+         * 16px Safari en iOS acerca el viewport al enfocarlo y al volver no lo
+         * aleja. Estaba en 13px — la red de seguridad de `theme.css` no lo
+         * salvaba porque el tamaño inline le gana por especificidad.
+         */
+        fontSize: 'var(--t-field)',
         background: 'var(--elevated)', color: 'var(--cream)',
         border: '1px solid var(--hairline)',
       }}

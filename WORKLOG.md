@@ -3107,3 +3107,141 @@ camino que tienen todos los corazones, así que el aviso sale una vez.
   estrellas alcanza.
 
 187 tests verdes.
+
+## 2026-09-17 (cont.) — v0.19.0: dirección "Pizarra heritage", la PWA repintada entera
+
+Viene de un proyecto de Claude Design («BirrApp rediseño de UI», variante **C —
+Pizarra heritage**), que propone cuatro direcciones y de las cuatro ésta es la
+que menos pelea con lo que la app ya era. Se aplicó sólo a la PWA: el tema de
+Android no se tocó.
+
+### La regla de la paleta no cambió; cambió el material
+
+Sigue valiendo **"si tiene color, es un dato"**, que es lo que en su momento
+sacó el ámbar de marca porque compartía hex con `--aging` y con un punto de
+`PRICE_STOPS`. Lo que cambia es el fondo: la rampa de grises fríos pasa a una
+de espresso (`--base #1B0D17`, `--raised #241321`, `--elevated #33202D`) y el
+cromo hueso pasa de `#EDE6D8` a Floral White `#FFFDF4`.
+
+El motivo no es de gusto. Sobre el neutro frío, los tres colores del dato
+flotaban sobre un gris que no era de nadie. Sobre espresso se leen como tiza
+sobre una pizarra, que es literalmente de dónde salen los precios que la app
+viene a juntar.
+
+Los datos se movieron con el fondo: **la frescura deja de ser verde** y pasa a
+Lime Cream `#FFFC9A`. El verde menta era el único tono de la pantalla que no
+pertenecía a la familia y quedaba como un LED pegado encima; la lima dice
+"recién escrito", que es exactamente lo que significa un precio fresco, y da
+14,18:1 contra `--elevated` — el valor más alto de toda la rampa de datos. Lo
+más importante es lo que más se ve. `--aging` va a `#EE9A52`, `--stale` a
+`#9C8A90` (el mismo tono que los metadatos: un precio viejo dejó de ser
+noticia) y `--favorito` a coral `#EE6352`.
+
+`--favorito` y `--danger` ahora son el mismo coral y siguen siendo dos tokens.
+Hasta acá eran dos rojos distintos a propósito —"es mío" contra "esto no se
+deshace"—; heritage tiene un solo rojo, así que la diferencia la hace el
+tratamiento, que es la palanca que corresponde: el favorito es un ícono
+relleno, el peligro es un botón con borde y confirmación, y nunca aparecen
+juntos. Se dejan separados porque el día que vuelvan a ser dos tonos, eso
+cuesta una línea y no una búsqueda por todo el código.
+
+### `--info`: el token que faltaba
+
+Steel Blue `#85A1C1`, y es lo que más cambia cómo se lee la app.
+
+El problema de la pantalla anterior no era de color sino de jerarquía: había
+**una sola voz apagada** para tres cosas distintas —el metadato de una fila, la
+etiqueta que separa una sección y el dato secundario— así que todo lo que no
+era el precio pesaba igual y la pantalla se leía plana. Ahora lo informativo y
+analítico tiene tono propio: distancias, etiquetas de sección, consenso,
+telemetría, radio, "verificado", el punto del GPS, las acciones secundarias.
+"A 450 m" dejó de competir con "Palermo Soho".
+
+Es frío a propósito: sobre espresso, un segundo acento cálido se confundiría
+con `--aging`, que es precio.
+
+Contraste medido, no estimado, contra las tres superficies: el piso es
+`--faint` con 4,66:1 sobre `--elevated`, mejor que el 4,53 de Hueso. Ninguno
+de los once tonos baja de 4,5:1 en ninguna superficie.
+
+### La gramática "pizarra"
+
+* **Filas con filete, no tarjetas.** La tarjeta queda para lo que de verdad es
+  un bloque aparte: el resumen de zona, el karma, las baldosas del perfil.
+* **Barra de frescura de 3px** a la izquierda de cada fila de bar. Es el cambio
+  que más rinde: la lista se lee de un vistazo sin leer una sola fecha.
+* **Precio grande a la derecha y la edad justo debajo**, en el color de su
+  frescura. Salió de cuatro copias distintas del mismo markup a un solo
+  `PriceColumn`, con la regla adentro: si no se sabe de cuándo es, dice "sin
+  fecha"; nunca queda el número solo.
+* **Segmentados y pestañas: texto con barra de 2px**, no cápsulas. La cápsula
+  rellena pesaba lo mismo que un CTA y competía con el precio. Un solo
+  vocabulario para "posición activa" en toda la app.
+* **La barra de navegación deja de flotar**: plana, apoyada abajo, con filete
+  arriba, indicador de 2px sobre el ícono activo — y **las tres etiquetas
+  visibles**. Antes sólo la activa mostraba texto y las otras dos se anunciaban
+  sólo por `aria-label`: había que adivinar o tocar para saber.
+* **El vidrio queda sólo donde flota sobre el mapa**, más diálogos y hojas.
+* **El basemap pasa a espresso** y el agua a azul acero. De paso se arreglaron
+  los nombres de calle, que estaban en 2,41:1 sobre la autopista.
+
+### Lo que se sacó porque estaba mal, no porque no entrara
+
+Los dos encabezados —mapa y lista— iban a mostrar "N bares · promedio $ X",
+que es lo que propone el diseño. **No se implementó, y el promedio que ya
+existía se fue.** Promediaba `fromPrice`, que es el precio *más barato* de cada
+bar y además sin normalizar por tamaño de servicio: no era el promedio de nada.
+Y encima se dibujaba sin antigüedad, o sea rompiendo la regla que no se
+negocia. El promedio correcto ya existe —`AreaStats.avgPint`, normalizado a
+473 ml y con su alcance temporal— y en la Lista se estaba dibujando a pocos
+píxeles de distancia, en `AreaStatsCard`: eran dos números distintos del mismo
+radio en la misma pantalla. Los encabezados quedan contando lo que se ve.
+
+Por lo mismo se le sacó el precio a las pastillas de marca de la ficha: tres
+marcas con monto y edad ocupaban tres renglones justo arriba del precio, y sin
+la edad no se podían mostrar. El monto con su antigüedad sigue en la fila de
+abajo, y cambiar de marca es un tap.
+
+### Accesibilidad, de paso
+
+* El `aria-label` del monto en "Cargar precio" **tapaba el monto**: con lector
+  de pantalla no había forma de saber qué precio se estaba tecleando. Pasó a
+  `aria-describedby`, y el valor entró además en la región `aria-live`.
+* El corazón de favorito sobre la portada del bar daba 1,65:1 con una foto
+  clara — peor que el estado sin marcar. El `backdrop-filter` de esos botones
+  lleva ahora `brightness(.45)` y pasa a 3,76:1.
+* El `<select>` del tamaño del vaso estaba en 13px: Safari de iOS hace zoom al
+  enfocarlo y no lo devuelve. Es de antes de este cambio; se arregló igual.
+* En el calendario de "Mis birras", un `outline` inline anulaba el anillo de
+  foco de todos los días.
+
+### Cómo se hizo
+
+Ocho agentes en paralelo, uno por grupo de archivos, contra una especificación
+escrita antes de tocar nada. Después una revisión adversarial en cuatro
+dimensiones —reglas duras, accesibilidad, regresión, adherencia— con un
+escéptico por dimensión encargado de refutar los hallazgos. Sobrevivieron 33,
+y esos se arreglaron en una tercera ronda.
+
+Vale anotar lo que eso encontró, porque es el argumento para volver a hacerlo:
+los dos defectos más graves —los dos precios sin antigüedad en los
+encabezados— los introdujo este mismo trabajo, en texto nuevo, en la misma
+sesión en la que la especificación decía en su sección 4 que esa regla no se
+tocaba.
+
+### Pendiente
+
+* **El tema de Android no se tocó.** La especificación sirve igual; es un pase
+  equivalente sobre Compose.
+* **`vs zona` mientras se teclea el precio** (está en el diseño): necesita
+  `AreaStats.avgPint` en la pantalla de carga. Hoy sólo lo pide `AreaStatsCard`
+  por dentro; encenderlo es levantar ese estado y bajarlo como prop, sin API
+  nueva.
+* **El consenso en la fila de la lista** (también del diseño): `BarPin` no trae
+  `voters` ni el rango, eso vive en `StylePrice`. No se inventó el campo.
+* **`PriceColumn` vive en `ui/Empty.tsx`**, que no es su casa. Está ahí a
+  propósito, al lado de `SkeletonRows`, porque la métrica del esqueleto y la de
+  la fila real se habían separado justamente por vivir en archivos distintos.
+  Cuando se mude, tienen que mudarse las dos.
+* La tarifa de puntos (`+N pts`) está escrita en el cliente y la verdad vive en
+  `CONTRIBUTION_WEIGHT` del backend. Ya estaba así; ahora está en más lugares.

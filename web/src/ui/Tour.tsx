@@ -111,9 +111,13 @@ const STEPS: Record<TourView, Step[]> = {
     {
       anchor: 'bar-rating',
       title: 'Puntuá la birra',
-      body: 'Tocá las estrellas y ponele del 1 al 5 — se guarda solo. Para '
-        + 'medios puntos, escribilo en el casillero de al lado: 3,5 vale. En '
-        + 'ámbar ves tu voto y en gris el promedio del resto.',
+      // El texto hablaba de un casillero para escribir el medio punto y de un
+      // voto "en ámbar": las dos cosas dejaron de existir —ahora se arrastra el
+      // dedo, y la nota tiene su propio tono— y un tutorial que describe una
+      // pantalla que no está es peor que no tenerlo.
+      body: 'Apoyá el dedo en las estrellas y arrastralo: se engancha de a medio '
+        + 'punto y se guarda al soltar. Tu voto se pinta en el color de la '
+        + 'nota y el promedio del resto queda apagado.',
     },
     {
       anchor: 'bar-photos',
@@ -307,28 +311,52 @@ export function Tour({ view, userId, autoStart, openToken = 0 }: {
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.74)' }} />
       )}
 
-      <div className="desk-narrow" onClick={e => e.stopPropagation()} style={{
+      {/*
+        El globo es vidrio, con la receta única de `.glass`.
+
+        Es lo que corresponde por la regla de la dirección: hay vidrio donde
+        algo flota y no en las pantallas de contenido, y esto flota por encima
+        de la app entera, agujereada por el recorte de luz. Tenía su propia
+        mezcla —fondo `--elevated` opaco y una sombra a mano— o sea una tarjeta
+        pegada encima; con el vidrio se ve qué hay debajo, que es justo lo que
+        el tutorial está señalando.
+
+        La sombra ya no va inline: `.glass` trae la suya con los dos cantos, y
+        un `box-shadow` en el `style` la pisaba entera por especificidad.
+
+        Adentro del vidrio el color deja de llevar jerarquía —lo de atrás puede
+        ser cualquier cosa— y la llevan el tamaño y el peso: título en `--cream`
+        y todo lo secundario en `--sobre-vidrio`.
+      */}
+      <div className="desk-narrow glass" onClick={e => e.stopPropagation()} style={{
         position: 'absolute', ...cardStyle, pointerEvents: 'auto',
-        background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: '16px 16px',
-        boxShadow: '0 12px 40px rgba(0,0,0,.5)',
+        borderRadius: 'var(--r-3)', padding: 'var(--s-4)',
       }}>
         <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8,
+          display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginBottom: 'var(--s-2)',
         }}>
           <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)', flex: 1 }}>{current.title}</h3>
-          <span className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
+          <span className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--sobre-vidrio)' }}>
             {step + 1}/{steps.length}
           </span>
         </div>
-        <p style={{ margin: 0, fontSize: 'var(--t-3)', lineHeight: 1.5, color: 'var(--muted)' }}>
+        <p style={{
+          margin: 0, fontSize: 'var(--t-3)', lineHeight: 1.5, color: 'var(--sobre-vidrio)',
+        }}>
           {current.body}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-3)', marginTop: 'var(--s-4)',
+        }}>
           <button onClick={() => finish(true)} className="lbl" style={{
-            fontSize: 'var(--t-2)', color: 'var(--faint)',
+            fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
+            // 44px de alto real: es la salida del tutorial y hay que poder
+            // acertarle con el pulgar, aunque el texto sea chico.
+            minHeight: 44, padding: 0,
           }}>No me lo muestres más</button>
           <button onClick={next} className="lbl" style={{
-            marginLeft: 'auto', padding: '8px 24px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+            marginLeft: 'auto', padding: '0 var(--s-5)', borderRadius: 'var(--r-2)',
+            fontSize: 'var(--t-3)', minHeight: 46,
             background: 'var(--acento)', color: 'var(--base)',
           }}>{step + 1 >= steps.length ? 'Listo' : 'Dale'}</button>
         </div>

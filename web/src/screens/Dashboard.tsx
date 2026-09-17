@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import { HBars, KIND_COLORS, Legend, LineChart, StackedBars } from '../ui/charts/Chart'
+import { Segmented } from '../ui/Segmented'
 import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
 
 /**
@@ -90,14 +91,20 @@ export function DashboardScreen() {
 
         {analytics && <Charts a={analytics} />}
 
-        <div style={{ display: 'flex', gap: 8, padding: '24px 16px 4px' }}>
-          {(['nuevos', 'aportes'] as const).map(k => (
-            <button key={k} onClick={() => setSort(k)} className="lbl pill" style={{
-              padding: '8px 16px', fontSize: 'var(--t-2)',
-              background: sort === k ? 'var(--cream)' : 'var(--elevated)',
-              color: sort === k ? 'var(--base)' : 'var(--muted)',
-            }}>{k === 'nuevos' ? 'Más nuevos' : 'Más aportes'}</button>
-          ))}
+        {/* Texto con subrayado, no dos cápsulas rellenas. Es la misma forma
+            que usan el orden de la lista y la barra de pestañas: un solo
+            vocabulario para "elegiste esto". Y de paso deja de usarse una
+            cápsula hueso, que en heritage pesa lo mismo que un CTA. */}
+        <div style={{ padding: 'var(--s-5) var(--s-4) var(--s-1)' }}>
+          <Segmented
+            options={[
+              { value: 'nuevos', label: 'Más nuevos' },
+              { value: 'aportes', label: 'Más aportes' },
+            ]}
+            value={sort}
+            onChange={setSort}
+            label={o => `Ordenar por ${o.label.toLowerCase()}`}
+          />
         </div>
 
         {shown?.length === 0 && (
@@ -112,17 +119,29 @@ export function DashboardScreen() {
   )
 }
 
+/**
+ * Una métrica del encabezado.
+ *
+ * Las dos que contestan la pregunta de la pantalla —cuánta gente se anota y
+ * cuánta de esa aporta— se marcan con el borde y la etiqueta informativos, no
+ * con un fondo y un número de otro color. En heritage el acento es hueso, o
+ * sea el mismo tono del texto: `accent` pintaba el número del color que ya
+ * tenía y el relleno no distinguía nada. El borde sí, y no le roba brillo al
+ * número, que es lo que hay que leer.
+ */
 function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean }) {
   return (
     <div style={{
-      padding: '12px 12px 12px', borderRadius: 'var(--r-3)',
-      background: accent ? 'var(--acento-soft)' : 'var(--film-1)',
+      padding: 'var(--s-3)', borderRadius: 'var(--r-3)',
+      background: 'var(--raised)',
+      border: `1px solid ${accent ? 'var(--info-border)' : 'var(--hairline)'}`,
     }}>
       <div className="num" style={{
-        fontSize: 'var(--t-7)', lineHeight: 1.1, color: accent ? 'var(--acento)' : 'var(--cream)',
+        fontSize: 'var(--t-7)', lineHeight: 1.1, color: 'var(--cream)',
       }}>{n}</div>
       <div style={{
-        fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4, whiteSpace: 'pre-line',
+        fontSize: 'var(--t-1)', color: accent ? 'var(--info)' : 'var(--faint)',
+        marginTop: 'var(--s-1)', whiteSpace: 'pre-line',
       }}>{label}</div>
     </div>
   )
@@ -135,7 +154,7 @@ function UserRow({ u }: { u: DashboardUser }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 16px', borderBottom: '1px solid var(--film-2)',
+      padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
       opacity: u.banned ? 0.45 : 1,
     }}>
       {u.avatarUrl
@@ -151,10 +170,13 @@ function UserRow({ u }: { u: DashboardUser }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{u.displayName}</span>
+          {/* El rol es información sobre la cuenta, no un logro: va en el tono
+              informativo y no en el acento, que acá es hueso y hacía que la
+              etiqueta pesara igual que el nombre. */}
           {u.role !== 'user' && (
             <span className="lbl" style={{
               fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 8px', borderRadius: 999,
-              background: 'var(--acento-soft)', color: 'var(--acento)',
+              background: 'var(--info-soft)', color: 'var(--info-bright)',
             }}>{u.role.toUpperCase()}</span>
           )}
           {u.banned && (
@@ -223,18 +245,37 @@ function Charts({ a }: { a: DashboardAnalytics }) {
   ]
   const pulseX = a.pulse.map(d => d.day)
 
-  // Los que entran sin sesión van en gris y los que la tienen en ámbar: la
-  // brecha entre las dos líneas es lo que el gráfico viene a mostrar.
-  //
-  // El ámbar acá es dato y no marca: es un color de serie, el mismo `#FFB627`
-  // de `--aging` y de `PRICE_STOPS`. Por eso no pasó a `--acento` con la
-  // paleta Hueso — una serie sin color deja de ser una serie.
+  /*
+   * Las dos líneas: el contexto apagado y lo que importa prendido. La brecha
+   * entre ellas es lo que el gráfico viene a mostrar, y para verla alcanza con
+   * que una de las dos mande.
+   *
+   * Antes eran gris y ámbar, y el ámbar era legítimo: un color de serie, el
+   * mismo `#FFB627` de `--aging` y de `PRICE_STOPS`, que por eso no pasó a
+   * `--acento` con la paleta Hueso. En heritage ese tono dejó de servir acá,
+   * porque sobre espresso significa "precio a medio vencer" y este gráfico
+   * habla de gente, no de precios. El lugar de "esto es lo que hay que mirar"
+   * lo ocupa `--fresh`, que además es el tono de más contraste de la rampa.
+   */
   const trafficSeries = [
-    { label: 'sin sesión', color: '#888E95', points: a.traffic.map(d => d.anon) },
-    { label: 'con sesión', color: '#FFB627', points: a.traffic.map(d => d.authed) },
+    { label: 'sin sesión', color: 'var(--faint)', points: a.traffic.map(d => d.anon) },
+    { label: 'con sesión', color: 'var(--fresh)', points: a.traffic.map(d => d.authed) },
+  ]
+
+  // Mismo criterio que arriba, y armada una sola vez: estaba escrita dos
+  // veces —una para el gráfico y otra para la leyenda— que es exactamente
+  // donde dos colores que tienen que ser el mismo se terminan separando.
+  const altasSeries = [
+    { label: 'se anotaron', color: 'var(--faint)', points: a.weekly.map(w => w.signups) },
+    { label: 'aportaron',   color: 'var(--fresh)', points: a.weekly.map(w => w.contributors) },
   ]
 
   const coverPct = a.coverage.map(d => d.bars === 0 ? 0 : (d.covered / d.bars) * 100)
+
+  // El ranking de aportantes: el primero en `--fresh` y el resto en el
+  // `--info` que pone HBars. Una barra sola no necesita destacarse de nadie;
+  // en una lista ordenada, quién va primero es medio gráfico.
+  const topeAportes = Math.max(0, ...a.topContributors.map(t => t.score))
   const f = a.funnel
 
   return (
@@ -250,22 +291,16 @@ function Charts({ a }: { a: DashboardAnalytics }) {
       <Card title="Altas contra aportantes" hint="por semana · 12 semanas" deskOnly>
         <LineChart
           x={a.weekly.map(w => w.week)}
-          series={[
-            { label: 'se anotaron', color: '#888E95', points: a.weekly.map(w => w.signups) },
-            { label: 'aportaron',   color: '#FFB627', points: a.weekly.map(w => w.contributors) },
-          ]}
+          series={altasSeries}
         />
-        <Legend series={[
-          { label: 'se anotaron', color: '#888E95', points: [] },
-          { label: 'aportaron',   color: '#FFB627', points: [] },
-        ]} />
+        <Legend series={altasSeries} />
       </Card>
 
       <Card title="Cobertura del mapa" hint="% con precio no vencido · 90 días" deskOnly>
         <LineChart
           x={a.coverage.map(d => d.day)} fill
           format={n => `${Math.round(n)}%`}
-          series={[{ label: 'cobertura', color: '#6BC4A6', points: coverPct }]}
+          series={[{ label: 'cobertura', color: 'var(--info)', points: coverPct }]}
         />
       </Card>
 
@@ -284,6 +319,7 @@ function Charts({ a }: { a: DashboardAnalytics }) {
       >
         <HBars rows={a.topContributors.map(t => ({
           label: t.displayName, value: t.score, hint: String(t.score),
+          color: t.score === topeAportes ? 'var(--fresh)' : undefined,
         }))} />
       </Card>
 
@@ -308,11 +344,18 @@ function Card({ title, hint, deskOnly, children }: {
 }) {
   return (
     <div className={deskOnly ? 'desk-only' : undefined} style={{
-      padding: 16, borderRadius: 'var(--r-3)', background: 'var(--film-1)',
+      padding: 'var(--s-4)', borderRadius: 'var(--r-3)',
+      background: 'var(--raised)', border: '1px solid var(--hairline)',
     }}>
-      <div className="lbl" style={{ fontSize: 'var(--t-2)' }}>{title}</div>
+      {/* El título del gráfico es una etiqueta de sección, la misma de toda la
+          app. El margen se anula acá porque la clase trae el aire de cuando
+          separa zonas de una pantalla larga, y adentro de una tarjeta el aire
+          ya lo pone el padding. */}
+      <div className="section-label" style={{ margin: 0 }}>{title.toUpperCase()}</div>
       {hint && (
-        <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', margin: '2px 0 12px' }}>{hint}</div>
+        <div style={{
+          fontSize: 'var(--t-1)', color: 'var(--faint)', margin: 'var(--s-1) 0 var(--s-3)',
+        }}>{hint}</div>
       )}
       {children}
     </div>

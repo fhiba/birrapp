@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { currencyPrefix, groupThousands } from '../data/format'
+import { SectionLabel } from '../ui/Kit'
 
 /**
  * El último paso: cuánto sale y de qué tamaño.
@@ -9,7 +10,7 @@ import { currencyPrefix, groupThousands } from '../data/format'
  * acá tienen tres ceros) y el separador de miles en vivo, que es donde se
  * cuela el cero de más.
  *
- * Tocar el monto o el tamaño edita ese campo directamente; el activo se
+ * Tocar el monto o el formato edita ese campo directamente; el activo se
  * resalta. Nada de modos escondidos.
  *
  * **Acá ya no se elige la birra.** Antes esta pantalla tenía encima la fila de
@@ -17,6 +18,12 @@ import { currencyPrefix, groupThousands } from '../data/format'
  * en el mismo alto. Ahora eso lo preguntó [ReportFlow] antes, de a una, y lo
  * elegido se muestra arriba sólo para poder corregirlo: el botón de volver
  * lleva al paso anterior, no afuera.
+ *
+ * **Vestido heritage.** El monto pasa a ser lo único grande de la pantalla —
+ * símbolo de moneda chico y apagado, número en `--t-10` y un caret que
+ * parpadea donde está tecleando el teclado. El tamaño deja de ser una cápsula
+ * con los ml adentro y pasa a ser un segmentado de texto con subrayado, que es
+ * el mismo vocabulario de "posición activa" que usa la barra de pestañas.
  */
 export function ReportPrice({
   barName, currency, defaultSizeMl, styleName, brandName,
@@ -43,6 +50,29 @@ export function ReportPrice({
   const price = Number(digits) || 0
   const sizeMl = Number(size) || defaultSizeMl
   const valid = price > 0 && sizeMl >= 100 && sizeMl <= 2000
+
+  /**
+   * Los formatos que se piden en un bar, y "Otro" para lo que no entra.
+   *
+   * "Pinta" es la de tu configuración y no 473 fijo: una pinta no mide lo
+   * mismo en todos lados, y ese tamaño ya lo contestaste una vez en el perfil.
+   *
+   * "Otro" no es relleno ni un adorno del rediseño: el teclado sigue pudiendo
+   * cargar cualquier tamaño entre 100 y 2000 ml, que es lo que esta pantalla
+   * ya hacía. Tres botones fijos cubren el 95% de los casos con un tap; el
+   * 5% restante no se pierde.
+   *
+   * El filtro es por si tu pinta mide justo 330 o 1000: dos columnas con el
+   * mismo número serían dos botones que hacen lo mismo.
+   */
+  const formatos = [
+    { label: 'Pinta', ml: defaultSizeMl },
+    { label: 'Media', ml: 330 },
+    { label: 'Litro', ml: 1000 },
+  ].filter((f, i, xs) => xs.findIndex(x => x.ml === f.ml) === i)
+
+  // Tecleando los ml, o con un tamaño que no es ninguno de los tres.
+  const otro = editingSize || !formatos.some(f => f.ml === sizeMl)
 
   /**
    * El teclado de verdad, en escritorio.
@@ -80,28 +110,61 @@ export function ReportPrice({
       display: 'flex', flexDirection: 'column',
       paddingTop: 'var(--safe-top)', paddingBottom: 'var(--nav-gap)',
     }}>
-      <header style={{ padding: '10px 18px 0' }}>
+      {/*
+        Las dos cosas de esta pantalla que un `style` inline no puede escribir:
+        el parpadeo del caret y el hundido de las teclas. Se quedan acá porque
+        son de esta pantalla y de ninguna otra —el teclado propio existe sólo
+        para cargar un precio— y porque el hundido de la tecla no es el del
+        CTA: la tecla se toca doce veces seguidas, así que baja menos (.97) y
+        más rápido (.08s), y además cambia de fondo.
+
+        El hundido del CTA, en cambio, ya es de toda la app: vive en theme.css
+        como `.cta` y acá lo usamos. La copia local que había decía que `.cta`
+        todavía no existía, y hace rato que sí.
+      */}
+      <style>{`
+        @keyframes caret-parpadeo { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+        .monto-caret {
+          display: inline-block; width: 3px; border-radius: 1px;
+          background: var(--cream);
+          animation: caret-parpadeo 1.1s step-end infinite;
+        }
+        .monto-tecla {
+          height: 54px; display: grid; place-items: center;
+          border-radius: var(--r-1); border: 1px solid var(--hairline);
+          background: var(--raised); font-size: var(--t-6);
+          transition: transform .08s ease-out, background-color .08s ease-out;
+        }
+        .monto-tecla:active { transform: scale(.97); background: var(--elevated); }
+      `}</style>
+
+      <header style={{
+        padding: '10px 18px var(--s-3)', borderBottom: '1px solid var(--hairline)',
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {/* La flecha vuelve un paso, no sale del flujo: quien llegó hasta acá
               eligiendo tres cosas y se equivocó en la marca no tiene que
               empezar de nuevo. Salir es la cruz. */}
           <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver al paso anterior">←</button>
-          <span className="lbl" style={{
-            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', flex: 1,
-          }}>ÚLTIMO PASO</span>
+          <h2 className="section-label" style={{ flex: 1, margin: 0 }}>ÚLTIMO PASO</h2>
           <button onClick={onCancel} className="lbl" style={{
-            fontSize: 'var(--t-3)', color: 'var(--muted)',
+            fontSize: 'var(--t-3)', color: 'var(--muted)', minHeight: 44, padding: '0 4px',
           }} aria-label="Cancelar la carga">Cancelar</button>
         </div>
 
         {/* Qué se está cargando, en una línea. Es lo que evita el precio
             cargado sobre la birra equivocada: el monto va a quedar pegado a
-            esto, así que tiene que estar a la vista mientras se teclea. */}
-        <div style={{ margin: '16px 0 0' }}>
+            esto, así que tiene que estar a la vista mientras se teclea.
+
+            La marca va en `--info` y no en el acento: el acento ahora es el
+            mismo hueso que el texto, así que ahí no se distinguía del estilo.
+            El azul la separa sin gritar, que es lo que hace `--info` en toda
+            la app. */}
+        <div style={{ margin: 'var(--s-3) 0 0' }}>
           <div className="ttl" style={{ fontSize: 'var(--t-6)' }}>
             {styleName}
             {brandName && (
-              <span style={{ color: 'var(--acento)' }}> · {brandName}</span>
+              <span style={{ color: 'var(--info)' }}> · {brandName}</span>
             )}
           </div>
           {barName && (
@@ -112,52 +175,154 @@ export function ReportPrice({
         </div>
       </header>
 
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 8,
+      {/* El monto y el formato scrollean; el teclado y el CTA quedan fijos
+          abajo. En una pantalla de 667px el teclado entra igual, pero con el
+          teclado del sistema abierto en escritorio o con el texto agrandado,
+          lo que cede es la parte de arriba y no la que se toca. */}
+      <div className="desk-narrow" style={{
+        flex: 1, minHeight: 0, overflowY: 'auto', width: '100%',
       }}>
-        <button onClick={() => setEditingSize(false)} className="num" style={{
-          fontSize: 'var(--t-10)', letterSpacing: '-.04em', padding: '8px 16px', borderRadius: 'var(--r-3)',
-          background: editingSize ? 'transparent' : 'var(--acento-soft)',
-          color: digits === '' ? 'var(--faint)' : editingSize ? 'var(--muted)' : 'var(--cream)',
-        }}>{currencyPrefix(currency)} {digits === '' ? '0' : groupThousands(digits)}</button>
+        <div style={{ padding: '0 18px' }}>
+          <div style={{ paddingBottom: 'var(--s-4)', borderBottom: '1px solid var(--hairline)' }}>
+            <SectionLabel>Monto</SectionLabel>
+            {/*
+              El caret es lo único que dice dónde está escribiendo el teclado, y
+              por eso se mueve: acá cuando se carga el precio, abajo del formato
+              cuando se cargan los ml. Antes eso lo decía un renglón de texto
+              ("editando el precio") que había que leer.
+            */}
+            {/*
+              Sin `aria-label`. El nombre accesible de este botón tiene que
+              salir de su contenido —o sea, ser el monto— porque es el único
+              lugar donde el precio que se está tecleando se puede leer: un
+              `aria-label` lo reemplaza, y el contenido de un `button` no se
+              recorre en modo exploración. Con la etiqueta puesta, un lector de
+              pantalla anunciaba la instrucción y nunca la cifra.
+              La instrucción sigue estando, pero como descripción: se lee
+              después del monto en vez de taparlo.
+            */}
+            <button
+              onClick={() => setEditingSize(false)}
+              aria-pressed={!editingSize}
+              aria-describedby="monto-ayuda"
+              style={{
+                display: 'flex', alignItems: 'baseline', gap: 'var(--s-1)',
+                width: '100%', padding: 0, minHeight: 44, textAlign: 'left',
+              }}
+            >
+              <span className="num" style={{ fontSize: 'var(--t-7)', color: 'var(--faint)' }}>
+                {currencyPrefix(currency)}
+              </span>
+              <span className="num" style={{
+                fontSize: 'var(--t-10)', lineHeight: 1, letterSpacing: '-.04em',
+                color: digits === '' ? 'var(--faint)'
+                  : editingSize ? 'var(--muted)' : 'var(--cream)',
+              }}>{digits === '' ? '0' : groupThousands(digits)}</span>
+              {!editingSize && <span className="monto-caret" style={{ height: 40 }} aria-hidden />}
+            </button>
+            <span id="monto-ayuda" className="sr">Escribir el precio con el teclado</span>
+          </div>
 
-        <button onClick={() => setEditingSize(true)} className="num pill" style={{
-          fontSize: editingSize ? 22 : 18, padding: '8px 16px', marginTop: 12,
-          background: editingSize ? 'var(--acento-soft)' : 'transparent',
-          color: editingSize ? 'var(--acento)' : 'var(--muted)',
-        }}>{size} ml</button>
+          <SectionLabel>Formato</SectionLabel>
+          <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
+            {formatos.map(f => {
+              const on = !otro && f.ml === sizeMl
+              return (
+                <button
+                  key={f.label} className="tab-underline" aria-pressed={on}
+                  onClick={() => { setEditingSize(false); setSize(String(f.ml)) }}
+                  style={{ flex: 1, minHeight: 44, textAlign: 'center' }}
+                >
+                  {f.label}
+                  <span className="num" style={{
+                    display: 'block', fontSize: 'var(--t-1)', fontWeight: 500,
+                    color: 'var(--faint)', marginTop: 2,
+                  }}>{f.ml} ml</span>
+                  <span className="tab-rule" />
+                </button>
+              )
+            })}
 
-        <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
-          editando {editingSize ? 'el tamaño' : 'el precio'}
-        </span>
+            <button
+              className="tab-underline" aria-pressed={otro}
+              onClick={() => setEditingSize(true)}
+              style={{ flex: 1, minHeight: 44, textAlign: 'center' }}
+            >
+              Otro
+              <span className="num" style={{
+                display: 'block', fontSize: 'var(--t-1)', fontWeight: 500,
+                color: 'var(--faint)', marginTop: 2,
+              }}>
+                {/* Con el campo vacío se muestra el tamaño que se va a
+                    guardar, que es el de tu configuración: un guión diría que
+                    no hay tamaño, y sí lo hay. */}
+                {otro ? `${size === '' ? defaultSizeMl : size} ml` : 'a mano'}
+                {editingSize && (
+                  <span className="monto-caret" style={{ height: 12, marginLeft: 3 }} aria-hidden />
+                )}
+              </span>
+              <span className="tab-rule" />
+            </button>
+          </div>
+
+          {/* Un CTA apagado sin explicación es un callejón: el tamaño quedó
+              fuera de rango y el botón se apaga sin decir por qué. */}
+          {price > 0 && (sizeMl < 100 || sizeMl > 2000) && (
+            <p style={{
+              color: 'var(--aging)', fontSize: 'var(--t-2)', margin: 'var(--s-3) 0 0',
+              lineHeight: 1.5,
+            }}>
+              El tamaño tiene que estar entre 100 y 2000 ml.
+            </p>
+          )}
+
+          {/* Para quien no ve el caret: el teclado cambia de destino sin
+              cambiar de lugar, así que hay que anunciarlo.
+
+              Y va también el valor. Tocando una tecla el foco se queda en la
+              tecla —que se anuncia como el dígito— y el monto de arriba cambia
+              sin que nadie lo diga: con este teclado propio, el único eco de
+              lo tecleado es éste. */}
+          <span className="sr" aria-live="polite">
+            {editingSize
+              ? `El teclado carga los mililitros: ${size === '' ? defaultSizeMl : size} ml`
+              : `El teclado carga el precio: ${currencyPrefix(currency)} ${digits === '' ? '0' : groupThousands(digits)}`}
+          </span>
+
+          <div style={{ height: 'var(--s-4)' }} />
+        </div>
       </div>
 
       <div className="desk-narrow" style={{ padding: '0 18px', width: '100%' }}>
-        {[['1','2','3'],['4','5','6'],['7','8','9'],['000','0','⌫']].map((row, i) => (
-          <div key={i} style={{ display: 'flex' }}>
-            {row.map(k => (
-              <button key={k} onClick={() => press(k)} className="num" style={{
-                flex: 1, margin: 4, padding: '16px 0', borderRadius: 'var(--r-3)',
-                background: 'var(--raised)', fontSize: k === '000' ? 20 : 24,
-                color: k === '⌫' ? 'var(--muted)' : 'var(--cream)',
-              }}>{k}</button>
-            ))}
-          </div>
-        ))}
+        {/* Grilla de tres y no cuatro filas de flex: con `grid` las teclas
+            miden todas lo mismo sin depender de cuántos caracteres tenga cada
+            una, que es por lo que "000" quedaba más ancha. */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--s-2)',
+        }}>
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'].map(k => (
+            <button
+              key={k} onClick={() => press(k)} className="num monto-tecla"
+              aria-label={k === '⌫' ? 'Borrar el último número' : k}
+              style={{ color: k === '⌫' ? 'var(--muted)' : 'var(--cream)' }}
+            >{k}</button>
+          ))}
+        </div>
       </div>
 
-      <button
-        disabled={!valid}
-        onClick={() => onSubmit(price, sizeMl)}
-        className="lbl"
-        style={{
-          margin: '12px 16px 16px', padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-          background: valid ? 'var(--acento)' : 'var(--elevated)',
-          color: valid ? 'var(--base)' : 'var(--faint)',
-          cursor: valid ? 'pointer' : 'not-allowed',
-        }}
-      >Cargar el precio</button>
+      <div style={{ padding: 'var(--s-3) 18px var(--s-4)' }}>
+        <button
+          disabled={!valid}
+          onClick={() => onSubmit(price, sizeMl)}
+          className="lbl cta"
+          style={{
+            width: '100%', minHeight: 52, borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+            background: valid ? 'var(--acento)' : 'var(--elevated)',
+            color: valid ? 'var(--base)' : 'var(--faint)',
+            cursor: valid ? 'pointer' : 'not-allowed',
+          }}
+        >Cargar el precio</button>
+      </div>
     </div>
   )
 }

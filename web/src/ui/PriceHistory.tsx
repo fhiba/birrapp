@@ -10,6 +10,12 @@ import { formatPrice } from '../data/format'
  * tiene su serie completa sin haber hecho nada extra. Es lo que ningún
  * competidor local tiene, y con inflación es justamente lo interesante:
  * no sólo cuánto sale hoy, sino cuánto subió.
+ *
+ * Toda la pieza es analítica, así que va en la familia de `--info`: la línea,
+ * los extremos del eje y el botón de cerrar. Antes la serie iba en `--acento`
+ * —el mismo hueso del nombre del bar y del botón que manda— y un gráfico
+ * pintado con el color del cromo se lee como decoración de la tarjeta en vez
+ * de como el dato que es.
  */
 export function PriceHistory(
   { barId, styleSlug, brandSlug, currency, title, onClose }:
@@ -48,22 +54,31 @@ export function PriceHistory(
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 65, background: 'rgba(0,0,0,.6)',
-      display: 'grid', placeItems: 'center', padding: 24,
+      position: 'fixed', inset: 0, zIndex: 65,
+      // El mismo velo que `.modal::backdrop` en theme.css, y no un negro casi
+      // opaco: acá atrás está la ficha del bar, que es de dónde venís. Lo que
+      // separa las dos capas es el desenfoque, no la oscuridad.
+      background: 'rgba(0,0,0,.18)',
+      backdropFilter: 'blur(10px) saturate(120%)',
+      WebkitBackdropFilter: 'blur(10px) saturate(120%)',
+      display: 'grid', placeItems: 'center', padding: 'var(--s-5)',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--raised)', borderRadius: 'var(--r-4)', padding: 24,
+      <div onClick={e => e.stopPropagation()} className="glass" style={{
+        borderRadius: 'var(--r-4)', padding: 'var(--s-5)',
         width: '100%', maxWidth: 380,
       }}>
-        <h3 className="ttl" style={{ margin: 0, fontSize: 'var(--t-5)' }}>{title}</h3>
-        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 16px' }}>
-          Historial de precios
-        </p>
+        {/* El rótulo primero y el nombre después: el rótulo dice qué es esta
+            ventana, el nombre cuál birra. Al revés había que leer las dos
+            líneas para entender la de arriba. */}
+        <h2 className="section-label" style={{ margin: '0 0 var(--s-1)' }}>
+          HISTORIAL DE PRECIOS
+        </h2>
+        <h3 className="ttl" style={{ margin: '0 0 var(--s-4)', fontSize: 'var(--t-5)' }}>{title}</h3>
 
         {points === null && <div className="spinner" style={{ margin: '30px auto' }} />}
 
         {points && series.length < 2 && (
-          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: 0 }}>
             Todavía no hay suficientes reportes para mostrar una evolución.
             Hace falta al menos un segundo precio.
           </p>
@@ -72,24 +87,37 @@ export function PriceHistory(
         {series.length >= 2 && (
           <>
             <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-hidden>
-              <path d={path} fill="none" stroke="var(--acento)" strokeWidth="2.5"
+              <path d={path} fill="none" stroke="var(--info)" strokeWidth="2.5"
                 strokeLinecap="round" strokeLinejoin="round" />
               {series.map((p, i) => {
                 const x = (i / (series.length - 1)) * W
                 const y = H - ((p.price - min) / span) * (H - 12) - 6
-                return <circle key={i} cx={x} cy={y} r="3" fill="var(--acento)" />
+                // El último punto en hueso: es el precio vigente, el único de
+                // la serie que todavía sirve para ir a tomar algo.
+                const ahora = i === series.length - 1
+                return (
+                  <circle key={i} cx={x} cy={y} r={ahora ? 4 : 3}
+                    fill={ahora ? 'var(--cream)' : 'var(--info)'} />
+                )
               })}
             </svg>
 
             <div style={{
               display: 'flex', justifyContent: 'space-between',
-              color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 4,
+              color: 'var(--info)', fontSize: 'var(--t-1)', marginTop: 'var(--s-1)',
+              fontVariantNumeric: 'tabular-nums',
             }}>
               <span>{new Date(first.at).toLocaleDateString('es-AR')}</span>
               <span>{new Date(last.at).toLocaleDateString('es-AR')}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+            {/* Tres cifras separadas por filete y sin fondo propio: es la
+                gramática de la pizarra, y además tres tarjetitas adentro de
+                una tarjeta era una caja adentro de otra por nada. */}
+            <div style={{
+              display: 'flex', gap: 'var(--s-3)', marginTop: 'var(--s-4)',
+              paddingTop: 'var(--s-3)', borderTop: '1px solid var(--hairline)',
+            }}>
               <Box label="Primero" value={formatPrice(first.price, currency)} />
               <Box label="Ahora" value={formatPrice(last.price, currency)} />
               {change !== null && (
@@ -103,9 +131,14 @@ export function PriceHistory(
           </>
         )}
 
+        {/* Cerrar es la acción secundaria de la ventana —lo que se vino a
+            hacer acá es mirar— así que va en la familia de `--info` y no en el
+            hueso, que es el del botón que manda. */}
         <button onClick={onClose} className="lbl" style={{
-          width: '100%', marginTop: 24, padding: 12, borderRadius: 'var(--r-2)',
-          background: 'var(--film-2)',
+          width: '100%', marginTop: 'var(--s-5)', minHeight: 46,
+          borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+          background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+          color: 'var(--info-bright)',
         }}>Cerrar</button>
       </div>
     </div>
@@ -113,10 +146,7 @@ export function PriceHistory(
 }
 
 const Box = ({ label, value, color }: { label: string; value: string; color?: string }) => (
-  <div style={{
-    flex: 1, padding: '10px 0', borderRadius: 'var(--r-2)', textAlign: 'center',
-    background: 'var(--film-1)',
-  }}>
+  <div style={{ flex: 1, minWidth: 0 }}>
     <div className="num" style={{ fontSize: 'var(--t-4)', color: color ?? 'var(--cream)' }}>{value}</div>
     <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>{label}</div>
   </div>

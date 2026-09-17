@@ -5,6 +5,7 @@ import type { BarPin, BeerStyle, Brand } from '../data/types'
 import { formatDistance } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
 import { Sheet } from '../ui/Chrome'
+import { SectionLabel } from '../ui/Kit'
 import { StyleChips } from '../ui/StyleChips'
 
 /** Más lejos que esto, "¿te la tomaste acá?" deja de ser una pregunta razonable. */
@@ -82,40 +83,54 @@ export function LogBeerSheet({
     <Sheet title="Me tomé una birra" onClose={onClose}>
       {close.length > 0 && (
         <>
-          <Label>
+          <SectionLabel>
             {suggested && barId === suggested.id
               ? '¿La birra te la tomaste acá?'
               : '¿Dónde?'}
-          </Label>
+          </SectionLabel>
+          {/* Los bares dejan de ser cápsulas y pasan al segmentado de texto con
+              subrayado, que es el mismo vocabulario de "esto está elegido" que
+              usan el formato de la pinta y la barra de pestañas. La cápsula
+              rellena de hueso pesaba como un CTA y había seis en fila.
+
+              La distancia va abajo y en `--info`: es el dato que decide cuál
+              tocar, y el azul es el tono de lo informativo en toda la app.
+              Antes iba adentro de la cápsula al 60% de opacidad, o sea escrita
+              como si molestara. */}
           <div style={{
-            display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+            display: 'flex', gap: 'var(--s-4)', overflowX: 'auto',
             scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 4px',
           }}>
             {close.map(b => (
-              <button key={b.id} onClick={() => setBarId(b.id)} className="lbl pill" style={{
-                padding: '8px 16px', fontSize: 'var(--t-3)', whiteSpace: 'nowrap', flexShrink: 0,
-                background: barId === b.id ? 'var(--cream)' : 'var(--elevated)',
-                color: barId === b.id ? 'var(--base)' : 'var(--muted)',
-              }}>
+              <button key={b.id} onClick={() => setBarId(b.id)}
+                className="tab-underline" aria-pressed={barId === b.id}
+                style={{ minHeight: 44, flexShrink: 0, whiteSpace: 'nowrap' }}>
                 {b.name}
-                <span style={{ opacity: .6, marginLeft: 8, fontSize: 'var(--t-2)' }}>
+                <span style={{
+                  display: 'block', fontSize: 'var(--t-1)', color: 'var(--info)', marginTop: 2,
+                }}>
                   {formatDistance(b.distanceMeters)?.replace('a ', '')}
                 </span>
+                <span className="tab-rule" />
               </button>
             ))}
             {/* No es un vacío: hay birras que no se toman en ningún bar del
                 mapa, y obligar a elegir uno haría que se anoten en el de al
                 lado. Eso rompe el conteo por bar, que es de lo que se trata. */}
-            <button onClick={() => setBarId(null)} className="lbl pill" style={{
-              padding: '8px 16px', fontSize: 'var(--t-3)', whiteSpace: 'nowrap', flexShrink: 0,
-              background: barId === null ? 'var(--cream)' : 'var(--elevated)',
-              color: barId === null ? 'var(--base)' : 'var(--muted)',
-            }}>En otro lado</button>
+            <button onClick={() => setBarId(null)}
+              className="tab-underline" aria-pressed={barId === null}
+              style={{ minHeight: 44, flexShrink: 0, whiteSpace: 'nowrap' }}>
+              En otro lado
+              <span style={{
+                display: 'block', fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2,
+              }}>sin bar</span>
+              <span className="tab-rule" />
+            </button>
           </div>
         </>
       )}
 
-      <Label>¿Cuántas?</Label>
+      <SectionLabel>¿Cuántas?</SectionLabel>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <Step label="−" disabled={qty <= 1} onClick={() => setQty(q => Math.max(1, q - 1))} />
         <span className="num" style={{ fontSize: 'var(--t-8)', minWidth: 34, textAlign: 'center' }}>
@@ -125,10 +140,15 @@ export function LogBeerSheet({
       </div>
 
       {/* El detalle va plegado: quien quiera anotar cuál era la birra lo
-          abre, y quien sólo lleva la cuenta no lo ve nunca. */}
-      <button onClick={() => setDetail(d => !d)} className="lbl" style={{
-        display: 'block', marginTop: 24, fontSize: 'var(--t-3)', color: 'var(--acento)',
-      }}>
+          abre, y quien sólo lleva la cuenta no lo ve nunca.
+
+          En `--info` y no en el acento: es la acción secundaria de la hoja, y
+          con el acento en hueso se veía igual de fuerte que "Anotar". */}
+      <button onClick={() => setDetail(d => !d)} className="lbl"
+        aria-expanded={detail} style={{
+          display: 'block', marginTop: 'var(--s-5)', minHeight: 44,
+          fontSize: 'var(--t-3)', color: 'var(--info)',
+        }}>
         {detail ? 'Listo' : '¿Cuál era? (opcional)'}
       </button>
 
@@ -151,18 +171,14 @@ export function LogBeerSheet({
       )}
 
       <button disabled={busy} onClick={submit} className="lbl" style={{
-        width: '100%', marginTop: 24, padding: 16, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
-        background: busy ? 'var(--acento-deep)' : 'var(--acento)', color: 'var(--base)',
+        width: '100%', marginTop: 'var(--s-5)', minHeight: 52,
+        borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+        background: busy ? 'var(--elevated)' : 'var(--acento)',
+        color: busy ? 'var(--faint)' : 'var(--base)',
       }}>{busy ? '…' : 'Anotar'}</button>
     </Sheet>
   )
 }
-
-const Label = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '16px 0 8px',
-  }}>{String(children).toUpperCase()}</h3>
-)
 
 function Step({ label, disabled, onClick }: {
   label: string; disabled: boolean; onClick: () => void
@@ -171,7 +187,9 @@ function Step({ label, disabled, onClick }: {
     <button onClick={onClick} disabled={disabled} aria-label={label === '+' ? 'Una más' : 'Una menos'}
       className="num" style={{
         width: 46, height: 46, borderRadius: '50%', fontSize: 'var(--t-6)',
-        background: 'var(--elevated)',
+        // Mismo material que las teclas del monto: `--raised` con filete. Con
+        // `--elevated` sin borde eran dos manchas grises al lado del número.
+        background: 'var(--raised)', border: '1px solid var(--hairline)',
         color: disabled ? 'var(--faint)' : 'var(--cream)',
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}>{label}</button>

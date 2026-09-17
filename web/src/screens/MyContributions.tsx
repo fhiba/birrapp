@@ -4,9 +4,9 @@ import * as api from '../data/api'
 import type {
   ContributionKind, MyComment, MyContributions, MyPhoto, MyPrice,
 } from '../data/types'
-import { formatPrice } from '../data/format'
+import { ageColor, formatPrice, shortAge } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
-import { Empty } from '../ui/Empty'
+import { Empty, SkeletonRows } from '../ui/Empty'
 
 /** Las cuatro listas, cada una con su pantalla. La ruta es `/mis-aportes/:tipo`. */
 type Kind = 'precios' | 'fotos' | 'comentarios' | 'bares'
@@ -140,12 +140,15 @@ export function MyContributionsScreen(
       padding: `calc(10px + var(--safe-top)) 0 60px`,
     }}>
       <div className="desk-narrow">
-        <div style={{ padding: '0 18px' }}>
+        <div style={{ padding: '0 var(--s-4)' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>
             {TITLE[kind]}
             {count != null && count > 0 && (
-              <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-5)' }}>
+              /* Cuántos son va en el tono informativo: es el ámbito de lo que
+                 estás mirando, no parte del título. En `--faint` se leía como
+                 un título a medio apagar. */
+              <span className="num" style={{ color: 'var(--info)', fontSize: 'var(--t-5)' }}>
                 {/* El "+" cuando falta una página: con paginación, el número
                     es cuántos se bajaron y no cuántos hay. Decir "30" cuando
                     son ochenta es el mismo pecado que un precio sin su edad. */}
@@ -156,7 +159,9 @@ export function MyContributionsScreen(
           {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
         </div>
 
-        {!data && !error && <div className="spinner" style={{ margin: '30px auto' }} />}
+        {/* Esqueleto y no ruedita: ocupa la forma de las filas que vienen, así
+            la pantalla no salta cuando llegan y se entiende qué se espera. */}
+        {!data && !error && <SkeletonRows rows={5} />}
 
         {count === 0 && (
           <Empty
@@ -167,15 +172,18 @@ export function MyContributionsScreen(
           />
         )}
 
+        {/* El monto sale del título y se va a la derecha, grande y tabular, con
+            la edad debajo: es la forma que usa toda la app y es lo que deja
+            comparar dos filas de un vistazo en vez de leerlas. */}
         {kind === 'precios' && data?.prices.map(p => (
           <Item
             key={p.id}
             onOpen={() => nav(`/bar/${p.barId}`)}
             onRemove={() => setKillPrice(p)}
-            title={`${formatPrice(p.price, p.currency)} · ${p.styleName}`
-              + (p.brandName ? ` · ${p.brandName}` : '')}
+            title={p.styleName + (p.brandName ? ` · ${p.brandName}` : '')}
             sub={`${p.barName}${p.sizeMl !== 473 ? ` · ${p.sizeMl} ml` : ''}`}
             age={p.ageDays}
+            price={formatPrice(p.price, p.currency)}
             tag={p.isConfirmation ? 'confirmación' : undefined}
             highlight={p.isCurrent}
           />
@@ -194,13 +202,11 @@ export function MyContributionsScreen(
         ))}
 
         {kind === 'comentarios' && data?.comments.map(c => (
-          <Item
+          <Resena
             key={c.id}
             onOpen={() => nav(`/bar/${c.barId}`)}
             onRemove={() => setKillComment(c)}
-            title={c.brandName ? `${c.styleName} · ${c.brandName}` : c.styleName}
-            sub={`${c.barName} — ${c.body}`}
-            age={c.ageDays}
+            c={c}
           />
         ))}
 
@@ -217,7 +223,8 @@ export function MyContributionsScreen(
 
         {kind === 'bares' && data && data.bars.length > 0 && (
           <p style={{
-            color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5, padding: '14px 18px 0',
+            color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
+            padding: 'var(--s-4) var(--s-4) 0',
           }}>
             Los bares no se borran desde acá: pueden tener precios y fotos de otra
             gente, así que borrarlos no deshace tu aporte, borra el de terceros. Si
@@ -229,10 +236,15 @@ export function MyContributionsScreen(
             viene a buscar algo puntual, y el scroll infinito le saca el final
             de la pantalla justo cuando quiere saber cuántos lleva. */}
         {data?.nextCursor && (
-          <div style={{ padding: '18px' }}>
+          <div style={{ padding: 'var(--s-4)' }}>
+            {/* El CTA secundario de la pizarra: relleno informativo, borde
+                informativo, texto claro. No es la acción principal de la
+                pantalla —esa es abrir un aporte— así que no lleva el hueso
+                lleno, que acá gritaría más que las propias filas. */}
             <button onClick={loadMore} disabled={more} className="lbl" style={{
-              width: '100%', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
-              fontSize: 'var(--t-3)', background: 'var(--film-2)', color: 'var(--cream)',
+              width: '100%', minHeight: 46, borderRadius: 'var(--r-2)',
+              fontSize: 'var(--t-3)', background: 'var(--info-soft)',
+              border: '1px solid var(--info-border)', color: 'var(--info-bright)',
             }}>{more ? 'Cargando…' : 'Ver más'}</button>
           </div>
         )}
@@ -309,17 +321,29 @@ export function MyContributionsScreen(
   )
 }
 
+/**
+ * Una fila de aporte: fila con filete, nunca tarjeta.
+ *
+ * El cambio de fondo es el precio. Antes iba metido adentro del título —"$ 4.500
+ * · IPA · Antares"— y la edad colgaba del pie, mezclada con el nombre del bar.
+ * Así, comparar dos precios propios obligaba a leer dos oraciones. Ahora el
+ * monto va a la derecha, grande y tabular, con la antigüedad justo debajo y en
+ * el color de la frescura: nunca un precio sin su edad al lado, y los dos
+ * apilados en la misma columna para que se lean de arriba abajo.
+ */
 function Item({
-  title, sub, age, tag, thumb, highlight, onOpen, onRemove,
+  title, sub, age, price, tag, thumb, highlight, onOpen, onRemove,
 }: {
   title: string; sub: string; age: number
+  /** Ya formateado con su moneda. Sin esto no hay columna derecha. */
+  price?: string
   tag?: string; thumb?: string; highlight?: boolean
   onOpen: () => void; onRemove?: () => void
 }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 16px', borderBottom: '1px solid var(--film-2)',
+      display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+      padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
     }}>
       {thumb && (
         <img src={thumb} alt="" loading="lazy" style={{
@@ -327,38 +351,124 @@ function Item({
         }} />
       )}
       <button onClick={onOpen} style={{
-        flex: 1, textAlign: 'left', minWidth: 0, padding: 0,
+        flex: 1, textAlign: 'left', minWidth: 0, padding: 0, minHeight: 44,
       }}>
         <div className="lbl" style={{
           fontSize: 'var(--t-4)', color: highlight ? 'var(--cream)' : 'var(--muted)',
         }}>
           {title}
+          {/* "Vigente" pasa de cápsula rellena a etiqueta: dice qué es este
+              reporte —el que la app muestra hoy—, o sea información, y en la
+              pizarra lo informativo es Steel Blue y va en mayúscula chica. */}
           {highlight && (
-            <span style={{
-              marginLeft: 8, padding: '2px 8px', borderRadius: 999, fontSize: 'var(--t-1)',
-              background: 'var(--acento-soft)', color: 'var(--acento)',
+            <span className="lbl" style={{
+              marginLeft: 'var(--s-2)', fontSize: 10, letterSpacing: '.12em',
+              textTransform: 'uppercase', color: 'var(--info)',
             }}>vigente</span>
           )}
           {tag && (
-            <span style={{ marginLeft: 8, fontSize: 'var(--t-1)', color: 'var(--faint)' }}>{tag}</span>
+            <span style={{
+              marginLeft: 'var(--s-2)', fontSize: 'var(--t-1)', color: 'var(--faint)',
+            }}>{tag}</span>
           )}
         </div>
         <div style={{
           fontSize: 'var(--t-2)', color: 'var(--faint)', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {sub} · {age <= 0 ? 'hoy' : age === 1 ? 'ayer' : `hace ${age} d`}
+          {/* Con precio, la edad vive en la columna de la derecha, debajo del
+              monto. Sin precio —una foto, un bar— no hay columna, así que se
+              queda acá: la fecha nunca se va del todo. */}
+          {sub}{price ? '' : ` · ${shortAge(age)}`}
         </div>
       </button>
-      {onRemove && (
-        <button onClick={onRemove} aria-label="Borrar" className="icon-btn" style={{
-          color: 'var(--danger)', background: 'rgba(255,122,102,.1)',
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 2H8l1-2Z" />
-          </svg>
-        </button>
+
+      {price && (
+        <span style={{ textAlign: 'right', flexShrink: 0 }}>
+          {/* El monto sigue la jerarquía del título: el reporte vigente en
+              hueso, los viejos apagados. Un precio que ya no es el que la app
+              muestra no tiene por qué gritar más que el que sí. */}
+          <span className="num" style={{
+            display: 'block', fontSize: 'var(--t-5)',
+            color: highlight ? 'var(--cream)' : 'var(--muted)',
+          }}>
+            {price}
+          </span>
+          <span className="num" style={{
+            display: 'block', fontSize: 'var(--t-1)', color: ageColor(age),
+          }}>{shortAge(age)}</span>
+        </span>
       )}
+
+      {onRemove && <Borrar onClick={onRemove} />}
     </div>
   )
 }
+
+/**
+ * Un comentario propio.
+ *
+ * Tiene fila propia y no la genérica porque lo que uno viene a buscar acá es
+ * **lo que escribió**, y como pie de una línea con `text-overflow` el texto
+ * quedaba cortado en la cuarta palabra. Acá va entero, abajo y en el hueso
+ * suave, que es el tono del texto de párrafo.
+ *
+ * La etiqueta de arriba dice de qué es el comentario. Hoy siempre dice "birra"
+ * porque `/auth/me/contributions` devuelve sólo comentarios de birra —las
+ * reseñas del lugar viven en la ficha del bar— y decirlo importa igual: sin la
+ * etiqueta, quien escribió las dos cosas se queda buscando en esta lista una
+ * reseña que nunca estuvo. La distinción es de producto y se mantiene; el día
+ * que las del lugar lleguen acá, esa etiqueta va en `--info` y ésta se queda
+ * en `--nota`, que es el tono de lo que se puntúa.
+ */
+function Resena({ c, onOpen, onRemove }: {
+  c: MyComment; onOpen: () => void; onRemove: () => void
+}) {
+  return (
+    <div style={{
+      padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
+        <button onClick={onOpen} className="lbl" style={{
+          flex: 1, minWidth: 0, textAlign: 'left', padding: 0, minHeight: 44,
+          fontSize: 'var(--t-4)',
+        }}>
+          <span style={{
+            display: 'block', overflow: 'hidden',
+            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{c.brandName ? `${c.styleName} · ${c.brandName}` : c.styleName}</span>
+          <span style={{
+            display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginTop: 3,
+          }}>
+            {/* 10px queda por debajo de `--t-1`, y es a propósito: es una
+                etiqueta pegada a su fila, no un texto que se lee solo. */}
+            <span className="lbl" style={{
+              fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase',
+              color: 'var(--nota)',
+            }}>birra</span>
+            <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>{c.barName}</span>
+          </span>
+        </button>
+        <span className="num" style={{
+          fontSize: 'var(--t-1)', color: 'var(--faint)', flexShrink: 0,
+        }}>{shortAge(c.ageDays)}</span>
+        <Borrar onClick={onRemove} />
+      </div>
+      <p style={{
+        fontSize: 'var(--t-3)', lineHeight: 1.5, color: 'var(--cream-soft)',
+        margin: 'var(--s-2) 0 0',
+      }}>{c.body}</p>
+    </div>
+  )
+}
+
+/** El tacho, igual en las dos filas: una sola pieza, un solo relleno coral. */
+const Borrar = ({ onClick }: { onClick: () => void }) => (
+  <button onClick={onClick} aria-label="Borrar" className="icon-btn" style={{
+    color: 'var(--danger)', background: 'var(--favorito-soft)',
+  }}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 2H8l1-2Z" />
+    </svg>
+  </button>
+)

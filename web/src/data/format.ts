@@ -123,13 +123,19 @@ export const formatDistance = (m: number | null | undefined) =>
 export const formatRadius = (m: number) =>
   m >= 1000 ? `${(m / 1000).toFixed(1).replace('.0', '')} km` : `${m} m`
 
-/** Nunca se muestra un precio sin esto al lado. */
-export function ageLabel(ageDays: number, f: Freshness) {
-  if (f === 'stale') return `hace ${ageDays} días · puede estar desactualizado`
-  if (ageDays <= 0) return 'hoy'
-  if (ageDays === 1) return 'ayer'
-  return `hace ${ageDays} días`
-}
+/*
+ * Acá vivía `ageLabel(ageDays, f)`, la versión larga de la antigüedad, que
+ * para un precio `stale` devolvía "hace N días · puede estar desactualizado".
+ *
+ * Se fue con la dirección heritage porque la columna del precio ahora es
+ * angosta —el número grande a la derecha y la edad justo debajo— y ahí sólo
+ * entra `shortAge`. El aviso de los 45 días no se perdió: dejó de ser un
+ * sufijo de tres palabras pegado a una fecha y pasó a ser la frase que está
+ * en la ficha del bar, que es donde alguien decide si le cree al precio.
+ *
+ * La regla no se movió: ningún precio se dibuja sin su antigüedad al lado.
+ * Lo que cambió es dónde se explica qué significa esa antigüedad.
+ */
 
 export const shortAge = (d: number | null) =>
   d == null ? '' : d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} d`
@@ -148,13 +154,13 @@ export const ageColor = (d: number | null) =>
  * demás contra el extremo barato y el mapa se ve todo verde. Por puesto, la
  * mitad más barata siempre se ve barata.
  *
- * Verde → ámbar → rojo, los mismos tres colores de la frescura, para no
+ * Lima → ámbar → coral, los mismos tres colores de la frescura, para no
  * inventar una paleta nueva por cada cosa que se codifica.
  */
 const PRICE_STOPS = [
-  [0x5f, 0xd9, 0x8d], // --fresh
-  [0xff, 0xb6, 0x27], // --aging
-  [0xff, 0x7a, 0x66], // --danger
+  [0xff, 0xfc, 0x9a], // --fresh
+  [0xee, 0x9a, 0x52], // --aging
+  [0xee, 0x63, 0x52], // --danger
 ]
 
 export function priceColor(rank01: number): string {

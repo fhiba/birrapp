@@ -93,8 +93,11 @@ export function PersonScreen({ user }: { user: User | null }) {
           información pública, sería una lista de escarmiento. */}
       {person.banned && (
         <div style={{
-          marginTop: 16, padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
-          background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
+          marginTop: 'var(--s-4)', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
+          fontSize: 'var(--t-2)',
+          /* El coral apagado por token: en heritage el favorito y el peligro
+             son el mismo coral y hay un solo relleno suave para los dos. */
+          background: 'var(--favorito-soft)', color: 'var(--danger)',
         }}>Cuenta suspendida — no puede aportar nada</div>
       )}
 
@@ -111,20 +114,14 @@ export function PersonScreen({ user }: { user: User | null }) {
       {!esVos && user && (
         <>
           <SectionLabel>Si te molesta</SectionLabel>
-          <button
+          <Accion
             disabled={busy}
+            danger={!person.blocked}
             onClick={() => person.blocked
               ? act(() => api.unblockPerson(person.id), 'Desbloqueada')
               : setConfirm('block')}
-            className="lbl"
-            style={{
-              width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
-              background: person.blocked ? 'var(--elevated)' : 'rgba(255,122,102,.12)',
-              color: person.blocked ? 'var(--cream)' : 'var(--danger)',
-            }}
-          >
-            {person.blocked ? 'Desbloquear a esta persona' : 'Bloquear a esta persona'}
-          </button>
+            label={person.blocked ? 'Desbloquear a esta persona' : 'Bloquear a esta persona'}
+          />
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
@@ -138,18 +135,14 @@ export function PersonScreen({ user }: { user: User | null }) {
       {isModerator(user) && !esVos && (
         <>
           <SectionLabel>Moderación</SectionLabel>
-          <button
+          <Accion
             disabled={busy}
+            danger={!person.banned}
             onClick={() => person.banned
               ? act(() => api.unbanUser(person.id), 'Suspensión levantada')
               : setConfirm('ban')}
-            className="lbl"
-            style={{
-              width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
-              background: person.banned ? 'var(--elevated)' : 'rgba(255,122,102,.12)',
-              color: person.banned ? 'var(--cream)' : 'var(--danger)',
-            }}
-          >{person.banned ? 'Levantar la suspensión' : 'Suspender la cuenta'}</button>
+            label={person.banned ? 'Levantar la suspensión' : 'Suspender la cuenta'}
+          />
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
@@ -196,5 +189,45 @@ export function PersonScreen({ user }: { user: User | null }) {
   )
 }
 
-
-
+/**
+ * El botón de las dos acciones fuertes de esta pantalla.
+ *
+ * Los dos —bloquear y suspender— eran el mismo bloque escrito dos veces con
+ * distinto texto, y ya se habían separado en un detalle (uno tenía el texto
+ * adentro del `children` y el otro no).
+ *
+ * La forma la fija la pizarra: lo destructivo es **un botón con borde**, no un
+ * relleno de color, y la confirmación la sigue pidiendo `Confirm`. El borde es
+ * lo que lo hace legible con la pantalla en blanco y negro, que es la prueba
+ * de si un estado se distingue por color o por forma. Lo que deshace la acción
+ * no lleva coral: deshacer no es peligroso.
+ *
+ * Eso decía este comentario desde el principio y el código hacía otra cosa:
+ * ponía el borde coral **y además** el relleno `--favorito-soft`, que es
+ * exactamente la pastilla teñida que `Moderation` dice haber abandonado y que
+ * `Settings` ya no usa. Con relleno, "Suspender la cuenta" pesa igual que un
+ * CTA y es el botón más fácil de apretar de la pantalla — al revés de lo que
+ * tiene que ser. Queda sólo el borde, que es la forma que ya usan las otras dos
+ * pantallas.
+ *
+ * `.cta` es el hundido al tocar: estas dos acciones salen a la red, y sin
+ * respuesta al toque se aprietan dos veces.
+ */
+function Accion({ label, danger, disabled, onClick }: {
+  label: string; danger: boolean; disabled?: boolean; onClick: () => void
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className="lbl cta"
+      style={{
+        width: '100%', minHeight: 52, padding: 'var(--s-3) var(--s-4)',
+        borderRadius: 'var(--r-2)', textAlign: 'left', fontSize: 'var(--t-4)',
+        background: danger ? 'transparent' : 'var(--elevated)',
+        border: `1px solid ${danger ? 'var(--danger)' : 'transparent'}`,
+        color: danger ? 'var(--danger)' : 'var(--cream)',
+      }}
+    >{label}</button>
+  )
+}

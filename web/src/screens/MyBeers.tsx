@@ -101,17 +101,19 @@ export function MyBeersScreen() {
             <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>Ese día no anotaste nada.</p>
           )}
           {delDia.map(l => (
-            <div key={l.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px',
-              borderBottom: '1px solid var(--hairline)',
-            }}>
+            /* `.row` y no el mismo flex escrito a mano: es la fila con filete
+               de la pizarra, definida una vez en `theme.css`. */
+            <div key={l.id} className="row">
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>
                   {l.qty > 1 ? `${l.qty} · ` : ''}
                   {[l.styleName, l.brandName].filter(Boolean).join(' · ') || 'Una birra'}
                 </span>
                 {l.barName && (
-                  <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
+                  /* Dónde fue es contexto, no adorno: va en el tono
+                     informativo, que es el que lleva los metadatos de lugar en
+                     toda la app. */
+                  <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--info)' }}>
                     en {l.barName}
                   </span>
                 )}
@@ -129,13 +131,14 @@ export function MyBeersScreen() {
         <>
           <SectionLabel>Tus bares</SectionLabel>
           {data.topBars.map(b => (
-            <button key={b.barId} onClick={() => nav(`/bar/${b.barId}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '12px 2px', textAlign: 'left',
-              borderBottom: '1px solid var(--hairline)',
-            }}>
+            <button key={b.barId} onClick={() => nav(`/bar/${b.barId}`)}
+              className="row row-hover" style={{ minHeight: 44 }}>
               <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{b.barName}</span>
-              <span className="num" style={{ fontSize: 'var(--t-4)', color: 'var(--acento)' }}>{b.qty}</span>
+              {/* El número a la derecha y tabular, como todo lo que se compara
+                  con la fila de al lado. En `--cream` y no en el acento: en
+                  heritage son el mismo hueso, y nombrarlo por lo que es —texto
+                  destacado— evita que parezca un botón. */}
+              <span className="num" style={{ fontSize: 'var(--t-4)', color: 'var(--cream)' }}>{b.qty}</span>
             </button>
           ))}
         </>
@@ -207,18 +210,46 @@ function Calendar({ month, byDay, selected, onSelect }: {
         {Array.from({ length: days }, (_, i) => {
           const iso = `${month}-${String(i + 1).padStart(2, '0')}`
           const qty = byDay.get(iso) ?? 0
+          const nivel = heatLevel(qty)
+          /*
+           * Los dos indicadores del día, y por qué no son un `outline`.
+           *
+           * 1. Van en `box-shadow: inset` y no en `outline`. El `outline`
+           *    inline —que además traía un `'none'` para el resto de los días—
+           *    le gana en la cascada al `:focus-visible` de `theme.css`, que no
+           *    lleva `!important`: el mes entero quedaba sin anillo de foco y
+           *    moverse con teclado por el calendario era moverse a ciegas. Con
+           *    el `box-shadow` los dos conviven: el estado adentro, el foco
+           *    afuera.
+           *
+           * 2. El color del anillo se da vuelta con el escalón del mapa de
+           *    calor. Del 2 para arriba el fondo del día es claro —`heat-4` es
+           *    Lime Cream— y un anillo hueso ahí da 1,05:1, o sea no existe.
+           *    `--base` da 4,99 / 9,49 / 17,59 sobre `heat-2/3/4`, y es además
+           *    el color con el que esos días ya escriben su número.
+           *
+           * "Hoy" y "elegido" siguen siendo dos cosas distintas —dónde estás
+           * parado y qué estás mirando— pero la distinción la lleva el grosor,
+           * que sobrevive a cualquier fondo, y no sólo el tono: sobre los días
+           * oscuros el informativo se mantiene, sobre los claros no hay ningún
+           * azul que llegue a 3:1 contra la lima.
+           */
+          const claro = nivel >= 2
+          const anillo = selected === iso
+            ? `inset 0 0 0 2px ${claro ? 'var(--base)' : 'var(--cream)'}`
+            : iso === hoy
+              ? `inset 0 0 0 1px ${claro ? 'var(--base)' : 'var(--info-bright)'}`
+              : undefined
           return (
             <button
               key={iso} onClick={() => onSelect(iso)}
               aria-label={`${i + 1}: ${qty === 0 ? 'sin birras'
                 : qty === 1 ? '1 birra' : `${qty} birras`}`}
-              className={`num heat-${heatLevel(qty)}`}
+              className={`num heat-${nivel}`}
               style={{
                 aspectRatio: '1', borderRadius: 'var(--r-1)', fontSize: 'var(--t-2)',
                 display: 'grid', placeItems: 'center',
-                outline: selected === iso ? '2px solid var(--cream)'
-                  : iso === hoy ? '1px solid var(--muted)' : 'none',
-                outlineOffset: -1,
+                boxShadow: anillo,
               }}
             >{i + 1}</button>
           )
@@ -247,16 +278,25 @@ function Calendar({ month, byDay, selected, onSelect }: {
   )
 }
 
+/**
+ * Un emblema, ganado o por ganar.
+ *
+ * Sigue siendo tarjeta —es una baldosa, de las pocas formas que la pizarra le
+ * deja la tarjeta— pero el ganado deja de marcarse con el acento: en heritage
+ * el acento es hueso, el mismo color del texto de al lado, así que el relleno
+ * no distinguía nada. Se marca con el borde y el tono informativos, que es la
+ * misma familia con la que se dibuja el progreso acá abajo.
+ */
 function BadgeCard({ badge }: { badge: Badge }) {
   const earned = badge.progress >= badge.target
   return (
     <div style={{
-      padding: '12px 12px', borderRadius: 'var(--r-3)',
-      background: earned ? 'var(--acento-soft)' : 'var(--film-1)',
-      border: `1px solid ${earned ? 'rgba(237,230,216,.35)' : 'transparent'}`,
+      padding: 'var(--s-3)', borderRadius: 'var(--r-3)',
+      background: earned ? 'var(--info-soft)' : 'var(--film-1)',
+      border: `1px solid ${earned ? 'var(--info-border)' : 'transparent'}`,
     }}>
       <div className="lbl" style={{
-        fontSize: 'var(--t-3)', color: earned ? 'var(--acento)' : 'var(--muted)',
+        fontSize: 'var(--t-3)', color: earned ? 'var(--info-bright)' : 'var(--muted)',
       }}>{badge.name}</div>
       <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4, lineHeight: 1.4 }}>
         {badge.detail}
@@ -264,13 +304,15 @@ function BadgeCard({ badge }: { badge: Badge }) {
       {/* Los que faltan muestran cuánto falta. Un emblema apagado sin número
           no dice si estás cerca o lejísimos, y ahí deja de motivar. */}
       {!earned && (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 'var(--s-2)' }}>
+          {/* La barra de progreso de la pizarra: 4px y en el tono informativo,
+              que es el que lleva todo lo que mide algo. */}
           <div style={{
             height: 4, borderRadius: 2, background: 'var(--film-2)', overflow: 'hidden',
           }}>
             <div style={{
               width: `${(badge.progress / badge.target) * 100}%`, height: '100%',
-              background: 'var(--acento-deep)',
+              background: 'var(--info)',
             }} />
           </div>
           <div className="num" style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 4 }}>

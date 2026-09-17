@@ -1,6 +1,18 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Photo } from '../data/types'
 import { compressImage } from '../data/image'
+import { shortAge } from '../data/format'
+
+/**
+ * Lo que suma subir una foto, para mostrarlo dentro del botón.
+ *
+ * No es un número inventado para adornar: es el peso que le da el servidor a
+ * una foto en el ranking de colaboradores (`CONTRIBUTION_WEIGHT` en
+ * `AnalyticsRepo.kt`: precio 3, bar 3, foto 2, nota 2, confirmación 1). Vive
+ * acá copiado y no pedido a la API porque es una constante de producto, no un
+ * dato de la sesión; si el peso cambia allá, hay que cambiarlo acá.
+ */
+const PTS_FOTO = 2
 
 /**
  * Carrusel de fotos de una birra, con el botón de agregar al final.
@@ -13,19 +25,47 @@ import { compressImage } from '../data/image'
  * ofrece exactamente esas dos opciones: eran dos pasos para llegar al mismo
  * lugar. Sin `capture`, que forzaría la cámara y sacaría la galería del menú
  * nativo.
+ *
+ * ## El pulgar volvió a la tira, y por qué
+ *
+ * Estuvo acá, se sacó, y vuelve — pero en otro lado. Lo que estaba mal no era
+ * votar desde la tira: era que el pulgar fuera una pastilla de 24px metida
+ * *adentro* del botón que abre la foto, pegada a su borde. Dos blancos
+ * superpuestos, uno de ellos por debajo del mínimo que se puede tocar con el
+ * dedo: la mitad de los toques caían en el que no era.
+ *
+ * Ahora la tarjeta son dos piezas separadas y apiladas —la foto arriba, el
+ * pulgar abajo— y el pulgar es el `.like` de verdad, con sus 44px de alto. No
+ * se pisan, y se puede marcar una foto sin abrirla, que es lo que uno quiere
+ * hacer pasando la tira. El visor sigue teniendo el suyo: son el mismo botón
+ * en los dos lugares donde se mira una foto.
  */
 export function PhotoStrip({
-  photos, canAdd, onAdd, onOpen,
+  photos, canAdd, onAdd, onOpen, onVote,
 }: {
   photos: Photo[]
   canAdd: boolean
   onAdd: (file: Blob) => Promise<void>
   /** Índice dentro de `photos`: el visor necesita la lista para swipear. */
   onOpen: (index: number) => void
+  /** Sin esto el pulgar es sólo el número: es lo que pasa sin sesión. */
+  onVote?: (p: Photo) => void
 }) {
   const picker = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * Qué foto acaba de recibir un toque tuyo, para el golpe del pulgar.
+   *
+   * Va por id y no por booleano suelto: en una tira son varios botones y el
+   * golpe es la respuesta a *tu* toque sobre *esa* foto. Se apaga solo.
+   */
+  const [pop, setPop] = useState<number | null>(null)
+  useEffect(() => {
+    if (pop == null) return
+    const t = setTimeout(() => setPop(null), 300)
+    return () => clearTimeout(t)
+  }, [pop])
 
   const take = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -41,94 +81,104 @@ export function PhotoStrip({
   if (photos.length === 0 && !canAdd) return null
 
   return (
-    <div style={{ marginTop: 16 }}>
+    <div>
       {/* Rótulo de sección, igual que en los comentarios de abajo: con las dos
           cosas una arriba de la otra y sin nada que las separe, la tira de
           fotos parecía parte de la fila de puntaje. */}
-      <h3 className="lbl" style={{
-        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', margin: '0 0 12px',
-      }}>
+      <h3 className="section-label">
         {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
       </h3>
 
       <div data-tour="bar-photos" style={{
-        display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+        display: 'flex', gap: 'var(--s-3)', overflowX: 'auto', paddingBottom: 'var(--s-1)',
         scrollSnapType: 'x mandatory',
       }}>
         {photos.map((p, i) => (
-          /*
-           * La miniatura tiene UNA acción: abrir la foto.
-           *
-           * Antes tenía dos, y la segunda era un pulgar de 24px metido en la
-           * esquina de un cuadrado de 108. Un blanco de 24px está por debajo
-           * del mínimo que se puede tocar con el dedo, y encima estaba pegado
-           * al borde del botón que abre la foto: la mitad de los toques caían
-           * en el que no era. Uno de los dos tenía que irse, y el que se va
-           * es el que no se decide acá — nadie sabe si una foto le gusta
-           * mirándola de 108px. El pulgar vive adentro del visor, que es
-           * donde la estás mirando de verdad.
-           *
-           * Lo que queda es el número: no es un control, es parte de lo que
-           * la foto dice de sí misma, como la antigüedad al lado del precio.
-           */
-          <button
-            key={p.id}
-            onClick={() => onOpen(i)}
-            aria-label={`Ver la foto${p.topOfMonth ? ' del mes' : ''}${
-              p.votes > 0 ? `, ${p.votes} me gusta` : ''}`}
-            style={{
-              position: 'relative', flex: '0 0 auto', scrollSnapAlign: 'start',
-              display: 'block', padding: 0,
-              width: 108, height: 108, borderRadius: 'var(--r-3)', overflow: 'hidden',
-              background: 'var(--elevated)',
-              // La del mes se marca con el borde y no con un cartel encima:
-              // el cartel taparía justo la foto que se está premiando.
-              outline: p.topOfMonth ? '2px solid var(--acento)' : 'none',
-              outlineOffset: -2,
-            }}
-          >
-            <img
-              src={p.url} alt="" loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+          <div key={p.id} style={{
+            width: 150, flex: '0 0 auto', scrollSnapAlign: 'start',
+          }}>
+            <button
+              onClick={() => onOpen(i)}
+              aria-label={`Ver la foto${p.topOfMonth ? ' del mes' : ''}`}
+              style={{
+                position: 'relative', display: 'block', padding: 0,
+                width: '100%', height: 112, borderRadius: 'var(--r-1)', overflow: 'hidden',
+                background: 'var(--elevated)',
+              }}
+            >
+              <img
+                src={p.url} alt="" loading="lazy"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
 
-            {/* El velo va siempre que haya algo escrito encima, y no sólo a
-                veces: sobre una foto clara, texto claro sin velo no se lee. */}
-            {(p.topOfMonth || p.votes > 0) && <span className="foto-velo" aria-hidden />}
+              {/* La del mes se marca con una banderita cuadrada apoyada en la
+                  esquina y no con una píldora flotando encima: la píldora
+                  redonda es lo que se toca en esta app, y esto es un rótulo.
+                  Va arriba a la izquierda, que es donde no está la birra. */}
+              {p.topOfMonth && (
+                <span className="lbl" style={{
+                  position: 'absolute', left: 0, top: 0,
+                  padding: '4px 7px',
+                  fontSize: 'var(--t-1)', letterSpacing: '.1em', lineHeight: 1,
+                  background: 'var(--acento)', color: 'var(--base)',
+                }} aria-hidden>DEL MES</span>
+              )}
+            </button>
 
-            {p.topOfMonth && (
-              <span className="lbl" style={{
-                position: 'absolute', top: 'var(--s-1)', left: 'var(--s-1)',
-                padding: '2px var(--s-2)', borderRadius: 999,
-                fontSize: 'var(--t-1)', letterSpacing: '.06em',
-                background: 'var(--acento)', color: 'var(--base)',
-              }} aria-hidden>DEL MES</span>
-            )}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--s-2)', marginTop: 'var(--s-1)',
+            }}>
+              {onVote ? (
+                <button
+                  onClick={() => { if (!p.votedByMe) setPop(p.id); onVote(p) }}
+                  aria-pressed={p.votedByMe}
+                  aria-label={p.votedByMe ? 'Sacar tu me gusta' : 'Me gusta esta foto'}
+                  data-pop={pop === p.id ? '1' : undefined}
+                  className="like lbl"
+                  // Sin la etiqueta de texto, que acá no entra en 150px: el
+                  // pulgar relleno ya dice el estado y se distingue con la
+                  // pantalla en blanco y negro.
+                  style={{ padding: 'var(--s-2) var(--s-3)', fontSize: 'var(--t-2)' }}
+                >
+                  <Thumb filled={p.votedByMe} size={15} />
+                  {p.votes > 0 && <span className="like-n num">{p.votes}</span>}
+                </button>
+              ) : p.votes > 0 && (
+                // Sin sesión no hay nada que tocar: queda el número, que es dato.
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
+                  fontSize: 'var(--t-2)', color: 'var(--muted)',
+                }} aria-label={`${p.votes} me gusta`}>
+                  <Thumb filled size={13} />
+                  <span className="num">{p.votes}</span>
+                </span>
+              )}
 
-            {p.votes > 0 && (
+              {/* De quién es y de cuándo, igual que al pie de un comentario:
+                  una foto de hace dos años de una canilla que ya cambió dice
+                  menos de lo que parece. */}
               <span style={{
-                position: 'absolute', left: 'var(--s-2)', bottom: 'var(--s-2)',
-                display: 'flex', alignItems: 'center', gap: 'var(--s-1)',
-                fontSize: 'var(--t-2)',
-                // Relleno = la votaste vos. De un barrido por la tira se ve
-                // cuáles ya marcaste sin tener que abrir ninguna.
-                color: p.votedByMe ? 'var(--acento)' : 'var(--cream)',
-              }} aria-hidden>
-                <Thumb filled={p.votedByMe} size={12} />
-                <span className="num">{p.votes}</span>
+                minWidth: 0, flex: 1, fontSize: 'var(--t-1)', color: 'var(--faint)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {[p.mine ? 'tuya' : p.authorName, shortAge(p.ageDays)]
+                  .filter(Boolean).join(' · ')}
               </span>
-            )}
-          </button>
+            </div>
+          </div>
         ))}
 
         {canAdd && (
           <button
             onClick={() => picker.current?.click()} disabled={busy}
-            aria-label="Agregar una foto"
+            aria-label={`Agregar una foto, suma ${PTS_FOTO} puntos`}
             style={{
-              flex: '0 0 auto', width: 108, height: 108, borderRadius: 'var(--r-3)',
-              border: '1px dashed var(--film-3)', color: 'var(--muted)',
-              display: 'grid', placeItems: 'center', gap: 4,
+              flex: '0 0 auto', width: 112, height: 112, borderRadius: 'var(--r-1)',
+              // Punteado y en la familia de `--info`: es un hueco a llenar, no
+              // una foto. El hueso lo dejaría pesando lo mismo que el botón que
+              // manda en la pantalla, que es "Sigue igual".
+              border: '1px dashed var(--info-border)', color: 'var(--info)',
+              display: 'grid', placeItems: 'center', gap: 'var(--s-1)',
             }}
           >
             {busy ? <div className="spinner" /> : (
@@ -136,7 +186,10 @@ export function PhotoStrip({
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
                 </svg>
-                <span style={{ fontSize: 'var(--t-1)' }}>Agregar</span>
+                {/* Los puntos van adentro del botón y al lado del verbo, como
+                    en "Sigue igual": lo que se gana es parte de la acción, no
+                    un renglón aparte. */}
+                <span className="num" style={{ fontSize: 'var(--t-1)' }}>+{PTS_FOTO} pts</span>
               </>
             )}
           </button>
@@ -144,7 +197,9 @@ export function PhotoStrip({
       </div>
 
       {error && (
-        <p style={{ margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--danger)' }}>{error}</p>
+        <p style={{
+          margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)', color: 'var(--danger)',
+        }}>{error}</p>
       )}
 
       <input ref={picker} type="file" accept="image/*"

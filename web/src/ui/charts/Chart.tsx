@@ -17,51 +17,65 @@
 export type Series = { label: string; color: string; points: number[] }
 
 /**
- * Paleta por tipo de aporte. Fondo único y oscuro (`--base: #0F1012`).
+ * Paleta por tipo de aporte. Fondo único y oscuro.
  *
- * Validada con la skill `dataviz` sobre ese fondo (`validate_palette.js
- * --mode dark --surface #0F1012`). Contra esa vara, la propuesta de arranque
- * fallaba tres chequeos, así que se ajustó:
+ * Validada con la skill `dataviz` (`validate_palette.js --mode dark --surface
+ * #0F1012`, el espresso de heritage está a la misma profundidad). Contra esa
+ * vara, la propuesta de arranque fallaba tres chequeos, así que se ajustó:
  *
- *  - `confirmations` era `#8A7B6D` (el token `--faint`): croma casi nulo, el
- *    validador lo marca como "reads gray" —un color que no hace trabajo de
- *    identidad— y además colapsaba contra el verde de `bars` bajo daltonismo
- *    (ΔE 2.6 deutan, piso 15 de visión normal sin pasar). Pasó por un oro
- *    oscuro, que separaba bajo daltonismo pero quedaba en ΔE 15,6 contra el
- *    ámbar de `prices` —apenas sobre el piso, y los dos son vecinos en la
- *    barra apilada—. Ahora es el paso oscuro de violeta: hue propio, se
- *    distingue de un vistazo, y el peor par adyacente sube a ΔE 20,9. Que
- *    confirmar valga menos que relevar lo dice el score, no el color.
+ *  - `confirmations` era `#8A7B6D` (el `--faint` de entonces): croma casi
+ *    nulo, el validador lo marca como "reads gray" —un color que no hace
+ *    trabajo de identidad— y además colapsaba contra el verde de `bars` bajo
+ *    daltonismo (ΔE 2.6 deutan). Pasó por un oro oscuro, que separaba bajo
+ *    daltonismo pero quedaba en ΔE 15,6 contra el ámbar de `prices` —apenas
+ *    sobre el piso, y los dos eran vecinos en la barra apilada— y de ahí a un
+ *    violeta, que llevó el peor par adyacente a ΔE 20,9.
  *  - `bars` / `photos` / `ratings` eran tonos pastel demasiado claros para el
  *    fondo oscuro y `photos`↔`ratings` (azul↔violeta) eran indistinguibles
  *    bajo daltonismo (ΔE 0.8). Ahora son los pasos oscuros de aqua, azul y
  *    magenta de la paleta de referencia: el peor par adyacente bajo
  *    daltonismo queda en ΔE 15,9.
  *
- * `prices` se queda en `#FFB627` a pesar de que su luminosidad queda por
- * encima de la banda que pide la skill: es la serie que debe gritar más (el
- * aporte que más importa) y es un tono cálido único que ningún tipo de
- * daltonismo confunde con los otros cuatro. Pasa el chequeo de contraste; el
- * de banda existe para que ninguna serie eclipse al resto y acá esa jerarquía
- * es deliberada.
+ * ## Lo que cambió con la pizarra heritage
  *
- * Antes ese hex era además el del acento de marca, y ese doble uso es
- * justamente lo que la paleta Hueso vino a cortar. Acá sobrevive porque de los
- * dos significados el que se queda con el color es el dato: es el mismo ámbar
- * de `--aging` y de `PRICE_STOPS`, o sea "esto habla de precios". Que sea una
- * serie de un gráfico y no cromo es lo que lo hace legítimo.
+ * `prices` era `#FFB627` y acá estaba escrito por qué: de los dos significados
+ * que ese hex tenía —acento de marca y valor del dato— el que se queda con el
+ * color es el dato, porque era el mismo ámbar de `--aging` y de `PRICE_STOPS`,
+ * o sea "esto habla de precios". El argumento era bueno y por eso queda
+ * anotado, pero en heritage no aplica: este gráfico no habla de la edad de un
+ * precio, habla de cuántos aportes entraron por día. Y sobre espresso el ámbar
+ * **es** `--aging` —un precio a medio vencer—, así que pintar con él la serie
+ * protagonista de un gráfico de actividad sería decir "esto está por vencerse".
+ *
+ * La dirección trae un tono para cada uno de los dos papeles: `--fresh` (Lime
+ * Cream) para lo que tiene que gritar, que sobre espresso es el valor de más
+ * contraste de toda la rampa de datos (14,18:1), e `--info` (Steel Blue) para
+ * lo analítico y de segundo orden. Entonces `prices` pasa a `--fresh` y
+ * `confirmations` a `--info`, que además dice lo mismo que decía el violeta
+ * —confirmar vale menos que relevar— pero con el tono que la paleta ya tiene
+ * reservado para eso.
+ *
+ * Los otros tres siguen siendo hex, y es la única excepción del archivo: son
+ * una paleta categórica de cinco vías validada aparte, y `theme.css` es la
+ * paleta de doce colores que se comparte con Android, no el lugar para tres
+ * tonos que viven sólo adentro de un gráfico del dashboard. El día que hagan
+ * falta afuera, ahí sí van como token.
+ *
+ * El par que podría confundirse —el Steel Blue de `confirmations` y el azul de
+ * `photos`— nunca queda pegado en la barra apilada (en el medio va `bars`,
+ * verde) y son dos azules de luminosidad muy distinta.
  */
 export const KIND_COLORS = {
-  prices:        '#FFB627', // el ámbar del precio (--aging): la serie protagonista
-  // Violeta y no un oro apagado. El oro leía como "confirmación es un precio
-  // más flojo", que es la idea correcta, pero quedaba pegado al ámbar en la
-  // barra apilada: dos tonos de la misma familia con 2px de hueco en el medio.
-  // El hue distinto se distingue de un vistazo y el peso menor ya lo dice el
-  // score. Peor par adyacente en visión normal: ΔE 20,9 contra 15,6 del oro.
-  confirmations: '#9085e9',
-  bars:          '#199e70',
-  photos:        '#3987e5',
-  ratings:       '#d55181',
+  /** La serie protagonista: el aporte que más importa y el tono que más se ve. */
+  prices:        'var(--fresh)',
+  /** Confirmar es el aporte de segundo orden, que es lo que `--info` nombra. */
+  confirmations: 'var(--info)',
+  /* Las tres categóricas. Los hex son los mismos de siempre —la terna se
+     eligió por separación para daltonismo— pero ahora viven en `theme.css`
+     como el resto de la paleta. */
+  bars:          'var(--serie-1)',
+  photos:        'var(--serie-2)',
+  ratings:       'var(--serie-3)',
 } as const
 
 /**
@@ -76,7 +90,7 @@ export const KIND_COLORS = {
 const W = 360
 const PAD = { l: 30, r: 6, t: 10, b: 20 }
 const GRID = 'var(--film-2)'
-const LABEL = { fontSize: 'var(--t-1)', fill: '#8A7B6D' } as const
+const LABEL = { fontSize: 'var(--t-1)', fill: 'var(--faint)' } as const
 
 /** Las etiquetas del eje x: primera, del medio y última. Más se amontonan. */
 function xTicks(x: string[]) {
@@ -206,6 +220,13 @@ export function StackedBars({
   )
 }
 
+/**
+ * Barras horizontales, una por fila.
+ *
+ * Sin `color`, la barra va en `--info`: una serie sola es lectura analítica y
+ * no tiene contra quién destacarse. Quien tenga un dato que sí manda —el
+ * primero de un ranking, por ejemplo— lo pinta de `--fresh` desde afuera.
+ */
 export function HBars({
   rows,
 }: { rows: { label: string; value: number; hint?: string; color?: string }[] }) {
@@ -221,15 +242,15 @@ export function HBars({
         const w = (r.value / max) * (W - labelW - 52)
         return (
           <g key={r.label}>
-            <text x={0} y={y + 16} {...LABEL} fontSize={11} fill="#9DA5AD">
+            <text x={0} y={y + 16} {...LABEL} fontSize={11} fill="var(--muted)">
               {r.label.length > 18 ? `${r.label.slice(0, 17)}…` : r.label}
             </text>
             <rect x={labelW} y={y + 5} width={Math.max(2, w)} height={13} rx={3}
-              fill={r.color ?? '#FFB627'} opacity={0.85}>
+              fill={r.color ?? 'var(--info)'} opacity={0.85}>
               <title>{`${r.label}: ${r.hint ?? r.value}`}</title>
             </rect>
             <text x={labelW + Math.max(2, w) + 6} y={y + 16} {...LABEL} fontSize={11}
-              fill="#F4F5F7">{r.hint ?? r.value}</text>
+              fill="var(--cream)">{r.hint ?? r.value}</text>
           </g>
         )
       })}

@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
-import { ageColor, formatDistance, formatPrice, formatRadius, shortAge } from '../data/format'
+import { ageColor, formatDistance, formatRadius } from '../data/format'
 import type { Sort } from '../data/useBars'
 import { StyleFilter } from '../ui/StyleFilter'
 import { AreaStatsCard } from '../ui/AreaStatsCard'
-import { Empty, SkeletonRows } from '../ui/Empty'
+import { Empty, PriceColumn, SkeletonRows } from '../ui/Empty'
 import { Segmented } from '../ui/Segmented'
 
 interface Props {
@@ -24,13 +24,21 @@ interface Props {
   onClearSimulated: () => void
   /** Ids favoritos, para el filtro. Vacío sin sesión. */
   favorites: Set<number>
+  /**
+   * Marcar y desmarcar desde la propia fila.
+   *
+   * Es opcional a propósito: el corazón sólo se dibuja si hay a quién
+   * avisarle. Un corazón que no guarda nada es peor que no tener corazón, y
+   * así la pantalla sigue compilando mientras quien la usa no lo pase.
+   */
+  onToggleFavorite?: (barId: number) => void
 }
 
 /**
- * Los dos órdenes, en el mismo orden en que se ven las píldoras.
+ * Los dos órdenes, en el mismo orden en que se ven las pestañas.
  *
  * El swipe se apoya en esta lista: arrastrar a la izquierda va al siguiente,
- * a la derecha al anterior. Si el array y las píldoras se desordenaran entre
+ * a la derecha al anterior. Si el array y las pestañas se desordenaran entre
  * sí, el gesto llevaría al modo contrario del que muestra la pantalla.
  */
 const SORTS: Sort[] = ['distance', 'cheapest', 'rated']
@@ -51,10 +59,16 @@ const COMMIT = 55
  * La misma data del mapa, en lista. Sin tarjetas: una por bar mete dos bordes
  * y una sombra por fila y convierte una lista de precios en un muro de cajas.
  * Lo que tiene que saltar es el número.
+ *
+ * Con la dirección heritage la fila se termina de volver pizarra: filete de
+ * 1px en vez de caja, barra de frescura a la izquierda, y el precio a la
+ * derecha con la edad debajo. Las tres cosas apuntan a lo mismo — que la lista
+ * se lea de un vistazo, en vertical, sin leer una sola fecha.
  */
 export function ListScreen(p: Props) {
   const nav = useNavigate()
   const scroller = useRef<HTMLDivElement>(null)
+  const toggleFav = p.onToggleFavorite
 
   // Al cambiar el orden o el filtro la lista es otra: quedarse a mitad de
   // scroll deja al usuario mirando el bar 40 de un ranking nuevo.
@@ -121,11 +135,40 @@ export function ListScreen(p: Props) {
   const busy = isSearch ? searching : favOnly ? favBusy : p.loading
 
   /*
+   * El encabezado cuenta el ámbito, no el total. Y cuenta sólo eso: cuántos.
+   *
+   * Con el filtro de favoritos puesto, decir "18 bares" mientras se ven 2 es
+   * mentir sobre lo que hay en pantalla, así que el número tiene que ser el de
+   * lo que se está mirando. Eso se queda.
+   *
+   * Lo que se fue es el "· promedio $ X" que acompañaba a los favoritos, por
+   * dos motivos que se suman:
+   *
+   * 1. **Era un precio sin su antigüedad al lado**, que es la única regla que
+   *    esta app no negocia. Cada fila de abajo cumple —monto grande y la edad
+   *    justo debajo—, pero el número del encabezado se leía solo: nadie podía
+   *    saber si promediaba precios de ayer o de hace tres meses.
+   * 2. **Ya había otro promedio en la misma pantalla, y el bueno.** A unos
+   *    píxeles de acá está `AreaStatsCard` con `avgPint`, normalizado a 473 ml
+   *    y con su alcance temporal. Éste promediaba `fromPrice`, el más barato
+   *    de cada bar sin normalizar por tamaño: una pinta contra un porrón de
+   *    330 dan el mismo peso. Dos promedios distintos del mismo radio en la
+   *    misma pantalla no se leen como dos métricas, se leen como un error.
+   */
+  // Mientras carga y todavía no hay nada, no se dice nada: un "0 bares" que
+  // dura medio segundo y se contradice solo es peor que el esqueleto.
+  const resumen = busy && shown.length === 0 ? null
+    : favOnly
+      ? shown.length === 0 ? 'Sin favoritos marcados'
+        : `${shown.length} ${shown.length === 1 ? 'favorito' : 'favoritos'}`
+      : `${shown.length} ${shown.length === 1 ? 'bar' : 'bares'}`
+
+  /*
    * Swipe horizontal para cambiar de orden.
    *
-   * Las píldoras siguen estando: el gesto es el atajo, no el único camino.
+   * Las pestañas siguen estando: el gesto es el atajo, no el único camino.
    * Con el teléfono en una mano y una birra en la otra, apuntarle a una
-   * píldora de 34px cuesta más que barrer la pantalla.
+   * etiqueta de 13px cuesta más que barrer la pantalla.
    *
    * Tres cosas que lo hacen convivir con el scroll vertical, que es el gesto
    * dominante de esta pantalla:
@@ -159,7 +202,7 @@ export function ListScreen(p: Props) {
 
   const onTouchStart = (e: React.TouchEvent) => {
     // Buscando no hay orden que cambiar: los resultados vienen del servidor
-    // por cercanía y las píldoras ni se muestran.
+    // por cercanía y las pestañas ni se muestran.
     if (isSearch || e.touches.length !== 1) return
     // El slider del radio y el campo de búsqueda usan el eje horizontal para
     // lo suyo. Un swipe que arranca ahí es de ellos.
@@ -230,14 +273,18 @@ export function ListScreen(p: Props) {
 
         Había además un <h1> que decía "Más baratas" justo encima de una
         píldora que decía "Más barata": el título no agregaba nada y se comía
-        un renglón. El conteo, que sí es dato, queda al lado del selector.
+        un renglón. El ámbito, que sí es dato, queda arriba de las pestañas.
+
+        Sin padding abajo: las pestañas son lo último y su subrayado tiene que
+        apoyarse contra el filete del encabezado. Eso es lo que hace que se
+        lean como pestañas y no como tres textos con una rayita.
       */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 5,
-        padding: `calc(14px + var(--safe-top)) 18px 10px`,
+        padding: `calc(14px + var(--safe-top)) 18px 0`,
         background: 'var(--base)',
-        borderBottom: '1px solid var(--film-2)',
-        display: 'flex', flexDirection: 'column', gap: 12,
+        borderBottom: '1px solid var(--hairline)',
+        display: 'flex', flexDirection: 'column', gap: 'var(--s-3)',
       }}>
         {/*
           Los dos filtros flanquean la búsqueda, y no viven en la franja de
@@ -249,7 +296,7 @@ export function ListScreen(p: Props) {
           El estilo a la izquierda y favoritos a la derecha: los dos acotan
           QUÉ bares se ven, mientras que lo de abajo decide en qué ORDEN.
         */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
           <StyleFilter
             styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
             minRating={p.minRating} onMinRating={p.onMinRating}
@@ -262,7 +309,7 @@ export function ListScreen(p: Props) {
               placeholder="Buscar un bar" type="search"
               style={{
                 width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
-                background: 'var(--film-2)', border: '1px solid var(--hairline)',
+                background: 'var(--raised)', border: '1px solid var(--hairline)',
                 // Ver --t-field: abajo de 16px iOS acerca la pantalla al enfocar.
                 fontSize: 'var(--t-field)',
               }}
@@ -276,7 +323,11 @@ export function ListScreen(p: Props) {
           </div>
 
           {/* Sin favoritos marcados no aparece: un filtro que siempre devuelve
-              una lista vacía sólo ocupa lugar. */}
+              una lista vacía sólo ocupa lugar.
+
+              Prendido va en coral y no en hueso: el corazón es un dato —"es
+              mío"— y en esta paleta el dato tiene color propio. En hueso
+              pesaba lo mismo que un botón de acción. */}
           {(p.favorites.size > 0 || favOnly) && (
             <button
               onClick={() => setFavOnly(f => !f)}
@@ -284,8 +335,8 @@ export function ListScreen(p: Props) {
               aria-label={favOnly ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
               className="icon-btn"
               style={{
-                background: favOnly ? 'var(--acento)' : 'var(--film-2)',
-                color: favOnly ? 'var(--base)' : 'var(--muted)',
+                background: favOnly ? 'var(--favorito-soft)' : 'var(--film-2)',
+                color: favOnly ? 'var(--favorito)' : 'var(--faint)',
               }}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden
@@ -298,41 +349,49 @@ export function ListScreen(p: Props) {
         </div>
 
         {/* Buscando, el orden no aplica: los resultados vienen del servidor
-            ordenados por cercanía y no por lo que diga esta píldora. Mostrarla
-            igual sería ofrecer un control que no hace nada. */}
+            ordenados por cercanía y no por lo que digan las pestañas.
+            Mostrarlas igual sería ofrecer un control que no hace nada. */}
         {isSearch ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-3)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
+            fontSize: 'var(--t-3)', paddingBottom: 'var(--s-3)',
+          }}>
             <span style={{ color: 'var(--muted)' }}>
               {searching ? 'Buscando…'
                 : shown.length === 0 ? 'Sin resultados'
                 : shown.length === 1 ? '1 resultado' : `${shown.length} resultados`}
             </span>
+            {/* Acción de texto secundaria: va en el informativo, que es donde
+                heritage manda todo lo que no es el dato principal. */}
             <button onClick={() => setQuery('')} className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-3)',
+              marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-3)',
             }}>Volver a la lista</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            {/* Un interruptor y no píldoras sueltas: el orden es uno o el
-                otro, nunca los dos, y es el mismo gesto que el toggle de color
-                del mapa. Se recorre `SORTS`, que es la misma lista que usa el
-                swipe: lo que se ve y lo que hace el gesto no se pueden
-                separar. */}
+          <>
+            {/* Qué se está mirando, antes de en qué orden. */}
+            {resumen && (
+              <div style={{
+                fontSize: 'var(--t-1)', color: 'var(--info)',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{resumen}</div>
+            )}
+
+            {/* El orden, como pestañas de texto con subrayado de 2px.
+                Eran cápsulas rellenas: pesaban lo mismo que un CTA y competían
+                con el precio, que es el dato de la pantalla. El subrayado dice
+                "elegiste esto" sin gritar, y es el mismo vocabulario de
+                "posición activa" que usa la barra de abajo.
+
+                Se recorre `SORTS`, que es la misma lista que usa el swipe: lo
+                que se ve y lo que hace el gesto no se pueden separar. */}
             <Segmented<Sort>
               options={SORTS.map(s => ({ value: s, label: SORT_LABEL[s] }))}
               value={p.sort} onChange={p.onSort}
-              tone="plain" height={28}
               label={o => `Ordenar por ${o.label.toLowerCase()}`}
               tourId="list-sort"
             />
-
-            {/* El conteo es el dato de la pantalla, no un control. Cifras
-                tabulares para que no baile al pasar de 9 a 10. */}
-            <span className="num" style={{
-              marginLeft: 'auto', flexShrink: 0, fontSize: 'var(--t-5)', color: 'var(--faint)',
-              fontVariantNumeric: 'tabular-nums',
-            }}>{shown.length}</span>
-          </div>
+          </>
         )}
       </div>
 
@@ -349,18 +408,25 @@ export function ListScreen(p: Props) {
       )}
 
       {!isSearch && !favOnly && <header style={{ padding: '12px 18px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
           {p.simulated ? (
             // Acá sí conviene el aviso: en la lista no se ve el mapa, así que
-            // sin esto no hay forma de saber desde dónde se mide.
-            <button onClick={p.onClearSimulated} className="pill" style={{
-              background: 'var(--acento-soft)', color: 'var(--acento)',
-              padding: '4px 12px', fontSize: 'var(--t-2)',
+            // sin esto no hay forma de saber desde dónde se mide. Es una
+            // acción secundaria, así que lleva el tratamiento del informativo
+            // y no el relleno de un CTA.
+            <button onClick={p.onClearSimulated} className="section-label cta" style={{
+              margin: 0, padding: 'var(--s-2) var(--s-3)', borderRadius: 'var(--r-1)',
+              background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+              color: 'var(--info-bright)',
             }}>Desde el punto elegido ✕</button>
           ) : (
-            <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>Desde tu ubicación</span>
+            <span className="section-label" style={{ margin: 0 }}>Desde tu ubicación</span>
           )}
-          <span className="lbl" style={{ marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-3)' }}>
+          {/* El radio es dato informativo —de los que heritage manda al
+              Steel Blue— y es una cifra, así que va tabular. */}
+          <span className="num" style={{
+            marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-3)',
+          }}>
             {formatRadius(p.radius)}
           </span>
         </div>
@@ -400,9 +466,12 @@ export function ListScreen(p: Props) {
             onAction={() => nav('/agregar')}
           />
         ) : favOnly ? (
+          // El vacío explica el gesto, que ahora está acá mismo: el corazón
+          // al final de cada fila. Un vacío que no dice cómo salir de él es
+          // un cartel de "no hay nada".
           <Empty
             title="Todavía no marcaste ningún favorito"
-            hint="El corazón está arriba a la derecha en la ficha de cada bar. Los favoritos se guardan en tu cuenta, así que los ves desde cualquier teléfono."
+            hint="Tocá el corazón al final de cualquier fila —o el de la ficha del bar— y el bar queda acá. Se guardan en tu cuenta, así que los ves desde cualquier teléfono."
             action="Ver todos los bares"
             onAction={() => setFavOnly(false)}
           />
@@ -416,20 +485,27 @@ export function ListScreen(p: Props) {
         )
       )}
 
-      <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0 }}>
-        {shown.map(b => (
-          <li key={b.id}>
-            <button className="row-hover" onClick={() => nav(`/bar/${b.id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 16, width: '100%',
-              padding: '16px 16px', textAlign: 'left',
-              borderBottom: '1px solid var(--film-2)',
+      <ul style={{ listStyle: 'none', margin: 'var(--s-3) 0 0', padding: '0 var(--s-4)' }}>
+        {shown.map(b => {
+          const esFav = p.favorites.has(b.id)
+          // La barra de frescura toma el color de la edad del precio. Sin
+          // precio no hay frescura que mostrar: queda el filete apagado, que
+          // dice "de este bar no sabemos" sin inventar un estado.
+          const tinta = b.fromPrice != null ? ageColor(b.freshestAgeDays) : 'var(--hairline)'
+          return (
+          <li key={b.id} className="row-hover" style={{
+            display: 'flex', alignItems: 'center',
+            borderBottom: '1px solid var(--hairline)',
+          }}>
+            {/* El corazón es hermano del botón de la fila y no hijo: un botón
+                adentro de otro no es HTML válido y el navegador lo desarma
+                donde se le canta. */}
+            <button onClick={() => nav(`/bar/${b.id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+              flex: 1, minWidth: 0, padding: 'var(--s-3) 0', textAlign: 'left',
             }}>
               {/* Barra de frescura: se escanea en vertical sin leer nada. */}
-              <span style={{
-                width: 3, height: 34, borderRadius: 999, flexShrink: 0,
-                background: b.fromPrice != null
-                  ? ageColor(b.freshestAgeDays) : 'var(--hairline)',
-              }} />
+              <span className="fresh-bar" style={{ background: tinta }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 {/* La nota sube al renglón del nombre.
                     Estaba tercera en la línea de metadatos, después de la
@@ -437,11 +513,11 @@ export function ListScreen(p: Props) {
                     igual: para saber si un bar es bueno había que leer una
                     lista de datos sueltos. Es el segundo criterio después del
                     precio, así que va donde se lo busca — pegada al nombre y
-                    en el ámbar de la nota, no en el hueso de todo lo demás.
+                    en el tono de la nota, no en el hueso de todo lo demás.
                     El conteo de votos al lado por lo mismo que los precios van
                     con su antigüedad: un 5,0 de un voto no es un 5,0. */}
                 <span style={{
-                  display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0,
+                  display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', minWidth: 0,
                 }}>
                   <span className="lbl" style={{
                     fontSize: 'var(--t-4)', whiteSpace: 'nowrap',
@@ -456,34 +532,54 @@ export function ListScreen(p: Props) {
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-                  {formatDistance(b.distanceMeters)}
-                  {b.freshestAgeDays != null && (
-                    <> · <span style={{ color: ageColor(b.freshestAgeDays) }}>
-                      {shortAge(b.freshestAgeDays)}
-                    </span></>
-                  )}
-                </span>
+                {/* La distancia se queda sola en el renglón: la antigüedad se
+                    mudó abajo del precio, que es de donde nunca se tendría que
+                    haber despegado. Y va en el informativo —"a 450 m" es el
+                    caso que le da nombre al token— para que deje de competir
+                    con el nombre del bar. */}
+                {formatDistance(b.distanceMeters) && (
+                  <span style={{
+                    display: 'block', marginTop: 2,
+                    fontSize: 'var(--t-2)', color: 'var(--info)',
+                  }}>
+                    {formatDistance(b.distanceMeters)}
+                  </span>
+                )}
               </span>
-              {/* El precio, alineado a la derecha y en su propia columna.
-                  Antes iba a 17px contra un nombre de bar de 15: dos datos
-                  casi del mismo peso, y el que la pantalla viene a contestar
-                  perdiendo contra el que sólo sirve para ubicarlo. Ahora es lo
-                  más grande de la fila.
-                  El ancho mínimo es lo que arma la columna: sin él cada precio
-                  empieza donde termina su nombre, y comparar dos filas obliga
-                  a buscar el número en cada una. */}
-              {b.fromPrice != null
-                ? <span className="num" style={{
-                    fontSize: 'var(--t-6)', flexShrink: 0, textAlign: 'right', minWidth: 72,
-                  }}>{formatPrice(b.fromPrice, b.currency)}</span>
-                : <span style={{
-                    fontSize: 'var(--t-2)', color: 'var(--faint)', flexShrink: 0,
-                    textAlign: 'right', minWidth: 72,
-                  }}>Sin precio</span>}
+              {/* El precio en su propia columna, con la edad justo debajo y en
+                  el color de la frescura. Nunca uno sin el otro: un precio sin
+                  fecha es un precio que no se sabe si sigue siendo el precio.
+
+                  Es `PriceColumn` y no el markup escrito acá porque esta misma
+                  columna se dibuja en media app y se había desincronizado
+                  —una copia sin pie para cuando falta la fecha, otra con la
+                  edad sin cifras tabulares—. La regla vive en un solo lugar. */}
+              <PriceColumn
+                price={b.fromPrice} currency={b.currency} ageDays={b.freshestAgeDays}
+              />
             </button>
+
+            {/* Marcar sin entrar al bar: es el gesto de "este me sirve, seguí
+                mirando". El margen negativo alinea el ícono con el borde del
+                contenido sin achicar los 44px que se tocan. */}
+            {toggleFav && (
+              <button
+                onClick={() => toggleFav(b.id)}
+                aria-pressed={esFav}
+                aria-label={`${esFav ? 'Sacar de favoritos' : 'Guardar en favoritos'}: ${b.name}`}
+                className="icon-btn"
+                style={{ marginRight: -12, color: esFav ? 'var(--favorito)' : 'var(--faint)' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden
+                  fill={esFav ? 'currentColor' : 'none'}
+                  stroke="currentColor" strokeWidth={esFav ? 0 : 1.9}>
+                  <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+                </svg>
+              </button>
+            )}
           </li>
-        ))}
+          )
+        })}
       </ul>
       </div>
       </div>
