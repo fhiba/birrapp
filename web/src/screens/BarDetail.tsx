@@ -16,21 +16,18 @@ import { Stars } from '../ui/Stars'
 import { PillRow, chipStyle } from '../ui/PillRow'
 import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
+import { KARMA, KARMA_VISIBLE } from '../data/karma'
 
 /**
  * Lo que suma cada aporte de esta pantalla, para mostrarlo adentro del botón.
  *
- * Son los pesos que usa el servidor para el ranking de colaboradores
- * (`CONTRIBUTION_WEIGHT` en `AnalyticsRepo.kt`: precio 3, bar 3, foto 2, nota
- * 2, confirmación 1), no números elegidos para que el botón se vea lindo.
- * Están copiados y no pedidos a la API porque son una constante de producto;
- * si cambian allá, cambian acá.
- *
- * Van adentro del botón y al lado del verbo —no en un renglón aparte— porque
- * lo que se gana es parte de la acción: "Sigue igual +1 pt" se lee de una.
+ * Los números y el interruptor viven en `data/karma.ts`: hoy no se dibujan
+ * porque el sistema de karma todavía no existe, y prometer una recompensa que
+ * no llega gasta el gesto una sola vez. Los alias se quedan para que el día
+ * que se prenda no haya que volver a buscar dónde iba cada uno.
  */
-const PTS_CONFIRMAR = 1
-const PTS_PRECIO = 3
+const PTS_CONFIRMAR = KARMA.confirmar
+const PTS_PRECIO = KARMA.precio
 
 /**
  * El vidrio espresso de los botones que flotan sobre la portada.
@@ -1380,12 +1377,18 @@ function PriceRow({
  * Chicos y al 60%: el botón dice qué hace y esto dice cuánto suma. Al 100%
  * competían con el verbo, y lo que hay que leer primero es el verbo — nadie
  * toca "Sigue igual" por los puntos, los puntos son el después.
+ *
+ * Con `KARMA_VISIBLE` apagado no dibuja nada, y el filtro vive acá adentro y
+ * no en cada llamador: son cuatro botones en dos archivos, y un interruptor
+ * que hay que acordarse de consultar en cada uno es un interruptor que en
+ * algún lado se va a olvidar. Los botones quedan con su verbo solo, que es lo
+ * que decían antes de que existieran los puntos.
  */
-const Puntos = ({ n }: { n: number }) => (
+const Puntos = ({ n }: { n: number }) => KARMA_VISIBLE ? (
   <span className="num" style={{ fontSize: 'var(--t-1)', opacity: .6 }}>
     +{n} {n === 1 ? 'pt' : 'pts'}
   </span>
-)
+) : null
 
 /**
  * Foto ampliada.

@@ -3245,3 +3245,75 @@ tocaba.
   Cuando se mude, tienen que mudarse las dos.
 * La tarifa de puntos (`+N pts`) está escrita en el cliente y la verdad vive en
   `CONTRIBUTION_WEIGHT` del backend. Ya estaba así; ahora está en más lugares.
+
+## 2026-09-17 (cont.) — v0.20.0: sin puntos a la vista, y los filtros del mapa que se leen
+
+### Los "+N pts" se apagan
+
+El sistema de karma no existe. Los números eran reales —salen de
+`CONTRIBUTION_WEIGHT` y son los que ordenan la tabla de Colaboradores— pero lo
+que no existe es lo que un "+3 pts" arriba de un botón promete: un saldo que se
+mira, niveles, algo que los puntos hagan. Prometer una recompensa que no llega
+es peor que no prometer nada, y encima gasta el gesto una sola vez.
+
+Van detrás de `KARMA_VISIBLE`, en `data/karma.ts`, junto con los pesos, que
+estaban copiados en tres archivos. No es código borrado: el día que el sistema
+esté, se prende ahí y vuelve a aparecer en los cuatro lugares que ya lo
+dibujan. Se apagan los "+N pts" de "Sigue igual", "Actualizar", "Cargar el
+primer precio" y "Cargar su precio", el de la foto —que pasa a decir
+"Agregar", porque un cuadro punteado con una cámara y nada más se lee como una
+foto que no cargó— y la tarjeta de karma de Colaboradores. **La tabla de
+Colaboradores se queda**: es dato real y no promete nada.
+
+### Los filtros del mapa
+
+No se había borrado ninguno: estilos + nota mínima, favoritos y radio estaban
+los tres. El problema era que se habían vuelto ilegibles. Eran píldoras de
+44px con un ícono adentro y ninguna palabra, apoyadas justo debajo del
+encabezado nuevo, que también es de vidrio: cuatro piezas del mismo material,
+sin una sola etiqueta entre todas, se leen como cromo de la barra y no como
+cosas que se tocan.
+
+Ahora cada filtro lleva su palabra al lado del ícono —Estilos, Favoritos,
+Frescos— que es lo mismo que la dirección hizo con las pestañas de abajo.
+
+**Y hay uno nuevo: Frescos**, que no existía en ninguna pantalla. Deja los
+bares con un precio de menos de 14 días, que es el mismo corte de `fresh` de
+todo el proyecto —ahora exportado como `FRESCO_DIAS` desde `data/format.ts`,
+para que el filtro no invente un segundo significado de "fresco"—. Un bar sin
+precio no pasa el filtro, y es deliberado: "sólo frescos" es una pregunta sobre
+el precio, y un bar sin precio no la contesta que sí.
+
+Filtra lo cargado y no vuelve a pedir, igual que el de favoritos: en el mapa la
+pregunta es siempre "de lo que estoy viendo, cuáles". Los dos se cruzan, y el
+encabezado y el vacío saben decirlo — "3 favoritos con precio fresco",
+"ningún precio fresco por acá", y el botón de salida limpia los dos.
+
+### Un control prendido sobre el mapa va opaco
+
+Al medir el contraste del chip prendido apareció un defecto que venía del
+repintado. Sobre el mapa, un relleno translúcido deja el contraste a merced de
+lo que pase por debajo: contra una cápsula de precio clara, el filtro de
+estilos prendido daba **2,58:1** y un chip coral habría dado 1,28:1.
+
+El agravante es que `.glass` estaba calibrado para eso, pero con la paleta
+vieja: el `brightness(.45)` se había medido contra el ámbar `#FFB627`, que era
+lo más brillante del mapa. Heritage invirtió la cápsula del pin seleccionado a
+hueso pleno `#FFFDF4`, bastante más claro, y contra eso el texto principal
+sobre vidrio caía a 4,10:1 y el secundario a 3,31:1 — los dos por debajo de
+1.4.3, en toda la familia del vidrio y no sólo en los filtros.
+
+Dos cambios:
+
+* `.glass` baja a `brightness(.35)`. Texto principal 5,74:1, secundario
+  4,64:1, y sobre el mapa oscuro —que es lo normal— 16:1. Queda anotado en el
+  token que este número no depende de la paleta del vidrio sino de lo más
+  claro que pueda quedar debajo: cada vez que cambie un color del mapa hay que
+  volver a medirlo.
+* Un filtro **prendido** sobre el mapa se pinta opaco, con la etiqueta en
+  espresso: favoritos 5,86:1, frescos 17,59:1, estilos 7,04:1, y ninguno
+  depende del fondo. En la lista, donde el fondo es la pantalla y no el mapa,
+  el prendido sigue siendo el tinte suave de la dirección.
+
+Ningún brillo razonable salva a `--info` como texto sobre vidrio, así que eso
+queda dicho en el token: sobre vidrio se escribe en hueso.

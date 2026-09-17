@@ -53,18 +53,25 @@ export function StyleFilter({
   if (styles.length === 0) return null
 
   /*
-   * El vidrio se queda puesto también con el filtro prendido.
+   * Prendido sobre el mapa = opaco; prendido sobre la lista = tinte.
    *
-   * Antes el activo se iba a un relleno hueso opaco, que sobre el mapa pesaba
-   * igual que el CTA de "+" y competía con las cápsulas de precio. Ahora el
-   * prendido es la acción secundaria de la dirección —fondo `--info-soft`,
-   * borde `--info-border`, texto `--info-bright`—, y como ese fondo es
-   * translúcido necesita el `backdrop-filter` de `.glass` por debajo para que
-   * el texto no quede a merced de lo que pase por el mapa. El `background`
-   * inline pisa el degradado de la clase pero no el desenfoque, que es
-   * justamente la capa que garantiza el contraste.
+   * En la lista el filtro puesto usa la gramática de acción secundaria de la
+   * dirección —`--info-soft` + `--info-border` + `--info-bright`—, que es más
+   * tranquila que el relleno hueso pleno que había antes y no compite con los
+   * precios, que son el contenido.
+   *
+   * Sobre el mapa ese mismo tinte no se puede: el fondo es translúcido, o sea
+   * que el contraste queda a merced de lo que pase por debajo, y medido contra
+   * una cápsula de precio clara da 2,58:1. El `backdrop-filter` de `.glass`
+   * ayuda pero no alcanza — `--info` no llega a 3:1 contra ese fondo con
+   * ningún brillo razonable. Así que ahí el prendido se suelta del vidrio y se
+   * pinta opaco en `--info` con la etiqueta en espresso: 7,04:1, y no depende
+   * del mapa.
+   *
+   * Apagado sí es vidrio en las dos, que es lo que lo deja flotar.
    */
-  const cascara = tone === 'glass' ? 'lbl pill glass' : 'lbl pill'
+  const opaco = tone === 'glass' && active
+  const cascara = tone === 'glass' && !opaco ? 'lbl pill glass' : 'lbl pill'
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }} data-tour={tourId}>
@@ -73,25 +80,37 @@ export function StyleFilter({
         className={cascara}
         aria-label="Filtrar por estilo"
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          height: size, padding: active ? '0 14px' : 0, width: active ? undefined : size,
+          display: 'flex', alignItems: 'center', gap: 7,
+          // `--pill-pad` sólo existe adentro de `.map-controls`, que aprieta
+          // los controles por ancho de pantalla. En la lista no está, y sin
+          // valor de reserva el botón quedaría sin aire a los costados.
+          height: size, padding: '0 var(--pill-pad, 14px)',
           justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
-          background: active ? 'var(--info-soft)'
-            : tone === 'plain' ? 'var(--film-2)' : undefined,
-          border: active ? '1px solid var(--info-border)' : undefined,
-          color: active ? 'var(--info-bright)'
-            // Sobre vidrio el secundario va en --sobre-vidrio y no en --muted:
-            // lo que pasa por detrás del panel a veces es una cápsula de
-            // precio brillante.
-            : tone === 'glass' ? 'var(--sobre-vidrio)' : 'var(--muted)',
+          background: opaco ? 'var(--info)'
+            : active ? 'var(--info-soft)'
+              : tone === 'plain' ? 'var(--film-2)' : undefined,
+          border: active && !opaco ? '1px solid var(--info-border)' : undefined,
+          color: opaco ? 'var(--base)'
+            : active ? 'var(--info-bright)'
+              // Sobre vidrio el secundario va en --sobre-vidrio y no en
+              // --muted: lo que pasa por detrás del panel a veces es una
+              // cápsula de precio brillante.
+              : tone === 'glass' ? 'var(--sobre-vidrio)' : 'var(--muted)',
           fontSize: 'var(--t-2)',
         }}
       >
-        <svg width={active ? 15 : 18} height={active ? 15 : 18} viewBox="0 0 24 24"
+        <svg width="15" height="15" viewBox="0 0 24 24"
           fill="currentColor" aria-hidden>
           <path d="M4 5h16v2.2l-6 6V21l-4-2v-5.8l-6-6z" />
         </svg>
-        {active && <span>{etiqueta}</span>}
+        {/* Apagado también lleva palabra.
+
+            Antes era un cuadrado de 44px con un embudo adentro, y apoyado
+            junto a los otros controles —todos del mismo vidrio— se leía como
+            parte de la barra y no como algo que se toca. El ícono solo alcanza
+            cuando el ícono es universal; el embudo no lo es, y encima acá
+            compite con la lupa del radio, que es otro dibujo abstracto. */}
+        <span>{active ? etiqueta : 'Estilos'}</span>
       </button>
 
       {open && (

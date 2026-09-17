@@ -3,7 +3,9 @@ import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
-import { ageColor, formatPrice, formatRadius, priceColor, priceRanks } from '../data/format'
+import {
+  FRESCO_DIAS, ageColor, formatPrice, formatRadius, priceColor, priceRanks,
+} from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
 import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES } from '../mapStyle'
 import { StyleFilter } from '../ui/StyleFilter'
@@ -94,7 +96,27 @@ export function MapScreen(p: Props) {
    * estar en otro barrio.
    */
   const [soloFavoritos, setSoloFavoritos] = useState(false)
-  const pines = soloFavoritos ? p.bars.filter(b => p.favorites.has(b.id)) : p.bars
+
+  /*
+   * Ver sólo los precios frescos, o sea de menos de 14 días.
+   *
+   * El umbral no es nuevo ni elegido acá: 14 días es el corte de `fresh` en
+   * todo el proyecto, el mismo que pinta la barra de la izquierda de cada fila
+   * y el punto de cada cápsula. Un filtro con su propio número sería un cuarto
+   * significado de "fresco".
+   *
+   * Un bar sin precio **no pasa el filtro**, y eso es deliberado: "sólo
+   * frescos" es una pregunta sobre el precio, y un bar sin precio no la
+   * contesta que sí. Que desaparezca es la respuesta honesta.
+   *
+   * Filtra lo cargado y no vuelve a pedir, por lo mismo que el de favoritos:
+   * en el mapa la pregunta es siempre "de lo que estoy viendo, cuáles".
+   */
+  const [soloFrescos, setSoloFrescos] = useState(false)
+
+  const pines = p.bars.filter(b =>
+    (!soloFavoritos || p.favorites.has(b.id)) &&
+    (!soloFrescos || (b.freshestAgeDays != null && b.freshestAgeDays < FRESCO_DIAS)))
 
   /*
    * El fondo que pinta Google mientras bajan las teselas.
@@ -179,14 +201,27 @@ export function MapScreen(p: Props) {
    * parpadea. Mientras haya pines en pantalla, el número anterior sigue
    * siendo la mejor respuesta que tenemos.
    */
+  /*
+   * El ámbito, en palabras, para el renglón de abajo del título.
+   *
+   * Los dos filtros se cruzan —"mis favoritos con precio de esta semana" es
+   * una pregunta razonable— así que el resumen tiene que poder decir los dos.
+   * El sufijo va aparte del sustantivo porque el vacío también lo necesita: no
+   * es lo mismo "ningún favorito por acá" que "ninguno con precio fresco", y
+   * mandar a alguien a mover el mapa cuando lo que sobra es un filtro puesto
+   * es la peor forma de un estado vacío.
+   */
+  const sufijoFresco = soloFrescos ? ' con precio fresco' : ''
   const resumen =
     p.tooZoomedOut ? 'Acercá para contar lo que hay'
     : p.loading && pines.length === 0 ? 'Buscando bares…'
     : pines.length === 0
-      ? (soloFavoritos ? 'Ningún favorito por acá' : 'Sin bares cargados por acá')
+      ? (soloFavoritos
+          ? `Ningún favorito por acá${sufijoFresco}`
+          : soloFrescos ? 'Ningún precio fresco por acá' : 'Sin bares cargados por acá')
       : `${pines.length} ${soloFavoritos
           ? (pines.length === 1 ? 'favorito' : 'favoritos')
-          : (pines.length === 1 ? 'bar' : 'bares')}`
+          : (pines.length === 1 ? 'bar' : 'bares')}${sufijoFresco}`
 
   if (!p.center) return <PintLoader message="Buscando dónde estás…" />
 
@@ -322,13 +357,23 @@ export function MapScreen(p: Props) {
             marginTop: 'var(--s-1)',
           }}>
             {/* El ícono dice el ámbito antes que el texto: corazón coral
-                cuando se está mirando sólo lo marcado, radar azul acero —el
-                rol informativo de la dirección— cuando es todo lo que entra
-                en el radio. */}
+                cuando se está mirando sólo lo marcado, reloj lima cuando el
+                recorte es por frescura, y radar azul acero —el rol informativo
+                de la dirección— cuando es todo lo que entra en el radio.
+
+                Con los dos filtros puestos manda el corazón: el texto ya
+                aclara lo otro, y dos íconos en un renglón de 11px son ruido. */}
             {soloFavoritos ? (
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden
                 fill="var(--favorito)">
                 <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+              </svg>
+            ) : soloFrescos ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden
+                fill="none" stroke="var(--fresh)" strokeWidth="1.9"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l2.5 2M9 2h6" />
               </svg>
             ) : (
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden
@@ -371,28 +416,43 @@ export function MapScreen(p: Props) {
               que siempre deja el mapa vacío no ayuda a nadie. Mismo criterio
               que el de la lista. */}
           {(p.favorites.size > 0 || soloFavoritos) && (
-            <button
+            <ChipFiltro
+              on={soloFavoritos}
               onClick={() => setSoloFavoritos(v => !v)}
-              aria-pressed={soloFavoritos}
-              aria-label={soloFavoritos ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
-              className={soloFavoritos ? 'lbl pill' : 'lbl pill glass'}
-              style={{
-                width: 44, height: 44, flexShrink: 0,
-                display: 'grid', placeItems: 'center',
-                background: soloFavoritos ? 'var(--favorito)' : undefined,
-                // Apagado va en `--sobre-vidrio` y no en `--muted`: adentro
-                // del vidrio lo que pasa por detrás puede ser una cápsula
-                // clara, y `--muted` ahí se cae del contraste.
-                color: soloFavoritos ? 'var(--base)' : 'var(--sobre-vidrio)',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden
-                fill={soloFavoritos ? 'currentColor' : 'none'}
-                stroke="currentColor" strokeWidth={soloFavoritos ? 0 : 1.9}>
-                <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
-              </svg>
-            </button>
+              etiqueta="Favoritos"
+              aria={soloFavoritos ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
+              tinte="favorito"
+              icono={
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
+                  fill={soloFavoritos ? 'currentColor' : 'none'}
+                  stroke="currentColor" strokeWidth={soloFavoritos ? 0 : 1.9}>
+                  <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+                </svg>
+              }
+            />
           )}
+
+          {/* El de frescura va siempre, sin la condición del de favoritos: no
+              hace falta haber hecho nada antes para preguntarse cuáles de
+              estos precios son de esta semana, y es la pregunta que la app
+              entera viene a contestar. */}
+          <ChipFiltro
+            on={soloFrescos}
+            onClick={() => setSoloFrescos(v => !v)}
+            etiqueta="Frescos"
+            aria={soloFrescos
+              ? 'Ver también los precios viejos'
+              : `Ver sólo precios de menos de ${FRESCO_DIAS} días`}
+            tinte="fresh"
+            icono={
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
+                fill="none" stroke="currentColor" strokeWidth="1.9"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l2.5 2M9 2h6" />
+              </svg>
+            }
+          />
 
           <button
             onClick={() => setRadiusOpen(o => !o)}
@@ -498,16 +558,24 @@ export function MapScreen(p: Props) {
                 texto tiene que decir cuál es: ofrecerle "agregá un bar" a
                 alguien que sólo tiene un filtro puesto lo manda a resolver un
                 problema que no tiene. */}
-            {soloFavoritos ? (
+            {soloFavoritos || soloFrescos ? (
               <>
                 <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
-                  Ninguno de tus favoritos por acá
+                  {soloFavoritos && soloFrescos ? 'Ningún favorito con precio fresco por acá'
+                    : soloFavoritos ? 'Ninguno de tus favoritos por acá'
+                      : 'Ningún precio fresco por acá'}
                 </p>
                 <p style={{
                   margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)',
                   color: 'var(--sobre-vidrio)', lineHeight: 1.5,
                 }}>
-                  Están en otra zona del mapa, o todavía no marcaste ninguno acá.
+                  {/* Cada vacío dice por qué está vacío y qué hacer. El de
+                      frescura además cuenta algo que no se ve: que sí hay
+                      bares, y que lo que les falta es alguien que pase a
+                      mirar la pizarra. */}
+                  {soloFavoritos
+                    ? 'Están en otra zona del mapa, o todavía no marcaste ninguno acá.'
+                    : `Hay bares, pero ninguno con un precio de menos de ${FRESCO_DIAS} días. Si pasás por uno, cargalo.`}
                 </p>
                 {/* El CTA primario de la dirección: hueso pleno sobre
                     espresso, radio --r-2 y 46 de alto, que es el paso corto
@@ -520,11 +588,15 @@ export function MapScreen(p: Props) {
                     y sin acuse de recibo no hay forma de saber si el tap
                     entró o si lo que se movió fue el mapa. Va por clase
                     porque `:active` no se puede escribir inline. */}
-                <button onClick={() => setSoloFavoritos(false)} className="lbl cta" style={{
-                  marginTop: 'var(--s-3)', padding: '0 var(--s-4)',
-                  borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', height: 46,
-                  background: 'var(--acento)', color: 'var(--base)',
-                }}>Ver todos</button>
+                <button
+                  onClick={() => { setSoloFavoritos(false); setSoloFrescos(false) }}
+                  className="lbl cta"
+                  style={{
+                    marginTop: 'var(--s-3)', padding: '0 var(--s-4)',
+                    borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', height: 46,
+                    background: 'var(--acento)', color: 'var(--base)',
+                  }}
+                >Ver todos</button>
               </>
             ) : (
               <>
@@ -716,6 +788,77 @@ export function MapScreen(p: Props) {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * Un filtro del mapa, prendido o apagado.
+ *
+ * ## Por qué lleva etiqueta y antes no
+ *
+ * Los controles del mapa eran píldoras de 44px con un ícono adentro y nada
+ * más, apoyadas justo debajo del encabezado, que también es de vidrio. Tres
+ * piezas del mismo material y sin una palabra entre las tres: se leían como
+ * parte del cromo de la barra y no como cosas que se tocan. Con la palabra al
+ * lado del ícono dejan de ser adivinanza — es lo mismo que la dirección hizo
+ * con las pestañas de abajo, que ahora muestran las tres etiquetas.
+ *
+ * ## Por qué sigue siendo vidrio
+ *
+ * La dirección deja el vidrio sólo donde algo flota sobre el mapa, y esto es
+ * exactamente eso. El `backdrop-filter` no es decoración acá: es lo que
+ * garantiza el contraste de la etiqueta pase lo que pase por debajo, que en un
+ * mapa es a veces una cápsula de precio clara.
+ *
+ * ## El prendido es opaco, y no es una decisión de gusto
+ *
+ * Un filtro puesto se pinta con el color pleno del dato —coral para lo tuyo,
+ * lima para la frescura— y la etiqueta en espresso encima. La tentación era
+ * usar la gramática de acción secundaria de la dirección (relleno tenue +
+ * borde + texto claro), que es más tranquila y es la que usa el resto de la
+ * app. Sobre el mapa no se puede: un relleno translúcido deja el contraste a
+ * merced de lo que pase por debajo, y medido contra una cápsula de precio
+ * clara ese estado da 1,28:1 en coral y 3,02:1 en lima. Opaco da 5,86 y
+ * 17,59, y no depende del fondo.
+ *
+ * Es la misma razón por la que el botón de favoritos ya se soltaba de
+ * `.glass` al prenderse antes de esto. Lo que cambia es que ahora los tres
+ * filtros lo hacen igual, y que se ve qué son antes de tocarlos.
+ */
+function ChipFiltro({ on, onClick, etiqueta, aria, icono, tinte }: {
+  on: boolean
+  onClick: () => void
+  etiqueta: string
+  /** Lo que se anuncia: dice qué va a pasar al tocar, no qué se ve. */
+  aria: string
+  icono: React.ReactNode
+  /** De qué habla el filtro. Decide el tono del prendido, no la forma. */
+  tinte: 'favorito' | 'fresh'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      aria-label={aria}
+      // Prendido se suelta del vidrio: el relleno es opaco y el
+      // `backdrop-filter` debajo ya no aporta nada.
+      className={on ? 'lbl pill' : 'lbl pill glass'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 7, height: 44,
+        padding: '0 var(--pill-pad)', flexShrink: 0, whiteSpace: 'nowrap',
+        fontSize: 'var(--t-2)',
+        background: on
+          ? (tinte === 'favorito' ? 'var(--favorito)' : 'var(--fresh)')
+          : undefined,
+        // Apagado va en `--sobre-vidrio` y no en `--muted`: adentro del vidrio
+        // lo que pasa por detrás puede ser una cápsula clara, y `--muted` ahí
+        // se cae del contraste.
+        color: on ? 'var(--base)' : 'var(--sobre-vidrio)',
+      }}
+    >
+      {icono}
+      {etiqueta}
+    </button>
   )
 }
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { Contributor, Leaderboard, PhotoOfMonth, User } from '../data/types'
 import { Empty } from '../ui/Empty'
+import { KARMA, KARMA_VISIBLE } from '../data/karma'
 
 /**
  * Los que más aportaron este mes (BIR-9).
@@ -99,8 +100,14 @@ export function ContributorsScreen({ user }: { user: User | null }) {
 
         {/* Tu karma primero: el ranking contesta "cómo viene la cosa" y esto
             contesta "cómo vengo yo", que es lo que uno abre a buscar. Sale de
-            la misma tabla que ya se bajó — no hay una consulta más. */}
-        {yo && data && (
+            la misma tabla que ya se bajó — no hay una consulta más.
+
+            Apagado mientras `KARMA_VISIBLE` esté en false. La tabla de abajo
+            es dato real y se queda; lo que no existe todavía es el sistema que
+            esta tarjeta promete —la tarifa por acción, el nivel, algo que los
+            puntos hagan— y prometerlo sin que llegue es peor que no decir
+            nada. El ranking sigue contestando lo mismo, sin la promesa. */}
+        {KARMA_VISIBLE && yo && data && (
           <Karma
             yo={yo.c} puesto={yo.puesto} tope={data.contributors[0]!.score}
             anterior={yo.puesto > 1 ? data.contributors[yo.puesto - 2]!.score : null}
@@ -336,11 +343,11 @@ function Karma({ yo, puesto, tope, anterior, mes }: {
 
 /** Los pesos de verdad, los de `CONTRIBUTION_WEIGHT` en el backend. */
 const TARIFA = [
-  { que: 'Cargar un precio', pts: 3 },
-  { que: 'Agregar un bar que falta', pts: 3 },
-  { que: 'Subir una foto', pts: 2 },
-  { que: 'Puntuar una birra', pts: 2 },
-  { que: 'Confirmar que sigue igual', pts: 1 },
+  { que: 'Cargar un precio', pts: KARMA.precio },
+  { que: 'Agregar un bar que falta', pts: KARMA.bar },
+  { que: 'Subir una foto', pts: KARMA.foto },
+  { que: 'Puntuar una birra', pts: KARMA.nota },
+  { que: 'Confirmar que sigue igual', pts: KARMA.confirmar },
 ]
 
 /**
