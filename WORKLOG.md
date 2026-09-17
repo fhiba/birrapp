@@ -3372,3 +3372,34 @@ pasó a mirar su pizarra sería contestar otra cosa de la que se preguntó.
 * **El símbolo de salir estaba descentrado.** Era el carácter `⇥`: un glifo de
   texto se centra por su caja de avance y por la línea base, no por su tinta.
   Pasó a SVG, con el mismo `viewBox` que la tuerca de al lado.
+
+## 2026-09-17 (cont.) — v0.22.0: el perfil, más cerca del diseño
+
+Tres cosas que la pantalla no tenía y el diseño sí:
+
+* **Título "Perfil".** Las otras tres pestañas lo tienen y ésta arrancaba
+  directamente con la cara. Con la barra de abajo mostrando las cuatro
+  etiquetas, un encabezado que dice dónde estás es lo que cierra el par.
+* **El avatar es un cuadrado de esquina blanda**, no un círculo: es la forma
+  que la dirección usa para los avatares —la misma de las iniciales de cada
+  comentario en la ficha del bar— y el círculo era la única esquina redonda que
+  quedaba en una pantalla de filetes. Sin foto, las iniciales van en la familia
+  informativa.
+* **Los favoritos, en filas.** El diseño muestra los bares marcados en el
+  perfil y no sólo un número que lleva a otra pantalla, y es el lugar donde
+  corresponde: un favorito es de la cuenta, no de la zona, así que ésta es la
+  única pantalla donde la lista entera cabe sin que el radio la recorte. Se
+  muestran los primeros cinco; "Ver en la lista" lleva a `/lista?favoritos=1`,
+  que abre la Lista con el ámbito de favoritos ya puesto. Por la URL y no por
+  estado de router, así el enlace se puede compartir y el botón de atrás
+  devuelve el ámbito que había.
+
+### Lo que queda distinto del diseño, a propósito
+
+* **La tarjeta de karma no está**, por lo de la v0.20.0: el sistema no existe.
+* **"Aportando desde hace N meses"** no se puede decir: `User` no trae la fecha
+  de alta. En su lugar queda el mail, que es el dato que sí hay.
+* **Reseñas y aportes siguen siendo destinos y no listas inline.** El diseño
+  los apila en la misma pantalla porque el mockup no tiene sub-pantallas;
+  acá existen, con paginado y con su propio filtro, y duplicarlos en el perfil
+  sería bajarse dos veces lo mismo para mostrar las primeras tres filas.

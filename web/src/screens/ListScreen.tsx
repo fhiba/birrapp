@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
 import { FRESCO_DIAS, ageColor, formatDistance, formatRadius } from '../data/format'
@@ -111,7 +111,11 @@ export function ListScreen(p: Props) {
    * en otro barrio —es de ahí que uno se acuerda—. Filtrando en memoria, un
    * favorito lejos simplemente no aparecería y parecería que se perdió.
    */
-  const [favOnly, setFavOnly] = useState(false)
+  // Arranca puesto si se llegó desde "Ver en la lista" del perfil. Va por la
+  // URL y no por estado de router: así el enlace se puede compartir, y volver
+  // atrás en el navegador devuelve el ámbito que había.
+  const [params] = useSearchParams()
+  const [favOnly, setFavOnly] = useState(params.get('favoritos') === '1')
   const [favBars, setFavBars] = useState<BarPin[] | null>(null)
   const [favBusy, setFavBusy] = useState(false)
 
