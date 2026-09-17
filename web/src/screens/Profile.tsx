@@ -112,8 +112,26 @@ export function ProfileScreen({ user, onSession }: {
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{user.displayName}</h1>
-          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{user.email}</p>
+          {/* `minWidth: 0` en el contenedor deja que la columna se encoja,
+              pero no impide que el TEXTO se salga: un nombre de una sola
+              palabra larga no tiene dónde cortar y desborda igual. Con
+              `overflowWrap: anywhere` corta donde haga falta. */}
+          <h1 className="ttl" style={{
+            fontSize: 'var(--t-7)', margin: 0, overflowWrap: 'anywhere',
+          }}>{user.displayName}</h1>
+          {/* El mail va en una línea con elipsis, y ésta es la que rompía la
+              fila: un mail es un token sin espacios de veinte y pico de
+              caracteres, así que se salía de su columna y empujaba la tuerca y
+              el botón de salir fuera del ancho de la pantalla. Se veía como
+              una tuerca cortada por el borde.
+
+              Elipsis y no corte en dos renglones porque un mail partido al
+              medio no se lee mejor que uno recortado, y el dato entero está en
+              Configuración. */}
+          <p title={user.email} style={{
+            color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '4px 0 0',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{user.email}</p>
         </div>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
@@ -139,7 +157,20 @@ export function ProfileScreen({ user, onSession }: {
           style={{
             background: 'transparent', border: '1px solid var(--danger)',
             color: 'var(--danger)',
-          }}>⇥</button>
+          }}>
+          {/* Era el carácter `⇥`, y por eso se veía descentrado: un glifo de
+              texto se centra por su caja de avance y por la línea base, no por
+              su tinta, así que la flecha quedaba corrida y un poco arriba por
+              más que el botón estuviera centrado. Un SVG con el mismo `viewBox`
+              que la tuerca de al lado se centra por su geometría y además pesa
+              lo mismo que ella. */}
+          <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+            fill="none" stroke="currentColor" strokeWidth="1.9"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+            <path d="M10 8l4 4-4 4M14 12H3" />
+          </svg>
+        </button>
       </div>
 
       {/* El rol es información sobre la cuenta. Va en el tono informativo y no

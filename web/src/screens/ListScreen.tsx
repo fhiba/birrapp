@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
-import { ageColor, formatDistance, formatRadius } from '../data/format'
+import { FRESCO_DIAS, ageColor, formatDistance, formatRadius } from '../data/format'
 import type { Sort } from '../data/useBars'
 import { StyleFilter } from '../ui/StyleFilter'
-import { AreaStatsCard } from '../ui/AreaStatsCard'
 import { Empty, PriceColumn, SkeletonRows } from '../ui/Empty'
 import { Segmented } from '../ui/Segmented'
 
@@ -131,7 +130,30 @@ export function ListScreen(p: Props) {
     // la lista cuando se elige un punto secundario en el mapa.
   }, [favOnly, p.center?.lat, p.center?.lng, p.sort, p.styleFilter, p.minRating, p.favorites.size])
 
-  const shown = isSearch ? (found ?? []) : favOnly ? (favBars ?? []) : p.bars
+  /*
+   * Filtro de frescura, el mismo que el del mapa.
+   *
+   * Acá **sí** se filtra en memoria, al revés que el de favoritos de arriba.
+   * No es una inconsistencia: son dos preguntas distintas. "Mis favoritos" es
+   * sobre bares que pueden estar en cualquier lado, y por eso se piden al
+   * servidor; "sólo frescos" es un recorte de lo que la lista ya trajo, y
+   * pedirlo de nuevo sólo agregaría una espera para llegar al mismo conjunto.
+   *
+   * Un bar sin precio no pasa, igual que en el mapa: la pregunta es sobre el
+   * precio y un bar sin precio no la contesta que sí.
+   *
+   * Buscando no se aplica. La búsqueda es por nombre y sobre toda la base: que
+   * el bar que estás tipeando desaparezca porque nadie pasó a mirar su pizarra
+   * sería la app contestando otra cosa de la que se le preguntó. Es el mismo
+   * criterio por el que las pestañas de orden tampoco se muestran buscando.
+   */
+  const [soloFrescos, setSoloFrescos] = useState(false)
+
+  const traidos = isSearch ? (found ?? []) : favOnly ? (favBars ?? []) : p.bars
+  const shown = !isSearch && soloFrescos
+    ? traidos.filter(b =>
+        b.fromPrice != null && b.freshestAgeDays != null && b.freshestAgeDays < FRESCO_DIAS)
+    : traidos
   const busy = isSearch ? searching : favOnly ? favBusy : p.loading
 
   /*
@@ -157,11 +179,17 @@ export function ListScreen(p: Props) {
    */
   // Mientras carga y todavía no hay nada, no se dice nada: un "0 bares" que
   // dura medio segundo y se contradice solo es peor que el esqueleto.
+  // El sufijo va aparte: los dos filtros se cruzan —"mis favoritos con precio
+  // de esta semana" es una pregunta razonable— y el número tiene que poder
+  // decir los dos recortes, no uno.
+  const sufijoFresco = soloFrescos ? ' con precio fresco' : ''
   const resumen = busy && shown.length === 0 ? null
     : favOnly
-      ? shown.length === 0 ? 'Sin favoritos marcados'
-        : `${shown.length} ${shown.length === 1 ? 'favorito' : 'favoritos'}`
-      : `${shown.length} ${shown.length === 1 ? 'bar' : 'bares'}`
+      ? shown.length === 0
+        ? (soloFrescos ? 'Ningún favorito con precio fresco' : 'Sin favoritos marcados')
+        : `${shown.length} ${shown.length === 1 ? 'favorito' : 'favoritos'}${sufijoFresco}`
+      : shown.length === 0 && soloFrescos ? 'Ningún precio fresco por acá'
+        : `${shown.length} ${shown.length === 1 ? 'bar' : 'bares'}${sufijoFresco}`
 
   /*
    * Swipe horizontal para cambiar de orden.
@@ -346,6 +374,40 @@ export function ListScreen(p: Props) {
               </svg>
             </button>
           )}
+
+          {/* El de frescura, al lado del de favoritos: los dos acotan QUÉ
+              bares se ven. Va siempre —no como el de favoritos, que necesita
+              que haya alguno marcado— porque no hace falta haber hecho nada
+              antes para preguntarse cuáles de estos precios son de esta
+              semana.
+
+              Buscando no se dibuja: ahí tampoco se aplica, y un control que
+              está pero no hace nada es peor que uno que no está.
+
+              Acá el prendido sí es el tinte suave de la dirección, al revés
+              que en el mapa: lo que queda por detrás es la pantalla, que es
+              oscura y no se mueve, así que el contraste no depende de nada. */}
+          {!isSearch && (
+            <button
+              onClick={() => setSoloFrescos(f => !f)}
+              aria-pressed={soloFrescos}
+              aria-label={soloFrescos
+                ? 'Ver también los precios viejos'
+                : `Ver sólo precios de menos de ${FRESCO_DIAS} días`}
+              className="icon-btn"
+              style={{
+                background: soloFrescos ? 'var(--fresh-soft)' : 'var(--film-2)',
+                color: soloFrescos ? 'var(--fresh)' : 'var(--faint)',
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden
+                fill="none" stroke="currentColor" strokeWidth="1.9"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l2.5 2M9 2h6" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Buscando, el orden no aplica: los resultados vienen del servidor
@@ -395,17 +457,15 @@ export function ListScreen(p: Props) {
         )}
       </div>
 
-      {/* El radio no aplica buscando: la búsqueda es sobre toda la base, no
-          sobre lo que entra en el círculo. */}
-      {/* Las stats de la zona van con el radio, que es lo que definen. Con
-          el filtro de favoritos puesto no hay zona: la lista es de bares
-          sueltos de toda la ciudad. */}
-      {!isSearch && !favOnly && (
-        <AreaStatsCard
-          center={p.center} radius={p.radius}
-          styleFilter={p.styleFilter} styles={p.styles}
-        />
-      )}
+      {/* Acá vivía `AreaStatsCard`, el promedio de la zona. Se mudó entero a
+          "Cerca", que ahora es una pestaña.
+
+          El argumento para tenerlo acá era que la pregunta aparece mirando
+          precios y una pantalla aparte sería un lugar al que habría que
+          acordarse de ir. Con la pestaña ese argumento se cae: está a la vista
+          siempre. Y arriba de la lista pagaba caro — plegado no se leía, y
+          desplegado empujaba las filas, que son el contenido, media pantalla
+          para abajo. */}
 
       {!isSearch && !favOnly && <header style={{ padding: '12px 18px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
@@ -464,6 +524,20 @@ export function ListScreen(p: Props) {
             hint="Probá con menos letras: busca por parte del nombre y no hace falta poner las tildes."
             action="Agregar este bar"
             onAction={() => nav('/agregar')}
+          />
+        ) : soloFrescos ? (
+          // Con el filtro de frescura puesto, el vacío no es "no hay bares":
+          // es "nadie pasó a mirar la pizarra". Mandar a agregar un bar acá
+          // sería mandar a resolver un problema que no se tiene, así que la
+          // salida es sacar el filtro — y de paso se dice qué se gana
+          // cargando un precio, que es lo que de verdad falta.
+          <Empty
+            title={favOnly
+              ? 'Ninguno de tus favoritos tiene precio fresco'
+              : `Ningún precio de menos de ${FRESCO_DIAS} días por acá`}
+            hint="Hay bares, pero sus precios ya tienen tiempo. Si pasás por uno y ves la pizarra, cargalo y vuelve a esta lista."
+            action="Ver también los viejos"
+            onAction={() => setSoloFrescos(false)}
           />
         ) : favOnly ? (
           // El vacío explica el gesto, que ahora está acá mismo: el corazón

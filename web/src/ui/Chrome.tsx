@@ -2,6 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const ICON = {
+  // El radar de "Cerca": tres arcos y un punto, o sea el alcance alrededor
+  // tuyo. Es el mismo ícono con el que el encabezado del mapa dice el ámbito,
+  // así que las dos pantallas nombran lo mismo de la misma forma.
+  radar: (
+    <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0-4a5.5 5.5 0 0 0-3.9 9.4l1.4-1.4A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 2.5 6l1.4 1.4A5.5 5.5 0 0 0 12 6.5Zm0-4a9.5 9.5 0 0 0-6.7 16.2l1.4-1.4A7.5 7.5 0 1 1 17.3 19l1.4 1.4A9.5 9.5 0 0 0 12 2.5Z" />
+  ),
   map: <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />,
   list: <path d="M4 6h2v2H4V6Zm4 0h12v2H8V6ZM4 11h2v2H4v-2Zm4 0h12v2H8v-2ZM4 16h2v2H4v-2Zm4 0h12v2H8v-2Z" />,
   person: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14Z" />,
@@ -128,10 +134,15 @@ export function BottomNav() {
         padding: `0 var(--s-3) var(--nav-gap)`,
         background: 'var(--base)',
       }}>
+        {/* Cuatro pestañas, en el orden del diseño: Cerca, Mapa, Lista,
+            Perfil. "Cerca" va primera porque contesta la pregunta más general
+            —cuánto sale la pinta por acá— y las otras dos la responden cada vez
+            más fino: el mapa dice dónde, la lista dice cuál. */}
         <div className="desk-narrow" style={{
           display: 'flex',
           borderTop: '1px solid var(--hairline)',
         }}>
+          {tab('/cerca', 'Cerca', 'radar')}
           {tab('/', 'Mapa', 'map')}
           {tab('/lista', 'Lista', 'list')}
           {tab('/perfil', 'Perfil', 'person')}

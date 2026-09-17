@@ -199,6 +199,15 @@
    * porque una es una estrella y el otro es una fecha.
    */
   --fresh: #FFFC9A;
+  /* El relleno de un control **prendido** que habla de frescura, para cuando
+     lo que queda por detrás es la pantalla. Misma opacidad que
+     `--favorito-soft`, para que un filtro puesto se vea igual de puesto sea
+     del color que sea: lo único que cambia es de qué está hablando.
+
+     No existe su gemelo para el mapa, y es a propósito: ahí un relleno
+     translúcido deja el contraste a merced de lo que pase por debajo, así que
+     el prendido se pinta opaco. Ver el comentario de `.glass`. */
+  --fresh-soft: rgba(255,252,154,.16);
   --aging: #EE9A52;
   /* Malva apagado, el mismo tono que `--faint`. Que un precio viejo se pinte
      del color de los metadatos es el mensaje: dejó de ser noticia. */

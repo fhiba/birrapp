@@ -3317,3 +3317,58 @@ Dos cambios:
 
 Ningún brillo razonable salva a `--info` como texto sobre vidrio, así que eso
 queda dicho en el token: sobre vidrio se escribe en hueso.
+
+## 2026-09-17 (cont.) — v0.21.0: "Cerca" es una pestaña, y el filtro de frescura en la lista
+
+### Cerca
+
+La barra de abajo pasa a cuatro pestañas, en el orden del diseño: **Cerca,
+Mapa, Lista, Perfil**. Cerca va primera porque contesta la pregunta más general
+—cuánto sale la pinta por acá— y las otras dos la responden cada vez más fino:
+el mapa dice dónde, la lista dice cuál.
+
+Lo que hay adentro, en ese orden: el típico de la zona con el abanico entre el
+piso y el tope, la más barata cerca, lo último que se cargó, y —sólo si hay
+algo concreto que pedir— cuántos bares del radio tienen el precio vencido, con
+el botón para arreglarlo.
+
+**El promedio de la zona se mudó de la Lista.** Vivía en `AreaStatsCard`,
+plegado arriba de las filas, con este argumento: la pregunta aparece mirando
+precios, y una pantalla aparte sería un lugar al que habría que acordarse de
+ir. El argumento era bueno y se cae por una sola razón: ahora hay una pestaña,
+y un destino de la barra de abajo no es un lugar al que hay que acordarse de
+ir. Arriba de la Lista pagaba caro — plegado no se leía, y desplegado empujaba
+las filas media pantalla para abajo.
+
+Dos cosas que **no** se hicieron, y por qué:
+
+* El diseño muestra "Se movió esta semana". Para saber que un precio cambió
+  hace falta el anterior, y el servidor no lo manda con los pines. La sección
+  dice "Lo último que se cargó", que es lo que el dato sí sostiene: los pines
+  ordenados por antigüedad del precio.
+* No hay ninguna consulta nueva. `bars` ya viene del mismo `useBars` que
+  alimenta el mapa y la lista, y `areaStats` era la única que hacía la tarjeta
+  vieja.
+
+### El filtro de frescura, también en la lista
+
+El de la v0.20.0 estaba sólo en el mapa. Ahora está en las dos, al lado del de
+favoritos. Se cruzan, y el resumen del encabezado y el vacío saben decirlo.
+
+Acá filtra en memoria, al revés que el de favoritos, y no es una
+inconsistencia: "mis favoritos" es sobre bares que pueden estar en cualquier
+lado y por eso se piden al servidor; "sólo frescos" es un recorte de lo que la
+lista ya trajo. Buscando no se aplica ni se dibuja: la búsqueda es por nombre
+sobre toda la base, y que el bar que estás tipeando desaparezca porque nadie
+pasó a mirar su pizarra sería contestar otra cosa de la que se preguntó.
+
+### Dos arreglos del Perfil
+
+* **La tuerca se veía cortada.** El mail es un token de veinte y pico de
+  caracteres sin espacios: se salía de su columna —`minWidth: 0` deja que el
+  contenedor se encoja, pero no impide que el texto se desborde— y empujaba la
+  tuerca y el botón de salir fuera del ancho de la pantalla. Ahora va en una
+  línea con elipsis, y el nombre corta con `overflowWrap: anywhere`.
+* **El símbolo de salir estaba descentrado.** Era el carácter `⇥`: un glifo de
+  texto se centra por su caja de avance y por la línea base, no por su tinta.
+  Pasó a SVG, con el mismo `viewBox` que la tuerca de al lado.
