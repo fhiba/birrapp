@@ -40,6 +40,8 @@ interface Props {
   user: User | null
   /** Ids favoritos: los pines de esos bares llevan un corazón. */
   favorites: Set<number>
+  /** Marca o desmarca desde la vista previa. Sin sesión, lleva a Perfil. */
+  onToggleFavorite: (barId: number) => void
   brands: Brand[]
   onBrandCreated: (b: Brand) => void
   onStyleCreated: (s: BeerStyle) => void
@@ -47,9 +49,11 @@ interface Props {
   onChanged: () => void
   center: google.maps.LatLngLiteral | null
   simulated: google.maps.LatLngLiteral | null
-  radius: number; styleFilter?: string
+  radius: number; styleFilter: string[]
+  minRating?: number
+  onMinRating: (n?: number) => void
   tooZoomedOut: boolean
-  onStyle: (s?: string) => void
+  onStyle: (s: string[]) => void
   onRadius: (m: number) => void
   onSimulate: (p: google.maps.LatLngLiteral | null) => void
   onCamera: (c: google.maps.LatLngLiteral, zoom: number) => void
@@ -60,6 +64,8 @@ interface Props {
   locationUnknown: boolean
   /** El permiso está bloqueado para el sitio: reintentar no puede funcionar. */
   locationBlocked: boolean
+  /** Abre el tutorial de esta pantalla. Ver el "?" más abajo. */
+  onHelp: () => void
   /** Cambia cuando se pide centrar: la cámara es imperativa, no reactiva. */
   panTo: { target: google.maps.LatLngLiteral; token: number } | null
 }
@@ -67,6 +73,19 @@ interface Props {
 export function MapScreen(p: Props) {
   const nav = useNavigate()
   const [radiusOpen, setRadiusOpen] = useState(false)
+  // Ver el botón de cerrar, más abajo.
+  const [cartelCerrado, setCartelCerrado] = useState(false)
+  /*
+   * Ver sólo los favoritos en el mapa.
+   *
+   * Filtra los pines que ya están cargados, no vuelve a pedir. Es lo correcto
+   * acá y no en la lista: el mapa muestra lo que entra en la pantalla, así que
+   * "mis favoritos" significa "de lo que estoy viendo, cuáles marqué". En la
+   * lista sí se pide al servidor, porque ahí el favorito que buscás suele
+   * estar en otro barrio.
+   */
+  const [soloFavoritos, setSoloFavoritos] = useState(false)
+  const pines = soloFavoritos ? p.bars.filter(b => p.favorites.has(b.id)) : p.bars
 
   // El bar de la preview se guarda entero y no por id: la lista de bares se
   // recarga sola cada vez que se mueve la cámara —y la preview mueve la
@@ -133,7 +152,7 @@ export function MapScreen(p: Props) {
 
         {p.simulated && <SimulatedPin position={p.simulated} />}
 
-        <Pins bars={p.bars} selectedId={preview?.id ?? null}
+        <Pins bars={pines} selectedId={preview?.id ?? null}
           favorites={p.favorites} onOpen={setPreview} />
       </Map>
 
@@ -190,8 +209,33 @@ export function MapScreen(p: Props) {
               encima ocupaba una franja permanente de pantalla. */}
           <StyleFilter
             styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
+            minRating={p.minRating} onMinRating={p.onMinRating}
             tourId="map-style"
           />
+
+          {/* Sólo si hay alguno marcado, o si el filtro está puesto: un botón
+              que siempre deja el mapa vacío no ayuda a nadie. Mismo criterio
+              que el de la lista. */}
+          {(p.favorites.size > 0 || soloFavoritos) && (
+            <button
+              onClick={() => setSoloFavoritos(v => !v)}
+              aria-pressed={soloFavoritos}
+              aria-label={soloFavoritos ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
+              className={soloFavoritos ? 'lbl pill' : 'lbl pill glass'}
+              style={{
+                width: 44, height: 44, flexShrink: 0,
+                display: 'grid', placeItems: 'center',
+                background: soloFavoritos ? 'var(--favorito)' : undefined,
+                color: soloFavoritos ? 'var(--base)' : 'var(--muted)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden
+                fill={soloFavoritos ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth={soloFavoritos ? 0 : 1.9}>
+                <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+              </svg>
+            </button>
+          )}
 
           <button
             onClick={() => setRadiusOpen(o => !o)}
@@ -284,24 +328,51 @@ export function MapScreen(p: Props) {
           lo dice el cartel de arriba, y mientras carga decir "no hay nada"
           sería mentir por un segundo.
         */}
-        {!p.loading && !p.tooZoomedOut && p.bars.length === 0 && (
+        {!p.loading && !p.tooZoomedOut && pines.length === 0 && (
           <div className="glass" style={{
             pointerEvents: 'auto', maxWidth: 340, borderRadius: 'var(--r-3)',
             padding: '16px 16px', textAlign: 'center',
           }}>
-            <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
-              Por acá no hay bares cargados
-            </p>
-            <p style={{
-              margin: '8px 0 0', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)', lineHeight: 1.5,
-            }}>
-              El mapa lo hacemos entre todos. Si conocés uno en esta zona,
-              cargalo y queda para el resto.
-            </p>
-            <button onClick={() => nav('/agregar')} className="lbl" style={{
-              marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-              minHeight: 44, background: 'var(--acento)', color: 'var(--base)',
-            }}>Agregar un bar</button>
+            {/* El vacío por filtro y el vacío de verdad no son lo mismo, y el
+                texto tiene que decir cuál es: ofrecerle "agregá un bar" a
+                alguien que sólo tiene un filtro puesto lo manda a resolver un
+                problema que no tiene. */}
+            {soloFavoritos ? (
+              <>
+                <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
+                  Ninguno de tus favoritos por acá
+                </p>
+                <p style={{
+                  margin: '8px 0 0', fontSize: 'var(--t-2)',
+                  color: 'var(--sobre-vidrio)', lineHeight: 1.5,
+                }}>
+                  Están en otra zona del mapa, o todavía no marcaste ninguno acá.
+                </p>
+                <button onClick={() => setSoloFavoritos(false)} className="lbl" style={{
+                  marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
+                  fontSize: 'var(--t-3)', minHeight: 44,
+                  background: 'var(--acento)', color: 'var(--base)',
+                }}>Ver todos</button>
+              </>
+            ) : (
+              <>
+                <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
+                  Por acá no hay bares cargados
+                </p>
+                <p style={{
+                  margin: '8px 0 0', fontSize: 'var(--t-2)',
+                  color: 'var(--sobre-vidrio)', lineHeight: 1.5,
+                }}>
+                  El mapa lo hacemos entre todos. Si conocés uno en esta zona,
+                  cargalo y queda para el resto.
+                </p>
+                <button onClick={() => nav('/agregar')} className="lbl" style={{
+                  marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
+                  fontSize: 'var(--t-3)', minHeight: 44,
+                  background: 'var(--acento)', color: 'var(--base)',
+                }}>Agregar un bar</button>
+              </>
+            )}
           </div>
         )}
 
@@ -319,7 +390,7 @@ export function MapScreen(p: Props) {
           destraba. Un botón muerto es la misma clase de mentira que el punto
           azul en el Obelisco.
         */}
-        {p.locationUnknown && (
+        {p.locationUnknown && !cartelCerrado && (
           <div className="glass pill" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '8px 16px', fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
@@ -338,6 +409,25 @@ export function MapScreen(p: Props) {
                 }}>Reintentar</button>
               </>
             )}
+
+            {/* Cerrar.
+                El cartel tapa parte del mapa y, para quien decidió mirar los
+                precios sin dar la ubicación, no hay nada más que hacer con él:
+                era un aviso permanente sobre una decisión ya tomada. Se cierra
+                sólo para esta pantalla; al volver a entrar aparece de nuevo,
+                porque la situación sigue siendo cierta y el botón de centrar
+                sigue estando para arreglarla. */}
+            <button
+              onClick={() => setCartelCerrado(true)}
+              aria-label="Cerrar el aviso"
+              className="lbl"
+              style={{
+                marginLeft: 2, marginRight: -6, width: 26, height: 26,
+                flexShrink: 0, borderRadius: '50%',
+                display: 'grid', placeItems: 'center',
+                color: 'var(--muted)', fontSize: 'var(--t-4)',
+              }}
+            >×</button>
           </div>
         )}
       </div>
@@ -350,6 +440,29 @@ export function MapScreen(p: Props) {
       */}
       {!preview && (
         <>
+          {/*
+            El "?".
+            Va acá y no en Perfil por quién lo necesita: alguien que abrió la
+            app, ve pines de colores y no sabe qué está mirando. Pedirle que
+            encuentre el tutorial en otra pantalla —o peor, que se cree una
+            cuenta para verlo— es pedirle el trabajo que el tutorial viene a
+            ahorrar. Con sesión arranca solo; sin sesión, éste es el único
+            camino, y es justo quien más lo necesita.
+          */}
+          <button
+            onClick={p.onHelp}
+            aria-label="Cómo funciona la app"
+            className="glass lbl"
+            style={{
+              position: 'absolute', left: 14,
+              bottom: `calc(72px + var(--nav-gap) + 58px)`,
+              width: 40, height: 40, borderRadius: '50%',
+              display: 'grid', placeItems: 'center',
+              color: 'var(--sobre-vidrio)', fontSize: 'var(--t-4)',
+              pointerEvents: 'auto', zIndex: 5,
+            }}
+          >?</button>
+
           {/* Ubicación a la izquierda, agregar a la derecha: separados. */}
           <button onClick={p.onRecenter} className="glass" style={{
             position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
@@ -419,6 +532,8 @@ export function MapScreen(p: Props) {
           bar={preview}
           onClose={() => setPreview(null)}
           onOpen={() => nav(`/bar/${preview.id}`)}
+          isFavorite={p.favorites.has(preview.id)}
+          onToggleFavorite={() => p.onToggleFavorite(preview.id)}
         />
       )}
     </div>

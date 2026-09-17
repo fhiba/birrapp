@@ -157,6 +157,18 @@ object TestDb {
         }
     }
 
+    /** Puntúa una birra de un bar, para los tests que filtran u ordenan por nota. */
+    fun rate(barId: Long, styleSlug: String, rating: Double, userId: Long) = db.conn { c ->
+        val sid = styleId(c, styleSlug)
+        c.prepareStatement(
+            "INSERT INTO beer_ratings (bar_id, style_id, user_id, rating) VALUES (?, ?, ?, ?)",
+        ).use { st ->
+            st.setLong(1, barId); st.setLong(2, sid); st.setLong(3, userId)
+            st.setBigDecimal(4, java.math.BigDecimal.valueOf(rating))
+            st.executeUpdate()
+        }
+    }
+
     /** Inserta una foto de bar. */
     fun insertPhoto(barId: Long, styleSlug: String, userId: Long): Long = db.conn { c ->
         val sid = styleId(c, styleSlug)

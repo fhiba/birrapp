@@ -109,4 +109,34 @@ class BarDetailTest {
             "sin marca es la serie de la birra sin marca, no la del estilo entero",
         )
     }
+
+    @Test
+    fun `cuenta las birras propias en ese bar, y sólo las propias`() {
+        val yo = TestDb.insertUser("yo")
+        val otro = TestDb.insertUser("otro")
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+        val otroBar = TestDb.insertBar("Otro", -34.60, -58.38)
+        TestDb.insertPrice(bar, "ipa", 5000.0, daysAgo = 1, userId = yo)
+
+        TestDb.db.conn { c ->
+            c.prepareStatement(
+                "INSERT INTO beer_logs (user_id, bar_id, qty) VALUES (?,?,?),(?,?,?),(?,?,?),(?,?,?)",
+            ).use { st ->
+                // Dos mías acá, una de tres —se suman cantidades, no filas—,
+                // una mía en otro bar, y una de otra persona acá.
+                st.setLong(1, yo); st.setLong(2, bar); st.setInt(3, 3)
+                st.setLong(4, yo); st.setLong(5, bar); st.setInt(6, 1)
+                st.setLong(7, yo); st.setLong(8, otroBar); st.setInt(9, 5)
+                st.setLong(10, otro); st.setLong(11, bar); st.setInt(12, 9)
+                st.executeUpdate()
+            }
+        }
+
+        assertEquals(
+            4, bars.detail(bar, null, null, viewerId = yo)!!.myBeers,
+            "suma cantidades, no filas, y sólo de este bar y de esta persona",
+        )
+        assertEquals(0, bars.detail(otroBar, null, null, viewerId = otro)!!.myBeers)
+        assertNull(bars.detail(bar, null, null)!!.myBeers, "sin sesión no hay dato propio")
+    }
 }

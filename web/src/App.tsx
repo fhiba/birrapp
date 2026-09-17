@@ -8,12 +8,11 @@ import { Analytics } from '@vercel/analytics/react'
 import * as api from './data/api'
 import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
-import { AndroidPrompt } from './ui/AndroidPrompt'
 import { Crash } from './ui/Crash'
 import { OfflineBanner } from './ui/Offline'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
-import { Tour, type TourView } from './ui/Tour'
+import { Tour, TOUR_ANON, type TourView } from './ui/Tour'
 import { MapScreen } from './screens/MapScreen'
 import { ListScreen } from './screens/ListScreen'
 import { BarDetailScreen } from './screens/BarDetail'
@@ -68,6 +67,9 @@ function Shell() {
   const nav = useNavigate()
   const [user, setUser] = useState<User | null>(api.currentUser())
   const [toast, setToast] = useState<string | null>(null)
+  // Se incrementa al tocar el "?". Un booleano no sirve: pedir el tutorial dos
+  // veces seguidas no cambiaría el estado y el segundo pedido se perdería.
+  const [tourToken, setTourToken] = useState(0)
 
   const { coords, denied, permission, request } = useLocation()
   const {
@@ -97,7 +99,11 @@ function Shell() {
   // lee el valor inicial, así que hay un efecto abajo para cuando la sesión
   // llega después del primer render — que es lo normal al abrir.
   const [radius, setRadius] = useState(user?.defaultRadiusM ?? 2000)
-  const [styleFilter, setStyleFilter] = useState<string | undefined>()
+  // Varios estilos a la vez, y un piso de estrellas. Los dos viven acá y no
+  // en cada pantalla: el mapa y la lista muestran lo mismo filtrado igual, y
+  // que se desincronicen al cambiar de pestaña sería el bug obvio.
+  const [styleFilter, setStyleFilter] = useState<string[]>([])
+  const [minRating, setMinRating] = useState<number | undefined>()
   const [simulated, setSimulated] = useState<google.maps.LatLngLiteral | null>(null)
   // La cámara vive acá y no en la pantalla del mapa: al ir a otra pestaña el
   // componente se desmonta, y sin esto al volver arrancaba mostrando medio
@@ -191,8 +197,8 @@ function Shell() {
 
   const refresh = useCallback((force = false) => {
     if (!queryPoint) return
-    load(queryPoint, radius, sort, { style: styleFilter, force, zoom: camera?.zoom })
-  }, [queryPoint, radius, sort, styleFilter, camera?.zoom, load])
+    load(queryPoint, radius, sort, { style: styleFilter, minRating, force, zoom: camera?.zoom })
+  }, [queryPoint, radius, sort, styleFilter, minRating, camera?.zoom, load])
 
   useEffect(() => { refresh() }, [refresh])
 
@@ -227,16 +233,19 @@ function Shell() {
           <MapScreen
             bars={bars} styles={styles} loading={loading}
             user={user} brands={brands} favorites={favorites.ids}
+            onToggleFavorite={id => user ? favorites.toggle(id) : nav('/perfil')}
             onBrandCreated={addBrand} onStyleCreated={addStyle}
             onChanged={afterChange}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
+            minRating={minRating} onMinRating={setMinRating}
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
             myLocation={coords} panTo={panTo}
             locationUnknown={denied && !coords}
             locationBlocked={permission === 'denied'}
+            onHelp={() => setTourToken(t => t + 1)}
             onRecenter={() => {
               // Con un punto secundario puesto, el botón vuelve a ese punto y
               // no al GPS. Ese punto es el que manda la consulta —el radio, la
@@ -257,6 +266,7 @@ function Shell() {
             bars={bars} loading={loading} sort={sort} radius={radius}
             center={queryPoint ?? null}
             styles={styles} styleFilter={styleFilter} onStyle={setStyleFilter}
+            minRating={minRating} onMinRating={setMinRating}
             simulated={simulated} favorites={favorites.ids}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />
@@ -309,15 +319,25 @@ function Shell() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Sólo con sesión: el tutorial habla de aportar —confirmar precios,
-          puntuar, subir fotos— y nada de eso se puede hacer sin cuenta.
-          Mostrárselo a quien sólo mira precios sería enseñarle botones que le
-          van a pedir que se loguee. */}
-      {tourView && user && <Tour view={tourView} userId={user.id} />}
+      {/* Arranca solo **sólo con sesión**: el tutorial habla de aportar
+          —confirmar precios, puntuar, subir fotos— y nada de eso se puede
+          hacer sin cuenta. Empujárselo a quien sólo vino a mirar precios sería
+          enseñarle botones que le van a pedir que se loguee.
+          Pero **se puede pedir** desde el "?" del mapa con o sin sesión: quien
+          quiere entender la app antes de crear una cuenta es exactamente a
+          quien más le sirve que se la expliquen. Sin sesión el avance se
+          guarda con `TOUR_ANON`. */}
+      {tourView && (
+        <Tour
+          view={tourView}
+          userId={user?.id ?? TOUR_ANON}
+          autoStart={user != null}
+          openToken={tourToken}
+        />
+      )}
 
       <OfflineBanner />
 
-      {showNav && <AndroidPrompt />}
       {showNav && <BottomNav />}
       {error && bars.length === 0 && (
         <Toast text={error} onDone={() => {}} />

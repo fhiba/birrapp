@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
+import * as fb from '../data/feedback'
 import type {
   BarDetail as Bar, BeerStyle, Brand, MyRating, Photo, Review, StylePrice, User,
 } from '../data/types'
@@ -116,6 +117,7 @@ export function BarDetailScreen({
    */
   const vote = useCallback(async (photo: Photo) => {
     const on = !photo.votedByMe
+    fb.tap()
     const shift = (d: number) => setPhotos(cur => cur.map(x =>
       x.id === photo.id ? { ...x, votedByMe: d > 0, votes: x.votes + d } : x))
 
@@ -150,11 +152,15 @@ export function BarDetailScreen({
     setBusy(slug ?? '·')
     try {
       const r = await fn() as { message?: string }
+      // Acá pasan las tres mutaciones de precio, que son el aporte que más se
+      // repite: confirmar, cargar y borrar. Es el mejor lugar para el aviso,
+      // porque es el único por el que pasan las tres.
+      fb.exito()
       setToast(r?.message ?? 'Listo')
       await load()
       onChanged()
     }
-    catch (e) { setToast((e as Error).message) }
+    catch (e) { fb.error(); setToast((e as Error).message) }
     finally { setBusy(null) }
   }
 
@@ -207,6 +213,7 @@ export function BarDetailScreen({
    */
   const rate = async (p: StylePrice, n: number) => {
     if (!user) return nav('/perfil')
+    fb.tap()
     try {
       await api.rateBeer({
         barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,
@@ -414,6 +421,28 @@ export function BarDetailScreen({
               </div>
               <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
                 {votes === 1 ? '1 voto' : `${votes} votos`}
+              </div>
+            </div>
+          )}
+
+          {/* Las birras que te tomaste acá.
+              Es dato tuyo, no del bar, así que va en su propia columna y en el
+              ámbar de la birra — no compite con la nota de la comunidad, que
+              es lo de al lado y significa otra cosa. Sólo si tomaste alguna:
+              un "0" en cada bar al que entrás es ruido. */}
+          {(bar.myBeers ?? 0) > 0 && (
+            <div style={{ flexShrink: 0, textAlign: 'right', marginRight: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24"
+                  fill="var(--birra)" aria-hidden>
+                  <path d="M6 3h12l-1.3 17.2a1 1 0 0 1-1 .8H8.3a1 1 0 0 1-1-.8L6 3Zm1.8 5 .9 11.5h6.6L16.2 8H7.8Z" />
+                </svg>
+                <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
+                  {bar.myBeers}
+                </span>
+              </div>
+              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
+                {bar.myBeers === 1 ? 'tuya' : 'tuyas'}
               </div>
             </div>
           )}

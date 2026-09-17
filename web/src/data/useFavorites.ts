@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from './api'
+import * as fb from './feedback'
 import type { User } from './types'
 
 /**
@@ -29,6 +30,10 @@ export function useFavorites(user: User | null) {
 
   const toggle = useCallback(async (barId: number) => {
     const was = ids.has(barId)
+    // Acá y no en cada botón: es el único camino que tienen todos los
+    // corazones —la ficha, la vista previa del mapa, la lista—, así que el
+    // aviso sale una vez y desde el mismo lugar.
+    fb.tap()
     setIds(cur => {
       const next = new Set(cur)
       was ? next.delete(barId) : next.add(barId)
@@ -37,6 +42,7 @@ export function useFavorites(user: User | null) {
     try {
       await (was ? api.removeFavorite(barId) : api.addFavorite(barId))
     } catch {
+      fb.error()
       setIds(cur => {
         const back = new Set(cur)
         was ? back.add(barId) : back.delete(barId)

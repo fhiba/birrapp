@@ -105,6 +105,14 @@ data class BarDetailDto(
     val prices: List<StylePriceDto>,
     val avgRating: Double?,
     val reviewCount: Int,
+    /**
+     * Cuántas birras anotaste vos en este bar. Null sin sesión.
+     *
+     * Viaja con el detalle y no en un pedido aparte: es un entero, y la ficha
+     * ya hace un viaje para traer todo lo demás. Un round trip por un número
+     * es exactamente lo que se sacó de Perfil en BIR-43.
+     */
+    val myBeers: Int? = null,
 )
 
 @Serializable
