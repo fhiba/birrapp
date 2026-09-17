@@ -107,11 +107,29 @@ class FavoriteTest {
         val u = TestDb.insertUser()
         tresFavoritos(u)
 
-        val ipas = repo.favorites(u, -34.6037, -58.3816, styleSlug = "ipa")
+        val ipas = repo.favorites(u, -34.6037, -58.3816, styleSlugs = listOf("ipa"))
         assertEquals(listOf("Cerca", "Lejos"), ipas.map { it.name },
             "el de rubia no es una IPA, por más favorito que sea")
         assertEquals(9000.0, ipas.first { it.name == "Cerca" }.fromPrice,
             "y el precio que se muestra es el de la IPA")
+
+        // Dos estilos a la vez: entran los tres, y ninguno repetido. Con un
+        // JOIN a secas el bar con las dos aparecería dos veces.
+        val dos = repo.favorites(u, -34.6037, -58.3816, styleSlugs = listOf("ipa", "rubia"))
+        assertEquals(listOf("Cerca", "Medio", "Lejos"), dos.map { it.name })
+    }
+
+    @Test
+    fun `el piso de estrellas deja afuera a los que no llegan y a los que no tienen`() {
+        val u = TestDb.insertUser()
+        val (cerca, medio, _) = tresFavoritos(u)
+        // Cerca 4,5 · Medio 2,0 · Lejos sin votos.
+        TestDb.rate(cerca, "ipa", 4.5, TestDb.insertUser("a"))
+        TestDb.rate(medio, "rubia", 2.0, TestDb.insertUser("b"))
+
+        val buenos = repo.favorites(u, -34.6037, -58.3816, minRating = 4.0)
+        assertEquals(listOf("Cerca"), buenos.map { it.name },
+            "el de 2,0 no llega, y el que no tiene votos no es un bar malo pero tampoco cumple")
     }
 
     @Test

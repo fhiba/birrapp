@@ -28,6 +28,23 @@ import com.birrapp.traffic.TrafficPing
 import com.birrapp.traffic.TrafficRepo
 
 @Serializable data class RoleChangeRequest(val role: String)
+/**
+ * `?style=ipa,apa` → ["ipa","apa"].
+ *
+ * Coma y no `style` repetido porque es lo que ya sabía mandar el cliente con
+ * uno solo: `?style=ipa` sigue significando exactamente lo mismo que antes, y
+ * no hubo que tocar nada de lo que ya llamaba a esto.
+ *
+ * Con techo: son como mucho una docena de estilos, y sin límite esto es un
+ * array arbitrario que va derecho a un `= ANY(?)`.
+ */
+private fun estilos(raw: String?): List<String> =
+    raw.orEmpty().split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+        .take(20)
+
 @Serializable data class OkResponse(val ok: Boolean = true)
 
 /** Cómo quedó el pulgar de una foto después de tocarlo (BIR-10). */
@@ -104,7 +121,7 @@ fun Route.apiRoutes(
         call.respond(
             prices.areaStats(
                 lat, lng, radius,
-                styleSlug = call.request.queryParameters["style"],
+                styleSlugs = estilos(call.request.queryParameters["style"]),
                 brandSlug = call.request.queryParameters["brand"],
             ),
         )
@@ -146,7 +163,10 @@ fun Route.apiRoutes(
             else -> badRequest("sort inválido: usar distance, cheapest o rated")
         }
 
-        val found = bars.nearby(lat, lng, radius, sort, limit, q["style"])
+        // El piso de estrellas se recorta a 0-5: pedir 7 estrellas no es un
+        // error que valga rebotar, es una lista vacía garantizada.
+        val minRating = q["minRating"]?.toDoubleOrNull()?.coerceIn(0.0, 5.0)
+        val found = bars.nearby(lat, lng, radius, sort, limit, estilos(q["style"]), minRating)
         // Se cobra después de resolver, no antes: hasta no tener el resultado
         // no se sabe qué bares son, y lo que se cuenta son bares distintos, no
         // requests. Repetir una zona ya vista no cuesta nada.
@@ -201,11 +221,20 @@ fun Route.apiRoutes(
         }
     }
 
-    get("/bars/{id}") {
-        val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
-        val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
-        val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
-        call.respond(bars.detail(id, lat, lng) ?: notFound("no existe ese bar"))
+    /**
+     * La ficha del bar. Sesión opcional: sin ella se ve todo salvo lo propio
+     * —cuántas birras anotaste acá—, que es lo que `viewerId` agrega.
+     */
+    authenticate("jwt", optional = true) {
+        get("/bars/{id}") {
+            val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+            val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
+            val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
+            call.respond(
+                bars.detail(id, lat, lng, call.callerOrNull()?.userId)
+                    ?: notFound("no existe ese bar"),
+            )
+        }
     }
 
     /**
@@ -419,7 +448,8 @@ fun Route.apiRoutes(
                     q["lat"]?.toDoubleOrNull(),
                     q["lng"]?.toDoubleOrNull(),
                     sort = sort,
-                    styleSlug = q["style"]?.takeIf { it.isNotBlank() },
+                    styleSlugs = estilos(q["style"]),
+                    minRating = q["minRating"]?.toDoubleOrNull()?.coerceIn(0.0, 5.0),
                 ),
             )
         }

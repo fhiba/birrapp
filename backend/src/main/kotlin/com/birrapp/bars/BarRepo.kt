@@ -35,7 +35,8 @@ class BarRepo(private val db: Db) {
         radiusMeters: Int,
         sort: BarSort,
         limit: Int,
-        styleSlug: String? = null,
+        styleSlugs: List<String> = emptyList(),
+        minRating: Double? = null,
     ): List<BarPinDto> {
         // Con filtro de estilo, el precio del pin tiene que ser el DE ESE
         // estilo. Antes el filtro sólo elegía qué bares aparecían y el precio
@@ -43,7 +44,7 @@ class BarRepo(private val db: Db) {
         // cualquier estilo: filtrando IPA se veía el precio de la rubia. Eso
         // vacía de sentido al filtro, que es justamente comparar lo mismo
         // contra lo mismo.
-        val filtered = styleSlug != null
+        val filtered = styleSlugs.isNotEmpty()
 
         val priceCols = if (filtered) {
             "cp.price AS from_price, cp.age_days AS freshest_age_days"
@@ -51,16 +52,51 @@ class BarRepo(private val db: Db) {
             "h.from_price, h.freshest_age_days"
         }
 
-        // JOIN en vez de EXISTS: hace falta la fila para leerle el precio, no
-        // sólo saber que existe.
+        /*
+         * Varios estilos a la vez, con LATERAL y no con un JOIN a secas.
+         *
+         * El filtro pasó de uno a varios ("IPA o APA"), y un `= ANY(?)` sobre
+         * `v_current_prices` devuelve una fila por estilo que coincida: un bar
+         * con IPA y APA aparecería dos veces en el mapa, como dos pines
+         * encimados con precios distintos.
+         *
+         * El LATERAL se queda con **la más barata de las que coinciden**, que
+         * es la respuesta correcta a "¿cuánto me sale una IPA o una APA acá?"
+         * y deja una fila por bar, como antes.
+         */
         val joins = if (filtered) {
             """
-            JOIN v_current_prices cp
-              ON cp.bar_id = b.id AND cp.style_slug = ? AND cp.freshness <> 'stale'
+            JOIN LATERAL (
+                SELECT cp.price, cp.age_days
+                FROM v_current_prices cp
+                WHERE cp.bar_id = b.id
+                  AND cp.style_slug = ANY (?)
+                  AND cp.freshness <> 'stale'
+                ORDER BY cp.price ASC
+                LIMIT 1
+            ) cp ON true
             """.trimIndent()
         } else {
             "LEFT JOIN v_bar_headline h ON h.bar_id = b.id"
         }
+
+        /*
+         * Piso de estrellas.
+         *
+         * Filtra por `rating_raw` —la nota que se muestra— y no por
+         * `rating_sort`, que es la que lleva shrinkage. Es al revés que el
+         * orden, y a propósito: si alguien filtra "4 o más" y en la lista
+         * aparece un bar que dice 3,9, el filtro parece roto. Lo que se ve y
+         * lo que se filtra tienen que ser el mismo número.
+         *
+         * Que un 5,0 de un solo voto pase el filtro es aceptable porque la
+         * fila muestra el conteo al lado: "5,0 (1)" se lee solo. Esconderlo
+         * sería decidir por la persona con información que ella tiene.
+         *
+         * Un bar sin votos no pasa: `rating_raw` es NULL y la comparación da
+         * NULL. Es lo correcto — "no se sabe" no es "cumple".
+         */
+        val ratingGate = if (minRating != null) "AND r.rating_raw >= ?" else ""
 
         val orderBy = when (sort) {
             BarSort.distance -> "distance_meters ASC"
@@ -87,20 +123,23 @@ class BarRepo(private val db: Db) {
             LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE b.status = 'approved'
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
+              $ratingGate
             ORDER BY $orderBy
             LIMIT ?
         """.trimIndent()
 
-        // El orden importa: el slug va en el JOIN, que en el SQL aparece antes
-        // del WHERE, pero después del ST_Distance del SELECT.
-        val args = buildList<Any?> {
-            add(lng); add(lat)            // ST_MakePoint es (x=lng, y=lat)
-            if (filtered) add(styleSlug)
-            add(lng); add(lat); add(radiusMeters)
-            add(limit)
+        // El orden importa: los slugs van en el JOIN, que en el SQL aparece
+        // antes del WHERE, pero después del ST_Distance del SELECT.
+        return db.conn { c ->
+            val args = buildList<Any?> {
+                add(lng); add(lat)            // ST_MakePoint es (x=lng, y=lat)
+                if (filtered) add(c.createArrayOf("text", styleSlugs.toTypedArray()))
+                add(lng); add(lat); add(radiusMeters)
+                if (minRating != null) add(minRating)
+                add(limit)
+            }
+            c.query(sql, *args.toTypedArray(), map = ::mapPin)
         }
-
-        return db.conn { it.query(sql, *args.toTypedArray(), map = ::mapPin) }
     }
 
     private fun mapPin(rs: ResultSet) = BarPinDto(
@@ -152,21 +191,33 @@ class BarRepo(private val db: Db) {
         fromLat: Double?,
         fromLng: Double?,
         sort: BarSort = BarSort.distance,
-        styleSlug: String? = null,
+        styleSlugs: List<String> = emptyList(),
+        minRating: Double? = null,
         limit: Int = 200,
-    ): List<BarPinDto> = db.conn {
+    ): List<BarPinDto> = db.conn { c ->
         // Con filtro de estilo el precio de la fila tiene que ser el DE ESE
         // estilo, no el más barato del bar: es el mismo JOIN que usa `nearby`,
         // y por el mismo motivo.
-        val filtered = styleSlug != null
+        val filtered = styleSlugs.isNotEmpty()
+        // LATERAL por lo mismo que en `nearby`: con varios estilos, un JOIN a
+        // secas devuelve una fila por estilo que coincida y el bar aparece
+        // repetido. Se queda con la más barata de las que coinciden.
         val joins = if (filtered) {
             """
-            JOIN v_current_prices cp
-              ON cp.bar_id = b.id AND cp.style_slug = ? AND cp.freshness <> 'stale'
+            JOIN LATERAL (
+                SELECT cp.price, cp.age_days
+                FROM v_current_prices cp
+                WHERE cp.bar_id = b.id
+                  AND cp.style_slug = ANY (?)
+                  AND cp.freshness <> 'stale'
+                ORDER BY cp.price ASC
+                LIMIT 1
+            ) cp ON true
             """.trimIndent()
         } else {
             "LEFT JOIN v_bar_headline h ON h.bar_id = b.id"
         }
+        val ratingGate = if (minRating != null) "AND r.rating_raw >= ?" else ""
         val price = if (filtered) "cp.price AS from_price, cp.age_days AS freshest_age_days"
                     else "h.from_price, h.freshest_age_days"
 
@@ -188,11 +239,13 @@ class BarRepo(private val db: Db) {
         // silenciosa de líos al pasar los parámetros.
         val args = buildList<Any?> {
             add(fromLat); add(fromLng); add(fromLat)
-            if (filtered) add(styleSlug)
-            add(userId); add(limit.coerceIn(1, 500))
+            if (filtered) add(c.createArrayOf("text", styleSlugs.toTypedArray()))
+            add(userId)
+            if (minRating != null) add(minRating)
+            add(limit.coerceIn(1, 500))
         }
 
-        it.query(
+        c.query(
             """
             SELECT b.id, b.name,
                    ST_Y(b.location::geometry) AS lat,
@@ -208,6 +261,7 @@ class BarRepo(private val db: Db) {
             $joins
             LEFT JOIN v_bar_ratings r ON r.bar_id = b.id
             WHERE f.user_id = ?
+              $ratingGate
             ORDER BY $orderBy
             LIMIT ?
             """.trimIndent(),
@@ -278,7 +332,9 @@ class BarRepo(private val db: Db) {
         }
     }
 
-    fun detail(id: Long, fromLat: Double?, fromLng: Double?): BarDetailDto? = db.conn { c ->
+    fun detail(
+        id: Long, fromLat: Double?, fromLng: Double?, viewerId: Long? = null,
+    ): BarDetailDto? = db.conn { c ->
         val bar = c.queryOne(
             """
             SELECT b.id, b.name, b.address, b.neighbourhood, b.status, b.google_place_id,
@@ -388,7 +444,17 @@ class BarRepo(private val db: Db) {
                 priceHigh = rs.getBigDecimal("price_high")?.toDouble(),
             )
         }
-        bar.copy(prices = prices)
+        // Las birras propias en este bar. Se cuentan las cantidades y no las
+        // filas: anotar "3 birras" de una es una fila.
+        val mias = viewerId?.let {
+            c.queryOne(
+                "SELECT coalesce(sum(qty), 0)::int AS n FROM beer_logs " +
+                    "WHERE user_id = ? AND bar_id = ?",
+                it, id,
+            ) { rs -> rs.getInt("n") } ?: 0
+        }
+
+        bar.copy(prices = prices, myBeers = mias)
     }
 
     /**

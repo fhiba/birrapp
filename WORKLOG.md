@@ -3013,3 +3013,97 @@ Y la dirección del bar se despegó de la fila de pastillas, que estaba tan pega
 que la dirección se leía como su rótulo.
 
 179 tests verdes, 6 nuevos en `PreferencesTest`.
+
+## 2026-09-17 — v0.18.0: ubicación, filtros, y que la app conteste al tocarla
+
+Una tanda larga de pedidos mirando la app. Lo que vale anotar de cada uno es
+por qué estaba roto, no qué se agregó.
+
+### El permiso de ubicación que nunca se pedía
+
+El bug era real y tenía dos capas, las dos en `useLocation`:
+
+* `request()` —el botón de centrar y el "Reintentar" del cartel— arrancaba con
+  un atajo por frescura: si había un fix de menos de N minutos, volvía sin
+  hacer nada. Ese atajo valía **siempre**, también con el permiso todavía en
+  `prompt`. O sea que a quien tenía una posición guardada de antes pero el
+  permiso sin dar —permisos reseteados, la PWA reinstalada, el navegador
+  limpiando el sitio sin limpiar el `localStorage`— el botón le salía por ahí
+  sin llegar nunca a `getCurrentPosition`, y **el navegador nunca preguntaba**.
+* En el arranque, con permiso en `prompt` y posición guardada, se marcaba
+  `denied = false` y se terminaba: ni cartel ni pedido. La app usaba una
+  posición vieja para siempre.
+
+Ahora el atajo vale sólo con el permiso ya dado. Sigue sin pedirse de arranque
+—preguntar antes de que se vea para qué sirve es la forma más rápida de que lo
+nieguen para siempre— pero el botón llega de verdad al pedido.
+
+El cartel además se puede cerrar. Para quien decidió mirar precios sin dar la
+ubicación era un aviso permanente sobre una decisión ya tomada, tapando mapa.
+Se cierra por pantalla, no para siempre: la situación sigue siendo cierta.
+
+### Filtros: varios estilos y piso de estrellas
+
+El filtro pasó de uno a varios. El detalle que importa es el **LATERAL**: un
+`= ANY(?)` sobre `v_current_prices` devuelve una fila por estilo que coincida,
+así que un bar con IPA y APA aparecía dos veces en el mapa, dos pines encimados
+con precios distintos. El LATERAL se queda con la más barata de las que
+coinciden, que además es la respuesta correcta a "¿cuánto me sale una IPA o una
+APA acá?".
+
+La clave de la caché del cliente pasó a ser la combinación entera de filtros.
+Era sólo el slug: con varios, "IPA" y "IPA + APA" habrían compartido caché y al
+agregar el segundo estilo se verían los bares del primero.
+
+El piso de estrellas filtra por `rating_raw` —la nota que se muestra— y no por
+`rating_sort`, que es la que lleva shrinkage. Es al revés que el orden, y a
+propósito: si alguien filtra "4 o más" y ve un bar que dice 3,9, el filtro
+parece roto. Lo que se ve y lo que se filtra tienen que ser el mismo número.
+
+### Feedback: vibración y sonido
+
+Confirmar un precio, votar una foto o marcar un favorito no producían nada
+hasta que volvía el servidor. Parado en un bar, con una mano, esa espera se
+siente como que el toque no entró — y la reacción natural es tocar de nuevo.
+
+Dos canales porque ninguno alcanza solo: `navigator.vibrate` no existe en
+Safari de iOS, y el sonido es lo único que llega ahí. Tonos sintetizados y no
+archivos: tres notas no justifican bajar assets ni cachearlos.
+
+Sólo en lo que **cambia algo** —un voto, un precio, un favorito, una birra, y
+los errores—. Un canal que avisa de todo deja de avisar de nada. Los dos se
+apagan por separado: en un bar con gente el sonido molesta y la vibración no.
+
+El del favorito va en `useFavorites.toggle` y no en cada botón: es el único
+camino que tienen todos los corazones, así que el aviso sale una vez.
+
+### Lo demás
+
+* **La nota subió al renglón del nombre** en la lista. Estaba tercera en la
+  línea de metadatos, después de la distancia y la antigüedad, donde todo pesa
+  igual.
+* **El tutorial se puede pedir** desde un "?" en el mapa, con o sin sesión.
+  Sigue sin arrancar solo sin cuenta —habla de aportar— pero quien quiere
+  entender la app antes de crearse una es justo a quien más le sirve.
+* **Cuántas birras te tomaste en el bar**, en la ficha. Viaja con el detalle y
+  no en un pedido aparte: es un entero, y un round trip por un número es lo que
+  se sacó de Perfil en BIR-43.
+* **Favoritear desde la vista previa**, sin entrar al bar. Y **filtro de
+  favoritos en el mapa**, que filtra los pines cargados en vez de pedir de
+  nuevo: el mapa muestra lo que entra en pantalla, así que "mis favoritos"
+  acá significa "de lo que veo, cuáles marqué". En la lista sí se pide al
+  servidor, porque ahí el favorito que buscás suele estar en otro barrio.
+* **Fuera el cartel de la app de Android.**
+
+### A Linear
+
+* **BIR-47** — cómo asociar la birra tomada al bar y sacar los más populares.
+  Lo primero es medir qué proporción de `beer_logs` tiene `bar_id`: si la
+  mayoría viene en NULL, un ranking sería de los bares donde alguien se acordó
+  de tocar la pastilla.
+* **BIR-48** — si vale la pena un distintivo para los más recomendados. La
+  pregunta real no es cómo calcularlo sino qué agrega sobre poder ordenar por
+  nota, que ya se puede. Conviene decidirlo después de ver si con el filtro de
+  estrellas alcanza.
+
+187 tests verdes.

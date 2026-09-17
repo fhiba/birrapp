@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as api from '../data/api'
+import * as fb from '../data/feedback'
 import type { BarPin, BeerStyle, Brand } from '../data/types'
 import { formatDistance } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
@@ -63,6 +64,7 @@ export function LogBeerSheet({
         brandSlug: brand,
         qty,
       })
+      fb.exito()
       const donde = close.find(b => b.id === barId)?.name
       onDone(
         qty === 1
@@ -70,6 +72,7 @@ export function LogBeerSheet({
           : `${qty} birras anotadas${donde ? ` en ${donde}` : ''}. ¡Salud!`,
       )
     } catch (e) {
+      fb.error()
       setError((e as Error).message)
       setBusy(false)
     }

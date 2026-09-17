@@ -255,8 +255,13 @@ class PriceRepo(private val db: Db) {
      */
     fun areaStats(
         lat: Double, lng: Double, radiusMeters: Int,
-        styleSlug: String? = null, brandSlug: String? = null,
+        styleSlugs: List<String> = emptyList(), brandSlug: String? = null,
     ): AreaStatsDto = db.conn { c ->
+        // NULL = todos los estilos, que es el centinela que ya usaba la
+        // consulta. Una lista vacía significa lo mismo, así que se traduce acá
+        // en vez de repetir el `if` en cada WHERE.
+        val estilos = if (styleSlugs.isEmpty()) null
+                      else c.createArrayOf("text", styleSlugs.toTypedArray())
         // Primero, en qué moneda está la zona.
         //
         // Promediar 8.000 pesos con 6 libras no da un precio, da un número sin
@@ -274,11 +279,11 @@ class PriceRepo(private val db: Db) {
             JOIN bars b ON b.id = cp.bar_id AND b.status = 'approved'
             WHERE cp.freshness <> 'stale'
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
-              AND (?::text IS NULL OR cp.style_slug = ?::text)
+              AND (?::text[] IS NULL OR cp.style_slug = ANY (?::text[]))
               AND (?::text IS NULL OR cp.brand_slug = ?::text)
             GROUP BY cp.currency ORDER BY n DESC, cp.currency
             """.trimIndent(),
-            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug,
+            lng, lat, radiusMeters, estilos, estilos, brandSlug, brandSlug,
         ) { rs -> rs.getString("currency") to rs.getInt("n") }
 
         val currency = monedas.firstOrNull()?.first ?: Currency.DEFAULT
@@ -293,12 +298,12 @@ class PriceRepo(private val db: Db) {
              AND sr.brand_id IS NOT DISTINCT FROM cp.brand_id
             WHERE cp.freshness <> 'stale'
               AND ST_DWithin(b.location, ST_MakePoint(?, ?)::geography, ?)
-              AND (?::text IS NULL OR cp.style_slug = ?::text)
+              AND (?::text[] IS NULL OR cp.style_slug = ANY (?::text[]))
               AND (?::text IS NULL OR cp.brand_slug = ?::text)
               AND cp.currency = ?
         """.trimIndent()
         val args = arrayOf<Any?>(
-            lng, lat, radiusMeters, styleSlug, styleSlug, brandSlug, brandSlug, currency,
+            lng, lat, radiusMeters, estilos, estilos, brandSlug, brandSlug, currency,
         )
 
         val head = c.queryOne(

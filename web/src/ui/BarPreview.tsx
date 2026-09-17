@@ -23,12 +23,15 @@ import { ageColor, formatDistance, formatPrice, shortAge } from '../data/format'
  * vaciaba la tarjeta abierta.
  */
 export function BarPreview({
-  bar, onClose, onOpen,
+  bar, onClose, onOpen, isFavorite, onToggleFavorite,
 }: {
   bar: BarPin
   onClose: () => void
   /** Abrir la ficha completa. */
   onOpen: () => void
+  isFavorite: boolean
+  /** null sin sesión: el corazón lleva a Perfil en vez de no hacer nada. */
+  onToggleFavorite: () => void
 }) {
   // Entrada desde abajo. Se monta afuera de pantalla y se sube en el frame
   // siguiente: con el estado inicial ya en 0 no hay transición que animar.
@@ -133,6 +136,27 @@ export function BarPreview({
                 </p>
               )}
             </div>
+
+            {/* Favoritear sin entrar a la ficha.
+                Es el gesto de "este me sirve, seguí mirando": obligarte a
+                abrir el bar, marcarlo y volver al mapa para seguir buscando
+                rompe justo el recorrido en el que estás. */}
+            <button
+              onClick={onToggleFavorite}
+              aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
+              aria-pressed={isFavorite}
+              className="icon-btn"
+              style={{
+                background: isFavorite ? 'var(--favorito-soft)' : 'var(--film-2)',
+                color: isFavorite ? 'var(--favorito)' : 'var(--muted)',
+              }}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+                fill={isFavorite ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.9}>
+                <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+              </svg>
+            </button>
 
             {/* Era de 30px: por debajo del piso de 44 que la app ya dice
                 cumplir, y encima es el botón que se aprieta con el pulgar

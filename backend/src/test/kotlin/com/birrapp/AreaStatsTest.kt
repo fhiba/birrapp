@@ -68,7 +68,7 @@ class AreaStatsTest {
         TestDb.insertPrice(lejos, "rubia", 100.0, daysAgo = 1, userId = u)
 
         assertEquals(2, repo.areaStats(lat, lng, 2000).samples)
-        val soloIpa = repo.areaStats(lat, lng, 2000, styleSlug = "ipa")
+        val soloIpa = repo.areaStats(lat, lng, 2000, styleSlugs = listOf("ipa"))
         assertEquals(1, soloIpa.samples)
         assertEquals(9000.0, soloIpa.avgPint!!, 1.0)
     }
