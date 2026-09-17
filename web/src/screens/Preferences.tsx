@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BeerStyle, Brand, User } from '../data/types'
+import { chipStyle } from '../ui/PillRow'
 
 /** El techo del servidor es 10; acá se sugiere menos porque se muestran 3. */
 const MAX = 10
@@ -112,27 +113,32 @@ export function PreferencesScreen({
       </div>
 
       {/* Barra fija abajo: la lista es larga y el botón de guardar no puede
-          quedar al final de un scroll de cincuenta marcas. */}
+          quedar al final de un scroll de cincuenta marcas.
+
+          Los dos botones llevan `.cta`, el hundido compartido de theme.css: es
+          lo único que acusa el tap mientras la red tarda, y sin eso "Listo" se
+          toca dos veces. */}
       <div style={{
         position: 'fixed', left: 0, right: 0, bottom: 0,
         padding: `var(--s-3) 18px calc(var(--s-3) + var(--safe-bottom))`,
-        background: 'var(--base)', borderTop: '1px solid var(--film-2)',
+        background: 'var(--base)', borderTop: '1px solid var(--hairline)',
         display: 'flex', gap: 10, alignItems: 'center',
       }}>
         <div className="desk-narrow" style={{
           display: 'flex', gap: 10, alignItems: 'center', width: '100%',
         }}>
           {/* Saltear sin culpa: esto mejora la app, no la habilita. */}
-          <button onClick={salir} className="lbl" style={{
-            padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)', color: 'var(--muted)',
+          <button onClick={salir} className="lbl cta" style={{
+            minHeight: 44, padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)',
+            color: 'var(--info)',
           }}>{primeraVez ? 'Ahora no' : 'Cancelar'}</button>
 
           <button
-            onClick={guardar} disabled={guardando} className="lbl"
+            onClick={guardar} disabled={guardando} className="lbl cta"
             style={{
-              flex: 1, padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
+              flex: 1, minHeight: 46, padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
               fontSize: 'var(--t-4)',
-              background: guardando ? 'var(--acento-deep)' : 'var(--acento)',
+              background: guardando ? 'var(--acento-busy)' : 'var(--acento)',
               color: 'var(--base)',
             }}
           >{guardando ? 'Guardando…' : 'Listo'}</button>
@@ -147,29 +153,51 @@ function Grupo({ titulo, elegidos, children }: {
 }) {
   return (
     <section style={{ padding: '0 18px' }}>
-      <h2 className="lbl" style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)',
-        margin: 'var(--s-5) 0 var(--s-3)',
+      <h2 className="section-label" style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
       }}>
         {titulo.toUpperCase()}
+        {/* El contador va en hueso y no en el tono de la etiqueta: si los dos
+            fueran `--info` el número se perdería adentro del título. La
+            jerarquía queda cifra brillante sobre etiqueta apagada, que es la
+            misma de una baldosa de perfil. */}
         {elegidos > 0 && (
-          <span className="num" style={{ color: 'var(--nota)' }}>{elegidos}</span>
+          <span className="num" style={{ color: 'var(--cream)' }}>{elegidos}</span>
         )}
       </h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{children}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--s-2)' }}>{children}</div>
     </section>
   )
 }
 
+/**
+ * Una birra que se marca o se desmarca.
+ *
+ * Apagado pasa de relleno a contorno. Con cincuenta marcas rellenas, la
+ * pantalla era un muro de pastillas grises y lo elegido no saltaba: la única
+ * diferencia entre "esta sí" y "esta no" era un gris apenas más claro. Con el
+ * contorno, lo marcado es lo único que tiene relleno y el ojo lo encuentra sin
+ * leer.
+ *
+ * El color del prendido sale de `chipStyle`, el mismo que usa la ficha del bar,
+ * y no de una copia local: acá el chip se pintaba en hueso lleno y en el resto
+ * de la app en la familia `--info`, así que la misma pieza decía dos cosas
+ * según la pantalla. Y el hueso es el color del botón que manda —"Listo" está
+ * a dos centímetros—, no el de "esto lo elegí". Acá quedan sólo la forma y el
+ * alto, que sí son de esta pantalla.
+ *
+ * Y sube a 44px de alto. Antes medía 38 y son botones que se tocan de a diez
+ * seguidos: cada fallo obliga a desmarcar y volver a marcar.
+ */
 function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick} aria-pressed={on} className="lbl"
       style={{
-        padding: '10px 15px', borderRadius: 999, fontSize: 'var(--t-3)',
-        background: on ? 'var(--acento)' : 'var(--film-2)',
-        color: on ? 'var(--base)' : 'var(--muted)',
+        ...chipStyle(on),
+        display: 'inline-flex', alignItems: 'center', minHeight: 44,
+        padding: '0 var(--s-4)', borderRadius: 999, fontSize: 'var(--t-3)',
+        transition: 'background-color .15s ease-out, color .15s ease-out',
       }}
     >{label}</button>
   )

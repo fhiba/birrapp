@@ -1,8 +1,28 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Sheet } from './Chrome'
 
 /** Cuántas pastillas se ven sin desplegar. */
 const MAX = 3
+
+/**
+ * El chip de estilo o de marca, en un solo lugar.
+ *
+ * Quien dibuja la pastilla es el que la usa —`renderPill`— porque el contenido
+ * cambia (un precio al lado, un contador), pero el *color* no puede cambiar de
+ * pantalla en pantalla: es la pieza que más se repite en la app y cada copia
+ * se fue separando (hueso lleno en una fila, hueso al 16% en la de abajo).
+ *
+ * En la dirección heritage el chip de estilo es informativo y no un CTA: es
+ * "qué estoy mirando", no "tocá acá". Por eso el prendido va en la familia de
+ * `--info` —Steel Blue— y no en el hueso del acento, que queda para el botón
+ * que manda. El apagado no lleva relleno: apenas el filete, que es la gramática
+ * de la pizarra.
+ */
+export const chipStyle = (on: boolean): CSSProperties => ({
+  background: on ? 'var(--info-soft)' : 'transparent',
+  color: on ? 'var(--info-bright)' : 'var(--faint)',
+  border: `1px solid ${on ? 'var(--info-border)' : 'var(--hairline)'}`,
+})
 
 export interface Pastilla {
   key: string
@@ -86,7 +106,10 @@ export function PillRow({
               // Mismo alto que las pastillas para que la fila no se escalone.
               minWidth: 44, height: 36, borderRadius: 999,
               display: 'grid', placeItems: 'center',
-              background: 'var(--film-2)', color: 'var(--muted)',
+              // Es un chip apagado más: filete y nada de relleno. Con fondo
+              // propio se leía como un control aparte y pesaba más que las
+              // tres pastillas que tiene al lado.
+              ...chipStyle(false),
               fontSize: 'var(--t-4)', letterSpacing: '.08em',
             }}
           >⋯</button>
@@ -109,8 +132,11 @@ export function PillRow({
                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                     padding: '13px 14px', borderRadius: 'var(--r-2)', textAlign: 'left',
                     fontSize: 'var(--t-4)',
-                    background: on ? 'var(--acento-soft)' : 'var(--film-1)',
-                    color: on ? 'var(--acento)' : 'var(--cream)',
+                    // El mismo par de colores que el chip de la fila: la hoja
+                    // es la misma lista desplegada, y si el elegido se pinta
+                    // distinto acá adentro hay que volver a buscarlo.
+                    background: on ? 'var(--info-soft)' : 'var(--film-1)',
+                    color: on ? 'var(--info-bright)' : 'var(--cream)',
                   }}
                 >
                   <span style={{ flex: 1, minWidth: 0 }}>{p.label}</span>

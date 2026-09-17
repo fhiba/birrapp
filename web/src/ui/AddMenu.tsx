@@ -53,7 +53,7 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
           style={{
             position: 'absolute', right: 14, zIndex: 20,
             bottom: `calc(72px + var(--nav-gap) + 60px)`,
-            borderRadius: 'var(--r-3)', padding: 8, minWidth: 208,
+            borderRadius: 'var(--r-3)', padding: 'var(--s-2)', minWidth: 208,
             display: 'flex', flexDirection: 'column',
             // Nace desde el botón, que es de donde viene.
             transformOrigin: 'bottom right',
@@ -102,8 +102,8 @@ function Item({ icon, label, onClick }: {
 }) {
   return (
     <button onClick={onClick} className="lbl" style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+      display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+      padding: 'var(--s-3)', borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
       textAlign: 'left', width: '100%', color: 'var(--cream)',
     }}>
       <span style={{ display: 'grid', placeItems: 'center', width: 20, color: 'var(--acento)' }}>

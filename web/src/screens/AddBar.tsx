@@ -148,7 +148,10 @@ export function AddBarScreen(
       position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
       paddingTop: 'var(--safe-top)',
     }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+      <header style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+        borderBottom: '1px solid var(--hairline)',
+      }}>
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Bar nuevo</h1>
       </header>
@@ -160,23 +163,31 @@ export function AddBarScreen(
       }}>
         {chosen ? (
           <>
+            {/* El bloque de "verificado" sí es una tarjeta: es lo único de esta
+                pantalla que es un bloque aparte y no un renglón de una lista.
+
+                Pasa del verde crudo —un hex suelto de la paleta vieja, que
+                además era el color de la frescura de un precio— a `--info`, que
+                es el tono de lo verificado y lo estructural. Acá no hay ningún
+                precio: teñirlo del color de la frescura era prometer un dato
+                que esta pantalla no tiene. */}
             <div style={{
-              display: 'flex', gap: 12, padding: 16, borderRadius: 'var(--r-3)',
-              background: 'rgba(95,217,141,.10)',
+              display: 'flex', gap: 12, padding: 'var(--s-4)', borderRadius: 'var(--r-3)',
+              background: 'var(--info-soft)', border: '1px solid var(--info-border)',
             }}>
-              <span style={{ color: 'var(--fresh)' }}>✓</span>
+              <span style={{ color: 'var(--info-bright)' }}>✓</span>
               <div>
                 <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>{chosen.name}</div>
                 {chosen.address && (
                   <div style={{ color: 'var(--muted)', fontSize: 'var(--t-2)' }}>{chosen.address}</div>
                 )}
-                <div style={{ color: 'var(--fresh)', fontSize: 'var(--t-1)', marginTop: 8 }}>
+                <div style={{ color: 'var(--info)', fontSize: 'var(--t-1)', marginTop: 8 }}>
                   Verificado en Google Maps · se publica al instante
                 </div>
               </div>
             </div>
-            <button onClick={() => { setChosen(null); setQuery('') }} style={{
-              color: 'var(--acento)', fontSize: 'var(--t-3)', marginTop: 12,
+            <button onClick={() => { setChosen(null); setQuery('') }} className="lbl" style={{
+              color: 'var(--info)', fontSize: 'var(--t-3)', marginTop: 12, minHeight: 44,
             }}>¿No es este?</button>
           </>
         ) : (
@@ -196,26 +207,34 @@ export function AddBarScreen(
               placeholder="¿Cómo se llama?" autoFocus
               style={{
                 width: '100%', padding: '16px 16px', borderRadius: 'var(--r-2)',
-                background: 'transparent', border: '1px solid var(--hairline)',
+                // El campo se apoya sobre `--raised` y no sobre el fondo: con
+                // el fondo transparente, un borde de un pixel era todo lo que
+                // decía que ahí se escribe.
+                background: 'var(--raised)', border: '1px solid var(--hairline)',
               }}
             />
             {searching && <div className="spinner" style={{ margin: '14px auto' }} />}
 
             {existing.length > 0 && <SectionLabel>Ya está en birrapp</SectionLabel>}
+            {/* El tilde, la distancia y el "Ver" son las tres cosas
+                informativas de la fila, y van las tres en `--info`: el tilde
+                decía "ya está" en el verde de la frescura, que es color de
+                precio y acá no hay ninguno, y la distancia competía con el
+                nombre del bar desde el gris de los metadatos. */}
             {existing.map(b => (
               <button key={b.id} onClick={() => nav(`/bar/${b.id}`)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                padding: '12px 0', textAlign: 'left',
+                minHeight: 44, padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
               }}>
-                <span style={{ color: 'var(--fresh)' }}>✓</span>
+                <span style={{ color: 'var(--info)' }}>✓</span>
                 <span style={{ flex: 1 }}>
                   <span className="lbl" style={{ display: 'block', fontSize: 'var(--t-4)' }}>{b.name}</span>
-                  <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>
+                  <span style={{ color: 'var(--info)', fontSize: 'var(--t-2)' }}>
                     {formatDistance(b.distanceMeters)}
                   </span>
                 </span>
-                <span style={{ color: 'var(--acento)', fontSize: 'var(--t-3)' }}>Ver</span>
+                <span className="lbl" style={{ color: 'var(--info)', fontSize: 'var(--t-3)' }}>Ver</span>
               </button>
             ))}
 
@@ -223,10 +242,10 @@ export function AddBarScreen(
             {suggestions.map(s => (
               <button key={s.placeId} onClick={() => pick(s)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                padding: '12px 0', textAlign: 'left',
+                minHeight: 44, padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
               }}>
-                <span style={{ color: 'var(--acento)' }}>◈</span>
+                <span style={{ color: 'var(--info)' }}>◈</span>
                 <span style={{ flex: 1 }}>
                   <span className="lbl" style={{ display: 'block', fontSize: 'var(--t-4)' }}>{s.primary}</span>
                   <span style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>{s.secondary}</span>
@@ -237,14 +256,23 @@ export function AddBarScreen(
             {query.trim().length >= 2 && !searching && (
               <div style={{ marginTop: 16 }}>
                 {!manual ? (
+                  /* Acción secundaria, con el vestido de acción secundaria: el
+                     camino principal es elegir el bar de la lista, y este es el
+                     de al lado. Con `--elevated` sin borde se leía como una
+                     tarjeta más de la pantalla. El aviso de que lo revisa un
+                     moderador va en `--aging`, que es el tono de "a revisión"
+                     en toda la app. */
                   <button onClick={() => setManual(true)} style={{
-                    display: 'flex', gap: 12, width: '100%', padding: 16,
-                    borderRadius: 'var(--r-3)', background: 'var(--elevated)', textAlign: 'left',
+                    display: 'flex', gap: 12, width: '100%', padding: 'var(--s-4)',
+                    minHeight: 52, borderRadius: 'var(--r-2)', textAlign: 'left',
+                    background: 'var(--info-soft)', border: '1px solid var(--info-border)',
                   }}>
-                    <span style={{ color: 'var(--acento)' }}>+</span>
+                    <span style={{ color: 'var(--info-bright)' }}>+</span>
                     <span>
-                      <span className="lbl" style={{ display: 'block' }}>Agregar “{query}”</span>
-                      <span style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
+                      <span className="lbl" style={{
+                        display: 'block', color: 'var(--info-bright)',
+                      }}>Agregar “{query}”</span>
+                      <span style={{ color: 'var(--aging)', fontSize: 'var(--t-1)' }}>
                         Lo revisa un moderador antes de publicarse
                       </span>
                     </span>
@@ -257,7 +285,7 @@ export function AddBarScreen(
                       placeholder="Calle y altura, o esquina"
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 12,
-                        background: 'transparent', border: '1px solid var(--hairline)',
+                        background: 'var(--raised)', border: '1px solid var(--hairline)',
                       }}
                     />
                     <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5 }}>
@@ -302,7 +330,7 @@ export function AddBarScreen(
 
       <button disabled={!canSend || sending} onClick={submit} className="lbl" style={{
         margin: `12px 18px calc(14px + var(--nav-gap))`, padding: 16,
-        borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)', minHeight: 52,
+        borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', minHeight: 52,
         background: canSend ? 'var(--acento)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',
       }}>{sending ? 'Enviando…' : 'Agregar este bar'}</button>

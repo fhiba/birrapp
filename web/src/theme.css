@@ -1,37 +1,87 @@
 /* Misma paleta que Android. Los tokens se comparten a ojo, no por build:
    son doce colores y un build compartido no justifica la complejidad. */
 
-/* ---------- Hueso ----------
+/* ---------- Pizarra heritage ----------
  *
- * El fondo pasa de marrón a un neutro apenas frío, y el acento de marca se
- * queda sin color: blanco cálido en vez de ámbar.
+ * La regla de la paleta no cambió, y es la que sostiene todo lo demás:
  *
- * El motivo no es de gusto. El ámbar de la marca era `--amber: #FFB627`, que
- * es *exactamente* el mismo hex que el punto "precio medio-alto" de
- * `PRICE_STOPS` (data/format.ts) y que `--aging`. O sea que el color de los
- * botones, de la pestaña activa y de los links era además un valor del dato:
- * en un mapa con bares de precio medio, el pin de un bar y el botón "Sigue
- * igual" eran indistinguibles. La marca le estaba robando un tono a la escala
- * de precios, que es lo único que la app viene a contestar.
+ *   **Si tiene color, es un dato.**
  *
- * De acá en más la regla es: **si tiene color, es un dato.** El cromo
- * —fondos, texto, acento— vive en la rampa de grises hueso; el verde, el
- * ámbar y el rojo quedan reservados para frescura, precio y peligro.
+ * Viene de cuando el acento de marca era `--amber: #FFB627`, *exactamente* el
+ * mismo hex que el punto "precio medio-alto" de `PRICE_STOPS`
+ * (data/format.ts) y que `--aging`. El color de los botones, de la pestaña
+ * activa y de los links era además un valor del dato: en un mapa con bares de
+ * precio medio, el pin de un bar y el botón "Sigue igual" eran
+ * indistinguibles. La marca le estaba robando un tono a la escala de precios,
+ * que es lo único que la app viene a contestar.
  *
- * Por eso `--fresh`, `--aging`, `--stale`, `--danger`, `PRICE_STOPS` y los
- * escalones `.heat-*` no se tocan: son dato, no marca. Y por eso el token se
- * llama `--acento` y ya no `--amber`: nombrar un token del cromo por su color
- * es lo que dejó que esto pasara sin que nadie lo viera.
+ * Lo que cambia acá es el *material*: la rampa de grises fríos pasa a una de
+ * espresso, y el cromo hueso pasa de `#EDE6D8` a Floral White `#FFFDF4`. Es
+ * la dirección "Pizarra heritage": la app se lee como la pizarra de un bar
+ * —fondo oscuro cálido, tiza, filetes— y no como un panel de control.
+ *
+ * El cambio de fondo no es decorativo. Con el neutro frío, los tres colores
+ * del dato (verde frescura, ámbar precio, rojo peligro) flotaban sobre un
+ * gris que no era de nadie; sobre espresso los tres se leen como tiza de
+ * colores sobre pizarra, que es de donde salen los precios de verdad.
+ *
+ * La novedad de esta paleta es `--info`: ver más abajo.
  */
 :root {
-  --base:     #0F1012;
-  --raised:   #191B1F;
-  --elevated: #24272C;
+  --base:     #1B0D17;
+  --raised:   #241321;
+  --elevated: #33202D;
   --hairline: rgba(255,255,255,.12);
 
-  --acento:      #EDE6D8;
-  --acento-soft: rgba(237,230,216,.16);
-  --acento-deep: #CEBA94;
+  --acento:      #FFFDF4;
+  --acento-soft: rgba(255,253,244,.16);
+
+  /*
+   * `--acento-deep` ya no es "el acento, más hondo": es la variante clara del
+   * informativo, el mismo hex que `--info-bright`, y así lo pide el spec de
+   * heritage. Sigue con este nombre porque el aro del bar favorito del mapa lo
+   * usa por lo que es —azul acero, para no ser el mismo aro que el `--cream`
+   * del bar abierto a 9 píxeles— y renombrarlo sería tocar `MapScreen` sin
+   * necesidad.
+   *
+   * Lo que sí era un error es usarlo como estado "ocupado" de un CTA hueso:
+   * el botón viraba a celeste mientras trabajaba, o sea cambiaba de familia en
+   * vez de bajar de luz. Para eso está `--acento-busy`.
+   */
+  --acento-deep: #C3D5E6;
+
+  /*
+   * El acento mientras el botón trabaja.
+   *
+   * Es `--acento` al 72% sobre `--base`: el mismo hueso, en sombra. Dice "esto
+   * está andando" sin cambiar de color —un CTA que cambia de familia mientras
+   * guarda parece otro botón— y con `--base` encima da 9,8:1, así que la
+   * etiqueta se sigue leyendo durante la espera.
+   */
+  --acento-busy: #BFBAB6;
+
+  /*
+   * Steel Blue, el segundo acento — y el token nuevo de esta dirección.
+   *
+   * No contradice la regla de arriba: `--info` **es** un dato, el dato de
+   * segundo orden. Lleva todo lo informativo y analítico —distancias,
+   * etiquetas de sección, consenso, telemetría, radio, "verificado", el punto
+   * del GPS, las acciones secundarias— que hasta acá se pintaba con `--faint`
+   * o `--muted`.
+   *
+   * Ese era el problema real de la pantalla anterior, y no era de color sino
+   * de jerarquía: había **una sola voz apagada** para tres cosas distintas
+   * (el metadato, la etiqueta de sección y el dato secundario), así que todo
+   * lo que no era el precio pesaba igual y la pantalla se leía plana. Con un
+   * tono propio, "a 450 m" deja de competir con "Palermo Soho".
+   *
+   * Es frío a propósito: sobre espresso, un segundo acento cálido se
+   * confundiría con `--aging`, que es precio.
+   */
+  --info:        #85A1C1;
+  --info-bright: #C3D5E6;
+  --info-soft:   rgba(133,161,193,.16);
+  --info-border: rgba(133,161,193,.34);
 
   /*
    * El color de la birra cuando la birra es un dibujo.
@@ -46,7 +96,7 @@
    * ámbar significa "este precio tiene entre 14 y 45 días", y un día que ese
    * umbral cambie de color, la birra no tiene por qué cambiar con él.
    */
-  --birra: #FFB627;
+  --birra: #EE9A52;
 
   /*
    * Favorito, y la nota.
@@ -56,26 +106,49 @@
    * uno, porque una excepción sin motivo es el principio del final de la
    * regla:
    *
-   *  - `--favorito` es rojo porque el corazón rojo es una convención más
+   *  - `--favorito` es coral porque el corazón rojo es una convención más
    *    fuerte que cualquier paleta. Un corazón hueso relleno no se lee como
-   *    "es mío", se lee como un ícono más. Va aparte de `--danger` a
-   *    propósito: ese rojo significa "peligro, esto no se deshace" y aparece
-   *    en borrar cuenta y eliminar foto. Marcar un bar que te gusta no puede
-   *    compartir color con eso.
-   *  - `--nota` es el ámbar de la estrella, que también es convención. Hasta
+   *    "es mío", se lee como un ícono más.
+   *  - `--nota` es el tono de la estrella, que también es convención. Hasta
    *    acá las estrellas iban en `--acento`, o sea del mismo hueso que el
    *    nombre del bar, el botón de "Sigue igual" y las pestañas: todo pesaba
    *    igual y nada sobresalía. La nota es el segundo dato que la gente mira
    *    después del precio y necesita su propio tono.
    *
-   * No entran en conflicto con la escala de precios —que va de verde a rojo
+   * No entran en conflicto con la escala de precios —que va de lima a coral
    * por `PRICE_STOPS`— porque ninguno de los dos aparece sobre un pin del
    * mapa: el favorito ahí es un corazón oscuro sobre la cápsula de color, y
    * la nota no se dibuja en el mapa.
+   *
+   * **`--favorito` y `--danger` ahora son el mismo coral, y siguen siendo dos
+   * tokens.** Hasta Hueso eran dos rojos distintos a propósito: uno decía "es
+   * mío" y el otro "esto no se deshace". Heritage tiene un solo rojo, así que
+   * los dos apuntan al mismo hex y la diferencia la hace el tratamiento —el
+   * favorito es un ícono relleno de 20px, el peligro es un botón con borde y
+   * confirmación— que es la palanca que corresponde: nunca aparecen juntos en
+   * la misma pantalla. Se dejan separados porque el día que vuelvan a ser dos
+   * tonos, eso cuesta una línea y no una búsqueda por todo el código.
    */
-  --favorito: #FF4D5E;
-  --favorito-soft: rgba(255,77,94,.16);
-  --nota: #FFC24D;
+  --favorito: #EE6352;
+  --favorito-soft: rgba(238,99,82,.16);
+  --nota: #FFFC9A;
+
+  /*
+   * Las series del dashboard que no tienen significado propio.
+   *
+   * Las dos que sí lo tienen —precios y confirmaciones— van en `--fresh` y
+   * `--info`, porque ahí el color dice algo. Estas tres son categóricas: sólo
+   * tienen que distinguirse entre sí y de las otras dos, en ese orden.
+   *
+   * Los hex no se movieron al pasar a heritage, y es a propósito: la terna se
+   * eligió con separación para daltonismo, no por gusto, y correrlas hacia el
+   * espresso para que "combinen" es exactamente cómo se pierde esa propiedad
+   * sin que nadie lo note. Lo que sí cambia es que dejan de estar escritas a
+   * mano adentro de `Chart.tsx`, que era el problema real.
+   */
+  --serie-1: #199e70;
+  --serie-2: #3987e5;
+  --serie-3: #d55181;
 
   /*
    * Texto secundario sobre vidrio que flota encima del mapa.
@@ -92,28 +165,44 @@
    * que ya es oscura, y encima el `::backdrop` la oscurece antes. `--muted`
    * normal da de sobra.
    */
-  --sobre-vidrio: #DDE0E2;
+  --sobre-vidrio: #EFE3D8;
 
-  --cream: #F4F5F7;
-  --muted: #9DA5AD;
+  --cream: #FFFDF4;
+  /* El hueso un punto más abajo, para texto de párrafo sobre superficie de
+     color o sobre vidrio: `--cream` puro ahí vibra. */
+  --cream-soft: #EFE3D8;
+  --muted: #B6A2A8;
   /*
    * La rampa de grises se eligió con el contraste puesto, no después.
    *
    * `--faint` es el color de más de cien textos de 11 y 12px — justo el caso
    * que cubre WCAG 1.4.3 — así que el piso se verifica contra la superficie
-   * más clara, que es el peor caso: 4,53:1 sobre --elevated. --muted da 6,01
-   * ahí mismo y --cream 13,73. Ninguno baja de 4,5:1 sobre ninguna de las tres
-   * superficies.
+   * más clara, que es el peor caso: 4,66:1 sobre --elevated, mejor que el
+   * 4,53 de Hueso. --muted da 6,30 ahí mismo, --info 5,68 y --cream 14,88.
+   * Ninguno baja de 4,5:1 sobre ninguna de las tres superficies.
    */
-  --faint: #888E95;
-  --danger:#FF7A66;
+  --faint: #9C8A90;
+  --danger:#EE6352;
 
-  --fresh: #5FD98D;
-  --aging: #FFB627;
-  /* Sobre el fondo nuevo, que es más oscuro, este sube a 4,71:1 contra
-     --elevated (antes 4,40, que no llegaba). Es el único cálido que queda en
-     la rampa de grises, y se queda porque es dato: "precio viejo". */
-  --stale: #9D8E7E;
+  /*
+   * La frescura deja de ser verde.
+   *
+   * No es un capricho de paleta: sobre espresso, un verde menta es el único
+   * tono de la pantalla que no pertenece a la familia, y quedaba como una luz
+   * de LED pegada encima. El Lime Cream `#FFFC9A` es tiza: dice "recién
+   * escrito" —que es exactamente lo que significa un precio fresco— y encima
+   * da 14,18:1 contra `--elevated`, el valor más alto de toda la rampa de
+   * datos. Lo más importante es lo que más se ve.
+   *
+   * Comparte hex con `--nota` a propósito: la estrella y el precio fresco son
+   * las dos cosas buenas que se buscan en una fila, y nunca se confunden
+   * porque una es una estrella y el otro es una fecha.
+   */
+  --fresh: #FFFC9A;
+  --aging: #EE9A52;
+  /* Malva apagado, el mismo tono que `--faint`. Que un precio viejo se pinte
+     del color de los metadatos es el mensaje: dejó de ser noticia. */
+  --stale: #9C8A90;
 
   /* ---------- Escalas ----------
    *
@@ -302,13 +391,19 @@ a { color: var(--acento); }
 }
 
 /* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
-   honesto. Un tinte translúcido sin desenfoque sobre un mapa es texto sobre
-   ruido. */
-/* Sin backdrop-filter no hay vidrio posible: se cae a sólido, que es lo
    honesto. Un tinte translúcido sin desenfoque ni `brightness` sobre un mapa
-   es texto sobre ruido. */
+   es texto sobre ruido.
+
+   El sólido es `--raised` por token y no un rgba a mano. El que estaba
+   —rgba(25,27,31,.97)— era exactamente el `--raised` de la paleta fría
+   anterior, y al pasar a espresso quedó donde estaba: era el único color del
+   archivo que no se movió con la paleta, y encima un hex suelto adentro del
+   archivo que define los tokens.
+
+   Y se va el .97: sin desenfoque detrás, ese 3% de transparencia no deja ver
+   nada, sólo deja pasar el ruido de lo que haya abajo. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass { background: rgba(25,27,31,.97); }
+  .glass { background: var(--raised); }
 }
 
 .pill { border-radius: 999px; }
@@ -329,12 +424,12 @@ a { color: var(--acento); }
  * como red de seguridad para pantallas muy chicas, donde ninguna combinación
  * entra en una sola fila.
  */
-.map-controls { --sort-pad: 18px; --pill-pad: 14px; --ctl-gap: 8px; }
+.map-controls { --pill-pad: 14px; --ctl-gap: 8px; }
 @media (max-width: 420px) {
-  .map-controls { --sort-pad: 12px; --pill-pad: 10px; --ctl-gap: 7px; }
+  .map-controls { --pill-pad: 10px; --ctl-gap: 7px; }
 }
 @media (max-width: 350px) {
-  .map-controls { --sort-pad: 9px;  --pill-pad: 8px;  --ctl-gap: 6px; }
+  .map-controls { --pill-pad: 8px;  --ctl-gap: 6px; }
 }
 
 /* ---------- Slider de rango ----------
@@ -417,8 +512,11 @@ a { color: var(--acento); }
      sentado, y son datos que piden espacio. */
   .desk-wide { max-width: 1100px; margin-inline: auto; }
 
-  /* La barra flotante se agranda un poco para no verse perdida. */
-  nav.bottom-nav { transform: translateX(-50%) scale(1.06); }
+  /* Acá vivía `nav.bottom-nav { transform: translateX(-50%) scale(1.06) }`,
+     que agrandaba la píldora flotante para que no se viera perdida en una
+     pantalla ancha. Con la barra plana de heritage no hay nada que agrandar
+     —ocupa el ancho entero— y el `translateX(-50%)` la habría corrido media
+     pantalla. Las pestañas se alinean con el contenido por `.desk-narrow`. */
 }
 
 /* Controles que sólo tienen sentido con puntero: en un teléfono el gesto es
@@ -668,15 +766,19 @@ a { color: var(--acento); }
  */
 
 /* El encabezado chico en mayúscula que separa zonas de una pantalla larga.
-   Va tracking porque la mayúscula sin él se lee apretada, y va --faint
-   porque una etiqueta acompaña al dato, no compite con él. */
+   Va tracking porque la mayúscula sin él se lee apretada.
+
+   Pasa de `--faint` a `--info`: en `--faint` competía con los metadatos de
+   las filas, que son del mismo color y del mismo tamaño, así que el ojo no
+   distinguía "acá empieza una zona" de "este bar está a 450 m". La etiqueta
+   acompaña al dato, pero tiene que poder encontrarse. */
 .section-label {
   font-family: var(--display);
   font-weight: 500;
   font-size: var(--t-1);
-  letter-spacing: .12em;
+  letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--info);
   margin: var(--s-5) 0 var(--s-2);
 }
 
@@ -721,14 +823,87 @@ a { color: var(--acento); }
  * nivel tiene que significar lo mismo en todos los meses.
  */
 .heat-0 { background: var(--film-1); color: var(--faint); }
-.heat-1 { background: #4A3B22; color: #E8D9BE; }
-.heat-2 { background: #7A5D1E; color: #FFF3DA; }
-.heat-3 { background: #B88710; color: var(--base); }
-/* El último escalón va a `--aging` y no a `--acento`, aunque hasta Hueso los
-   dos fueran el mismo `#FFB627`. La rampa entera es ámbar y el ámbar acá es
-   el dato: pintar el tope con el acento hueso rompería el degradado en el
-   último paso, que es justamente el que tiene que gritar. */
-.heat-4 { background: var(--aging); color: var(--base); }
+.heat-1 { background: #605045; color: #FFFDF4; }
+.heat-2 { background: #8F835E; color: #1B0D17; }
+.heat-3 { background: #C2BA79; color: #1B0D17; }
+/* El último escalón va a `--fresh` y no a `--acento`. La rampa entera
+   interpola de `--elevated` a Lime Cream, y la lima acá es el dato:
+   pintar el tope con el acento hueso rompería el degradado en el último
+   paso, que es justamente el que tiene que gritar. */
+.heat-4 { background: var(--fresh); color: var(--base); }
+
+/* ---------- Pizarra ----------
+ *
+ * Las tres formas que trae la dirección heritage y que antes se resolvían con
+ * tarjetas y cápsulas. Van en CSS y no inline porque las usa media app y
+ * porque dos de las tres necesitan `:active`, que inline no se puede.
+ */
+
+/* 1. La barra de frescura al costado de una fila de bar.
+ *
+ * Es el cambio que más rinde de todo el rediseño: la lista se lee de un
+ * vistazo sin leer una sola fecha. El color lo pone quien la usa —es el
+ * mismo de la edad del precio— así que acá va sólo la forma. */
+.fresh-bar {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+  /* Piso, para que una fila corta no deje una rayita perdida. */
+  min-height: 34px;
+}
+
+/* 2. El segmentado como texto con subrayado, que reemplaza a la cápsula.
+ *
+ * La cápsula rellena pesaba lo mismo que un CTA y competía con el precio, que
+ * es el dato de la pantalla. El subrayado de 2px dice "elegiste esto" sin
+ * gritar, y es la misma forma que usa la barra de pestañas de abajo: un solo
+ * vocabulario para "posición activa" en toda la app. */
+.tab-underline {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: var(--t-3);
+  color: var(--faint);
+  transition: color .15s;
+}
+.tab-underline[aria-pressed="true"],
+.tab-underline[aria-selected="true"] { color: var(--cream); }
+.tab-underline > .tab-rule {
+  display: block;
+  height: 2px;
+  margin-top: var(--s-2);
+  background: transparent;
+  transition: background .15s;
+}
+.tab-underline[aria-pressed="true"] > .tab-rule,
+.tab-underline[aria-selected="true"] > .tab-rule { background: var(--cream); }
+
+/* 3. El hundido del botón principal.
+ *
+ * Los CTA se escriben inline pantalla por pantalla —fondo, alto y radio
+ * cambian según el contexto— pero el `:active` no se puede escribir inline, y
+ * sin él no hay forma de saber si el tap entró. En una red lenta eso se paga
+ * tocando dos veces, que en "Cargar precio" significa dos reportes.
+ *
+ * Es la misma decisión que ya estaba tomada para `.like`, y por lo mismo. La
+ * clase pone SÓLO el hundido: el vestido sigue donde está. */
+.cta { transition: transform .12s ease-out; }
+.cta:active { transform: scale(.98); }
+
+/* 4. La textura de pizarra.
+ *
+ * Grilla de 36px, apenas visible. Va en dos lugares y sólo dos —la bienvenida
+ * y el fondo del mapa cuando todavía no hay mapa— porque una textura que está
+ * en todas las pantallas deja de ser una textura y pasa a ser el fondo. */
+.pizarra {
+  background-image:
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.035) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 36px);
+}
 
 /* Red de seguridad del piso de 16px: cubre los campos que no traen tamaño
    propio. Los que sí lo traen lo ponen inline, que gana por especificidad, así

@@ -268,6 +268,7 @@ function Shell() {
             styles={styles} styleFilter={styleFilter} onStyle={setStyleFilter}
             minRating={minRating} onMinRating={setMinRating}
             simulated={simulated} favorites={favorites.ids}
+            onToggleFavorite={id => user ? favorites.toggle(id) : nav('/perfil')}
             onSort={setSort} onRadius={setRadius} onClearSimulated={() => setSimulated(null)}
           />
         } />

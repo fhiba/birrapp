@@ -47,13 +47,18 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
         <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 0' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-3)', margin: 'var(--s-4) 0 0',
+        }}>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>Moderación</h1>
           {!loading && total > 0 && (
+            /* En ámbar y no en hueso: el número dice "hay esto esperando", que
+               es el mismo estado que marca cada fila de la cola. En el acento
+               se leía como un adorno del título. */
             <span className="num" style={{
-              minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
+              minWidth: 24, height: 24, padding: '0 var(--s-2)', borderRadius: 999,
               display: 'grid', placeItems: 'center', fontSize: 'var(--t-2)',
-              background: 'var(--acento)', color: 'var(--base)',
+              background: 'var(--aging)', color: 'var(--base)',
             }}>{total}</span>
           )}
         </div>
@@ -61,17 +66,21 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
         {/* El dashboard vive detrás de moderación y no en el perfil: es la
             misma llave —hace falta el rol— y quien viene a moderar es quien
-            quiere saber si la cuenta que cargó algo raro es de ayer. */}
-        <button onClick={() => nav('/dashboard')} className="lbl" style={{
-          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          marginTop: 16, padding: '12px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-          background: 'var(--elevated)', color: 'var(--cream)',
+            quiere saber si la cuenta que cargó algo raro es de ayer.
+
+            Fila con filete y no tarjeta: es un link a otra pantalla, y en
+            tarjeta pesaba lo mismo que un bloque de contenido. El ícono y el
+            chevron van en `--info`, que es el tono de lo analítico —el
+            dashboard es exactamente eso— y de la acción secundaria. */}
+        <button onClick={() => nav('/dashboard')} className="lbl row" style={{
+          marginTop: 'var(--s-4)', minHeight: 44, fontSize: 'var(--t-3)',
+          color: 'var(--cream)',
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--info)" aria-hidden>
             <path d="M3 13h4v8H3v-8Zm7-9h4v17h-4V4Zm7 5h4v12h-4V9Z" />
           </svg>
           <span style={{ flex: 1, textAlign: 'left' }}>Usuarios y aportes</span>
-          <span style={{ color: 'var(--faint)' }}>›</span>
+          <span aria-hidden style={{ color: 'var(--info)' }}>›</span>
         </button>
       </div>
 
@@ -86,17 +95,20 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
       {pending.length > 0 && <H>Bares pendientes · {pending.length}</H>}
       {pending.map(b => (
-        <div key={b.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--hairline)' }}>
+        <Fila key={b.id}>
           <div className="lbl">{b.name}</div>
-          <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
+          {/* Las coordenadas en cifra tabular: se leen en columna contra las de
+              la fila de al lado para ver si alguien cargó el mismo bar dos
+              veces, y con cifras proporcionales eso obliga a leerlas. */}
+          <div className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.lat.toFixed(5)}, {b.lng.toFixed(5)}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <Acciones>
             <Btn primary onClick={() => act(() => api.approveBar(b.id))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBar(b.id))}>Rechazar</Btn>
             <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>Eliminar</Btn>
-          </div>
-        </div>
+          </Acciones>
+        </Fila>
       ))}
 
       {/* Marcas nuevas.
@@ -107,18 +119,16 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           duplicados y para nombres que no son una marca. */}
       {newBrands.length > 0 && <H>Marcas nuevas · {newBrands.length}</H>}
       {newBrands.map(b => (
-        <div key={b.slug} style={{
-          padding: '12px 16px', borderBottom: '1px solid var(--hairline)',
-        }}>
+        <Fila key={b.slug}>
           <div className="lbl">{b.name}</div>
           <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
             {b.craft ? 'artesanal' : 'industrial'} · {b.slug}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <Acciones>
             <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
-          </div>
-        </div>
+          </Acciones>
+        </Fila>
       ))}
 
       {/* Estilos nuevos (BIR-35). Mismo trato que las marcas y por lo mismo:
@@ -127,27 +137,25 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           la lista. */}
       {newStyles.length > 0 && <H>Estilos nuevos · {newStyles.length}</H>}
       {newStyles.map(st => (
-        <div key={st.slug} style={{
-          padding: '12px 16px', borderBottom: '1px solid var(--hairline)',
-        }}>
+        <Fila key={st.slug}>
           <div className="lbl">{st.name}</div>
           <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>{st.slug}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <Acciones>
             <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>Aprobar</Btn>
             <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>Rechazar</Btn>
-          </div>
-        </div>
+          </Acciones>
+        </Fila>
       ))}
 
       {flags.length > 0 && <H>Denuncias abiertas · {flags.length}</H>}
       {flags.map(f => (
-        <div key={f.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--hairline)' }}>
+        <Fila key={f.id}>
           <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>{f.targetType} #{f.targetId}</div>
-          <div style={{ fontSize: 'var(--t-3)' }}>{f.reason}</div>
+          <div style={{ fontSize: 'var(--t-3)', textWrap: 'pretty' }}>{f.reason}</div>
           {f.targetSummary && (
             <div style={{ color: 'var(--faint)', fontSize: 'var(--t-2)' }}>→ {f.targetSummary}</div>
           )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <Acciones>
             {f.targetType === 'price' ? (
               <>
                 <Btn primary onClick={() => act(async () => {
@@ -160,8 +168,8 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
             ) : (
               <Btn primary onClick={() => act(() => api.resolveFlag(f.id))}>Resolver</Btn>
             )}
-          </div>
-        </div>
+          </Acciones>
+        </Fila>
       ))}
 
       {/* Repaso de fotos (BIR-10).
@@ -181,7 +189,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
         }}>
           {photos.map(ph => (
             <div key={ph.id} style={{
-              borderRadius: 'var(--r-3)', overflow: 'hidden', background: 'var(--elevated)',
+              borderRadius: 'var(--r-3)', overflow: 'hidden', background: 'var(--raised)',
             }}>
               <button onClick={() => nav(`/bar/${ph.barId}`)} style={{
                 display: 'block', padding: 0, width: '100%', aspectRatio: '1',
@@ -190,8 +198,18 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                   width: '100%', height: '100%', objectFit: 'cover', display: 'block',
                 }} />
               </button>
-              <div style={{ padding: '8px 10px 10px' }}>
-                <div className="lbl" style={{ fontSize: 'var(--t-2)' }}>{ph.barName}</div>
+              <div style={{ padding: 'var(--s-2) 10px 10px' }}>
+                {/* La única fila de esta pantalla que no está pendiente: las
+                    fotos se publican al subirlas. Va en `--fresh` —el color de
+                    lo aprobado— para que se distinga de un vistazo de las colas
+                    de arriba, que son todas ámbar. */}
+                <div className="lbl" style={{
+                  fontSize: 'var(--t-1)', letterSpacing: '.14em',
+                  textTransform: 'uppercase', color: 'var(--fresh)',
+                }}>Publicada</div>
+                <div className="lbl" style={{
+                  fontSize: 'var(--t-2)', marginTop: 2,
+                }}>{ph.barName}</div>
                 <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 2 }}>
                   {ph.beerName}
                 </div>
@@ -204,9 +222,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                   {ph.ageDays <= 0 ? 'hoy' : ph.ageDays === 1 ? 'ayer' : `hace ${ph.ageDays} d`}
                   {ph.votes > 0 && ` · ${ph.votes} 👍`}
                 </div>
-                <button onClick={() => setKillPhoto(ph)} style={{
-                  marginTop: 8, fontSize: 'var(--t-2)', color: 'var(--danger)',
-                }}>Eliminar</button>
+                {/* El mismo `Btn danger` que las colas de arriba y no un
+                    texto coral suelto: era la única forma distinta de lo
+                    destructivo que quedaba en la pantalla, y encima sin área de
+                    toque propia. Borrar una foto borra el archivo del bucket. */}
+                <div style={{ marginTop: 'var(--s-2)' }}>
+                  <Btn danger onClick={() => setKillPhoto(ph)}>Eliminar</Btn>
+                </div>
               </div>
             </div>
           ))}
@@ -238,18 +260,74 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   )
 }
 
+/* La etiqueta de sección es la misma pieza que en el resto de la app: la
+   escribe `.section-label`, y lo único propio de acá es el sangrado, porque
+   estas listas van a ancho completo y no adentro de un contenedor con padding.
+
+   Los hijos van tal cual y la mayúscula la pone `text-transform`. Acá adentro
+   estaba `String(children).toUpperCase()` y los cinco llamadores pasan dos
+   hijos —el texto y el número—, así que `String` caía en
+   `Array.prototype.toString`, que une con coma: se leía «BARES PENDIENTES · ,3».
+   El `.toUpperCase()` además duplicaba lo que ya hace el CSS. */
 const H = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="lbl" style={{
-    fontSize: 'var(--t-1)', letterSpacing: '.12em', color: 'var(--faint)', padding: '24px 16px 8px', margin: 0,
-  }}>{String(children).toUpperCase()}</h2>
+  <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>{children}</h2>
 )
 
+/**
+ * Una fila de la cola, con la barra de estado al costado.
+ *
+ * Es la misma barrita de 3px que lleva cada bar en la lista, y por la misma
+ * razón: dice el estado sin que haya que leer nada. El mapa de colores es el de
+ * siempre —ámbar es "esperando", lima es "aprobado", coral es "se va"— así que
+ * la cola entera va en `--aging`: todo lo que está acá es trabajo sin hacer.
+ *
+ * Los otros dos tonos aparecen donde aparece ese estado: `--fresh` en las fotos
+ * de abajo, que ya están publicadas, y `--danger` en los botones que eliminan.
+ */
+const Fila = ({ children }: { children: React.ReactNode }) => (
+  <div style={{
+    display: 'flex', gap: 'var(--s-3)',
+    padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
+  }}>
+    <span className="fresh-bar" aria-hidden style={{ background: 'var(--aging)' }} />
+    <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+  </div>
+)
+
+/* Los botones de una fila. `wrap` porque con tres acciones de 44px de alto no
+   entran en una sola línea en un teléfono angosto, y una acción que se sale de
+   la pantalla es una acción que no existe. */
+const Acciones = ({ children }: { children: React.ReactNode }) => (
+  <div style={{
+    display: 'flex', flexWrap: 'wrap', gap: 'var(--s-2)', marginTop: 'var(--s-3)',
+  }}>{children}</div>
+)
+
+/**
+ * Aprobar, rechazar, eliminar.
+ *
+ * Sólo lo primario lleva relleno. Lo destructivo pasa de pastilla teñida —que
+ * además era un hex suelto— a borde coral: un relleno lo hacía competir con
+ * "Aprobar", que es el caso normal, y el botón que borra un bar no tiene que
+ * ser el más fácil de apretar de la fila. La confirmación que ya tenía se
+ * queda: el borde la anuncia, no la reemplaza.
+ *
+ * Y suben a 44px de alto. Moderar es apretar botones chicos de a decenas.
+ *
+ * `.cta` es el hundido al tocar, que inline no se puede escribir. Acá importa
+ * más que en ningún lado: cada uno de estos botones dispara un pedido que
+ * cambia datos, y sin respuesta al toque en una red lenta se aprieta dos veces
+ * —aprobar dos veces el mismo bar, o borrarlo después de aprobarlo—.
+ */
 const Btn = ({ children, onClick, primary, danger }: {
   children: React.ReactNode; onClick: () => void; primary?: boolean; danger?: boolean
 }) => (
-  <button onClick={onClick} className="lbl" style={{
-    padding: '8px 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-    background: primary ? 'var(--acento)' : danger ? 'rgba(255,122,102,.14)' : 'var(--film-2)',
+  <button onClick={onClick} className="lbl cta" style={{
+    minHeight: 44, padding: '0 var(--s-3)', borderRadius: 'var(--r-2)',
+    fontSize: 'var(--t-3)',
+    background: primary ? 'var(--acento)' : 'transparent',
+    border: `1px solid ${primary ? 'var(--acento)'
+      : danger ? 'var(--danger)' : 'var(--hairline)'}`,
     color: primary ? 'var(--base)' : danger ? 'var(--danger)' : 'var(--cream)',
   }}>{children}</button>
 )

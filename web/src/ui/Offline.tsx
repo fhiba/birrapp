@@ -35,8 +35,8 @@ export function OfflineBanner() {
       style={{
         position: 'fixed', left: 12, right: 12, zIndex: 75,
         top: `calc(var(--safe-top) + 10px)`,
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '12px 16px', borderRadius: 999,
+        display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
+        padding: 'var(--s-3) var(--s-4)', borderRadius: 999,
         background: 'var(--elevated)', border: '1px solid var(--hairline)',
         boxShadow: '0 8px 26px rgba(0,0,0,.4)',
         fontSize: 'var(--t-2)', color: 'var(--muted)',

@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 
 /**
- * Interruptor de dos o tres posiciones, con la cápsula corriéndose a la
- * opción activa.
+ * Interruptor de dos o tres posiciones.
  *
  * Salió del toggle de color del mapa (frescura / precio), donde resolvía dos
  * cosas a la vez: dejar elegir qué se mira y, al nombrar sólo el modo
@@ -12,14 +11,29 @@ import type { ReactNode } from 'react'
  *
  * Vive acá porque ya son dos pantallas. La tercera copia es donde empiezan a
  * separarse, como pasó con `StyleFilter`.
+ *
+ * ## Una sola forma
+ *
+ * Texto con una barra de 2px abajo (`.tab-underline`), que es la que trae la
+ * dirección "pizarra". La cápsula rellena que había antes pesaba lo mismo que
+ * un CTA y competía con el precio, que es el dato de la pantalla; el subrayado
+ * dice "elegiste esto" sin gritar. Es además el mismo vocabulario que la barra
+ * de pestañas de abajo: una sola forma para "posición activa" en toda la app.
+ *
+ * Acá vivían también las ramas `glass` y `plain` —la cápsula que se corre a la
+ * opción activa— "para lo que flota sobre el mapa". Se fueron con el
+ * repintado: el mapa dejó de usarlas y quedaron sin un solo llamador, con el
+ * agravante de que eran el valor por omisión del prop `tone`. O sea que quien
+ * agregara un segmentado sin pensarlo recibía en silencio exactamente la forma
+ * que la dirección vino a sacar. Código muerto que además tira para el lado
+ * equivocado.
  */
 export function Segmented<T extends string>({
-  options, value, onChange, tone = 'glass', height = 38, label, tourId,
+  options, value, onChange, height = 38, label, tourId,
 }: {
   options: { value: T; label: string; icon?: ReactNode }[]
   value: T
   onChange: (v: T) => void
-  tone?: 'glass' | 'plain'
   height?: number
   /** Para lectores de pantalla: "Colorear por…", "Ordenar por…". */
   label?: (o: { value: T; label: string }) => string
@@ -27,12 +41,10 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div
-      className={tone === 'glass' ? 'glass pill' : 'pill'}
       data-tour={tourId}
       role="group"
       style={{
-        display: 'flex', padding: 4, flexShrink: 0, alignItems: 'center',
-        background: tone === 'plain' ? 'var(--film-2)' : undefined,
+        display: 'flex', alignItems: 'flex-end', gap: 'var(--s-4)', flexShrink: 0,
       }}
     >
       {options.map(o => {
@@ -41,26 +53,24 @@ export function Segmented<T extends string>({
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className="lbl"
+            className="tab-underline"
             aria-pressed={on}
             aria-label={label?.(o)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, height,
-              // El activo respira un poco más: es lo que hace que la cápsula
-              // se lea como una posición del interruptor y no como un botón
-              // más de la fila.
-              padding: on ? '0 12px' : '0 10px',
-              borderRadius: 999, fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
-              background: on ? 'var(--acento)' : 'transparent',
-              color: on ? 'var(--base)' : 'rgba(244,245,247,.7)',
-              transition: 'background .15s',
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+              minHeight: height, whiteSpace: 'nowrap',
             }}
           >
-            {o.icon}
-            {/* Con ícono, el apagado va sin texto: es lo que permite meter
-                tres modos en el ancho de un teléfono. Sin ícono no hay nada
-                que mirar, así que la etiqueta se queda siempre. */}
-            {(on || !o.icon) && <span>{o.label}</span>}
+            {/* El rótulo va siempre, incluso con ícono: sin cápsula que
+                rellenar, una opción apagada sin texto es un ícono suelto que
+                hay que adivinar. Es la mitad del punto de esta forma. */}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
+              {o.icon}
+              <span>{o.label}</span>
+            </span>
+            {/* La barra de 2px. Va como hijo directo porque el CSS la pinta
+                desde el estado del botón (`.tab-underline > .tab-rule`). */}
+            <span className="tab-rule" />
           </button>
         )
       })}

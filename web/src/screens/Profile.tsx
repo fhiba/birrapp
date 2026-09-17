@@ -67,14 +67,30 @@ export function ProfileScreen({ user, onSession }: {
       <p style={{ color: 'var(--muted)', margin: '12px 0 24px' }}>
         Para cargar precios hace falta una cuenta. Mirar el mapa no.
       </p>
-      <button onClick={login} disabled={busy} className="lbl" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-        width: '100%', padding: 16, borderRadius: 'var(--r-3)',
-        background: 'var(--cream)', color: 'var(--base)', fontSize: 'var(--t-4)',
+      {/* El CTA primario de la pizarra: hueso lleno, texto espresso, `--r-2` y
+          52 de alto — acá el botón es la pantalla entera, así que va el alto
+          grande y no el de contexto apretado.
+
+          `.cta` es el hundido al tocar, que inline no se puede escribir: sin
+          respuesta al toque, en una red lenta se aprieta dos veces y se abren
+          dos inicios de sesión.
+
+          Mientras trabaja baja a `--acento-busy` y no a `--acento-deep`, que es
+          azul acero y haría virar de familia al botón justo cuando hay que
+          creerle que está andando. */}
+      <button onClick={login} disabled={busy} className="lbl cta" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--s-3)',
+        width: '100%', minHeight: 52, borderRadius: 'var(--r-2)',
+        background: busy ? 'var(--acento-busy)' : 'var(--acento)',
+        color: 'var(--base)', fontSize: 'var(--t-4)',
       }}>
         {busy ? <span className="spinner" /> : <><GoogleG /> Continuar con Google</>}
       </button>
-      {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 16 }}>{error}</p>}
+      {error && (
+        <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 'var(--s-4)' }}>
+          {error}
+        </p>
+      )}
       <Footer />
     </Wrap>
   )
@@ -111,15 +127,29 @@ export function ProfileScreen({ user, onSession }: {
         </button>
 
         {/* Salir arriba a la derecha, con su color: es una acción de sesión,
-            no una opción más de la lista. */}
+            no una opción más de la lista.
+
+            Borde coral y no relleno coral, que es la única forma que la pizarra
+            le da a lo destructivo —la misma de `Moderation`, `Person` y la zona
+            de riesgo de `Settings`—. El relleno lo dejaba tan apretable como la
+            tuerca de al lado, que no deshace nada; el borde lo distingue por
+            forma y no sólo por color, o sea también con la pantalla en blanco y
+            negro. */}
         <button onClick={() => setConfirm('out')} aria-label="Cerrar sesión" className="icon-btn"
-          style={{ background: 'rgba(255,122,102,.13)', color: 'var(--danger)' }}>⇥</button>
+          style={{
+            background: 'transparent', border: '1px solid var(--danger)',
+            color: 'var(--danger)',
+          }}>⇥</button>
       </div>
 
+      {/* El rol es información sobre la cuenta. Va en el tono informativo y no
+          en el acento: en heritage el acento es hueso, el mismo color del
+          nombre de arriba, así que la etiqueta pesaba igual que el título. */}
       <span className="lbl pill" style={{
-        display: 'inline-block', marginTop: 16, padding: '8px 12px', fontSize: 'var(--t-2)',
-        background: isModerator(user) ? 'var(--acento-soft)' : 'var(--film-2)',
-        color: isModerator(user) ? 'var(--acento)' : 'var(--muted)',
+        display: 'inline-block', marginTop: 'var(--s-4)', padding: 'var(--s-2) var(--s-3)',
+        fontSize: 'var(--t-2)',
+        background: isModerator(user) ? 'var(--info-soft)' : 'var(--film-2)',
+        color: isModerator(user) ? 'var(--info-bright)' : 'var(--muted)',
       }}>
         {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderador' : 'Usuario'}
       </span>
@@ -144,7 +174,10 @@ export function ProfileScreen({ user, onSession }: {
           onClick={() => nav('/mis-birras')} />
       </div>
 
-      <div style={{ marginTop: 32, display: 'grid', gap: 12 }}>
+      {/* Sin `gap`: las filas se separan con su propio filete. Un hueco entre
+          filetes deja la línea flotando y se lee como cinco tarjetas otra vez,
+          que es justo lo que la pizarra saca. */}
+      <div style={{ marginTop: 'var(--s-6)' }}>
         {/* El contador va acá y no sólo adentro de Moderación: si hay que
             entrar para enterarse de que hay algo que hacer, nadie entra. */}
         {isModerator(user) && (
@@ -194,13 +227,27 @@ const Wrap = ({ children }: { children: React.ReactNode }) => (
 
 
 
+/**
+ * Un renglón que lleva a otro lado.
+ *
+ * Eran cinco tarjetas redondeadas apiladas con aire en el medio, y esa forma
+ * decía "cada una de estas es un bloque aparte" cuando en realidad son una
+ * lista de destinos. La pizarra las deja en filas con filete: mismo toque,
+ * misma altura, la mitad del ruido.
+ *
+ * El chevrón no es adorno — es lo único que distingue "esto te lleva a otra
+ * pantalla" de "esto es un dato" una vez que se fue el fondo del botón.
+ */
 const Row = ({ label, onClick, danger, badge }: {
   label: string; onClick: () => void; danger?: boolean; badge?: number
 }) => (
-  <button onClick={onClick} className="lbl" style={{
-    display: 'flex', alignItems: 'center', gap: 12,
-    width: '100%', padding: '16px 16px', borderRadius: 'var(--r-3)', textAlign: 'left',
-    background: 'var(--film-2)', color: danger ? 'var(--danger)' : 'var(--cream)',
+  <button onClick={onClick} className="lbl row row-hover" style={{
+    /* Inline queda sólo lo propio de esta fila: el alto, el cuerpo y el color.
+       El flex, el gap, el padding y el filete los pone `.row`, que es la misma
+       fila que usan `MyBeers`, `Settings` y `Moderation` — estaban copiadas acá
+       declaración por declaración. */
+    minHeight: 52, fontSize: 'var(--t-4)',
+    color: danger ? 'var(--danger)' : 'var(--cream)',
   }}>
     <span style={{ flex: 1 }}>{label}</span>
     {badge != null && badge > 0 && (
@@ -210,6 +257,7 @@ const Row = ({ label, onClick, danger, badge }: {
         background: 'var(--acento)', color: 'var(--base)',
       }}>{badge}</span>
     )}
+    <span aria-hidden style={{ color: 'var(--faint)', fontSize: 'var(--t-5)' }}>›</span>
   </button>
 )
 
@@ -222,8 +270,11 @@ const Footer = () => (
     {/* Sin cuenta el enlace no aparece en la lista de acciones, pero la
         actualización tiene que estar igual: alguien puede quedar trabado en
         una versión vieja antes de siquiera loguearse. */}
+    {/* En el tono informativo: es una acción secundaria, y en `--muted` se
+        confundía con el pie de arriba, que es texto muerto. */}
     <button onClick={forceUpdate} style={{
-      color: 'var(--muted)', fontSize: 'var(--t-1)', marginTop: 12, textDecoration: 'underline',
+      color: 'var(--info)', fontSize: 'var(--t-1)', minHeight: 44,
+      textDecoration: 'underline',
     }}>Buscar actualización</button>
   </div>
 )

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as api from '../data/api'
 import * as fb from '../data/feedback'
@@ -7,15 +7,71 @@ import type {
 } from '../data/types'
 import { isModerator } from '../data/types'
 import {
-  ageLabel, formatDistance, formatPrice, freshnessColor, shortAddress,
+  formatDistance, formatPrice, freshnessColor, shortAddress, shortAge,
 } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 import { ReportFlow } from './ReportFlow'
 import { PriceHistory } from '../ui/PriceHistory'
 import { Stars } from '../ui/Stars'
-import { PillRow } from '../ui/PillRow'
+import { PillRow, chipStyle } from '../ui/PillRow'
 import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
 import { BeerComments } from '../ui/BeerComments'
+
+/**
+ * Lo que suma cada aporte de esta pantalla, para mostrarlo adentro del botón.
+ *
+ * Son los pesos que usa el servidor para el ranking de colaboradores
+ * (`CONTRIBUTION_WEIGHT` en `AnalyticsRepo.kt`: precio 3, bar 3, foto 2, nota
+ * 2, confirmación 1), no números elegidos para que el botón se vea lindo.
+ * Están copiados y no pedidos a la API porque son una constante de producto;
+ * si cambian allá, cambian acá.
+ *
+ * Van adentro del botón y al lado del verbo —no en un renglón aparte— porque
+ * lo que se gana es parte de la acción: "Sigue igual +1 pt" se lee de una.
+ */
+const PTS_CONFIRMAR = 1
+const PTS_PRECIO = 3
+
+/**
+ * El vidrio espresso de los botones que flotan sobre la portada.
+ *
+ * Sale del token y no de un `rgba()` escrito a mano: es el fondo de la app al
+ * 62%, así que el día que el espresso cambie de tono, los botones cambian con
+ * él. Sin esto, sobre una foto clara un botón de `--film-2` desaparece.
+ *
+ * Los dos van juntos y en este orden: donde `color-mix` no exista —Safari
+ * viejo— el shorthand se descarta entero y queda el `--elevated` opaco, que es
+ * feo pero se ve. Un botón sin fondo sobre una foto es un ícono flotando.
+ */
+const VIDRIO_ESPRESSO = 'color-mix(in srgb, var(--base) 62%, transparent)'
+const VIDRIO_FALLBACK = 'var(--elevated)'
+
+/**
+ * El filtro de ese vidrio, y el `brightness` no es adorno.
+ *
+ * El tinte al 62% deja pasar el 38% de lo que haya atrás, y atrás hay una foto
+ * de la que no sabemos nada. Con una foto blanca —el peor caso, y es un caso
+ * real: una pared de bar con flash— el fondo del botón compone rgb(114,105,111),
+ * y ahí el corazón de favorito en `--favorito` daba **1,65:1**. Por debajo del
+ * 3:1 que WCAG 1.4.11 pide para un ícono, y encima peor que el mismo corazón
+ * SIN marcar, que es `--cream` y da 5,20: el estado "es mío" se veía peor que
+ * el estado "no es mío", que es al revés de lo que el botón quiere decir.
+ *
+ * `brightness()` oscurece **lo de atrás**, no lo tapa: la foto se sigue viendo
+ * y se sigue moviendo, apenas bajada de luz. Con .45 el peor caso pasa a
+ * rgb(60,52,58) y el coral da **3,76:1** (el hueso, 11,84). Sobre una foto
+ * oscura no cambia nada —multiplicar 0 por .45 sigue dando 0— así que no abre
+ * un pozo negro donde hoy se ve bien.
+ *
+ * La otra salida era subir el tinte, y por eso no se eligió: para que el coral
+ * llegara a 3:1 hacía falta `--base` al 80%, y a esa altura lo de atrás ya no
+ * se ve. Sería pintar el botón de espresso y seguir llamándolo vidrio.
+ *
+ * El .45 es el mismo de `.glass` en theme.css y sale del mismo cálculo. Va
+ * como constante y no escrito en cada botón porque son cinco botones en dos
+ * pantallas y el día que el número se mueva tiene que moverse en los cinco.
+ */
+const VIDRIO_FILTRO = 'blur(10px) brightness(.45)'
 
 /**
  * Identidad de una birra: estilo + marca.
@@ -65,7 +121,9 @@ export function BarDetailScreen({
   const [history, setHistory] = useState<StylePrice | null>(null)
   const [reportingBad, setReportingBad] = useState<StylePrice | null>(null)
   const [modMode, setModMode] = useState(false)
-  const [photos, setPhotos] = useState<Photo[]>([])
+  // `null` es "todavía no contestó el servidor" y `[]` es "no hay fotos". Son
+  // dos cosas distintas y el layout las trata distinto: ver `hayCabecera`.
+  const [photos, setPhotos] = useState<Photo[] | null>(null)
   const [mine, setMine] = useState<MyRating[]>([])
   // La birra elegida se guarda como (estilo, marca) y no como un índice: si
   // se actualiza un precio y la lista se reordena, un índice apuntaría a otra
@@ -118,13 +176,13 @@ export function BarDetailScreen({
   const vote = useCallback(async (photo: Photo) => {
     const on = !photo.votedByMe
     fb.tap()
-    const shift = (d: number) => setPhotos(cur => cur.map(x =>
+    const shift = (d: number) => setPhotos(cur => cur && cur.map(x =>
       x.id === photo.id ? { ...x, votedByMe: d > 0, votes: x.votes + d } : x))
 
     shift(on ? 1 : -1)
     try {
       const r = await api.votePhoto(photo.id, on)
-      setPhotos(cur => cur.map(x => x.id === photo.id ? { ...x, ...r } : x))
+      setPhotos(cur => cur && cur.map(x => x.id === photo.id ? { ...x, ...r } : x))
     } catch (e) {
       shift(on ? -1 : 1)
       setToast((e as Error).message)
@@ -167,7 +225,7 @@ export function BarDetailScreen({
   if (error) return (
     <Centered>
       <p style={{ color: 'var(--muted)' }}>{error}</p>
-      <button onClick={load} className="lbl" style={{
+      <button onClick={load} className="lbl cta" style={{
         marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
         background: 'var(--acento)', color: 'var(--base)',
       }}>Reintentar</button>
@@ -203,6 +261,73 @@ export function BarDetailScreen({
   const barAvg = votes > 0
     ? voted.reduce((n, p) => n + p.ratingRaw! * p.ratingCount, 0) / votes
     : null
+
+  /**
+   * La portada del bar.
+   *
+   * En el modelo no hay una foto "del bar": las fotos son de una birra. Pero
+   * la mejor foto que sacaron acá adentro es lo más parecido a la cara del
+   * lugar que tenemos, y es un dato real y no una imagen de archivo. Así que
+   * la portada es la foto del mes, y si no la más votada.
+   *
+   * Sin fotos no hay portada, y la ficha arranca como arrancaba. Un rectángulo
+   * gris de 216px diciendo "todavía nadie sacó una foto" es media pantalla
+   * gastada en una ausencia — y arriba de todo, que es el lugar más caro.
+   *
+   * Las fotos se piden después que la ficha —el nombre y el precio son lo
+   * que se vino a ver, y adelantarlas los atrasaría a ellos— así que hay un
+   * rato en que la ficha ya está dibujada y todavía no se sabe si hay
+   * portada. Ese rato se resuelve abajo, en `hayCabecera`, y no dejando el
+   * hueco sin reservar: insertar 216px arriba de todo cuando llegan las fotos
+   * empuja hacia abajo justo lo que la persona está leyendo, y a veces justo
+   * mientras apunta el dedo a "Sigue igual".
+   */
+  const portada = photos && photos.length > 0
+    ? [...photos].sort((a, b) =>
+      Number(b.topOfMonth) - Number(a.topOfMonth) || b.votes - a.votes)[0]
+    : null
+
+  /*
+   * Si arriba va una banda de 216px, y por qué se reserva antes de saberlo.
+   *
+   * Mientras `photos` es null no se sabe, así que el alto se reserva igual con
+   * un esqueleto: la banda ocupa su lugar desde el primer dibujo y, cuando la
+   * respuesta llega, o se llena con la foto —sin mover un pixel, que es el
+   * caso que importa— o se cierra.
+   *
+   * Sí: si el bar no tiene fotos, la banda se cierra y el contenido sube. Se
+   * elige ese lado a propósito. Un esqueleto que se achica ya venía diciendo
+   * "acá falta algo por llegar", así que cerrarse se lee como la respuesta;
+   * un bloque que aparece de la nada y te corre la pantalla no se lee como
+   * nada, se lee como que la app se movió sola. Y la app no sabe cuál de los
+   * dos casos le tocó: lo único que puede hacer es elegir cuál de los dos
+   * errores comete.
+   *
+   * La alternativa de dejar la banda puesta cuando no hay fotos está
+   * descartada arriba: medio teléfono de rectángulo gris anunciando una
+   * ausencia, y en el lugar más caro de la pantalla.
+   */
+  const cargandoFotos = photos == null
+  const hayCabecera = portada != null || cargandoFotos
+
+  /**
+   * Los tres estados que la ficha puede afirmar con datos que tiene.
+   *
+   * Nada de "abierto ahora": el modelo no guarda horarios, y un cartel verde
+   * que dice que el bar está abierto cuando nadie lo sabe es peor que no
+   * decir nada. Lo que sí sabemos:
+   *
+   *  - **Al día**: todos los precios cargados se reportaron hace menos de 14
+   *    días. Es la promesa entera de la app cumplida en este bar.
+   *  - **Cuántas canillas** hay cargadas, que es el tamaño de lo que vas a
+   *    encontrar acá adentro.
+   *  - **Verificado · N**: cuánta gente hay detrás del precio mejor
+   *    respaldado. Desde tres reportes el precio deja de ser el último que
+   *    alguien tiró y pasa a ser la mediana de esa gente.
+   */
+  const conPrecio = bar.prices.filter(p => p.price != null)
+  const alDia = conPrecio.length > 0 && conPrecio.every(p => p.freshness === 'fresh')
+  const respaldo = Math.max(0, ...bar.prices.map(p => p.voters ?? 0))
 
   /**
    * Guarda la nota de una birra.
@@ -266,7 +391,7 @@ export function BarDetailScreen({
 
   // Las fotos son de la birra, no del estilo: sin filtrar por marca, las de la
   // IPA de Antares aparecían debajo de la de Juguetes Perdidos.
-  const beerPhotos = active
+  const beerPhotos = active && photos
     ? photos.filter(f => f.styleSlug === active.styleSlug && f.brandSlug === active.brandSlug)
     : []
 
@@ -312,6 +437,94 @@ export function BarDetailScreen({
     else setPull(0)
   }
 
+  /*
+   * Los botones de arriba, que viven en dos lugares según haya portada o no.
+   *
+   * Con banda arriba —la foto, o el esqueleto mientras no se sabe si la hay—
+   * flotan encima de ella, círculos de 44px de vidrio espresso, que es lo
+   * único que se lee sobre una foto de la que no sabemos nada. Sin banda son
+   * la fila de siempre, apoyada sobre el espresso. El JSX es uno solo: dos
+   * copias del mismo botón se separan a la primera corrección.
+   */
+  const barraSuperior = (
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      ...(hayCabecera ? {
+        position: 'absolute' as const,
+        top: 'calc(var(--safe-top) + var(--s-2))', left: 18, right: 18,
+      } : null),
+    }}>
+      <button onClick={() => nav(-1)} className="icon-btn" aria-label="Volver"
+        style={{
+          backgroundColor: VIDRIO_FALLBACK,
+          background: hayCabecera ? VIDRIO_ESPRESSO : 'var(--film-2)',
+          backdropFilter: hayCabecera ? VIDRIO_FILTRO : undefined,
+          WebkitBackdropFilter: hayCabecera ? VIDRIO_FILTRO : undefined,
+          color: 'var(--cream)',
+        }}>←</button>
+      <span style={{ flex: 1 }} />
+
+      {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
+          las acciones de abajo: no es un aporte a la comunidad como
+          cargar un precio, es una marca propia sobre este bar. */}
+      <button
+        onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
+        aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
+        aria-pressed={isFavorite}
+        className="icon-btn"
+        style={{
+          marginRight: 'var(--s-2)',
+          // Sobre la foto el fondo es el mismo para los dos estados: el que
+          // dice si el bar es tuyo es el corazón, que es coral y relleno.
+          backgroundColor: VIDRIO_FALLBACK,
+          background: hayCabecera ? VIDRIO_ESPRESSO
+            : isFavorite ? 'var(--favorito-soft)' : 'var(--film-2)',
+          // El `brightness` del filtro es lo que sostiene al coral acá arriba:
+          // sin él, sobre una foto clara el corazón marcado daba 1,65:1 y se
+          // veía peor que el sin marcar. Ver VIDRIO_FILTRO.
+          backdropFilter: hayCabecera ? VIDRIO_FILTRO : undefined,
+          WebkitBackdropFilter: hayCabecera ? VIDRIO_FILTRO : undefined,
+          color: isFavorite ? 'var(--favorito)' : hayCabecera ? 'var(--cream)' : 'var(--muted)',
+        }}
+      >
+        <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden
+          fill={isFavorite ? 'currentColor' : 'none'}
+          stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.9}>
+          <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+        </svg>
+      </button>
+
+      {isModerator(user) && (
+        // Modo moderador: un interruptor, no un menú. Prendido, aparecen
+        // todas las herramientas destructivas juntas; apagado, un
+        // moderador ve exactamente lo mismo que cualquiera. Así no hay
+        // botones de borrar acechando en la vista de todos los días.
+        <button
+          onClick={() => setModMode(m => !m)}
+          aria-label={modMode ? 'Salir del modo moderador' : 'Modo moderador'}
+          aria-pressed={modMode}
+          className="icon-btn"
+          style={{
+            backgroundColor: VIDRIO_FALLBACK,
+            background: modMode ? 'var(--acento)'
+              : hayCabecera ? VIDRIO_ESPRESSO : 'var(--film-2)',
+            backdropFilter: hayCabecera && !modMode ? VIDRIO_FILTRO : undefined,
+            WebkitBackdropFilter: hayCabecera && !modMode ? VIDRIO_FILTRO : undefined,
+            color: modMode ? 'var(--base)' : hayCabecera ? 'var(--cream)' : 'var(--muted)',
+          }}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            {modMode ? (
+              <path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7Zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+            ) : (
+              <path d="M2.4 3.8 3.8 2.4l17.8 17.8-1.4 1.4-3.1-3.1c-1.6.6-3.3 1-5.1 1-5 0-9.3-3.1-11-7a12.4 12.4 0 0 1 4.2-5L2.4 3.8Zm7.1 7.1a2.5 2.5 0 0 0 3.6 3.6l-3.6-3.6ZM12 5c5 0 9.3 3.1 11 7a12.6 12.6 0 0 1-2.9 4l-3-3a4.5 4.5 0 0 0-6.1-6.1L8.6 5.5C9.7 5.2 10.8 5 12 5Z" />
+            )}
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div
       ref={scroller}
@@ -322,7 +535,10 @@ export function BarDetailScreen({
         // Sin esto, arrastrar hacia abajo desde arriba dispara el
         // pull-to-refresh del navegador antes de que la ficha se mueva.
         overscrollBehaviorY: 'contain',
-        paddingTop: `calc(10px + var(--safe-top))`, paddingBottom: 48,
+        // Con banda arriba la foto llega hasta el borde de la pantalla y el
+        // margen seguro lo despeja la barra de botones, que flota encima.
+        paddingTop: hayCabecera ? 0 : `calc(10px + var(--safe-top))`,
+        paddingBottom: 48,
         // Sin arrastre no se deja `transform` puesto: un transform crea
         // bloque contenedor y los `position: fixed` de los diálogos dejarían
         // de medirse contra el viewport.
@@ -331,62 +547,46 @@ export function BarDetailScreen({
         transition: pulling ? 'none' : 'transform .18s cubic-bezier(.2,.8,.3,1)',
       }}>
       <div className="desk-narrow">
-      <div style={{ padding: '0 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => nav(-1)} className="icon-btn"
-            style={{ background: 'var(--film-2)' }} aria-label="Volver">←</button>
-          <span style={{ flex: 1 }} />
+      {hayCabecera && (
+        /* La portada: alto fijo, foto recortada al centro y el degradado que
+           la apoya contra el espresso. El degradado no es adorno — el nombre
+           del bar se monta sobre el borde de abajo de la foto, y sin él se
+           lee o no según qué haya salido en la foto.
 
-          {/* Favorito (BIR-37 / BIR-5). Arriba, al lado de volver, y no entre
-              las acciones de abajo: no es un aporte a la comunidad como
-              cargar un precio, es una marca propia sobre este bar. */}
-          <button
-            onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
-            aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
-            aria-pressed={isFavorite}
-            className="icon-btn"
-            style={{
-              marginRight: 8,
-              background: isFavorite ? 'var(--favorito-soft)' : 'var(--film-2)',
-              color: isFavorite ? 'var(--favorito)' : 'var(--muted)',
-            }}
-          >
-            <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden
-              fill={isFavorite ? 'currentColor' : 'none'}
-              stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.9}>
-              <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
-            </svg>
-          </button>
-
-          {isModerator(user) && (
-            // Modo moderador: un interruptor, no un menú. Prendido, aparecen
-            // todas las herramientas destructivas juntas; apagado, un
-            // moderador ve exactamente lo mismo que cualquiera. Así no hay
-            // botones de borrar acechando en la vista de todos los días.
-            <button
-              onClick={() => setModMode(m => !m)}
-              aria-label={modMode ? 'Salir del modo moderador' : 'Modo moderador'}
-              aria-pressed={modMode}
-              className="icon-btn"
-              style={{
-                background: modMode ? 'var(--acento)' : 'var(--film-2)',
-                color: modMode ? 'var(--base)' : 'var(--muted)',
-              }}
-            >
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                {modMode ? (
-                  <path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7Zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-                ) : (
-                  <path d="M2.4 3.8 3.8 2.4l17.8 17.8-1.4 1.4-3.1-3.1c-1.6.6-3.3 1-5.1 1-5 0-9.3-3.1-11-7a12.4 12.4 0 0 1 4.2-5L2.4 3.8Zm7.1 7.1a2.5 2.5 0 0 0 3.6 3.6l-3.6-3.6ZM12 5c5 0 9.3 3.1 11 7a12.6 12.6 0 0 1-2.9 4l-3-3a4.5 4.5 0 0 0-6.1-6.1L8.6 5.5C9.7 5.2 10.8 5 12 5Z" />
-                )}
-              </svg>
-            </button>
+           El alto es el mismo con foto y sin ella todavía: es la banda la que
+           reserva el lugar, así que cuando la foto llega no empuja nada. */
+        <div style={{ position: 'relative', height: 216, background: 'var(--elevated)' }}>
+          {portada ? (
+            <img src={portada.url} alt="" style={{
+              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+            }} />
+          ) : (
+            /* Esqueleto y no un gris quieto: la app usa esqueletos en todas
+               las esperas, y acá además es lo que hace que cerrarse después
+               se lea como "no había foto" y no como un salto. El radio se
+               anula porque esta banda va pegada a los cuatro bordes. */
+            <div className="skeleton" aria-hidden style={{
+              position: 'absolute', inset: 0, borderRadius: 0,
+            }} />
           )}
+          <div aria-hidden style={{
+            position: 'absolute', inset: 'auto 0 0 0', height: 110,
+            // El espresso pleno en el tramo de abajo y recién después el
+            // desvanecido: es donde se apoya el nombre, y ahí no puede quedar
+            // ni un hilo de foto asomando debajo de las letras.
+            background: 'linear-gradient(to top, var(--base) 0 28%, transparent)',
+          }} />
+          {barraSuperior}
         </div>
+      )}
+
+      <div style={{ padding: '0 18px' }}>
+        {!hayCabecera && barraSuperior}
 
         {modMode && (
           <div style={{
-            marginTop: 16, padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
+            marginTop: 'var(--s-4)', padding: 'var(--s-2) var(--s-3)',
+            borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
             background: 'var(--acento-soft)', color: 'var(--acento)',
           }}>
             Modo moderador — las acciones de esta vista no se pueden deshacer
@@ -395,43 +595,35 @@ export function BarDetailScreen({
 
         {/* El enlace va acá y no abajo: pegado a las pestañas quedaba
             separando el nombre del bar de sus birras, que es lo que se viene
-            a mirar. Al lado del nombre es donde se lo busca. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '24px 0 8px' }}>
+            a mirar. Al lado del nombre es donde se lo busca.
+
+            La nota del bar se fue de este renglón a su propia sección, más
+            abajo: acá competía por ancho con el nombre y con el enlace, y
+            sobre todo no había lugar para decir de qué es esa nota. La
+            distinción entre "la nota del lugar" y "la nota de cada birra" es
+            una decisión de producto y necesita una línea que la explique. */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 'var(--s-3)',
+          // Con portada, el nombre se monta sobre el borde de abajo de la
+          // foto: es lo que hace que la ficha se lea como una sola pieza y no
+          // como una imagen con una pantalla debajo. Con el aviso de modo
+          // moderador en el medio, no: ahí lo de arriba ya no es la foto y el
+          // margen negativo le comería el aviso.
+          margin: hayCabecera && !modMode
+            ? '-18px 0 var(--s-2)' : 'var(--s-5) 0 var(--s-2)',
+          position: 'relative',
+        }}>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0, flex: 1, minWidth: 0 }}>
             {bar.name}
           </h1>
 
-          {/* La nota del bar, a la altura del nombre.
-              Va con una sola estrella y no con las cinco: acá compite por
-              ancho con el nombre y con el enlace al mapa, y cinco estrellas
-              de 16px se comen media línea. El desglose de cinco estrellas
-              vive en cada birra, que es donde se puntúa. */}
-          {barAvg != null && (
-            <div style={{ flexShrink: 0, textAlign: 'right', marginTop: 4 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
-              }}>
-                <svg width="17" height="17" viewBox="0 0 24 24"
-                  fill="var(--nota)" aria-hidden>
-                  <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
-                </svg>
-                <span className="num" style={{ fontSize: 'var(--t-5)', color: 'var(--cream)' }}>
-                  {barAvg.toFixed(1)}
-                </span>
-              </div>
-              <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
-                {votes === 1 ? '1 voto' : `${votes} votos`}
-              </div>
-            </div>
-          )}
-
           {/* Las birras que te tomaste acá.
               Es dato tuyo, no del bar, así que va en su propia columna y en el
               ámbar de la birra — no compite con la nota de la comunidad, que
-              es lo de al lado y significa otra cosa. Sólo si tomaste alguna:
+              vive abajo y significa otra cosa. Sólo si tomaste alguna:
               un "0" en cada bar al que entrás es ruido. */}
           {(bar.myBeers ?? 0) > 0 && (
-            <div style={{ flexShrink: 0, textAlign: 'right', marginRight: 12 }}>
+            <div style={{ flexShrink: 0, textAlign: 'right', marginRight: 'var(--s-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24"
                   fill="var(--birra)" aria-hidden>
@@ -465,25 +657,36 @@ export function BarDetailScreen({
         {/* El aire de abajo no es decoración: sin él la dirección quedaba
             pegada a la fila de pastillas y se leía como si fuera su rótulo.
             El espacio entre grupos tiene que superar al de adentro del grupo,
-            y acá el grupo es "nombre + nota + dirección". */}
+            y acá el grupo es "nombre + dirección". */}
         {meta && (
           <p style={{
-            color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '0 0 var(--s-3)',
+            color: 'var(--muted)', fontSize: 'var(--t-3)', margin: 0,
           }}>{meta}</p>
         )}
 
+        <FilaDeEstado
+          alDia={alDia}
+          canillas={bar.prices.length}
+          respaldo={respaldo}
+          nota={barAvg}
+        />
       </div>
 
       {bar.prices.length === 0 ? (
-        <div style={{ padding: 16 }}>
-          <p style={{ color: 'var(--muted)' }}>Todavía nadie cargó precios acá. ¿Los sabés?</p>
+        <div style={{ padding: '0 18px' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
+            Todavía nadie cargó precios acá. ¿Los sabés?
+          </p>
           <PrimaryAction
             label="Cargar el primer precio"
+            puntos={PTS_PRECIO}
             onClick={() => user ? setReporting({}) : nav('/perfil')}
           />
         </div>
       ) : (
         <>
+          <h2 className="section-label" style={{ padding: '0 18px' }}>LA PINTA ACÁ</h2>
+
           {/* Una pestaña por birra en vez de apilarlas todas. Con cinco
               estilos, precio + nota + fotos de cada uno era una pantalla que
               no terminaba nunca; así se ve una birra a la vez y el largo no
@@ -522,13 +725,16 @@ export function BarDetailScreen({
               const g = groups.find(x => x.slug === slug)
               if (g) setTab({ style: g.slug, brand: g.beers[0].brandSlug })
             }}
+            // El color del chip lo pone `chipStyle`, que es de PillRow: es la
+            // pieza que más se repite en la app y cada copia se fue separando.
+            // Acá el prendido era hueso lleno, o sea del mismo peso que "Sigue
+            // igual", y una pestaña no manda: informa.
             renderPill={(p, on) => (
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
                 whiteSpace: 'nowrap',
-                background: on ? 'var(--acento)' : 'var(--film-2)',
-                color: on ? 'var(--base)' : 'var(--muted)',
+                ...chipStyle(on),
               }}>
                 {p.label}
                 {p.extra}
@@ -542,8 +748,10 @@ export function BarDetailScreen({
                   flex: '0 0 auto',
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
-                  whiteSpace: 'nowrap', color: 'var(--acento)',
-                  border: '1px dashed rgba(237,230,216,.45)',
+                  whiteSpace: 'nowrap', color: 'var(--info)',
+                  // Punteado: es un hueco a llenar, igual que el cuadro de
+                  // agregar foto. El mismo gesto se dibuja igual en toda la app.
+                  border: '1px dashed var(--info-border)',
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
@@ -566,16 +774,29 @@ export function BarDetailScreen({
             <PillRow
               sheetTitle={`Qué ${group.name.toLowerCase()}`}
               selected={active?.brandSlug ?? '_'}
+              /* La pastilla dice QUÉ marca, no cuánto sale.
+                 Traía el monto al lado y era un precio sin su antigüedad, que
+                 es lo único que esta app no hace nunca: en pesos, un número
+                 sin fecha es información falsa.
+
+                 Las dos salidas eran ponerle la edad o sacarle el monto, y se
+                 le saca el monto. Por ancho, primero: "Juguetes Perdidos
+                 $5.000 hace 12 d" no entra en un teléfono, y la fila de
+                 PillRow envuelve, así que tres marcas se comían tres renglones
+                 justo arriba del precio, que es lo que se vino a mirar.
+
+                 Y por lo que dice el comentario de acá arriba, que es el mismo
+                 argumento: mostrar dos precios juntos bajo el rótulo "IPA" es
+                 exactamente lo que hacía que el número no significara nada. La
+                 pastilla con precio estaba haciendo eso de vuelta, en chico.
+
+                 El monto con su edad está una fila más abajo, en PriceRow,
+                 para la marca elegida — y cambiar de marca es un tap. */
               items={group.beers.map(b => ({
                 key: b.brandSlug ?? '_',
                 label: b.brandName ?? 'Sin marca',
                 favorita: b.brandSlug != null && favBrands.has(b.brandSlug),
                 score: b.ratingAvg ?? -1,
-                extra: b.price != null
-                  ? <span className="num" style={{ opacity: 0.75 }}>
-                      {formatPrice(b.price, bar.currency)}
-                    </span>
-                  : undefined,
               }))}
               onPick={key => setTab({ style: group.slug, brand: key === '_' ? null : key })}
               renderPill={(p, on) => (
@@ -583,9 +804,7 @@ export function BarDetailScreen({
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
                   whiteSpace: 'nowrap',
-                  background: on ? 'rgba(237,230,216,.16)' : 'transparent',
-                  color: on ? 'var(--acento)' : 'var(--faint)',
-                  border: `1px solid ${on ? 'rgba(237,230,216,.4)' : 'var(--hairline)'}`,
+                  ...chipStyle(on),
                 }}>
                   {p.label}
                   {p.extra}
@@ -601,8 +820,8 @@ export function BarDetailScreen({
                     flex: '0 0 auto',
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
-                    whiteSpace: 'nowrap', color: 'var(--muted)',
-                    border: '1px dashed var(--hairline)',
+                    whiteSpace: 'nowrap', color: 'var(--info)',
+                    border: '1px dashed var(--info-border)',
                   }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden>
@@ -620,6 +839,7 @@ export function BarDetailScreen({
               <PriceRow
                 currency={bar.currency}
                 key={beerKey(active)} price={active} busy={busy === beerKey(active)}
+                name={beerName(active)}
                 modMode={modMode}
                 onConfirm={() => user
                   ? act(
@@ -635,7 +855,14 @@ export function BarDetailScreen({
                 onFlag={() => user ? setReportingBad(active) : nav('/perfil')}
               />
 
-              <div style={{ padding: '16px 16px 4px' }}>
+              {/* Mismo canal de 18px que el resto de la ficha: antes este
+                  bloque iba a 16 y la tira de fotos quedaba dos píxeles
+                  corrida de las pestañas de arriba. */}
+              <div style={{ padding: '0 18px' }}>
+                {/* El rótulo dice de quién es la nota. Sin él, las estrellas
+                    de la birra y la nota del lugar —que está más abajo— se
+                    leen como lo mismo puntuado dos veces. */}
+                <h3 className="section-label">TU NOTA DE ESTA BIRRA</h3>
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active)}
@@ -652,6 +879,9 @@ export function BarDetailScreen({
                     setPhotos(await api.barPhotos(barId))
                   }}
                   onOpen={setViewing}
+                  // El pulgar de la tira es el mismo que el del visor: sin
+                  // sesión no hay nada que tocar y queda sólo el número.
+                  onVote={user ? vote : undefined}
                 />
 
                 {/* Los comentarios, abajo de las fotos y no detrás de un
@@ -675,28 +905,76 @@ export function BarDetailScreen({
         </>
       )}
 
+      {/*
+        * La nota del lugar, con la línea que dice de qué es.
+        *
+        * Estaba arriba, pegada al nombre, sin lugar para explicarla — y
+        * explicarla importa: esta nota NO es una nota al bar, es el promedio
+        * de las notas de sus birras, ponderado por cuánta gente votó cada
+        * una. Sin esa línea, quien acaba de puntuar una IPA con cinco no
+        * entiende por qué el bar dice 4,1.
+        *
+        * Va después de la birra y antes de las reseñas porque es lo último
+        * que se mira: primero cuánto sale, después cómo está, después qué
+        * dijeron los demás.
+        */}
+      {barAvg != null && (
+        <section style={{ padding: '0 18px' }}>
+          <h2 className="section-label">NOTA DEL LUGAR</h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-3)' }}>
+            <span className="num" style={{
+              fontSize: 'var(--t-8)', lineHeight: 1, color: 'var(--cream)',
+            }}>{barAvg.toFixed(1)}</span>
+            <EstrellasNota value={barAvg} />
+            <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
+              {votes === 1 ? '1 voto' : `${votes} votos`}
+            </span>
+          </div>
+          <p style={{
+            margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)', lineHeight: 1.5,
+            color: 'var(--faint)', textWrap: 'pretty',
+          }}>
+            Sale del promedio de las birras de este bar, no de una nota al lugar.
+            Cada birra tiene la suya, arriba.
+          </p>
+        </section>
+      )}
+
       {reviews.length > 0 && (
-        <section style={{ padding: '12px 16px' }}>
-          <h2 className="lbl" style={{
-            fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)', margin: '16px 0 12px',
-          }}>RESEÑAS</h2>
+        <section style={{ padding: '0 18px' }}>
+          <h2 className="section-label">RESEÑAS</h2>
           {reviews.map(r => (
-            <div key={r.id} style={{ padding: '10px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-3)' }}>
-                <span style={{ color: 'var(--acento)' }}>{'★'.repeat(r.rating)}</span>
+            <div key={r.id} style={{
+              padding: 'var(--s-3) 0', borderBottom: '1px solid var(--hairline)',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--s-2)', fontSize: 'var(--t-3)',
+              }}>
+                {/* Las estrellas en el tono de la nota y no en el hueso: acá
+                    el hueso es el cromo, y una nota es un dato. */}
+                <span style={{ color: 'var(--nota)' }}>{'★'.repeat(r.rating)}</span>
                 <span style={{ color: 'var(--muted)' }}>{r.authorName}</span>
               </div>
-              {r.body && <p style={{ margin: '4px 0 0', fontSize: 'var(--t-4)' }}>{r.body}</p>}
+              {r.body && (
+                <p style={{
+                  margin: 'var(--s-1) 0 0', fontSize: 'var(--t-3)', lineHeight: 1.5,
+                  color: 'var(--cream-soft)', textWrap: 'pretty',
+                }}>{r.body}</p>
+              )}
             </div>
           ))}
         </section>
       )}
 
       {modMode && (
-        <div style={{ padding: '22px 18px 0' }}>
-          <button onClick={() => setConfirmDelete(true)} className="lbl" style={{
-            width: '100%', padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-            background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
+        <div style={{ padding: 'var(--s-5) 18px 0' }}>
+          <button onClick={() => setConfirmDelete(true)} className="lbl cta" style={{
+            width: '100%', minHeight: 46, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+            // Lo destructivo es un botón con borde, no una pastilla teñida. La
+            // forma vale más que el color: un relleno coral pesa como un CTA
+            // primario y esto no se toca por error.
+            background: 'transparent', border: '1px solid var(--danger)',
+            color: 'var(--danger)',
           }}>Eliminar este bar y sus precios</button>
         </div>
       )}
@@ -848,11 +1126,6 @@ export function BarDetailScreen({
 }
 
 /**
- * Fila de precio. El número es lo más grande y la edad va pegada: nunca uno
- * sin la otra. "Sigue igual" es el botón sólido y "Actualizar" el fantasma —
- * confirmar tiene que costar menos que corregir, o el dataset envejece.
- */
-/**
  * Quién respalda el número (BIR-8).
  *
  * El precio dejó de ser "lo último que alguien reportó" para ser la mediana de
@@ -865,6 +1138,19 @@ export function BarDetailScreen({
  * mismo, mostrar "$5.000–$5.000" es ruido; si dicen cosas distintas, esconderlo
  * sería precisión falsa — y esta app ya decide en otro lado que un número sin
  * su contexto es peor que no tener número.
+ *
+ * ## Por qué ahora además hay una barra
+ *
+ * Con el rango escrito solo —"$4.000–$4.800"— hay que leer dos números y
+ * restarlos mentalmente para saber si la gente está de acuerdo o no. La barra
+ * contesta eso de un vistazo: la pista es el rango completo que reportaron y
+ * lo lleno llega hasta la mediana, que es el número grande de al lado. Si el
+ * relleno queda al medio, el precio está parejo; si queda pegado a un extremo,
+ * hay un reporte tirando del promedio y conviene mirarlo con pinzas.
+ *
+ * Todo en la familia de `--info` porque es el dato de segundo orden: el de
+ * primer orden es el precio, y si esto se pintara con el mismo peso, dos cosas
+ * competirían por la misma mirada.
  */
 function Consenso({ price, currency }: { price: StylePrice; currency: string }) {
   // Menos de tres votantes es lo de siempre: el último reporte. No hay
@@ -872,31 +1158,69 @@ function Consenso({ price, currency }: { price: StylePrice; currency: string }) 
   // sería un cartel permanente que nadie termina de leer.
   if ((price.voters ?? 0) < 3) return null
 
-  const disperso = price.priceLow != null && price.priceHigh != null
-    && price.priceLow !== price.priceHigh
+  const bajo = price.priceLow, alto = price.priceHigh
+  const disperso = bajo != null && alto != null && bajo !== alto
+  // Dónde cae la mediana adentro del rango, de 0 a 100.
+  const medianaEn = disperso
+    ? Math.max(0, Math.min(100, ((price.price! - bajo) / (alto - bajo)) * 100))
+    : 0
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-      marginTop: 6, fontSize: 'var(--t-2)', color: 'var(--faint)',
-    }}>
-      <span>consenso de {price.voters}</span>
+    <div style={{ marginTop: 'var(--s-3)' }}>
       {disperso && (
-        <>
-          <span aria-hidden>·</span>
-          <span className="num">
-            {formatPrice(price.priceLow!, currency)}–{formatPrice(price.priceHigh!, currency)}
-          </span>
-        </>
+        <div aria-hidden style={{
+          position: 'relative', height: 4, borderRadius: 2, background: 'var(--elevated)',
+        }}>
+          <div style={{
+            position: 'absolute', left: 0, top: 0, height: 4, borderRadius: 2,
+            width: `${medianaEn}%`,
+            backgroundColor: 'var(--info)',
+            background: 'color-mix(in srgb, var(--info) 60%, transparent)',
+          }} />
+        </div>
       )}
+      <div style={{
+        marginTop: disperso ? 'var(--s-2)' : 0,
+        fontSize: 'var(--t-1)', color: 'var(--info)',
+      }}>
+        consenso de {price.voters}
+        {disperso && (
+          <> · <span className="num">
+            {formatPrice(bajo, currency)}–{formatPrice(alto, currency)}
+          </span></>
+        )}
+      </div>
     </div>
   )
 }
 
+/**
+ * La canilla: una fila con filete, no una tarjeta.
+ *
+ * A la izquierda quién es —nombre, tamaño, artesanal, su nota— y a la derecha
+ * el precio grande con la antigüedad justo debajo, en el color de la frescura.
+ * Nunca uno sin la otra: un precio sin su edad, en un país con esta inflación,
+ * es información falsa.
+ *
+ * El nombre volvió a esta fila. Se lo había sacado porque lo dicen las
+ * pestañas de arriba y repetirlo parecía gastar el renglón de más jerarquía;
+ * con el precio corrido a la derecha, la columna de la izquierda quedaba con
+ * un "473 ml" solo y había que mirar dos filas más arriba para saber de qué
+ * birra era el número. La pestaña dice qué elegiste, la fila dice qué estás
+ * mirando — y cuando las pestañas se parten en dos renglones, la segunda es
+ * la única que queda a la vista del precio.
+ *
+ * "Sigue igual" es el botón hueso y "Actualizar" el de `--info`: confirmar
+ * tiene que costar menos que corregir, o el dataset envejece. Los dos ocupan
+ * media fila —el peso lo hace el relleno, no el tamaño— así que confirmar
+ * nunca es más difícil de apuntar que actualizar.
+ */
 function PriceRow({
-  price, currency, busy, modMode, onConfirm, onUpdate, onRemove, onHistory, onFlag,
+  price, currency, name, busy, modMode, onConfirm, onUpdate, onRemove, onHistory, onFlag,
 }: {
   price: StylePrice; currency: string; busy: boolean; modMode: boolean
+  /** "IPA · Antares". Lo arma quien llama, que es el que sabe de marcas. */
+  name: string
   onConfirm: () => void; onUpdate: () => void; onRemove: () => void
   onHistory: () => void; onFlag: () => void
 }) {
@@ -904,118 +1228,136 @@ function PriceRow({
   // borra el reporte. Antes esa birra directamente desaparecía.
   if (price.price == null) {
     return (
-      <div style={{
-        padding: '16px 16px', borderBottom: '1px solid var(--film-2)',
-      }}>
-        {/* Sin rótulo: cuál birra es lo dicen las pestañas de arriba. */}
+      <div style={{ padding: 'var(--s-4) 18px', borderBottom: '1px solid var(--hairline)' }}>
         <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
-          Esta birra no tiene precio cargado.
+          <strong style={{ color: 'var(--cream)', fontWeight: 500 }}>{name}</strong>{' '}
+          todavía no tiene precio cargado.
         </p>
-        <button onClick={onUpdate} className="lbl" style={{
-          width: '100%', marginTop: 12, padding: 12, borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+        <button onClick={onUpdate} className="lbl cta" style={{
+          width: '100%', marginTop: 'var(--s-3)', minHeight: 52,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
           background: 'var(--acento)', color: 'var(--base)',
-        }}>Cargar su precio</button>
+        }}>
+          Cargar su precio
+          <Puntos n={PTS_PRECIO} />
+        </button>
       </div>
     )
   }
 
   const color = freshnessColor(price.freshness!)
   const dim = price.freshness === 'stale'
-  return (
-    <div style={{ padding: '16px 16px', borderBottom: '1px solid var(--film-2)' }}>
-      {/* Acá iba otra vez el estilo y la marca. Lo dicen las dos filas de
-          pestañas que están justo arriba, con la activa en ámbar: repetirlo
-          era gastar el renglón de mayor jerarquía en algo que la persona
-          acababa de tocar.
-          Lo único que no está en las pestañas es si la marca es artesanal, y
-          eso sí queda. */}
-      {price.brandCraft && (
-        <span className="lbl" style={{
-          display: 'inline-block', fontSize: 'var(--t-1)', letterSpacing: '.08em',
-          padding: '2px 8px', borderRadius: 999, marginBottom: 8,
-          background: 'var(--film-2)', color: 'var(--faint)',
-        }}>ARTESANAL</span>
-      )}
+  // El tamaño sólo cuando no es la pinta de 473: si es la de siempre, decirlo
+  // es ruido; si no lo es, cambia el precio y hay que saberlo.
+  const meta = [
+    price.sizeMl !== 473 ? `${price.sizeMl} ml` : null,
+    price.brandCraft ? 'artesanal' : null,
+  ].filter(Boolean).join(' · ')
 
-      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-        <div style={{ flex: 1 }}>
+  return (
+    <div style={{ padding: 'var(--s-4) 18px', borderBottom: '1px solid var(--hairline)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s-3)' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="lbl" style={{ fontSize: 'var(--t-4)', color: 'var(--cream)' }}>
+            {name}
+          </div>
+          {meta && (
+            <div style={{ fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 3 }}>
+              {meta}
+            </div>
+          )}
+          {/* La nota de la birra, chiquita y al lado del nombre: es el segundo
+              dato que se mira después del precio. El desglose y las estrellas
+              para votar están más abajo, que es donde se vota. */}
+          {price.ratingCount > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5, marginTop: 6,
+              fontSize: 'var(--t-2)',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--nota)" aria-hidden>
+                <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
+              </svg>
+              <span className="num" style={{ color: 'var(--nota)' }}>
+                {price.ratingRaw!.toFixed(1)}
+              </span>
+              <span style={{ color: 'var(--faint)' }}>
+                {price.ratingCount === 1 ? '1 voto' : `${price.ratingCount} votos`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
           {/* El paso más grande de la escala, y es el único lugar donde se
-              usa. Estaba a la misma altura que el número de una baldosa de
-              estadística del perfil; esto es el dato que la app existe para
-              contestar y tiene que verse como tal. */}
+              usa: esto es el dato que la app existe para contestar. */}
           <div className="num" style={{
             fontSize: 'var(--t-9)', lineHeight: 1.05, letterSpacing: '-.03em',
             color: dim ? 'var(--faint)' : 'var(--cream)',
           }}>{formatPrice(price.price!, currency)}</div>
-
-          {/* La antigüedad, debajo del número y con su color.
-              Estaba chiquita a la derecha, alineada con la última línea: se
-              leía como un pie de página. En esta app un precio sin su edad al
-              lado es información falsa, así que la edad tiene que verse tan
-              rápido como el monto — y cuando el precio está viejo, el aviso es
-              lo que hay que leer primero. */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8,
-            padding: dim ? '4px 10px' : 0, borderRadius: 999,
-            background: dim ? 'var(--film-2)' : 'transparent',
-            fontSize: 'var(--t-2)', color,
-          }}>
-            <span aria-hidden style={{
-              width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
-            }} />
-            {ageLabel(price.ageDays!, price.freshness!)}
+          {/* La antigüedad, pegada abajo del monto y en el color de la
+              frescura. Corta —"hace 12 d"— porque acá es una columna angosta;
+              el aviso largo de los precios viejos va en su propio párrafo. */}
+          <div className="num" style={{ fontSize: 'var(--t-1)', color, marginTop: 2 }}>
+            {shortAge(price.ageDays)}
           </div>
-
-          <Consenso price={price} currency={currency} />
         </div>
-        {/* El tamaño sólo cuando no es la pinta de 473: si es la de siempre,
-            decirlo es ruido; si no lo es, cambia el precio y hay que saberlo. */}
-        {price.sizeMl !== 473 && (
-          <div className="num" style={{
-            fontSize: 'var(--t-3)', color: 'var(--muted)', flexShrink: 0,
-            padding: '4px 12px', borderRadius: 999, background: 'var(--film-2)',
-          }}>{price.sizeMl} ml</div>
-        )}
       </div>
+
+      <Consenso price={price} currency={currency} />
 
       {dim && (
         <p style={{
-          margin: '12px 0 0', padding: 12, borderRadius: 'var(--r-1)', fontSize: 'var(--t-1)',
-          background: 'rgba(255,122,102,.1)', color: 'var(--muted)',
+          margin: 'var(--s-3) 0 0', padding: 'var(--s-3)', borderRadius: 'var(--r-1)',
+          fontSize: 'var(--t-1)', background: 'var(--film-1)', color: 'var(--muted)',
         }}>
           Este precio tiene más de 45 días. Con la inflación, tomalo como referencia nomás.
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button disabled={busy} onClick={onConfirm} className="lbl" data-tour="bar-confirm" style={{
-          flex: 1, padding: 12, borderRadius: 'var(--r-2)',
-          background: busy ? 'var(--acento-deep)' : 'var(--acento)', color: 'var(--base)',
-        }}>{busy ? '…' : 'Sigue igual'}</button>
-        <button disabled={busy} onClick={onUpdate} className="lbl" style={{
-          padding: '12px 24px', borderRadius: 'var(--r-2)', background: 'var(--film-2)',
-        }}>Actualizar</button>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        gap: 'var(--s-3)', marginTop: 'var(--s-5)',
+      }}>
+        <button disabled={busy} onClick={onConfirm} className="lbl cta" data-tour="bar-confirm" style={{
+          minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+          background: busy ? 'var(--acento-busy)' : 'var(--acento)', color: 'var(--base)',
+        }}>
+          {busy ? '…' : <>Sigue igual <Puntos n={PTS_CONFIRMAR} /></>}
+        </button>
+        <button disabled={busy} onClick={onUpdate} className="lbl cta" style={{
+          minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+          background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+          color: 'var(--info-bright)',
+        }}>
+          Actualizar <Puntos n={PTS_PRECIO} />
+        </button>
       </div>
 
       {/* Acciones secundarias en su propia línea, alineadas a la izquierda.
           Antes iban apretadas contra el borde derecho, debajo de la fecha,
           y competían visualmente con ella. */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 16, marginTop: 12,
+        display: 'flex', alignItems: 'center', gap: 'var(--s-4)', marginTop: 'var(--s-1)',
         fontSize: 'var(--t-2)', color: 'var(--faint)',
       }}>
+        {/* Mirar cómo viene subiendo es analítico, no una acción sobre el
+            precio: va en `--info`, que es la voz de lo que informa. */}
         <button onClick={onHistory} style={{
-          fontSize: 'var(--t-2)', color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+          fontSize: 'var(--t-2)', color: 'var(--info)', padding: 'var(--s-3) 0', minHeight: 44,
         }}>
           Ver historial
         </button>
-        <span>·</span>
+        <span aria-hidden>·</span>
         {/* "Este precio está mal" y no "reportar precio", que era ambiguo con
             cargar uno: en esta app "reportar un precio" es justamente lo que
             hace el botón de al lado. Cualquiera puede usarlo, no sólo
             moderadores — quien ve el precio mal es el que está parado ahí. */}
         <button onClick={onFlag} style={{
-          fontSize: 'var(--t-2)', color: 'var(--muted)', padding: '10px 0', minHeight: 44,
+          fontSize: 'var(--t-2)', color: 'var(--muted)',
+          padding: 'var(--s-3) 0', minHeight: 44,
         }}>
           Este precio está mal
         </button>
@@ -1033,12 +1375,17 @@ function PriceRow({
 }
 
 /**
- * El rótulo que dice qué birra es esta.
+ * Los puntos que da una acción, adentro del botón que la hace.
  *
- * El estilo en cream y la marca en ámbar: son dos datos de distinto peso y
- * leerlos como una sola frase ("IPA · Antares") es más rápido que buscar cuál
- * de las dos pestañas está encendida.
+ * Chicos y al 60%: el botón dice qué hace y esto dice cuánto suma. Al 100%
+ * competían con el verbo, y lo que hay que leer primero es el verbo — nadie
+ * toca "Sigue igual" por los puntos, los puntos son el después.
  */
+const Puntos = ({ n }: { n: number }) => (
+  <span className="num" style={{ fontSize: 'var(--t-1)', opacity: .6 }}>
+    +{n} {n === 1 ? 'pt' : 'pts'}
+  </span>
+)
 
 /**
  * Foto ampliada.
@@ -1109,6 +1456,8 @@ function PhotoViewer({
         if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1)
       }}
       style={{
+        // Negro y no espresso: lo único que hay acá es la foto, y cualquier
+        // tinte de la app se le mete adentro y le cambia los colores.
         position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,.92)',
         display: 'grid', placeItems: 'center', padding: 16,
         touchAction: 'pan-y',
@@ -1152,7 +1501,8 @@ function PhotoViewer({
                       persona (BIR-6). */}
                   <button onClick={() => nav(`/usuario/${photo.authorId}`)} className="lbl"
                     style={{
-                      color: 'var(--muted)', fontSize: 'var(--t-2)', textDecoration: 'underline',
+                      color: 'var(--sobre-vidrio)', fontSize: 'var(--t-2)',
+                      textDecoration: 'underline',
                       textDecorationColor: 'var(--film-3)', textUnderlineOffset: 3,
                     }}>{photo.authorName}</button>
                   {' · '}
@@ -1204,17 +1554,27 @@ function PhotoViewer({
             única forma de sacar una foto tuya era ir a "Mis aportes", que es
             justo donde nadie la está mirando cuando se da cuenta. */}
         {(photo.mine || modMode) && (
-          <button onClick={() => onRemove(photo)} className="lbl" style={{
-            padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-2)',
-            background: 'rgba(255,122,102,.16)', color: 'var(--danger)',
+          <button onClick={() => onRemove(photo)} className="lbl cta" style={{
+            padding: 'var(--s-2) var(--s-4)', minHeight: 44, borderRadius: 999,
+            fontSize: 'var(--t-2)',
+            // Misma forma que el resto de lo destructivo: borde, no relleno.
+            // Acá además comparte fila con `.like`, que sí va relleno — si los
+            // dos fueran pastillas llenas, borrar pesaría igual que votar.
+            background: 'transparent', border: '1px solid var(--danger)',
+            color: 'var(--danger)',
           }}>{photo.mine ? 'Borrar tu foto' : 'Eliminar esta foto'}</button>
         )}
       </div>
 
-      <button onClick={onClose} aria-label="Cerrar" style={{
+      {/* Círculo de 44px de vidrio espresso, el mismo de los botones que
+          flotan sobre la portada: es lo único que se lee encima de una foto
+          de la que no sabemos nada. Antes eran 40px de `--hairline`, o sea
+          por debajo del área de toque y casi invisible sobre una foto clara. */}
+      <button onClick={onClose} aria-label="Cerrar" className="icon-btn" style={{
         position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
-        width: 40, height: 40, borderRadius: '50%',
-        background: 'var(--hairline)', color: 'var(--cream)', fontSize: 'var(--t-6)',
+        backgroundColor: VIDRIO_FALLBACK, background: VIDRIO_ESPRESSO,
+        backdropFilter: VIDRIO_FILTRO, WebkitBackdropFilter: VIDRIO_FILTRO,
+        color: 'var(--cream)', fontSize: 'var(--t-6)',
       }}>×</button>
     </div>
   )
@@ -1228,11 +1588,13 @@ function ViewerArrow({
       onClick={e => { e.stopPropagation(); onClick() }}
       disabled={disabled}
       aria-label={side === 'left' ? 'Anterior' : 'Siguiente'}
+      className="icon-btn"
       style={{
         position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-        [side]: 14, width: 44, height: 44, borderRadius: '50%',
-        display: 'grid', placeItems: 'center',
-        background: 'var(--hairline)', color: 'var(--cream)',
+        [side]: 14,
+        backgroundColor: VIDRIO_FALLBACK, background: VIDRIO_ESPRESSO,
+        backdropFilter: VIDRIO_FILTRO, WebkitBackdropFilter: VIDRIO_FILTRO,
+        color: 'var(--cream)',
         opacity: disabled ? 0.25 : 1,
         cursor: disabled ? 'default' : 'pointer',
       }}
@@ -1308,19 +1670,156 @@ function BeerRating({
           acción que haya que ofrecer a la altura de las estrellas. */}
       {canRate && mine && (
         <button onClick={onRetract} style={{
-          flexBasis: '100%', textAlign: 'left', fontSize: 'var(--t-2)', color: 'var(--muted)',
+          flexBasis: '100%', textAlign: 'left', fontSize: 'var(--t-2)',
+          color: 'var(--muted)', padding: 'var(--s-2) 0',
         }}>Retirar mi nota</button>
       )}
     </div>
   )
 }
 
-function PrimaryAction({ label, onClick }: { label: string; onClick: () => void }) {
+/**
+ * La fila de estado, entre el nombre del bar y sus canillas.
+ *
+ * Tres afirmaciones cortas separadas por filete arriba y abajo: es la línea
+ * que contesta "¿me sirve este lugar?" antes de bajar a los precios. Va en
+ * mayúscula chica con tracking porque es rótulo y no texto — tiene que
+ * leerse de un barrido, no leerse.
+ *
+ * Lo que NO está acá también es una decisión: no hay "abierto ahora" porque el
+ * modelo no guarda horarios, ni "mejor precio de la zona" porque esta pantalla
+ * no sabe qué hay alrededor. Un cartel que afirma algo que la app no sabe es
+ * peor que un cartel que falta.
+ */
+function FilaDeEstado({ alDia, canillas, respaldo, nota }: {
+  /** Todos los precios cargados tienen menos de 14 días. */
+  alDia: boolean
+  canillas: number
+  /** Cuánta gente hay detrás del precio mejor respaldado del bar. */
+  respaldo: number
+  nota: number | null
+}) {
+  if (canillas === 0) return null
+
+  const chip = {
+    display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' as const,
+  }
+
   return (
-    <button onClick={onClick} className="lbl" style={{
-      width: '100%', padding: 16, borderRadius: 'var(--r-3)', marginTop: 16,
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+      gap: 'var(--s-2) var(--s-4)',
+      margin: 'var(--s-3) 0 0', padding: 'var(--s-3) 0',
+      borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)',
+      fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-1)',
+      letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1,
+    }}>
+      {alDia && (
+        <span style={{ ...chip, color: 'var(--fresh)' }}>
+          {/* El punto late porque "al día" es un estado vivo: es lo único de
+              la ficha que puede dejar de ser cierto mientras la mirás. */}
+          <span aria-hidden style={{
+            width: 6, height: 6, borderRadius: 3, background: 'var(--fresh)',
+            animation: 'pulso-fresco 2s ease-in-out infinite',
+          }} />
+          Al día
+        </span>
+      )}
+
+      {nota != null && (
+        <span style={{ ...chip, color: 'var(--nota)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
+          </svg>
+          <span className="num">{nota.toFixed(1)}</span>
+        </span>
+      )}
+
+      <span style={{ ...chip, color: 'var(--info)' }}>
+        <span className="num">{canillas}</span>
+        {canillas === 1 ? 'canilla' : 'canillas'}
+      </span>
+
+      {respaldo >= 3 && (
+        <span style={{ ...chip, color: 'var(--info)' }}
+          title={`${respaldo} personas confirmaron el precio`}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 2 4 5.4v5.2c0 4.7 3.4 9.1 8 10.2 4.6-1.1 8-5.5 8-10.2V5.4L12 2Zm-1 13.4L7.6 12l1.4-1.4 2 2 4.4-4.4L16.8 9 11 15.4Z" />
+          </svg>
+          Verificado · <span className="num">{respaldo}</span>
+        </span>
+      )}
+
+      {/* El latido vive acá y no en theme.css porque es de esta fila y de
+          ninguna otra. Con "reducir movimiento" prendido se apaga solo: la
+          regla global de theme.css lo alcanza. */}
+      <style>{`
+        @keyframes pulso-fresco {
+          0%, 100% { opacity: 1; }
+          50%      { opacity: .32; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/**
+ * Cinco estrellas de lectura, en el tono de la nota.
+ *
+ * Se dibujan acá y no con el componente `Stars` porque aquél codifica con el
+ * color de quién es el voto —el tuyo en `--nota`, el de los demás apagado— y
+ * esto no es el voto de nadie: es el promedio del bar, y el promedio del bar
+ * es lo que esta sección viene a decir.
+ *
+ * El relleno parcial va por degradado de dos paradas en el mismo punto, que es
+ * la forma más corta de una media estrella sin recortar nada.
+ */
+function EstrellasNota({ value, size = 16 }: { value: number; size?: number }) {
+  const uid = useId()
+  return (
+    <span style={{ display: 'inline-flex', gap: 2 }} aria-hidden>
+      {[0, 1, 2, 3, 4].map(i => {
+        const lleno = Math.max(0, Math.min(1, value - i)) * 100
+        const id = `nota-${uid}-${i}`
+        return (
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id={id}>
+                <stop offset={`${lleno}%`} style={{ stopColor: 'var(--nota)' }} />
+                <stop offset={`${lleno}%`} style={{ stopColor: 'var(--film-2)' }} />
+              </linearGradient>
+            </defs>
+            <path fill={`url(#${id})`}
+              d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
+          </svg>
+        )
+      })}
+    </span>
+  )
+}
+
+/**
+ * El botón que manda cuando la pantalla tiene una sola cosa para ofrecer.
+ *
+ * Alto 52 y no un padding: los CTA de la app miden lo mismo en todas las
+ * pantallas, y con padding el alto salía distinto según el tamaño de letra.
+ */
+function PrimaryAction({ label, puntos, onClick }: {
+  label: string
+  /** Lo que suma el aporte, adentro del botón y al lado del verbo. */
+  puntos?: number
+  onClick: () => void
+}) {
+  return (
+    <button onClick={onClick} className="lbl cta" style={{
+      width: '100%', minHeight: 52, marginTop: 'var(--s-4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+      borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
       background: 'var(--acento)', color: 'var(--base)',
-    }}>{label}</button>
+    }}>
+      {label}
+      {puntos != null && <Puntos n={puntos} />}
+    </button>
   )
 }
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import * as api from '../data/api'
 import type { BarPin } from '../data/types'
-import { formatDistance, formatPrice, shortAge } from '../data/format'
+import { ageColor, formatDistance } from '../data/format'
+import { PriceColumn } from './Empty'
 
 /**
  * "¿En qué bar?" — el paso que faltaba para poder cargar un precio desde el
@@ -70,26 +71,40 @@ export function BarSearchList({
       <div style={{ marginTop: 12 }}>
         {shown.map(b => (
           <button key={b.id} onClick={() => onPick(b)} style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+            display: 'flex', alignItems: 'center', gap: 'var(--s-3)', width: '100%',
             padding: '12px 4px', textAlign: 'left', borderBottom: '1px solid var(--hairline)',
           }}>
+            {/* La barra de frescura, igual que en la lista: elegir el bar para
+                cargar un precio es también comparar, y acá se ve de un vistazo
+                cuál está desactualizado. Sin precio va en filete y no en
+                `--stale`: no hay dato viejo, no hay dato. */}
+            <span aria-hidden className="fresh-bar" style={{
+              background: b.fromPrice != null
+                ? ageColor(b.freshestAgeDays)
+                : 'var(--hairline)',
+            }} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{b.name}</span>
-              <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
+              {/* La distancia es el dato informativo por excelencia, así que
+                  va en --info: en --faint competía con todo lo demás apagado
+                  de la fila y no se encontraba. */}
+              <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--info)' }}>
                 {formatDistance(b.distanceMeters) ?? 'sin distancia'}
               </span>
             </span>
-            {/* El precio va con su antigüedad al lado, como en todos lados. */}
-            {b.fromPrice != null && (
-              <span style={{ textAlign: 'right' }}>
-                <span className="num" style={{ fontSize: 'var(--t-4)' }}>
-                  {formatPrice(b.fromPrice, b.currency)}
-                </span>
-                <span style={{ display: 'block', fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
-                  {shortAge(b.freshestAgeDays)}
-                </span>
-              </span>
-            )}
+            {/* El precio con su antigüedad al lado, la misma columna que la
+                lista: la regla vive adentro de `PriceColumn` y no repetida
+                acá, que es como esta copia se había quedado sin el pie para
+                cuando no hay fecha y sin cifras tabulares en la edad.
+
+                En --t-5 y no en --t-6: esto es la hoja de elegir bar, no la
+                lista de precios; acá el dato que se busca es el nombre.
+                Sin precio no se dibuja nada —la fila ya lo dice con el filete
+                apagado de la izquierda— y por eso `sinPrecio={null}`. */}
+            <PriceColumn
+              price={b.fromPrice} currency={b.currency} ageDays={b.freshestAgeDays}
+              size="var(--t-5)" sinPrecio={null}
+            />
           </button>
         ))}
 

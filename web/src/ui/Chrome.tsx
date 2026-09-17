@@ -16,37 +16,82 @@ export function Icon({ name, size = 19 }: { name: keyof typeof ICON; size?: numb
 }
 
 /**
- * Barra flotante, igual que en Android: no ocupa el borde, deja ver el mapa
- * por debajo. El degradado evita que el contenido que scrollea quede
- * cortado en seco contra el borde de la píldora.
+ * El alto exacto de la barra de pestañas, sin el margen de seguridad de abajo.
+ *
+ * Está escrito y no medido porque hay dos cosas que se apoyan en él: el
+ * degradado, que tiene que terminar de oscurecer justo donde arranca la barra
+ * —si termina antes o después se ve el escalón—, y los `padding-bottom` de las
+ * pantallas, que vienen calculados desde afuera. Sale de sumar la pieza:
+ * 2 del filete indicador + 10 de aire + 22 del ícono + 3 + 10 de la etiqueta
+ * + 2 abajo. De ahí que la etiqueta lleve `lineHeight: 1`: con el 1.5 heredado
+ * el alto dependía de la fuente y dejaba de ser previsible.
+ *
+ * Da 49 + `--nav-gap`, que es lo mismo que medía la píldora flotante que había
+ * antes: las pantallas no tienen que cambiar sus paddings.
+ */
+const ALTO_BARRA = 49
+
+/**
+ * Barra de pestañas: plana, apoyada contra el borde de abajo, con filete
+ * arriba.
+ *
+ * Antes era una píldora de vidrio flotando sobre el mapa. El vidrio queda para
+ * lo que de verdad flota —los controles del mapa, la preview del bar, las
+ * hojas—; las pestañas no flotan, son el piso de la app, y una píldora que se
+ * despega del borde estaba diciendo lo contrario. La pizarra tiene filetes, no
+ * cápsulas.
+ *
+ * Las tres etiquetas se ven siempre. La píldora sólo mostraba la de la pestaña
+ * activa —era lo que la mantenía angosta— así que las otras dos había que
+ * adivinarlas por el ícono, y "lista" y "perfil" en 19px no se adivinan. Con la
+ * barra plana el ancho lo da la pantalla y entran las tres.
+ *
+ * El indicador de la activa es una barra de 2px **arriba** del ícono, el mismo
+ * vocabulario que `.tab-underline` usa para los segmentados: una sola forma
+ * para "estás acá" en toda la app.
  */
 export function BottomNav() {
   const tab = (to: string, label: string, icon: keyof typeof ICON) => (
     <NavLink
       to={to}
       end
-      // El nombre accesible va acá y no en el texto: la etiqueta sólo se
-      // dibuja en la pestaña activa —es lo que mantiene la barra angosta— así
-      // que sin esto las otras dos se anunciaban como enlaces sin nombre.
-      aria-label={label}
+      // Sin `aria-label`: la etiqueta ahora es texto de verdad y alcanza como
+      // nombre accesible. El atributo estaba porque las pestañas inactivas no
+      // tenían texto; dejarlo puesto sería repetir la misma palabra dos veces
+      // en el mismo enlace. El "estás acá" lo pone `NavLink`, que marca la
+      // activa con `aria-current="page"`.
       style={({ isActive }) => ({
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: isActive ? '11px 16px' : '11px 17px',
-        borderRadius: 999, textDecoration: 'none',
-        background: isActive ? 'var(--acento)' : 'transparent',
-        // Inactiva en --sobre-vidrio y no en --muted: la barra flota sobre el
-        // mapa, y con el vidrio transparente una cápsula de precio por detrás
-        // dejaba el texto en 2,5:1. La activa se distingue por la píldora
-        // rellena, no por el color del texto.
-        color: isActive ? 'var(--base)' : 'var(--sobre-vidrio)',
-        fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-3)',
-        transition: 'background .15s',
+        flex: 1,
+        display: 'block',
+        textDecoration: 'none',
+        // Toda la jerarquía de la barra es un solo salto de color: hueso contra
+        // metadato. El ícono no cambia de forma porque los tres son siluetas
+        // rellenas, así que el color tiene que hacer todo el trabajo y por eso
+        // va al extremo de la rampa y no a un paso intermedio.
+        color: isActive ? 'var(--cream)' : 'var(--faint)',
+        transition: 'color .15s',
       })}
     >
       {({ isActive }) => (
         <>
-          <Icon name={icon} />
-          {isActive && <span>{label}</span>}
+          <div aria-hidden style={{
+            height: 2,
+            background: isActive ? 'var(--cream)' : 'transparent',
+            transition: 'background .15s',
+          }} />
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            padding: '10px 0 2px',
+          }}>
+            <Icon name={icon} size={22} />
+            {/* 10px queda por debajo de `--t-1`, y es a propósito: es una
+                etiqueta pegada a su ícono, no un texto que se lee solo. Más
+                grande, la barra empieza a competir con el precio, que es lo
+                único que esta app viene a contestar. */}
+            <span className="lbl" style={{
+              fontSize: 10, letterSpacing: '.02em', lineHeight: 1,
+            }}>{label}</span>
+          </div>
         </>
       )}
     </NavLink>
@@ -54,22 +99,43 @@ export function BottomNav() {
 
   return (
     <>
-      <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, height: 88, zIndex: 40,
-        pointerEvents: 'none',
-        background: 'linear-gradient(transparent, rgba(15,16,18,.9) 60%, var(--base))',
+      {/* El degradado que muere justo donde arranca la barra.
+          Está para que la lista que scrollea por debajo no quede cortada en
+          seco contra el filete. Va a `--base` y no a un rgba escrito a mano:
+          era el único color de este archivo que no salía de un token, y con el
+          cambio de paleta apuntaba a un gris frío que ya no existe. */}
+      <div aria-hidden style={{
+        position: 'fixed', left: 0, right: 0,
+        bottom: `calc(${ALTO_BARRA}px + var(--nav-gap))`,
+        height: 40, zIndex: 40, pointerEvents: 'none',
+        background: 'linear-gradient(transparent, var(--base))',
       }} />
-      {/* La barra también es vidrio, con la misma receta que el resto. Tenía
-          su propia mezcla —otro tinte, otro desenfoque, otro borde— por haber
-          salido antes que `.glass`. */}
-      <nav className="bottom-nav glass" style={{
-        position: 'fixed', left: '50%', transform: 'translateX(-50%)',
-        bottom: 'var(--nav-gap)', zIndex: 50,
-        display: 'flex', gap: 2, padding: 4, borderRadius: 999,
+
+      {/*
+        Sin la clase `bottom-nav`: la usaba una regla de escritorio que
+        recentraba la píldora con `translateX(-50%)`, y sobre una barra de ancho
+        completo eso la corre media pantalla. Lo que sí se acota en escritorio
+        es la fila de adentro, con el mismo `.desk-narrow` que el resto del
+        contenido — la barra pinta hasta el borde, las pestañas quedan donde
+        está la lista.
+
+        El `padding-bottom` en `--nav-gap` es el indicador de home de iOS: la
+        barra apoya contra el borde, pero el filete y los íconos no se meten
+        debajo de la rayita del sistema.
+      */}
+      <nav aria-label="Secciones" style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+        padding: `0 var(--s-3) var(--nav-gap)`,
+        background: 'var(--base)',
       }}>
-        {tab('/', 'Mapa', 'map')}
-        {tab('/lista', 'Lista', 'list')}
-        {tab('/perfil', 'Perfil', 'person')}
+        <div className="desk-narrow" style={{
+          display: 'flex',
+          borderTop: '1px solid var(--hairline)',
+        }}>
+          {tab('/', 'Mapa', 'map')}
+          {tab('/lista', 'Lista', 'list')}
+          {tab('/perfil', 'Perfil', 'person')}
+        </div>
       </nav>
     </>
   )
@@ -136,6 +202,10 @@ export function Sheet(
  * pero Safari todavía no lo trae — y Safari es el navegador de la mitad de los
  * usuarios de una PWA. Se deja puesto igual: donde funciona, funciona, y el
  * handler de abajo es idempotente.
+ *
+ * Sigue siendo vidrio con la dirección nueva: acá el vidrio se justifica
+ * porque la pieza flota sobre la pantalla anterior y conviene seguir viendo de
+ * dónde venís. Lo que dejó de ser vidrio es lo que apoya contra un borde.
  */
 function Modal({ label, onClose, variant = 'center', children }: {
   label: string
@@ -196,30 +266,41 @@ export function Confirm({
 
   return (
     <Modal label={title} onClose={onCancel}>
-      <div style={{ padding: 24 }}>
-        <h3 className="ttl" style={{ margin: '0 0 12px', fontSize: 'var(--t-5)' }}>{title}</h3>
+      {/* Los espacios salen de la escala `--s-*` y no de números sueltos: eran
+          24, 12, 16 y 8 escritos a mano, que es la escala por casualidad. */}
+      <div style={{ padding: 'var(--s-5)' }}>
+        <h3 className="ttl" style={{ margin: '0 0 var(--s-3)', fontSize: 'var(--t-5)' }}>{title}</h3>
         <div style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', lineHeight: 1.55 }}>{body}</div>
 
         {requireWord && (
           <>
-            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '16px 0 8px' }}>
+            <p style={{
+              color: 'var(--faint)', fontSize: 'var(--t-2)',
+              margin: 'var(--s-4) 0 var(--s-2)',
+            }}>
               Escribí {requireWord} para confirmar
             </p>
             <input value={typed} onChange={e => setTyped(e.target.value)} style={{
-              width: '100%', padding: '12px 12px', borderRadius: 'var(--r-2)',
+              width: '100%', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
+              // El piso de 16px es lo que evita que Safari iOS haga zoom al
+              // enfocar y no lo devuelva después.
+              fontSize: 'var(--t-field)',
             }} />
           </>
         )}
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 24 }}>
+        <div style={{
+          display: 'flex', gap: 'var(--s-2)', justifyContent: 'flex-end',
+          marginTop: 'var(--s-5)',
+        }}>
           <button onClick={onCancel} style={{
-            color: 'var(--muted)', padding: '12px 16px', minHeight: 44,
+            color: 'var(--muted)', padding: 'var(--s-3) var(--s-4)', minHeight: 44,
           }}>
             Cancelar
           </button>
           <button disabled={!armed} onClick={onConfirm} style={{
-            padding: '12px 16px', fontWeight: 600, minHeight: 44,
+            padding: 'var(--s-3) var(--s-4)', fontWeight: 600, minHeight: 44,
             color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--acento)',
             cursor: armed ? 'pointer' : 'not-allowed',
           }}>{confirmLabel}</button>
@@ -256,8 +337,12 @@ export function Toast({ text, onDone }: { text: string; onDone: () => void }) {
       role="status" aria-live="polite"
       className="glass"
       style={{
-        position: 'fixed', left: 16, right: 16, bottom: `calc(84px + var(--nav-gap))`,
-        zIndex: 70, borderRadius: 'var(--r-3)', padding: '12px 16px',
+        // Flota sobre la barra de pestañas, no encima: los 84px lo dejan por
+        // arriba del filete incluso con el indicador de home puesto.
+        position: 'fixed', left: 'var(--s-4)', right: 'var(--s-4)',
+        bottom: `calc(84px + var(--nav-gap))`,
+        zIndex: 70, borderRadius: 'var(--r-3)',
+        padding: 'var(--s-3) var(--s-4)',
         fontSize: 'var(--t-3)',
         animation: 'toast-in .18s ease-out',
       }}

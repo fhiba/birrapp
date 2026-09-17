@@ -21,6 +21,10 @@ import { ageColor, formatDistance, formatPrice, shortAge } from '../data/format'
  * Se le pasa el bar entero y no su id porque la lista de bares se recarga sola
  * al moverse la cámara: guardando el id, un refresco que no devolviera ese bar
  * vaciaba la tarjeta abierta.
+ *
+ * Es de vidrio, y es de los pocos lugares donde el vidrio se queda: heritage
+ * lo reserva para lo que flota sobre el mapa. Era una tarjeta opaca pegada
+ * encima, que es lo que hace que el mapa parezca tapado en vez de atrás.
  */
 export function BarPreview({
   bar, onClose, onOpen, isFavorite, onToggleFavorite,
@@ -101,13 +105,13 @@ export function BarPreview({
         transition: dragging ? 'none' : 'transform .22s cubic-bezier(.2,.8,.3,1)',
       }}
     >
+      {/* El fondo, el borde y la sombra los pone `.glass`: repetirlos acá era
+          lo que la dejaba opaca. */}
       <div
-        className="desk-narrow"
+        className="desk-narrow glass"
         style={{
           pointerEvents: 'auto',
-          background: 'var(--raised)', borderRadius: 'var(--r-4)',
-          border: '.8px solid var(--hairline)',
-          boxShadow: '0 -6px 34px rgba(0,0,0,.5)',
+          borderRadius: 'var(--r-4)',
           padding: '8px 16px 16px',
         }}
       >
@@ -124,23 +128,20 @@ export function BarPreview({
             background: 'var(--film-3)',
           }} />
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 className="ttl" style={{
-                margin: 0, fontSize: 'var(--t-5)', lineHeight: 1.25,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{bar.name}</h2>
-              {distance && (
-                <p style={{ margin: '4px 0 0', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-                  {distance}
-                </p>
-              )}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
+            <h2 className="ttl" style={{
+              flex: 1, minWidth: 0, margin: 0, fontSize: 'var(--t-5)', lineHeight: 1.25,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{bar.name}</h2>
 
             {/* Favoritear sin entrar a la ficha.
                 Es el gesto de "este me sirve, seguí mirando": obligarte a
                 abrir el bar, marcarlo y volver al mapa para seguir buscando
-                rompe justo el recorrido en el que estás. */}
+                rompe justo el recorrido en el que estás.
+
+                Sin marcar va en `--sobre-vidrio` y no en `--muted`: adentro
+                del vidrio, con una cápsula de precio pasando por detrás,
+                `--muted` se cae a 2,5:1. */}
             <button
               onClick={onToggleFavorite}
               aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
@@ -148,7 +149,7 @@ export function BarPreview({
               className="icon-btn"
               style={{
                 background: isFavorite ? 'var(--favorito-soft)' : 'var(--film-2)',
-                color: isFavorite ? 'var(--favorito)' : 'var(--muted)',
+                color: isFavorite ? 'var(--favorito)' : 'var(--sobre-vidrio)',
               }}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
@@ -163,7 +164,7 @@ export function BarPreview({
                 mientras se camina. */}
             <button
               onClick={onClose} aria-label="Cerrar" className="icon-btn"
-              style={{ color: 'var(--muted)', background: 'var(--film-2)' }}
+              style={{ color: 'var(--sobre-vidrio)', background: 'var(--film-2)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
                 <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
@@ -173,64 +174,76 @@ export function BarPreview({
           </div>
         </div>
 
-        {/* La regla de la casa: el precio nunca va solo, la antigüedad va al
-            lado. Un pin sin precio no tiene ninguno vigente —o los que hay
-            son stale—, y eso también se dice. */}
-        <div style={{ margin: '12px 0 2px', minHeight: 48 }}>
-          {price != null ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>desde</span>
-                <span className="num" style={{
-                  fontSize: 'var(--t-8)', lineHeight: 1.05, color: 'var(--cream)',
-                }}>{formatPrice(price, bar.currency)}</span>
-              </div>
+        {/* La distancia a la izquierda y el precio a la derecha, en el mismo
+            renglón: son las dos cosas que se comparan entre un bar y el
+            siguiente, y una arriba de la otra obligaba a leer en zigzag.
 
-              {/* La antigüedad, debajo del monto y no al costado — misma forma
-                  que en la ficha del bar. Al costado y alineada al otro
-                  extremo se leía como un dato aparte; es parte del precio. */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
-                marginTop: 'var(--s-1)', fontSize: 'var(--t-2)', color: ageColor(age),
+            La regla de la casa: el precio nunca va solo, la antigüedad va
+            debajo y en su color. Un pin sin precio no tiene ninguno vigente
+            —o los que hay son stale—, y eso también se dice. */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-end', gap: 'var(--s-3)',
+          margin: '10px 0 0', minHeight: 44,
+        }}>
+          <span style={{
+            flex: 1, minWidth: 0, fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)',
+          }}>{distance}</span>
+
+          {price != null ? (
+            <span style={{ flexShrink: 0, textAlign: 'right' }}>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-1)' }}>
+                <span style={{ fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)' }}>desde</span>
+                <span className="num" style={{
+                  fontSize: 'var(--t-7)', lineHeight: 1.05, color: 'var(--cream)',
+                }}>{formatPrice(price, bar.currency)}</span>
+              </span>
+              <span style={{
+                display: 'block', marginTop: 'var(--s-1)', fontSize: 'var(--t-1)',
+                fontVariantNumeric: 'tabular-nums', color: ageColor(age),
               }}>
-                <span aria-hidden style={{
-                  width: 7, height: 7, borderRadius: '50%',
-                  background: ageColor(age), flexShrink: 0,
-                }} />
-                {shortAge(age)}
-              </div>
-            </>
+                {age != null ? shortAge(age) : 'sin fecha'}
+              </span>
+            </span>
           ) : (
-            <span style={{ fontSize: 'var(--t-3)', color: 'var(--muted)' }}>
+            <span style={{ fontSize: 'var(--t-3)', color: 'var(--sobre-vidrio)' }}>
               Sin precio vigente
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        {/* Los dos pasos que siguen, del mismo tamaño y uno al lado del otro:
+            entrar al bar o ir hasta él. "Cómo llegar" era un ícono de 44px sin
+            etiqueta — el mismo pin que usa el mapa, que ahí significa "un bar"
+            y acá significaba "abrí Google Maps". Con el texto se deja de
+            adivinar, y el par queda como el primario hueso y el secundario
+            informativo que pide la dirección. */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 'var(--s-2)', marginTop: 'var(--s-3)',
+        }}>
           <button
             onClick={onOpen}
             className="lbl"
             style={{
-              flex: 1, height: 44, borderRadius: 'var(--r-3)', fontSize: 'var(--t-4)',
+              height: 46, borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
               background: 'var(--acento)', color: 'var(--base)', fontWeight: 600,
             }}
           >
-            {price != null ? 'Ver el bar' : 'Cargar el primer precio'}
+            {price != null ? 'Ver bar' : 'Cargar el primer precio'}
           </button>
 
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`}
-            target="_blank" rel="noreferrer" aria-label="Cómo llegar"
+            target="_blank" rel="noreferrer"
+            className="lbl"
             style={{
-              flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--r-3)',
-              display: 'grid', placeItems: 'center',
-              background: 'var(--elevated)', color: 'var(--acento)',
+              height: 46, borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+              display: 'grid', placeItems: 'center', fontWeight: 600,
+              background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+              color: 'var(--info-bright)', textDecoration: 'none',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
-            </svg>
+            Cómo llegar
           </a>
         </div>
       </div>

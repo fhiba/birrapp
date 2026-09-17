@@ -13,9 +13,18 @@ import type { ReactNode } from 'react'
  * justifique.
  */
 
-/** El encabezado chico en mayúscula que separa zonas de una pantalla larga. */
+/*
+ * El encabezado chico en mayúscula que separa zonas de una pantalla larga.
+ *
+ * Los hijos se renderizan tal cual y la mayúscula la pone `.section-label` con
+ * `text-transform`. Antes iba `String(children).toUpperCase()`, que tenía dos
+ * problemas: con más de un hijo `String` es `Array.prototype.toString`, que une
+ * con coma y escribe «LO TUYO · ,3»; y el lector de pantalla recibía el texto
+ * ya gritado, cuando `text-transform` es puro CSS y deja la palabra intacta
+ * para quien la escucha.
+ */
 export const SectionLabel = ({ children }: { children: ReactNode }) => (
-  <h2 className="section-label">{String(children).toUpperCase()}</h2>
+  <h2 className="section-label">{children}</h2>
 )
 
 /**
@@ -25,18 +34,23 @@ export const SectionLabel = ({ children }: { children: ReactNode }) => (
  * contexto chico y apagado. Es lo que hace que el perfil se lea de un vistazo
  * en vez de leerse.
  *
- * En cero el número va en `--faint` y no en ámbar: un cero destacado parece un
- * logro y es lo contrario. Apagado dice "acá todavía no hay nada", que es la
- * verdad y además invita.
+ * En cero el número va en `--faint` y no en el color de texto: un cero
+ * destacado parece un logro y es lo contrario. Apagado dice "acá todavía no hay
+ * nada", que es la verdad y además invita.
+ *
+ * Tenía un prop `accent` que elegía entre `--acento` y `--cream`, y en heritage
+ * los dos son el mismo Floral White: el ternario pintaba el mismo color en sus
+ * dos ramas y ningún llamador lo pasaba. Se va. El número queda en `--cream` y
+ * nombrado por lo que es —texto destacado— que es el mismo criterio con el que
+ * se resolvió la baldosa de "Tus bares" en `MyBeers`: llamarlo acento invitaba
+ * a leerlo como un botón.
  */
-export function Tile({ value, label, hint, accent = true, onClick }: {
+export function Tile({ value, label, hint, onClick }: {
   /** `undefined` mientras carga: se dibuja un guión, no un cero. Un cero es un
    *  dato y "todavía no sé" no lo es. */
   value: number | string | undefined
   label: string
   hint?: string
-  /** Falso deja el número en color de texto: para baldosas que no son un logro. */
-  accent?: boolean
   /** Con esto la baldosa es un botón. Sin esto, un `div`: una baldosa que no
    *  lleva a ningún lado no tiene que anunciarse como algo tocable. */
   onClick?: () => void
@@ -49,7 +63,7 @@ export function Tile({ value, label, hint, accent = true, onClick }: {
     }}>
       <div className="num" style={{
         fontSize: 'var(--t-8)', lineHeight: 1,
-        color: vacio ? 'var(--faint)' : accent ? 'var(--acento)' : 'var(--cream)',
+        color: vacio ? 'var(--faint)' : 'var(--cream)',
       }}>{value ?? '—'}</div>
       <div style={{
         fontSize: 'var(--t-2)', color: 'var(--muted)', marginTop: 'var(--s-1)',

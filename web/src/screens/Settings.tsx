@@ -106,7 +106,7 @@ export function SettingsScreen({ user, onSession }: {
           <button
             disabled={name.trim() === user.displayName || name.trim().length < 2}
             onClick={() => guardar({ displayName: name.trim() }, 'Nombre cambiado')}
-            className="lbl"
+            className="lbl cta"
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               background: name.trim() !== user.displayName && name.trim().length >= 2
@@ -140,7 +140,7 @@ export function SettingsScreen({ user, onSession }: {
               { alias: alias.trim() },
               alias.trim() ? 'Alias guardado' : 'Alias sacado',
             )}
-            className="lbl"
+            className="lbl cta"
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
               background: alias.trim() !== (user.alias ?? '') ? 'var(--acento)' : 'var(--elevated)',
@@ -164,22 +164,37 @@ export function SettingsScreen({ user, onSession }: {
         </p>
 
         {/* Las birras favoritas viven acá y no en su propia sección: son una
-            preferencia de cuenta, igual que el alias y el nombre. */}
-        <button onClick={() => nav('/preferencias')} className="lbl" style={{
-          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          marginTop: 'var(--s-5)', padding: '14px 16px', borderRadius: 'var(--r-2)',
-          fontSize: 'var(--t-4)', background: 'var(--film-2)', color: 'var(--cream)',
-          textAlign: 'left',
+            preferencia de cuenta, igual que el alias y el nombre.
+
+            Fila con filete y no tarjeta: una tarjeta por ajuste hacía que cinco
+            preferencias sueltas se leyeran como cinco bloques aparte, cuando
+            son renglones de una misma lista. El filete alcanza para separarlas
+            y deja el peso visual para el único bloque que sí es otra cosa, que
+            es la zona de riesgo.
+
+            El chevron pasa a `--info`: llevar a otra pantalla es acción
+            secundaria, no un metadato apagado más. */}
+        <div style={{
+          marginTop: 'var(--s-5)', padding: 'var(--s-3) 2px',
+          borderBottom: '1px solid var(--hairline)',
         }}>
-          <span style={{ flex: 1 }}>Tus birras favoritas</span>
-          <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>
-            {user.favoriteStyles.length + user.favoriteBrands.length || '—'}
-          </span>
-          <span style={{ color: 'var(--faint)' }}>›</span>
-        </button>
-        <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
-          Deciden cuáles son las tres birras que se ven primero en cada bar.
-        </p>
+          <button onClick={() => nav('/preferencias')} className="lbl" style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s-3)', width: '100%',
+            minHeight: 44, textAlign: 'left', fontSize: 'var(--t-4)', color: 'var(--cream)',
+          }}>
+            <span style={{ flex: 1 }}>Tus birras favoritas</span>
+            <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>
+              {user.favoriteStyles.length + user.favoriteBrands.length || '—'}
+            </span>
+            <span aria-hidden style={{ color: 'var(--info)' }}>›</span>
+          </button>
+          <p style={{
+            color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-2) 0 0',
+            lineHeight: 1.5, textWrap: 'pretty',
+          }}>
+            Deciden cuáles son las tres birras que se ven primero en cada bar.
+          </p>
+        </div>
 
         <SectionLabel>Avisos</SectionLabel>
         {/* Los dos por separado y no un solo interruptor: en un bar con gente
@@ -221,8 +236,13 @@ export function SettingsScreen({ user, onSession }: {
             onChange={e => guardar(
               { defaultSizeMl: Number(e.target.value) }, 'Tamaño cambiado',
             )}
+            /* `--t-field` y no un paso de la escala: abajo de 16px Safari iOS
+               hace zoom al enfocar el campo y no lo devuelve. La red de
+               theme.css ya lo pone, pero el `style` inline le gana por
+               especificidad, así que acá hay que nombrarlo. Mismo caso que
+               CurrencySelect. */
             style={{
-              padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+              padding: '8px 12px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-field)',
               background: 'var(--elevated)', color: 'var(--cream)',
               border: '1px solid var(--hairline)',
             }}
@@ -237,11 +257,16 @@ export function SettingsScreen({ user, onSession }: {
 
         <SectionLabel>Al abrir la app</SectionLabel>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          padding: 'var(--s-3) 2px', borderBottom: '1px solid var(--hairline)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
             <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>Radio de búsqueda</span>
-            <span className="lbl" style={{
-              marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-4)',
+            {/* El radio es dato informativo —de los que ahora lleva `--info`— y
+                es un número que se compara con el de la última vez, así que va
+                tabular. En `--acento` competía con el CTA de guardar. */}
+            <span className="num" style={{
+              marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-4)',
             }}>{formatRadius(radius)}</span>
           </div>
           {/*
@@ -265,30 +290,32 @@ export function SettingsScreen({ user, onSession }: {
               )
             }}
             style={{
-              marginTop: 8,
+              marginTop: 'var(--s-2)',
               ['--fill' as string]: `${((radius - 300) / (15000 - 300)) * 100}%`,
             }}
           />
-          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
+          <p style={{
+            color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-2) 0 0',
+            textWrap: 'pretty',
+          }}>
             Con cuánto a la redonda abre el mapa y la lista.
           </p>
         </div>
 
         {error && (
-          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 16 }}>{error}</p>
+          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 'var(--s-4)' }}>{error}</p>
         )}
 
         {blocked.length > 0 && (
           <>
             <SectionLabel>Personas bloqueadas</SectionLabel>
             {blocked.map(p => (
-              <div key={p.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 2px', borderBottom: '1px solid var(--hairline)',
-              }}>
+              <div key={p.id} className="row" style={{ minHeight: 44 }}>
                 <button onClick={() => nav(`/usuario/${p.id}`)} className="lbl" style={{
                   flex: 1, minWidth: 0, textAlign: 'left', fontSize: 'var(--t-4)',
                 }}>{p.displayName}</button>
+                {/* Desbloquear es acción secundaria, no el CTA de la pantalla:
+                    en hueso pesaba lo mismo que "Guardar". */}
                 <button
                   onClick={async () => {
                     await api.unblockPerson(p.id).catch(() => {})
@@ -296,12 +323,13 @@ export function SettingsScreen({ user, onSession }: {
                     loadBlocked()
                   }}
                   className="lbl"
-                  style={{ fontSize: 'var(--t-3)', color: 'var(--acento)' }}
+                  style={{ fontSize: 'var(--t-3)', color: 'var(--info)' }}
                 >Desbloquear</button>
               </div>
             ))}
             <p style={{
-              color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '12px 0 0', lineHeight: 1.5,
+              color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-3) 0 0',
+              lineHeight: 1.5, textWrap: 'pretty',
             }}>
               Con alguien bloqueado, ninguno de los dos ve los comentarios ni las
               fotos del otro. Los precios que cargó siguen en el mapa: son datos
@@ -311,9 +339,16 @@ export function SettingsScreen({ user, onSession }: {
         )}
 
         <SectionLabel>Zona de riesgo</SectionLabel>
-        <button onClick={() => setConfirmDelete(true)} className="lbl" style={{
-          width: '100%', padding: 16, borderRadius: 'var(--r-3)', textAlign: 'left', fontSize: 'var(--t-4)',
-          background: 'rgba(255,122,102,.12)', color: 'var(--danger)',
+        {/* Lo destructivo se dibuja con borde y no con relleno: el relleno
+            coral era un hex suelto y además se leía como un CTA, que es
+            justo lo que no tiene que parecer el botón que borra la cuenta.
+            La confirmación con palabra escrita sigue igual — el borde no la
+            reemplaza, la anuncia. */}
+        <button onClick={() => setConfirmDelete(true)} className="lbl cta" style={{
+          width: '100%', minHeight: 52, padding: 'var(--s-4)',
+          borderRadius: 'var(--r-2)', border: '1px solid var(--danger)',
+          textAlign: 'left', fontSize: 'var(--t-4)',
+          background: 'transparent', color: 'var(--danger)',
         }}>Borrar mi cuenta</button>
       </div>
 
@@ -346,13 +381,22 @@ function Field({ label, hint, children }: {
   label: string; hint: string; children: React.ReactNode
 }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{
+      padding: 'var(--s-3) 2px', borderBottom: '1px solid var(--hairline)',
+    }}>
+      {/* El filete hace de separador y de agrupador a la vez: el `marginBottom`
+          suelto que había antes separaba igual, pero no decía dónde termina un
+          ajuste y empieza el siguiente cuando la explicación es de tres
+          renglones. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-3)', minHeight: 44,
+      }}>
         <span className="lbl" style={{ flex: 1, fontSize: 'var(--t-4)' }}>{label}</span>
         {children}
       </div>
       <p style={{
-        color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
+        color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-2) 0 0',
+        lineHeight: 1.5, textWrap: 'pretty',
       }}>{hint}</p>
     </div>
   )
@@ -366,34 +410,40 @@ function Interruptor({ label, hint, on, onChange }: {
     <button
       onClick={() => onChange(!on)}
       role="switch" aria-checked={on}
-      className="lbl"
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        marginTop: 'var(--s-2)', padding: '12px 14px', borderRadius: 'var(--r-2)',
-        background: 'var(--film-2)', textAlign: 'left',
-      }}
+      className="lbl row"
     >
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 'var(--t-4)', color: 'var(--cream)' }}>
           {label}
         </span>
         <span style={{
-          display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)',
-          marginTop: 2, lineHeight: 1.4, whiteSpace: 'normal',
+          display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)',
+          marginTop: 2, lineHeight: 1.4, whiteSpace: 'normal', textWrap: 'pretty',
         }}>{hint}</span>
       </span>
-      {/* Riel y perilla, que es lo que se reconoce como interruptor. Una
-          tilde diría "elegido de una lista" y esto es prendido/apagado. */}
+      {/* Riel y perilla, que es lo que se reconoce como interruptor. Una tilde
+          diría "elegido de una lista" y esto es prendido/apagado.
+
+          Las medidas son las de la dirección heritage —51x31 de pista, perilla
+          de 27— y no las de antes (44x26): un interruptor más chico que el del
+          sistema se toca peor y encima se lee como una maqueta.
+
+          Prendido va en `--info` y no en el acento hueso: prendido/apagado es
+          un estado, y el hueso es el color de lo que se toca. Con el acento, un
+          interruptor prendido y el botón "Guardar" de arriba eran el mismo
+          color a dos centímetros. La perilla se queda en hueso con sombra
+          porque es la pieza que se mueve y tiene que despegarse de la pista. */}
       <span aria-hidden style={{
-        flexShrink: 0, width: 44, height: 26, borderRadius: 999,
-        background: on ? 'var(--acento)' : 'var(--film-3)',
+        flexShrink: 0, width: 51, height: 31, borderRadius: 16, padding: 2,
+        background: on ? 'var(--info)' : 'var(--elevated)',
         display: 'flex', alignItems: 'center',
-        padding: 3, transition: 'background-color .16s ease-out',
+        transition: 'background-color .2s ease-out',
       }}>
         <span style={{
-          width: 20, height: 20, borderRadius: '50%', background: 'var(--base)',
-          transform: on ? 'translateX(18px)' : 'none',
-          transition: 'transform .16s ease-out',
+          width: 27, height: 27, borderRadius: 14, background: 'var(--cream)',
+          boxShadow: '0 1px 3px rgba(0,0,0,.4)',
+          transform: on ? 'translateX(20px)' : 'none',
+          transition: 'transform .2s ease-out',
         }} />
       </span>
     </button>

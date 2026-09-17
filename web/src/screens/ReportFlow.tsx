@@ -198,12 +198,18 @@ export function ReportFlow({
               }}
             />
 
+            {/* Acción secundaria, con el vestido de acción secundaria: fondo
+                `--info-soft`, borde `--info-border` y texto `--info-bright`.
+                Con el borde punteado y el acento se leía como un CTA apagado,
+                y esto no es el camino principal — es la salida para cuando el
+                bar no está. */}
             {onAddBar && (
               <button onClick={onAddBar} className="lbl" style={{
-                width: '100%', marginTop: 16, padding: 16, borderRadius: 'var(--r-2)',
-                fontSize: 'var(--t-3)', minHeight: 44, textAlign: 'center',
-                background: 'var(--film-2)', color: 'var(--acento)',
-                border: '1px dashed var(--hairline)',
+                width: '100%', marginTop: 16, padding: 'var(--s-3) var(--s-4)',
+                borderRadius: 'var(--r-2)',
+                fontSize: 'var(--t-3)', minHeight: 46, textAlign: 'center',
+                background: 'var(--info-soft)', color: 'var(--info-bright)',
+                border: '1px solid var(--info-border)',
               }}>El bar no está — agregalo</button>
             )}
           </div>
@@ -237,34 +243,33 @@ function SalirSinCargar({ onStay, onLeave }: { onStay: () => void; onLeave: () =
  * Lleva el número de paso y, debajo, lo que ya se contestó. Sin eso, tres
  * pantallas seguidas se sienten como un formulario que no termina: ver "IPA ·
  * Antares" arriba es lo que dice que se está avanzando y sobre qué.
+ *
+ * Lo contestado dejó de ser dos cápsulas y pasó a ser una línea en `--info`.
+ * Las cápsulas pesaban lo mismo que un botón —eran lo más marcado de la
+ * pantalla— y no son tocables: no eligen nada, cuentan de dónde venís. El azul
+ * informativo es exactamente esa voz, y de paso el título vuelve a ser lo
+ * primero que se lee.
  */
 function Header({ step, total, title, hint, chosen, onBack }: {
   step: number; total: number; title: string
   hint?: string; chosen: string[]; onBack: () => void
 }) {
   return (
-    <header style={{ padding: '10px 18px 0' }}>
+    <header style={{ padding: '10px 18px var(--s-3)', borderBottom: '1px solid var(--hairline)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <span className="lbl" style={{
-          fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)',
-        }}>PASO {step} DE {total}</span>
+        <h2 className="section-label" style={{ margin: 0 }}>PASO {step} DE {total}</h2>
       </div>
 
-      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>{title}</h1>
+      <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>{title}</h1>
       {hint && (
         <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{hint}</p>
       )}
 
       {chosen.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {chosen.map(c => (
-            <span key={c} className="lbl pill" style={{
-              padding: '4px 12px', fontSize: 'var(--t-2)',
-              background: 'var(--acento-soft)', color: 'var(--acento)',
-            }}>{c}</span>
-          ))}
-        </div>
+        <div className="lbl" style={{
+          marginTop: 'var(--s-2)', fontSize: 'var(--t-2)', color: 'var(--info)',
+        }}>{chosen.join(' · ')}</div>
       )}
     </header>
   )

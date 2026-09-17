@@ -39,7 +39,7 @@ export function AvatarPicker({
   const initial = user.displayName.trim().slice(0, 1).toUpperCase() || '?'
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-4)' }}>
       <button
         onClick={() => picker.current?.click()}
         disabled={busy}
@@ -89,7 +89,7 @@ export function AvatarPicker({
             nuestra para borrarla. */}
         {user.avatarUrl?.includes('/avatar/') && (
           <>
-            <span style={{ color: 'var(--faint)', margin: '0 8px' }}>·</span>
+            <span style={{ color: 'var(--faint)', margin: '0 var(--s-2)' }}>·</span>
             <button
               onClick={() => setConfirmRemove(true)} disabled={busy}
               style={{ fontSize: 'var(--t-3)', color: 'var(--muted)', padding: 0 }}

@@ -38,9 +38,15 @@ export function Stars({
   const [dragging, setDragging] = useState<number | null>(null)
 
   const shown = dragging ?? value ?? 0
-  // Tu voto en ámbar pleno, el de la comunidad apagado: la diferencia sigue
-  // siendo de quién es el voto, pero ahora la nota tiene su propio tono en vez
-  // de compartir el hueso con el nombre del bar y con cada pastilla.
+  /*
+   * La estrella va en `--nota`, que en heritage es el Lime Cream de la tiza.
+   *
+   * Tu voto en la nota plena y el de la comunidad apagado: lo que se codifica
+   * con el color es de quién es el voto, que es la única pregunta que uno se
+   * hace mirando dos estrellas. Antes las dos iban en el acento, o sea del
+   * mismo hueso que el nombre del bar y que cada pastilla, así que la nota no
+   * se distinguía de nada.
+   */
   const color = mine || dragging != null ? 'var(--nota)' : 'var(--muted)'
 
   /** De la posición del dedo a una nota, enganchada al medio punto. */

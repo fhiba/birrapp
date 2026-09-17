@@ -52,21 +52,38 @@ export function StyleFilter({
 
   if (styles.length === 0) return null
 
-  const idle = tone === 'glass' ? 'lbl pill glass' : 'lbl pill'
+  /*
+   * El vidrio se queda puesto también con el filtro prendido.
+   *
+   * Antes el activo se iba a un relleno hueso opaco, que sobre el mapa pesaba
+   * igual que el CTA de "+" y competía con las cápsulas de precio. Ahora el
+   * prendido es la acción secundaria de la dirección —fondo `--info-soft`,
+   * borde `--info-border`, texto `--info-bright`—, y como ese fondo es
+   * translúcido necesita el `backdrop-filter` de `.glass` por debajo para que
+   * el texto no quede a merced de lo que pase por el mapa. El `background`
+   * inline pisa el degradado de la clase pero no el desenfoque, que es
+   * justamente la capa que garantiza el contraste.
+   */
+  const cascara = tone === 'glass' ? 'lbl pill glass' : 'lbl pill'
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }} data-tour={tourId}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={active ? 'lbl pill' : idle}
+        className={cascara}
         aria-label="Filtrar por estilo"
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           height: size, padding: active ? '0 14px' : 0, width: active ? undefined : size,
           justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap',
-          background: active ? 'var(--acento)'
+          background: active ? 'var(--info-soft)'
             : tone === 'plain' ? 'var(--film-2)' : undefined,
-          color: active ? 'var(--base)' : 'var(--muted)',
+          border: active ? '1px solid var(--info-border)' : undefined,
+          color: active ? 'var(--info-bright)'
+            // Sobre vidrio el secundario va en --sobre-vidrio y no en --muted:
+            // lo que pasa por detrás del panel a veces es una cápsula de
+            // precio brillante.
+            : tone === 'glass' ? 'var(--sobre-vidrio)' : 'var(--muted)',
           fontSize: 'var(--t-2)',
         }}
       >
@@ -108,9 +125,12 @@ export function StyleFilter({
             <div style={{
               borderTop: '1px solid var(--hairline)', margin: '8px 0 4px', paddingTop: 8,
             }}>
+              {/* La etiqueta de sección de la dirección: 11px, tracking .14em
+                  y en --info. En --faint pesaba lo mismo que los estilos de
+                  arriba y no se leía como "acá empieza otra pregunta". */}
               <span className="lbl" style={{
                 display: 'block', padding: '0 12px 6px',
-                fontSize: 'var(--t-1)', letterSpacing: '.1em', color: 'var(--faint)',
+                fontSize: 'var(--t-1)', letterSpacing: '.14em', color: 'var(--info)',
               }}>NOTA MÍNIMA</span>
               <div style={{ display: 'flex', gap: 6, padding: '0 8px 4px' }}>
                 {[undefined, 3, 3.5, 4, 4.5].map(n => (
@@ -140,10 +160,14 @@ function MenuItem(
   { on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode },
 ) {
   return (
+    // El estilo elegido es un chip informativo, no un CTA: va en --info-bright
+    // sobre --info-soft. En hueso pesaba lo mismo que el nombre del bar y que
+    // el botón de "Sigue igual", que son las dos cosas que sí mandan.
     <button onClick={onClick} className="lbl row-hover" style={{
       display: 'block', width: '100%', textAlign: 'left',
       padding: '12px 12px', borderRadius: 'var(--r-1)', fontSize: 'var(--t-3)',
-      color: on ? 'var(--acento)' : 'var(--cream)',
+      background: on ? 'var(--info-soft)' : undefined,
+      color: on ? 'var(--info-bright)' : 'var(--cream)',
     }}>{children}</button>
   )
 }
