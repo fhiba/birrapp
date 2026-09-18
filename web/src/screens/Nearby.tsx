@@ -185,7 +185,7 @@ export function NearbyScreen(p: {
                 background: 'var(--info-soft)', border: '1px solid var(--info-border)',
               }}>
                 <div className="ttl" style={{ fontSize: 'var(--t-5)' }}>
-                  ¿Viste otra pizarra hoy?
+                  ¿Pasaste por otro bar?
                 </div>
                 <p style={{
                   margin: 'var(--s-2) 0 0', fontSize: 'var(--t-3)',
@@ -210,7 +210,7 @@ export function NearbyScreen(p: {
 }
 
 /**
- * El benchmark de la zona: el típico, y el abanico en el que cae.
+ * Cómo viene la zona: el precio típico, y el abanico en el que cae.
  *
  * Con menos de tres precios no se dibuja. Un promedio de dos no es un
  * promedio, es un precio con pretensiones, y ponerle el tamaño de letra del
@@ -243,8 +243,12 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
       // una lista, es el número contra el que se leen todas las demás.
       background: 'var(--raised)', border: '1px solid var(--hairline)',
     }}>
+      {/* "Cómo viene la zona" y no "Benchmark zonal": es la frase que alguien
+          usaría parado en la vereda, que es donde se lee esto. El préstamo
+          sonaba a reporte de oficina en la única pantalla que contesta la
+          pregunta más de bar que tiene la app. */}
       <div className="section-label" style={{ margin: 0 }}>
-        Benchmark zonal · {formatRadius(radius)}
+        Cómo viene la zona · {formatRadius(radius)}
       </div>
       <div style={{
         display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginTop: 'var(--s-2)',

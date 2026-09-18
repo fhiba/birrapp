@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BeerStyle, Brand, User } from '../data/types'
 import { chipStyle } from '../ui/PillRow'
@@ -40,17 +40,53 @@ export function PreferencesScreen({
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!user) { nav('/perfil', { replace: true }); return null }
+  /*
+   * Sin sesión, a Perfil — con `<Navigate>` y no llamando a `nav()` acá.
+   *
+   * Llamarlo durante el render es navegar mientras React está dibujando, o sea
+   * pedirle al router que se actualice desde adentro del render de otro
+   * componente. React lo marca en consola ("Cannot update a component while
+   * rendering a different component") y el cambio de ruta queda para después
+   * del commit igual, así que no se gana nada. `<Navigate>` hace lo mismo en
+   * el momento correcto y sin el aviso.
+   */
+  if (!user) return <Navigate to="/perfil" replace />
 
   const alternar = (lista: string[], set: (v: string[]) => void, slug: string) => {
     if (lista.includes(slug)) set(lista.filter(s => s !== slug))
     else if (lista.length < MAX) set([...lista, slug])
   }
 
+  /*
+   * Los dos grupos son independientes, y guardar tiene que respetarlo.
+   *
+   * Antes esto mandaba SIEMPRE los dos campos, aunque sólo hubieras tocado
+   * uno. En el servidor, un campo presente se escribe y uno ausente no se
+   * toca, así que mandar `favoriteBrands: []` por no haber elegido ninguna
+   * marca no era "no elegí marcas": era "borrame las marcas". Quien entraba a
+   * agregar un estilo se llevaba puestas las marcas que ya tenía guardadas, y
+   * desde adentro parecía que la pantalla te obligaba a configurar las dos
+   * cosas juntas.
+   *
+   * Ahora viaja sólo lo que cambió. Elegir estilos y nada más deja las marcas
+   * como estaban, y viceversa.
+   */
+  const mismos = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((v, i) => v === b[i])
+  const cambioEstilos = !mismos(estilos, user.favoriteStyles)
+  const cambioMarcas = !mismos(marcas, user.favoriteBrands)
+  const hayCambios = cambioEstilos || cambioMarcas
+
   const guardar = async () => {
+    // Nada tocado: salir es salir. Una consulta que no cambia nada igual
+    // tarda, y mientras tanto el botón dice "Guardando…" sobre la nada.
+    if (!hayCambios) return salir()
     setGuardando(true); setError(null)
     try {
-      const u = await api.updateMe({ favoriteStyles: estilos, favoriteBrands: marcas })
+      const u = await api.updateMe({
+        ...(cambioEstilos ? { favoriteStyles: estilos } : {}),
+        ...(cambioMarcas ? { favoriteBrands: marcas } : {}),
+      })
       api.updateSessionUser(u)
       onSession()
       salir()
@@ -83,11 +119,9 @@ export function PreferencesScreen({
           }}>
             En cada bar se muestran tres birras y el resto queda detrás del{' '}
             <span className="lbl">⋯</span>. Marcá las tuyas y van a ser esas tres.
-            {' '}Se puede cambiar cuando quieras.
+            {' '}Podés marcar sólo estilos, sólo marcas o las dos cosas, y
+            cambiarlo cuando quieras.
           </p>
-          {error && (
-            <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>
-          )}
         </div>
 
         <Grupo titulo="Estilos" elegidos={estilos.length}>
@@ -124,9 +158,18 @@ export function PreferencesScreen({
         background: 'var(--base)', borderTop: '1px solid var(--hairline)',
         display: 'flex', gap: 10, alignItems: 'center',
       }}>
-        <div className="desk-narrow" style={{
-          display: 'flex', gap: 10, alignItems: 'center', width: '100%',
-        }}>
+        <div className="desk-narrow" style={{ width: '100%' }}>
+          {/* El error va acá arriba y no al principio de la pantalla.
+              Estaba debajo del título, o sea a un scroll de cincuenta marcas
+              del botón que lo dispara: tocabas "Listo", no pasaba nada visible
+              y el motivo quedaba arriba de todo, fuera de pantalla. */}
+          {error && (
+            <p role="alert" style={{
+              color: 'var(--danger)', fontSize: 'var(--t-2)',
+              margin: '0 0 var(--s-2)', lineHeight: 1.5,
+            }}>{error}</p>
+          )}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', width: '100%' }}>
           {/* Saltear sin culpa: esto mejora la app, no la habilita. */}
           <button onClick={salir} className="lbl cta" style={{
             minHeight: 44, padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)',
@@ -142,6 +185,7 @@ export function PreferencesScreen({
               color: 'var(--base)',
             }}
           >{guardando ? 'Guardando…' : 'Listo'}</button>
+        </div>
         </div>
       </div>
     </div>

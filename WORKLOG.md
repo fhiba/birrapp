@@ -3446,3 +3446,67 @@ causaba el bug, y con el bug arreglado sobra.
 Lo que sí se queda de la v0.22.1 es el blindaje de la fila —menos aire, los dos
 botones agrupados, `overflow: hidden` en el nombre—: no era la causa de esto,
 pero es lo que evita que un nombre largo empuje los botones fuera de pantalla.
+
+## 2026-09-18 — Pasada de UX sobre el mapa, la carga y la configuración
+
+Doce correcciones pedidas mirando la PWA andando. La rama sale de `master` y no
+de `dev` porque `dev` estaba 14 commits atrás y no tenía nada de esta interfaz:
+nada de lo que había que corregir existía ahí.
+
+**Mapa**
+- El filtro de estilo se partió en dos píldoras, `StyleFilter` y `RatingFilter`.
+  Estaban en el mismo desplegable y con el menú cerrado no había forma de ver
+  —ni de sacar— un piso de estrellas puesto sin querer.
+- Favoritos pasa a ser sólo el corazón, pegado al canto derecho. La palabra no
+  agregaba nada y le comía el ancho a las píldoras que sí se leen por su texto.
+- El "?" se fue de la esquina de abajo al principio de la franja de arriba, y
+  el signo pasó a ser un `<path>`: como glifo se posicionaba por baseline y
+  nunca quedaba centrado en el círculo.
+- Se sacó el encabezado ("Mapa" + el resumen de lo que hay en pantalla). El
+  título nombraba la pestaña donde ya estabas y le comía alto al mapa.
+- **El color del pin vuelve a ser el precio**, lima → coral por puesto dentro de
+  lo que hay en pantalla. Verde/ámbar/rojo es una convención demasiado fuerte
+  para barato/caro: pintar frescura ahí hacía que el mapa dijera una cosa y se
+  leyera otra. La antigüedad no se pierde —no se negocia— y va como punto de
+  color adentro de una chapita de espresso, que es lo que la deja legible sobre
+  cualquier color de cápsula (las dos escalas son los mismos tres tonos).
+  `Info.tsx` se corrigió para que explique esto y no lo anterior.
+
+**Barra de pestañas**
+- El "+" se mudó al centro de la barra: círculo más grande, asomando arriba del
+  filete, con aro de `--base`. Se ve en las cuatro pantallas, así que el flujo
+  de carga (`ReportFlow`, `LogBeerSheet`) subió de `MapScreen` a `Shell`.
+
+**Carga**
+- "El bar no está — agregalo" ya no navega a `/agregar`: monta el alta encima
+  del flujo. La flecha vuelve al paso 3 con el estilo y la marca puestos, y si
+  el bar se crea queda elegido y se sigue al monto. Antes el desvío se llevaba
+  puesto todo el progreso, y sin avisar.
+- "Cargar el primer precio" en la vista previa de un bar sin precio hace eso:
+  abre el flujo con el bar elegido. Abría la ficha del bar.
+- "Otro estilo" dejó de ser una palabra más de la grilla: cápsula punteada en
+  ámbar (`AgregarOtro` en `Kit.tsx`, con `--aging-soft` nuevo). La salida
+  estaba escondida adentro de la lista donde alguien acaba de no encontrar lo
+  suyo.
+- La elección de marca usa la misma grilla de palabras que la de estilo
+  (`Vocablo`, compartido). Eran dos mitades del mismo paso vestidas distinto.
+  Se quedan el buscador, "Sin marca" y el corte artesanales/industriales.
+
+**Configuración**
+- El alias no guardaba "sin decir por qué": el error se dibujaba al pie de la
+  pantalla, a dos scrolls del botón. Ahora va pegado al campo, y las reglas del
+  servidor (3 a 20, sin emojis) se chequean antes de viajar.
+- `Preferences` mandaba SIEMPRE los dos campos. Elegir estilos y nada más
+  mandaba `favoriteBrands: []`, o sea "borrame las marcas": desde adentro
+  parecía que obligaba a configurar las dos cosas. Ahora viaja sólo lo que
+  cambió, y el error se dibuja junto al botón.
+
+**Textos** — "pizarra" y "Benchmark zonal" salieron de la interfaz (siguen como
+nombre de la dirección de diseño en los comentarios, que es otra cosa): "¿Viste
+otra pizarra hoy?" → "¿Pasaste por otro bar?", "Benchmark zonal" → "Cómo viene
+la zona", "RESEÑAS" → "LO QUE DICEN". El resto de la copy ya estaba en voseo.
+
+**Consola** — `Settings` y `Preferences` llamaban a `nav()` durante el render
+para mandar a Perfil sin sesión, que es el "Cannot update a component while
+rendering a different component" de React. Pasaron a `<Navigate>`. Falta ver el
+resto: sin navegador acá no se puede leer la consola.

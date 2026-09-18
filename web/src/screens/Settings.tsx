@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import * as fb from '../data/feedback'
 import type { Person, User } from '../data/types'
@@ -30,7 +30,21 @@ export function SettingsScreen({ user, onSession }: {
 }) {
   const nav = useNavigate()
   const [toast, setToast] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  /**
+   * El error, y al lado de qué campo va.
+   *
+   * Antes era un string suelto que se dibujaba al pie de la pantalla, abajo de
+   * todo, después de la zona de riesgo. O sea: tocabas "Guardar" en el alias,
+   * el servidor lo rechazaba —tres letras es el mínimo, y el alias ya podía
+   * estar tomado por otra persona— y en pantalla no pasaba nada, porque el
+   * motivo quedaba a dos scrolls de distancia. Era exactamente la forma de que
+   * un campo se sienta roto en vez de rechazado.
+   *
+   * `campo` es contra cuál se dibuja. Sin `campo`, va al pie como antes: los
+   * controles que guardan solos —moneda, tamaño, radio— no tienen un botón al
+   * que pegarle el mensaje.
+   */
+  const [error, setError] = useState<{ campo?: 'nombre' | 'alias'; texto: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [name, setName] = useState(user?.displayName ?? '')
   const [alias, setAlias] = useState(user?.alias ?? '')
@@ -55,21 +69,45 @@ export function SettingsScreen({ user, onSession }: {
   const guardarRadio = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(guardarRadio.current), [])
 
-  if (!user) {
-    nav('/perfil', { replace: true })
-    return null
-  }
+  /*
+   * Sin sesión, a Perfil — con `<Navigate>` y no llamando a `nav()` acá.
+   *
+   * Llamarlo durante el render es navegar mientras React está dibujando, o sea
+   * pedirle al router que se actualice desde adentro del render de otro
+   * componente. React lo marca en consola ("Cannot update a component while
+   * rendering a different component") y el cambio de ruta queda para después
+   * del commit igual, así que no se gana nada. `<Navigate>` hace lo mismo en
+   * el momento correcto y sin el aviso.
+   */
+  if (!user) return <Navigate to="/perfil" replace />
 
   const guardar = async (
     cambio: Parameters<typeof api.updateMe>[0], aviso: string,
+    campo?: 'nombre' | 'alias',
   ) => {
     setError(null)
     try {
       api.updateSessionUser(await api.updateMe(cambio))
       onSession()
       setToast(aviso)
-    } catch (e) { setError((e as Error).message) }
+    } catch (e) { setError({ campo, texto: (e as Error).message }) }
   }
+
+  /*
+   * Las mismas reglas que valida el servidor, acá.
+   *
+   * No reemplazan a las de allá —el alias tomado sólo lo sabe la base, y el
+   * chequeo de verdad es el índice único— pero evitan el viaje para los dos
+   * casos que se dan todo el tiempo: escribir una o dos letras, y meter un
+   * emoji. Un botón que se puede tocar y siempre falla es peor que uno
+   * apagado que dice por qué.
+   */
+  const aliasLimpio = alias.trim()
+  const aliasCambió = aliasLimpio !== (user.alias ?? '')
+  const aliasCorto = aliasLimpio !== '' && aliasLimpio.length < 3
+  const aliasRaro = aliasLimpio !== ''
+    && !/^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u.test(aliasLimpio)
+  const aliasOk = aliasCambió && !aliasCorto && !aliasRaro
 
   return (
     <div style={{
@@ -105,7 +143,7 @@ export function SettingsScreen({ user, onSession }: {
               escribir, y guardar por cada tecla sería una consulta por letra. */}
           <button
             disabled={name.trim() === user.displayName || name.trim().length < 2}
-            onClick={() => guardar({ displayName: name.trim() }, 'Nombre cambiado')}
+            onClick={() => guardar({ displayName: name.trim() }, 'Nombre cambiado', 'nombre')}
             className="lbl cta"
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
@@ -116,6 +154,7 @@ export function SettingsScreen({ user, onSession }: {
             }}
           >Guardar</button>
         </div>
+        {error?.campo === 'nombre' && <ErrorDeCampo texto={error.texto} />}
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
           Es el nombre con el que aparecen tus aportes. {user.email} no se muestra
           en ningún lado.
@@ -135,16 +174,17 @@ export function SettingsScreen({ user, onSession }: {
             }}
           />
           <button
-            disabled={alias.trim() === (user.alias ?? '')}
+            disabled={!aliasOk}
             onClick={() => guardar(
-              { alias: alias.trim() },
-              alias.trim() ? 'Alias guardado' : 'Alias sacado',
+              { alias: aliasLimpio },
+              aliasLimpio ? 'Alias guardado' : 'Alias sacado',
+              'alias',
             )}
             className="lbl cta"
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
-              background: alias.trim() !== (user.alias ?? '') ? 'var(--acento)' : 'var(--elevated)',
-              color: alias.trim() !== (user.alias ?? '') ? 'var(--base)' : 'var(--faint)',
+              background: aliasOk ? 'var(--acento)' : 'var(--elevated)',
+              color: aliasOk ? 'var(--base)' : 'var(--faint)',
             }}
           >Guardar</button>
         </div>
@@ -153,6 +193,15 @@ export function SettingsScreen({ user, onSession }: {
           aparece en una página pública, y eso tiene que quedar dicho antes de
           que alguien escriba algo, no después.
         */}
+        {/* Primero el motivo por el que el botón está apagado, y recién después
+            la explicación de para qué sirve el campo. Al revés, el aviso
+            aparecía debajo de un párrafo de tres renglones y se leía como una
+            nota al pie y no como la respuesta a lo que acabás de hacer. */}
+        {aliasCorto && <ErrorDeCampo texto="Tiene que tener al menos 3 letras." />}
+        {aliasRaro && !aliasCorto && (
+          <ErrorDeCampo texto="Sólo letras, números, espacios y . _ -" />
+        )}
+        {error?.campo === 'alias' && <ErrorDeCampo texto={error.texto} />}
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
           Es el único nombre que se muestra en{' '}
           <button onClick={() => nav('/colaboradores')} style={{
@@ -302,8 +351,13 @@ export function SettingsScreen({ user, onSession }: {
           </p>
         </div>
 
-        {error && (
-          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 'var(--s-4)' }}>{error}</p>
+        {/* Sólo el que no tiene campo: los de nombre y alias ya se dibujaron
+            pegados al suyo, y repetirlos acá abajo sería decir dos veces lo
+            mismo en dos lugares que no se ven juntos. */}
+        {error && !error.campo && (
+          <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 'var(--s-4)' }}>
+            {error.texto}
+          </p>
         )}
 
         {blocked.length > 0 && (
@@ -367,7 +421,7 @@ export function SettingsScreen({ user, onSession }: {
           onConfirm={async () => {
             setConfirmDelete(false)
             try { await api.deleteAccount(); onSession(); nav('/') }
-            catch (e) { setError((e as Error).message) }
+            catch (e) { setError({ texto: (e as Error).message }) }
           }}
         />
       )}
@@ -447,5 +501,21 @@ function Interruptor({ label, hint, on, onChange }: {
         }} />
       </span>
     </button>
+  )
+}
+
+/**
+ * Un error pegado al campo que lo produjo.
+ *
+ * Existe para que no vuelva a pasar lo de antes: un solo cartel al pie de la
+ * pantalla para cinco controles repartidos en dos scrolls. Es la misma forma
+ * en las dos pantallas de configuración, así que se ve igual esté donde esté.
+ */
+function ErrorDeCampo({ texto }: { texto: string }) {
+  return (
+    <p role="alert" style={{
+      color: 'var(--danger)', fontSize: 'var(--t-2)',
+      margin: '8px 0 0', lineHeight: 1.5,
+    }}>{texto}</p>
   )
 }

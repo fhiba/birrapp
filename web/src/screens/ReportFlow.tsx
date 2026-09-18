@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import * as api from '../data/api'
 import type { BarPin, BeerStyle, Brand, User } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { BrandList } from '../ui/BrandPicker'
 import { BarSearchList } from '../ui/PickBar'
 import { StyleChips } from '../ui/StyleChips'
 import { ReportPrice } from './ReportPrice'
+import { AddBarScreen } from './AddBar'
 
 /** El bar elegido, sea de dónde venga el flujo. */
 export interface FlowBar { id: number; name: string; currency: string }
@@ -39,7 +41,7 @@ type Step = 'style' | 'brand' | 'bar' | 'price'
  */
 export function ReportFlow({
   styles, brands, user, nearby, center, bar, preselected,
-  onStyleCreated, onBrandCreated, onAddBar, onCancel, onSubmit,
+  onStyleCreated, onBrandCreated, onCancel, onSubmit,
 }: {
   styles: BeerStyle[]
   brands: Brand[]
@@ -59,12 +61,6 @@ export function ReportFlow({
   preselected?: { style?: string; brand?: string | null }
   onStyleCreated: (s: BeerStyle) => void
   onBrandCreated: (b: Brand) => void
-  /**
-   * Salida para cuando el bar no está cargado. Sin esto el paso 3 es un
-   * callejón: no se puede cargar el precio de un bar que no existe, y en una
-   * ciudad donde todavía no cargó nadie ése es el caso normal.
-   */
-  onAddBar?: () => void
   onCancel: () => void
   onSubmit: (r: {
     bar: FlowBar
@@ -99,6 +95,21 @@ export function ReportFlow({
   const stepNumber = steps.indexOf(step) + 1
 
   /**
+   * El alta de bar, adentro del flujo y no en vez del flujo.
+   *
+   * Antes "El bar no está — agregalo" navegaba a `/agregar`, y eso desmontaba
+   * el flujo entero: la flecha de la pantalla de alta te devolvía al mapa con
+   * el estilo y la marca ya elegidos perdidos, y había que empezar de cero
+   * justo a quien más ganas de cargar tenía. Lo peor es que era silencioso —
+   * no avisaba que ir para allá costaba el progreso.
+   *
+   * Ahora el alta se monta encima, como una capa. La flecha vuelve al paso 3
+   * con todo puesto, y si el bar se crea queda elegido y el flujo sigue al
+   * monto: el desvío pasó a ser parte del camino.
+   */
+  const [agregandoBar, setAgregandoBar] = useState(false)
+
+  /**
    * Salir tira lo que se eligió, así que se pregunta — pero sólo si hay algo
    * que tirar. Preguntar en el primer paso, donde no se contestó nada
    * todavía, es un diálogo que sobra: ahí salir es salir.
@@ -114,6 +125,23 @@ export function ReportFlow({
     const i = steps.indexOf(step)
     if (i <= 0) return onCancel()
     setStep(steps[i - 1])
+  }
+
+  /**
+   * El bar recién elegido desde el alta, con su moneda.
+   *
+   * `POST /bars` devuelve sólo el id: la moneda la deduce el servidor del país
+   * del lugar de Google, así que no la sabemos hasta preguntarla. Y sin moneda
+   * el teclado del monto no puede dibujar un símbolo honesto — un número sin
+   * unidad no es un precio. Si la consulta falla se usa la de la persona, que
+   * es la del lugar donde está y el mejor default que hay.
+   */
+  const elegirBarNuevo = async (b: { id: number; name: string }) => {
+    setAgregandoBar(false)
+    let currency = user?.currency ?? 'ARS'
+    try { currency = (await api.barDetail(b.id)).currency } catch { /* la de la persona */ }
+    setChosenBar({ id: b.id, name: b.name, currency })
+    next()
   }
 
   const styleName = styles.find(s => s.slug === style)?.name
@@ -203,18 +231,26 @@ export function ReportFlow({
                 Con el borde punteado y el acento se leía como un CTA apagado,
                 y esto no es el camino principal — es la salida para cuando el
                 bar no está. */}
-            {onAddBar && (
-              <button onClick={onAddBar} className="lbl" style={{
-                width: '100%', marginTop: 16, padding: 'var(--s-3) var(--s-4)',
-                borderRadius: 'var(--r-2)',
-                fontSize: 'var(--t-3)', minHeight: 46, textAlign: 'center',
-                background: 'var(--info-soft)', color: 'var(--info-bright)',
-                border: '1px solid var(--info-border)',
-              }}>El bar no está — agregalo</button>
-            )}
+            <button onClick={() => setAgregandoBar(true)} className="lbl" style={{
+              width: '100%', marginTop: 16, padding: 'var(--s-3) var(--s-4)',
+              borderRadius: 'var(--r-2)',
+              fontSize: 'var(--t-3)', minHeight: 46, textAlign: 'center',
+              background: 'var(--info-soft)', color: 'var(--info-bright)',
+              border: '1px solid var(--info-border)',
+            }}>El bar no está — agregalo</button>
           </div>
         )}
       </div>
+
+      {/* Encima del flujo, no en lugar de él. Ver `agregandoBar`. */}
+      {agregandoBar && (
+        <AddBarScreen
+          embedded
+          user={user} center={center}
+          onBack={() => setAgregandoBar(false)}
+          onAdded={b => { if (b) elegirBarNuevo(b) }}
+        />
+      )}
 
       {confirmExit && <SalirSinCargar
         onStay={() => setConfirmExit(false)}

@@ -27,12 +27,14 @@ import { ageColor, formatDistance, formatPrice, shortAge } from '../data/format'
  * encima, que es lo que hace que el mapa parezca tapado en vez de atrás.
  */
 export function BarPreview({
-  bar, onClose, onOpen, isFavorite, onToggleFavorite,
+  bar, onClose, onOpen, onAddPrice, isFavorite, onToggleFavorite,
 }: {
   bar: BarPin
   onClose: () => void
   /** Abrir la ficha completa. */
   onOpen: () => void
+  /** Cargar el primer precio de este bar, sin pasar por la ficha. */
+  onAddPrice: () => void
   isFavorite: boolean
   /** null sin sesión: el corazón lleva a Perfil en vez de no hacer nada. */
   onToggleFavorite: () => void
@@ -221,8 +223,18 @@ export function BarPreview({
           display: 'grid', gridTemplateColumns: '1fr 1fr',
           gap: 'var(--s-2)', marginTop: 'var(--s-3)',
         }}>
+          {/* Sin precio, el botón principal deja de ser "entrar al bar" y pasa
+              a ser el trabajo que falta hacer — y lo hace, en vez de dejarte
+              adentro de la ficha buscando por dónde.
+
+              Abría la ficha completa las dos veces, y decir "Cargar el primer
+              precio" para después mostrar la ficha es prometer una acción y
+              entregar una pantalla: quien lo tocaba tenía que encontrar solo
+              el botón de cargar, que es el paso que el cartel dijo que iba a
+              dar. Ahora entra derecho al flujo con el bar ya elegido, o sea
+              con una pregunta menos que desde el "+". */}
           <button
-            onClick={onOpen}
+            onClick={price != null ? onOpen : onAddPrice}
             className="lbl"
             style={{
               height: 46, borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',

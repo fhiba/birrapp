@@ -939,7 +939,7 @@ export function BarDetailScreen({
 
       {reviews.length > 0 && (
         <section style={{ padding: '0 18px' }}>
-          <h2 className="section-label">RESEÑAS</h2>
+          <h2 className="section-label">LO QUE DICEN</h2>
           {reviews.map(r => (
             <div key={r.id} style={{
               padding: 'var(--s-3) 0', borderBottom: '1px solid var(--hairline)',

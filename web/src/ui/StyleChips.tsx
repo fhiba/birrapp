@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../data/api'
 import type { BeerStyle } from '../data/types'
+import { AgregarOtro, Vocablo } from './Kit'
 
 /**
  * La lista de estilos, con la posibilidad de proponer uno que no está (BIR-35).
@@ -10,9 +11,12 @@ import type { BeerStyle } from '../data/types'
  * hace entonces no es abandonar: elige el estilo más parecido. Eso ensucia el
  * dato en silencio, que es peor que una lista con un estilo de más.
  *
- * "Otro" es una opción más y no un botón aparte: aparece al final, donde llega
- * quien ya buscó el suyo y no lo encontró. El campo se abre abajo en vez de en
- * una pantalla nueva — es un renglón de texto, no un trámite.
+ * "Otro estilo" va al final, donde llega quien ya buscó el suyo y no lo
+ * encontró, y se dibuja **distinto de las palabras del vocabulario**: cápsula
+ * punteada en ámbar, no texto con filete. Al principio era una palabra más de
+ * la grilla, y esconder la salida adentro de la lista en la que alguien acaba
+ * de no encontrar nada es esconderla. El campo se abre abajo en vez de en una
+ * pantalla nueva — es un renglón de texto, no un trámite.
  *
  * **Vestido heritage: palabras con filete, no cápsulas.** La cápsula rellena
  * pesaba lo mismo que un CTA, y acá hay diez seguidas: la pantalla se veía
@@ -66,25 +70,6 @@ export function StyleChips({
 
   const grid = layout === 'grid'
 
-  /** Una palabra del vocabulario, con su filete. */
-  const opcion = (label: string, on: boolean, onClick: () => void) => (
-    <button key={label} onClick={onClick} className="lbl" aria-pressed={on} style={{
-      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-      minHeight: 44, padding: 'var(--s-2) 0 0', flexShrink: 0,
-      fontSize: 'var(--t-3)', whiteSpace: 'nowrap',
-      textAlign: grid ? 'center' : 'left',
-      color: on ? 'var(--cream)' : 'var(--info)',
-    }}>
-      {label}
-      {/* Siempre 2px, cambia el color: con un filete de 1px apagado y otro de
-          2px encendido, elegir un estilo movía la fila entera un pixel. */}
-      <span aria-hidden style={{
-        display: 'block', height: 2, marginTop: 'var(--s-2)',
-        background: on ? 'var(--cream)' : 'var(--info-border)',
-      }} />
-    </button>
-  )
-
   return (
     <>
       <div style={grid ? {
@@ -94,9 +79,18 @@ export function StyleChips({
         display: 'flex', gap: 'var(--s-4)', overflowX: 'auto',
         padding: '4px 16px', scrollbarWidth: 'none',
       }}>
-        {allowNone && opcion('Sin estilo', value === undefined, () => onChange(undefined))}
-        {styles.map(s => opcion(s.name, value === s.slug, () => onChange(s.slug)))}
-        {opcion('+ Otro', typing, () => setTyping(t => !t))}
+        {allowNone && (
+          <Vocablo key="ninguno" label="Sin estilo" centrado={grid}
+            on={value === undefined} onClick={() => onChange(undefined)} />
+        )}
+        {styles.map(s => (
+          <Vocablo key={s.slug} label={s.name} centrado={grid}
+            on={value === s.slug} onClick={() => onChange(s.slug)} />
+        ))}
+        {/* Otra familia entera, a propósito: ver `AgregarOtro`. Era una palabra
+            más de la grilla y quien no encontraba su estilo no veía la salida. */}
+        <AgregarOtro key="otro" label="Otro estilo" on={typing}
+          onClick={() => setTyping(t => !t)} />
       </div>
 
       {typing && (

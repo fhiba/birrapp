@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../data/api'
 import type { Brand } from '../data/types'
-import { SectionLabel } from './Kit'
+import { AgregarOtro, SectionLabel, Vocablo } from './Kit'
+
+/**
+ * La grilla del vocabulario. El mismo `minmax(104px, 1fr)` que usa la
+ * elección de estilo: las dos pantallas son el mismo paso y tienen que
+ * respirar igual.
+ */
+const GRILLA = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))',
+  gap: 'var(--s-2) var(--s-4)',
+  padding: '4px 16px',
+} as const
 
 /**
  * Selector de marca.
@@ -208,67 +220,73 @@ export function BrandList({
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 14px 24px' }}>
+      {/*
+        La misma forma que la elección de estilo: una grilla de palabras con
+        filete, no una lista de renglones con tilde.
+
+        Eran dos pantallas del mismo paso —"qué birra estás cargando"— vestidas
+        distinto: la de estilos, una grilla de palabras; la de marcas, treinta
+        renglones apilados con un ✓ a la derecha. Elegir marca se sentía otro
+        trámite en vez de la segunda mitad del mismo. Y la grilla además entra
+        de a tres o cuatro por renglón, así que las marcas que antes había que
+        scrollear ahora se ven de una.
+
+        Lo que se queda tal cual: el buscador arriba, "Sin marca" como opción de
+        primera clase, y el corte entre artesanales e industriales.
+      */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 2px 24px' }}>
         {!typed && allowNone && (
-          <Option
-            label="Sin marca" hint="No la sé o el bar no la declara"
-            on={value === null} onClick={() => onPick(null)}
-          />
+          <>
+            <SectionLabel>Sin marca</SectionLabel>
+            <div style={{ ...GRILLA }}>
+              <Vocablo
+                label="No la sé" centrado on={value === null}
+                onClick={() => onPick(null)}
+              />
+            </div>
+          </>
         )}
 
         {craft.length > 0 && <SectionLabel>Artesanales</SectionLabel>}
-        {craft.map(b => (
-          <Option key={b.slug} label={b.name} on={value === b.slug}
-            onClick={() => onPick(b.slug)} />
-        ))}
+        {craft.length > 0 && (
+          <div style={{ ...GRILLA }}>
+            {craft.map(b => (
+              <Vocablo key={b.slug} label={b.name} centrado
+                on={value === b.slug} onClick={() => onPick(b.slug)} />
+            ))}
+          </div>
+        )}
 
         {industrial.length > 0 && <SectionLabel>Industriales</SectionLabel>}
-        {industrial.map(b => (
-          <Option key={b.slug} label={b.name} on={value === b.slug}
-            onClick={() => onPick(b.slug)} />
-        ))}
+        {industrial.length > 0 && (
+          <div style={{ ...GRILLA }}>
+            {industrial.map(b => (
+              <Vocablo key={b.slug} label={b.name} centrado
+                on={value === b.slug} onClick={() => onPick(b.slug)} />
+            ))}
+          </div>
+        )}
+
+        {/* La salida, con el mismo vestido que en estilos: cápsula punteada en
+            ámbar. Acá el alta se hace escribiendo arriba, así que el botón
+            lleva el foco al buscador en vez de abrir un campo propio — un
+            segundo lugar donde escribir el nombre serían dos formas de dar de
+            alta la misma marca. */}
+        {!canCreate && (
+          <div style={{ ...GRILLA, marginTop: 'var(--s-4)' }}>
+            <AgregarOtro
+              label={typed ? 'Seguí escribiendo' : 'Otra marca'} on={false}
+              onClick={() => input.current?.focus()}
+            />
+          </div>
+        )}
 
         {shown.length === 0 && !canCreate && (
-          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', padding: '12px 4px' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', padding: '12px 16px' }}>
             Escribí al menos dos letras para agregarla.
           </p>
         )}
       </div>
     </div>
-  )
-}
-
-/**
- * Una marca de la lista.
- *
- * Pasa de tarjetita con fondo a fila con filete, que es la gramática de las
- * listas en heritage: lo que separa una opción de la siguiente es la línea, no
- * un rectángulo redondeado por opción. Treinta rectángulos seguidos se leen
- * como treinta botones; treinta renglones se leen como una lista.
- *
- * La elegida se marca con el tilde en `--info-bright` y un fondo `--info-soft`
- * apenas: "esta es la que está puesta" es un dato estructural, no una alarma.
- */
-function Option({
-  label, hint, on, onClick,
-}: { label: string; hint?: string; on: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="lbl" aria-pressed={on} style={{
-      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-      minHeight: 44, padding: 'var(--s-3) var(--s-2)', fontSize: 'var(--t-4)',
-      textAlign: 'left', borderBottom: '1px solid var(--hairline)',
-      background: on ? 'var(--info-soft)' : 'transparent',
-      color: 'var(--cream)',
-    }}>
-      <span style={{ flex: 1 }}>
-        {label}
-        {hint && (
-          <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-            {hint}
-          </span>
-        )}
-      </span>
-      {on && <span aria-hidden style={{ color: 'var(--info-bright)' }}>✓</span>}
-    </button>
   )
 }

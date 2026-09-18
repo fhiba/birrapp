@@ -4,7 +4,7 @@ import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
 import { FRESCO_DIAS, ageColor, formatDistance, formatRadius } from '../data/format'
 import type { Sort } from '../data/useBars'
-import { StyleFilter } from '../ui/StyleFilter'
+import { RatingFilter, StyleFilter } from '../ui/StyleFilter'
 import { Empty, PriceColumn, SkeletonRows } from '../ui/Empty'
 import { Segmented } from '../ui/Segmented'
 
@@ -331,8 +331,15 @@ export function ListScreen(p: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
           <StyleFilter
             styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
-            minRating={p.minRating} onMinRating={p.onMinRating}
             tone="plain" size={38} tourId="list-style"
+          />
+
+          {/* La nota, en su propia píldora, igual que en el mapa: era el pie
+              del menú de estilos y con el menú cerrado no se veía que estaba
+              puesta. */}
+          <RatingFilter
+            minRating={p.minRating} onMinRating={p.onMinRating}
+            tone="plain" size={38}
           />
 
           <div style={{ position: 'relative', flex: 1, minWidth: 0 }} data-tour="list-search">
@@ -539,7 +546,7 @@ export function ListScreen(p: Props) {
             title={favOnly
               ? 'Ninguno de tus favoritos tiene precio fresco'
               : `Ningún precio de menos de ${FRESCO_DIAS} días por acá`}
-            hint="Hay bares, pero sus precios ya tienen tiempo. Si pasás por uno y ves la pizarra, cargalo y vuelve a esta lista."
+            hint="Hay bares, pero sus precios ya tienen tiempo. Si pasás por uno y ves cuánto está la pinta, cargalo y vuelve a esta lista."
             action="Ver también los viejos"
             onAction={() => setSoloFrescos(false)}
           />

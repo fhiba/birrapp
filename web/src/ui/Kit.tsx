@@ -115,3 +115,83 @@ export function Screen({ title, onBack, children, wide }: {
     </div>
   )
 }
+
+/**
+ * Una palabra del vocabulario: un estilo, una marca, "Sin marca".
+ *
+ * Es la forma que estrenó la elección de estilo y que ahora usan también las
+ * marcas: texto con un filete abajo, no una cápsula rellena. La cápsula pesaba
+ * lo mismo que un CTA, y acá hay treinta seguidas — la pantalla se veía como
+ * una botonera. Apagado va en `--info`, la voz de lo informativo en toda la
+ * app; el elegido es el único en hueso, con el filete de 2px que usa la barra
+ * de pestañas para decir "estás acá".
+ *
+ * El filete mide siempre 2px y lo que cambia es el color: con uno de 1px
+ * apagado y otro de 2px encendido, elegir movía la fila entera un pixel.
+ *
+ * Vive acá y no adentro de `StyleChips` porque lo usan dos pantallas. Copiado
+ * en las dos, la de marcas y la de estilos iban a ir separándose con cada
+ * retoque, que es exactamente lo que este archivo existe para evitar.
+ */
+export function Vocablo({ label, on, centrado, onClick }: {
+  label: string
+  on: boolean
+  /** En grilla el texto va centrado; en la fila que se arrastra, a la izquierda. */
+  centrado?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button onClick={onClick} className="lbl" aria-pressed={on} style={{
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+      minHeight: 44, padding: 'var(--s-2) 0 0', flexShrink: 0,
+      fontSize: 'var(--t-3)', whiteSpace: 'nowrap',
+      textAlign: centrado ? 'center' : 'left',
+      color: on ? 'var(--cream)' : 'var(--info)',
+    }}>
+      {label}
+      <span aria-hidden style={{
+        display: 'block', height: 2, marginTop: 'var(--s-2)',
+        background: on ? 'var(--cream)' : 'var(--info-border)',
+      }} />
+    </button>
+  )
+}
+
+/**
+ * El botón de "lo mío no está en la lista", en estilos y en marcas.
+ *
+ * **Tiene que verse distinto de las palabras del vocabulario, y por eso no es
+ * una.** Era un `Vocablo` más, con el mismo filete y el mismo azul, escondido
+ * al final de una grilla de cuarenta: quien no encontraba su birra no tenía
+ * forma de ver que había una salida, porque la salida estaba dibujada como una
+ * opción más de la lista donde justamente ya había buscado y no estaba.
+ *
+ * Así que cambia de familia entera: cápsula con borde punteado, en ámbar, con
+ * un "+" adelante. El punteado dice "acá se agrega algo que todavía no existe"
+ * —es la convención de cualquier casillero de alta— y el ámbar es el mismo
+ * tono con el que la app avisa que algo queda a revisión de un moderador, que
+ * es exactamente lo que va a pasar con lo que se cargue acá. Prendido se
+ * rellena con `--aging-soft`, igual que cualquier otro control de la app.
+ */
+export function AgregarOtro({ label, on, onClick }: {
+  label: string
+  /** El campo de alta está abierto. */
+  on: boolean
+  onClick: () => void
+}) {
+  return (
+    <button onClick={onClick} className="lbl" aria-pressed={on} style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      minHeight: 44, padding: '0 var(--s-3)', flexShrink: 0,
+      borderRadius: 'var(--r-2)', border: '1px dashed var(--aging)',
+      background: on ? 'var(--aging-soft)' : 'transparent',
+      color: 'var(--aging)', fontSize: 'var(--t-3)', whiteSpace: 'nowrap',
+    }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
+        <path d="M12 5v14M5 12h14" stroke="currentColor"
+          strokeWidth="2.6" strokeLinecap="round" />
+      </svg>
+      {label}
+    </button>
+  )
+}
