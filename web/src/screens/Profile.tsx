@@ -257,7 +257,7 @@ export function ProfileScreen({ user, onSession }: {
           de ochenta píxeles no se lee como progreso, se lee como un renglón
           más. Acá el número de birras queda a la izquierda, lo que falta a la
           derecha, y la barra debajo cruza la pantalla. */}
-      <NivelBarra nivel={nivel} birras={stats?.beersRecent} />
+      <NivelBarra nivel={nivel} />
 
       <SectionLabel>Lo tuyo</SectionLabel>
       {/* Cada cuadrado abre SU lista, no una pantalla común con todo apilado.
@@ -499,29 +499,26 @@ function Emblema({ nivel }: { nivel: ReturnType<typeof nivelDe> }) {
   )
 }
 
-/** El nombre del nivel, cuánto falta para el que sigue, y la barra. */
-function NivelBarra(
-  { nivel, birras }: { nivel: ReturnType<typeof nivelDe>; birras: number | undefined },
-) {
+/**
+ * El nombre del nivel y la barra. Nada más.
+ *
+ * **No dice cuánto falta para el siguiente, a propósito.** Lo decía —"te
+ * faltan 3 para el 4"— y convertía el nivel en una tarea pendiente: cada vez
+ * que entrabas al perfil, la app te recordaba lo que no hiciste. La barra sola
+ * comunica lo mismo que hace falta, que es que hay recorrido y que vas por acá;
+ * llegar al siguiente se descubre llegando, que es cuando la noticia es buena.
+ *
+ * Tampoco lleva el renglón que explicaba la ventana de 45 días. Esa aclaración
+ * se da una vez en la bienvenida y ahí queda: repetirla en cada visita al
+ * perfil es letra chica permanente para algo que se entiende una sola vez.
+ */
+function NivelBarra({ nivel }: { nivel: ReturnType<typeof nivelDe> }) {
   return (
     <div style={{ marginTop: 'var(--s-4)' }}>
-      <div style={{
-        display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)',
-      }}>
-        <span className="lbl" style={{
-          flex: 1, minWidth: 0, fontSize: 'var(--t-4)', color: 'var(--cream)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{nivel.nombre}</span>
-        {/* Lo que falta, no lo que llevás: "te faltan 3" es accionable esta
-            misma noche, "12 de 15" es una fracción que hay que restar. */}
-        <span className="num" style={{
-          flexShrink: 0, fontSize: 'var(--t-2)', color: 'var(--faint)',
-        }}>
-          {nivel.proximo == null
-            ? 'nivel máximo'
-            : `${nivel.faltan} para el ${nivel.numero + 1}`}
-        </span>
-      </div>
+      <span className="lbl" style={{
+        display: 'block', fontSize: 'var(--t-4)', color: 'var(--cream)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{nivel.nombre}</span>
 
       <div aria-hidden style={{
         height: 6, marginTop: 'var(--s-2)', borderRadius: 3,
@@ -532,17 +529,6 @@ function NivelBarra(
           background: 'var(--nota)', transition: 'width .3s ease-out',
         }} />
       </div>
-
-      {/* Que la cuenta sea de los últimos 45 días hay que decirlo, y acá:
-          sin eso, quien anotó cuarenta birras el año pasado ve un nivel 1 y lo
-          lee como un bug. Es la misma regla que el resto de la app —ningún
-          número sin su alcance— aplicada al único contador que baja. */}
-      <p style={{
-        margin: 'var(--s-2) 0 0', fontSize: 'var(--t-1)', color: 'var(--faint)',
-      }}>
-        {birras ?? 0} {birras === 1 ? 'birra anotada' : 'birras anotadas'} en los
-        últimos 45 días. Si dejás de anotar, el nivel baja.
-      </p>
     </div>
   )
 }

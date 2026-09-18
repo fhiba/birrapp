@@ -152,7 +152,16 @@ class CoverageBudget(
          * alcanzaba: dos consultas de 200 lo gastaban. Ver la sección
          * "APAGADO" de arriba.
          */
-        const val DEFAULT_PER_DAY = 400
+        /**
+         * Sube con el techo de filas: tiene que seguir siendo mayor que
+         * [MAX_BARES_POR_PEDIDO], o un pedido lleno no entra nunca. Son tres
+         * pedidos completos de territorio nuevo antes de tocar el techo — el
+         * margen que el 400 contra 200 ya daba, con los números de hoy.
+         *
+         * Sigue APAGADO por defecto: ver el comentario de arriba, que explica
+         * qué hay que medir antes de volver a encenderlo.
+         */
+        const val DEFAULT_PER_DAY = 3_000
 
         const val DEFAULT_MAX_KEYS = 2_000
     }

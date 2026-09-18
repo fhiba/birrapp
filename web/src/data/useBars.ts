@@ -6,17 +6,21 @@ export const BA_CENTER = { lat: -34.6037, lng: -58.3816 }
 const OVER_FETCH = 2.5
 
 /**
- * Los techos de `/bars`, espejados del servidor (Routes.kt: MAX_RADIUS_M y
- * MAX_LIMIT).
+ * Los techos de `/bars`, espejados del servidor (`core/Limits.kt` y Routes.kt:
+ * MAX_RADIUS_M).
  *
- * Bajaron de 50 km / 500 filas por BIR-13: con ~738 bares cargados, un request
- * de 500 era el 68% de la base y no había forma de distinguir a alguien que
- * mira su barrio de alguien que se la lleva entera. Están acá y no sólo en el
- * backend porque `covered` guarda lo que se pidió: si el cliente pidiera de más
- * y el servidor recortara, la caché anotaría una cobertura que no tiene.
+ * Están acá y no sólo en el backend porque `covered` guarda lo que se pidió: si
+ * el cliente pidiera de más y el servidor recortara, la caché anotaría una
+ * cobertura que no tiene.
+ *
+ * **`MAX_LIMIT` valía 200 y por eso el radio mentía.** Los bares vuelven
+ * ordenados por distancia, así que el tope recorta por afuera: con el radio en
+ * 7,2 km desde Palermo hay 526 bares en rango y se veían los 200 más cercanos.
+ * Uno a 4,7 km, bien dentro del radio, no aparecía porque tenía 377 más cerca
+ * que él. Ver `core/Limits.kt` por qué el número nuevo es del tamaño de la base.
  */
 const MAX_RADIUS = 20_000
-const MAX_LIMIT = 200
+const MAX_LIMIT = 1_000
 const MAX_AGE_MS = 5 * 60_000
 
 /** Los filtros que acotan QUÉ bares se traen. El orden y el radio van aparte. */
@@ -128,7 +132,14 @@ export function useBars() {
               a.distanceMeters! - b.distanceMeters!
           : (a, b) => a.distanceMeters! - b.distanceMeters!,
     )
-    return out.slice(0, 400)
+    // El mismo techo que el pedido, y no uno más bajo.
+    //
+    // Acá había un `slice(0, 400)` que era un segundo recorte, tapado por el
+    // primero: aunque el servidor mandara todo lo del radio, el cliente se
+    // quedaba con los 400 más cercanos y el resto no llegaba a dibujarse. Dos
+    // topes distintos para lo mismo garantizan que arreglar uno no arregle
+    // nada, que es exactamente lo que pasó.
+    return out.slice(0, MAX_LIMIT)
   }, [])
 
   const load = useCallback(async (

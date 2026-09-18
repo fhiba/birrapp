@@ -3821,3 +3821,118 @@ Los sliders llevan `paso()`, que **sólo vibra y nunca suena**: el radio tiene 1
 pasos y un tono por paso es insoportable a los tres segundos. Va limitado en el
 tiempo, porque ciento cuarenta vibraciones seguidas se sienten como un zumbido
 continuo — lo contrario de marcar una muesca.
+
+## 2026-09-18 (cont.) — v0.28.0: el radio del mapa mentía, y una pasada de ajustes
+
+### El tope de filas, no el radio
+
+Reporte: con el radio en 7,2 km, dos bares a 5 km no aparecían en el mapa.
+
+El radio funcionaba. Lo que fallaba era el techo de filas. Los pines vuelven
+**ordenados por distancia**, así que un tope recorta por afuera, y estaba en
+200. Medido contra la base real (995 bares aprobados):
+
+- dentro de 7,2 km desde Palermo: **526 bares**
+- Quaystone, el que faltaba: a **4.765 m**, con **377 bares más cerca que él**
+
+O sea puesto 378 de una lista que se cortaba en 200. Desde afuera eso no se lee
+como un tope: se lee como que el bar no está cargado, o como que el control del
+radio no hace nada.
+
+**Había un segundo tope tapado por el primero.** `project()` en `useBars` hacía
+`slice(0, 400)` sobre lo ya traído. Con 526 bares en rango, subir sólo el del
+servidor no habría alcanzado — dos topes distintos para lo mismo garantizan que
+arreglar uno no arregle nada.
+
+Los dos pasan a `MAX_BARES_POR_PEDIDO` (1000), en `core/Limits.kt` y espejado en
+`useBars`. Es del tamaño de la base a propósito: el slider llega a 15 km, que
+desde cualquier punto de la ciudad abarca casi todo lo cargado, así que el único
+número que no miente es uno así.
+
+BIR-13 había bajado el tope a 200 para que un pedido no se llevara media base.
+Esa parte del mecanismo no defendía nada: `CoverageBudget` cuenta bares
+**distintos** por día justamente porque un tope de filas no separa al usuario
+del scraper — el scraper pide menos filas que alguien paseando el mapa. Lo que
+sí se mantiene es la relación `MAX_BARES_POR_PEDIDO < DEFAULT_PER_DAY`, que subió
+a 3000 con él; `CoverageBudgetTest` ahora lee las dos constantes en vez de una
+copia escrita a mano, que era lo que dejaba el test diciendo 200 para siempre.
+
+`RadiusCapTest` fija la propiedad: **un bar dentro del radio no puede
+desaparecer por tener muchos más cerca.** Verificado por las dos puntas —
+falla con el techo en 200 y pasa en 1000.
+
+### Cuántos bares traigo y cuántos marcadores dibujo eran la misma pregunta
+
+Subir el techo a 1000 abre la otra mitad del problema. El payload no es nada:
+los 995 bares son **108 kB** de JSON crudo, unos 30 comprimidos, contra un
+bundle de 512 kB. Pero cada pin es un `google.maps.Marker`, un objeto del SDK
+con su overlay, y mil de esos en un teléfono se sienten al panear. Antes el
+`slice(0, 400)` los limitaba de rebote; sacarlo los dejaba sueltos.
+
+`Pins` ahora dibuja sólo los que caen en el recuadro visible, con un margen del
+35% para que panear no los haga aparecer contra el borde. Los datos quedan
+completos —la lista, el promedio de la zona y "más barata cerca" siguen viendo
+todo— y el mapa dibuja las decenas que se están mirando. El recuadro se relee en
+`idle` y no en `bounds_changed`, que dispara decenas de veces por gesto.
+
+De paso, el puesto de precio y el descarte de etiquetas ahora se calculan sobre
+lo visible, que es lo que su propio comentario ya decía que hacían.
+
+Queda [BIR-49] para cuando la base pase los mil: al truncar, preferir los bares
+con precio. Tiene una trampa —`useBars` deduce la cobertura del último elemento
+de la lista, y eso deja de valer si el orden de supervivencia no es la
+distancia— así que va con la mitad del servidor que devuelve el radio cubierto,
+o cambia un bug visible por uno silencioso.
+
+### La bienvenida no vuelve más
+
+Se cerraba en el último paso, así que quien no llegaba hasta ahí —se fue al
+mapa, cerró la app— quedaba con la cuenta sin marcar y el siguiente login se la
+ponía de nuevo adelante, ya con el alias y las birras elegidas. Una pantalla que
+reaparece después de haberla contestado se lee como que no se guardó nada.
+
+Ahora se marca al abrirla. Lo de adentro se sigue guardando paso a paso, así que
+irse a la mitad conserva lo contestado; lo único que no vuelve es la pantalla.
+
+### Un cuarto paso, y dos pantallas que quedaron limpias
+
+La bienvenida explica ahora las dos cosas de la app que no se adivinan
+mirándola: que **el nivel puede bajar** —sale de los últimos 45 días— y que **la
+nota es de las birras y no del bar**.
+
+Las dos vivían como letra chica permanente en la pantalla donde aparecen, que es
+el peor lugar posible: se entienden una vez y después son ruido para siempre, en
+la pantalla que más se mira. Dicho una vez en la bienvenida, se fueron de la
+ficha del bar y del perfil.
+
+En el perfil se fue también el "te faltan 3 para el 4". Convertía el nivel en
+una tarea pendiente: cada visita al perfil te recordaba lo que no hiciste. Queda
+el nombre y la barra, que dicen que hay recorrido sin poner deberes.
+
+### Lo demás de la pasada
+
+**Ficha del bar:** fuera la fila de "Al día · N canillas · Verificado" — tres
+rótulos en mayúscula chica compitiendo entre ellos justo arriba de los precios,
+que es lo único que se vino a mirar. Las canillas se cuentan mirando la lista y
+la frescura la dice cada fila con su "hace N d". Queda el filete, que sí separaba
+algo. Y la nota de la birra dejó de estar dos veces en la misma tarjeta: queda la
+de abajo del nombre, y sólo sobrevive el aviso de "sin votos nuevos", que no está
+en ningún otro lado.
+
+**Cerca:** el pie de la tarjeta dice sólo de cuántos precios y bares sale. La
+unidad no se pierde, el titular ya dice "la pinta, típico".
+
+**Lista:** el contador de bares volvió a la fila de los filtros, contra el borde
+derecho. Pegado a ellos se lee como lo que dejaron pasar; en su propio renglón
+era un título suelto que comía alto.
+
+### Lo que no pude reproducir
+
+El reporte de que la lista filtra por favoritos con el corazón apagado y el
+vacío diciendo "ninguno de tus favoritos". Desde master no es alcanzable: el
+texto del resumen y el del vacío salen los dos de `favOnly`, y `traidos` vuelve
+a `p.bars` en el mismo render en que `favOnly` se apaga. Los dos textos del
+screenshot no pueden convivir. Lo más probable es el service worker sirviendo el
+bundle anterior —`registerType: 'autoUpdate'` cambia el SW pero la pestaña
+abierta sigue con el JS viejo hasta recargar—, así que hay que volver a mirarlo
+después de cerrar y abrir la app.

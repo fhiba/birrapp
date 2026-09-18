@@ -757,10 +757,39 @@ function Pins({
 }) {
   const map = useMap()
   const [zoom, setZoom] = useState(15)
+  /** El rectángulo visible, con un margen. Ver `enPantalla`. */
+  const [caja, setCaja] = useState<google.maps.LatLngBoundsLiteral | null>(null)
 
   useEffect(() => {
     if (!map) return
     const l = map.addListener('zoom_changed', () => setZoom(map.getZoom() ?? 15))
+    return () => l.remove()
+  }, [map])
+
+  /**
+   * El recuadro visible, releído cuando el mapa se queda quieto.
+   *
+   * `idle` y no `bounds_changed`: el segundo dispara decenas de veces por
+   * gesto y cada uno recalcularía qué pines van, en medio del paneo.
+   *
+   * El margen del 35% es para que panear no haga aparecer los pines de golpe
+   * contra el borde: cuando entran a pantalla ya estaban dibujados.
+   */
+  useEffect(() => {
+    if (!map) return
+    const leer = () => {
+      const b = map.getBounds()
+      if (!b) return
+      const ne = b.getNorthEast(), sw = b.getSouthWest()
+      const mLat = (ne.lat() - sw.lat()) * 0.35
+      const mLng = (ne.lng() - sw.lng()) * 0.35
+      setCaja({
+        north: ne.lat() + mLat, south: sw.lat() - mLat,
+        east: ne.lng() + mLng, west: sw.lng() - mLng,
+      })
+    }
+    leer()
+    const l = map.addListener('idle', leer)
     return () => l.remove()
   }, [map])
 
@@ -769,11 +798,39 @@ function Pins({
   // que tumba la app entera en blanco, no sólo el mapa.
   if (!map) return null
 
+  /**
+   * Sólo se dibujan los pines que están en pantalla.
+   *
+   * **Cuántos bares trae la consulta y cuántos marcadores existen son dos
+   * preguntas distintas, y antes eran la misma.** El radio decide lo primero:
+   * si pedís 7 km, los bares de 7 km tienen que estar, y por eso el techo de
+   * filas subió a mil (ver `core/Limits.kt`). Pero cada pin es un
+   * `google.maps.Marker`, o sea un objeto del SDK con su overlay: mil de esos
+   * en un teléfono se sienten al panear, y la mayoría está fuera de la
+   * pantalla, donde no los ve nadie.
+   *
+   * Recortar por el recuadro visible desacopla las dos cosas: los datos quedan
+   * completos —la lista, el promedio de la zona y "más barata cerca" siguen
+   * viendo todo— y el mapa dibuja las decenas que de verdad se están mirando.
+   * Al alejarte entran más, que es exactamente cuando querés verlos.
+   *
+   * Sin caja todavía —el primer render, antes del primer `idle`— se dibuja
+   * todo: es preferible un cuadro pesado a un mapa vacío.
+   */
+  const enPantalla = caja == null ? bars : bars.filter(b =>
+    // El abierto se dibuja siempre, aunque quede afuera del recuadro. Al
+    // tocarlo el mapa se centra en él, pero entre el toque y el `idle` el
+    // recuadro todavía es el de antes: sin esta excepción, el pin del bar que
+    // acabás de abrir desaparecía debajo de su propia tarjeta.
+    b.id === selectedId ||
+    (b.lat >= caja.south && b.lat <= caja.north &&
+     b.lng >= caja.west && b.lng <= caja.east))
+
   // El puesto se calcula sobre lo que hay en pantalla, así que la escala se
   // reajusta al moverse: en Palermo lo barato es otro número que en Liniers, y
   // un color absoluto no diría nada en ninguno de los dos.
   const ranks = priceRanks(
-    bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
+    enPantalla.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
   )
 
   // Sin precio no hay puesto, y un bar sin precio no es "caro": es desconocido.
@@ -808,7 +865,7 @@ function Pins({
     const metersPerPx = 156543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** zoom
     const minSep = 132 * metersPerPx
     const kept: BarPin[] = []
-    for (const b of bars.filter(b => b.fromPrice != null)
+    for (const b of enPantalla.filter(b => b.fromPrice != null)
       .sort((a, b) => a.fromPrice! - b.fromPrice!)) {
       const clash = kept.some(k => {
         const dLat = (k.lat - b.lat) * 111_320
@@ -821,7 +878,7 @@ function Pins({
 
   return (
     <>
-      {bars.map(b => {
+      {enPantalla.map(b => {
         const on = b.id === selectedId
         // El elegido siempre con su precio: es el que se está mirando, y que
         // el descarte de etiquetas lo dejara como punto era perder el dato
