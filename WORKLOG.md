@@ -3674,3 +3674,21 @@ en el caso normal, una fila de chips completa.
 
 **Fotos:** el "+" contra el borde derecho —pegado al título se leía como parte
 de la palabra FOTOS— y más aire entre el rótulo y la tira.
+
+## 2026-09-18 (cont.) — v0.26.1: la versión, de un solo lugar
+
+La app venía mostrando **0.22.2** en Perfil mientras corría código de la 0.26.0.
+`__APP_VERSION__` sale de `const VERSION` en `web/vite.config.ts`, que estaba
+escrito a mano, y en cuatro versiones seguidas subí `package.json`,
+`package-lock.json` y `build.gradle.kts` y me lo salteé. AGENTS.md lo decía en
+su tabla, con la advertencia exacta de lo que iba a pasar.
+
+Era el único de los lugares del versionado que **no se nota cuando se olvida**:
+nada falla, no hay test que se ponga rojo, la app simplemente miente sobre qué
+está corriendo — que es justo el dato que sirve para saber si alguien tiene la
+versión con el arreglo.
+
+Ahora `vite.config.ts` lee la versión de `package.json` con `readFileSync`, así
+que para la web queda un solo número. AGENTS.md pasa de tres lugares a dos, y
+deja anotado que si vuelve a aparecer un número escrito a mano ahí, volvió el
+problema.
