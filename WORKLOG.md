@@ -3245,3 +3245,161 @@ tocaba.
   Cuando se mude, tienen que mudarse las dos.
 * La tarifa de puntos (`+N pts`) está escrita en el cliente y la verdad vive en
   `CONTRIBUTION_WEIGHT` del backend. Ya estaba así; ahora está en más lugares.
+
+## 2026-09-17 (cont.) — v0.20.0: sin puntos a la vista, y los filtros del mapa que se leen
+
+### Los "+N pts" se apagan
+
+El sistema de karma no existe. Los números eran reales —salen de
+`CONTRIBUTION_WEIGHT` y son los que ordenan la tabla de Colaboradores— pero lo
+que no existe es lo que un "+3 pts" arriba de un botón promete: un saldo que se
+mira, niveles, algo que los puntos hagan. Prometer una recompensa que no llega
+es peor que no prometer nada, y encima gasta el gesto una sola vez.
+
+Van detrás de `KARMA_VISIBLE`, en `data/karma.ts`, junto con los pesos, que
+estaban copiados en tres archivos. No es código borrado: el día que el sistema
+esté, se prende ahí y vuelve a aparecer en los cuatro lugares que ya lo
+dibujan. Se apagan los "+N pts" de "Sigue igual", "Actualizar", "Cargar el
+primer precio" y "Cargar su precio", el de la foto —que pasa a decir
+"Agregar", porque un cuadro punteado con una cámara y nada más se lee como una
+foto que no cargó— y la tarjeta de karma de Colaboradores. **La tabla de
+Colaboradores se queda**: es dato real y no promete nada.
+
+### Los filtros del mapa
+
+No se había borrado ninguno: estilos + nota mínima, favoritos y radio estaban
+los tres. El problema era que se habían vuelto ilegibles. Eran píldoras de
+44px con un ícono adentro y ninguna palabra, apoyadas justo debajo del
+encabezado nuevo, que también es de vidrio: cuatro piezas del mismo material,
+sin una sola etiqueta entre todas, se leen como cromo de la barra y no como
+cosas que se tocan.
+
+Ahora cada filtro lleva su palabra al lado del ícono —Estilos, Favoritos,
+Frescos— que es lo mismo que la dirección hizo con las pestañas de abajo.
+
+**Y hay uno nuevo: Frescos**, que no existía en ninguna pantalla. Deja los
+bares con un precio de menos de 14 días, que es el mismo corte de `fresh` de
+todo el proyecto —ahora exportado como `FRESCO_DIAS` desde `data/format.ts`,
+para que el filtro no invente un segundo significado de "fresco"—. Un bar sin
+precio no pasa el filtro, y es deliberado: "sólo frescos" es una pregunta sobre
+el precio, y un bar sin precio no la contesta que sí.
+
+Filtra lo cargado y no vuelve a pedir, igual que el de favoritos: en el mapa la
+pregunta es siempre "de lo que estoy viendo, cuáles". Los dos se cruzan, y el
+encabezado y el vacío saben decirlo — "3 favoritos con precio fresco",
+"ningún precio fresco por acá", y el botón de salida limpia los dos.
+
+### Un control prendido sobre el mapa va opaco
+
+Al medir el contraste del chip prendido apareció un defecto que venía del
+repintado. Sobre el mapa, un relleno translúcido deja el contraste a merced de
+lo que pase por debajo: contra una cápsula de precio clara, el filtro de
+estilos prendido daba **2,58:1** y un chip coral habría dado 1,28:1.
+
+El agravante es que `.glass` estaba calibrado para eso, pero con la paleta
+vieja: el `brightness(.45)` se había medido contra el ámbar `#FFB627`, que era
+lo más brillante del mapa. Heritage invirtió la cápsula del pin seleccionado a
+hueso pleno `#FFFDF4`, bastante más claro, y contra eso el texto principal
+sobre vidrio caía a 4,10:1 y el secundario a 3,31:1 — los dos por debajo de
+1.4.3, en toda la familia del vidrio y no sólo en los filtros.
+
+Dos cambios:
+
+* `.glass` baja a `brightness(.35)`. Texto principal 5,74:1, secundario
+  4,64:1, y sobre el mapa oscuro —que es lo normal— 16:1. Queda anotado en el
+  token que este número no depende de la paleta del vidrio sino de lo más
+  claro que pueda quedar debajo: cada vez que cambie un color del mapa hay que
+  volver a medirlo.
+* Un filtro **prendido** sobre el mapa se pinta opaco, con la etiqueta en
+  espresso: favoritos 5,86:1, frescos 17,59:1, estilos 7,04:1, y ninguno
+  depende del fondo. En la lista, donde el fondo es la pantalla y no el mapa,
+  el prendido sigue siendo el tinte suave de la dirección.
+
+Ningún brillo razonable salva a `--info` como texto sobre vidrio, así que eso
+queda dicho en el token: sobre vidrio se escribe en hueso.
+
+## 2026-09-17 (cont.) — v0.21.0: "Cerca" es una pestaña, y el filtro de frescura en la lista
+
+### Cerca
+
+La barra de abajo pasa a cuatro pestañas, en el orden del diseño: **Cerca,
+Mapa, Lista, Perfil**. Cerca va primera porque contesta la pregunta más general
+—cuánto sale la pinta por acá— y las otras dos la responden cada vez más fino:
+el mapa dice dónde, la lista dice cuál.
+
+Lo que hay adentro, en ese orden: el típico de la zona con el abanico entre el
+piso y el tope, la más barata cerca, lo último que se cargó, y —sólo si hay
+algo concreto que pedir— cuántos bares del radio tienen el precio vencido, con
+el botón para arreglarlo.
+
+**El promedio de la zona se mudó de la Lista.** Vivía en `AreaStatsCard`,
+plegado arriba de las filas, con este argumento: la pregunta aparece mirando
+precios, y una pantalla aparte sería un lugar al que habría que acordarse de
+ir. El argumento era bueno y se cae por una sola razón: ahora hay una pestaña,
+y un destino de la barra de abajo no es un lugar al que hay que acordarse de
+ir. Arriba de la Lista pagaba caro — plegado no se leía, y desplegado empujaba
+las filas media pantalla para abajo.
+
+Dos cosas que **no** se hicieron, y por qué:
+
+* El diseño muestra "Se movió esta semana". Para saber que un precio cambió
+  hace falta el anterior, y el servidor no lo manda con los pines. La sección
+  dice "Lo último que se cargó", que es lo que el dato sí sostiene: los pines
+  ordenados por antigüedad del precio.
+* No hay ninguna consulta nueva. `bars` ya viene del mismo `useBars` que
+  alimenta el mapa y la lista, y `areaStats` era la única que hacía la tarjeta
+  vieja.
+
+### El filtro de frescura, también en la lista
+
+El de la v0.20.0 estaba sólo en el mapa. Ahora está en las dos, al lado del de
+favoritos. Se cruzan, y el resumen del encabezado y el vacío saben decirlo.
+
+Acá filtra en memoria, al revés que el de favoritos, y no es una
+inconsistencia: "mis favoritos" es sobre bares que pueden estar en cualquier
+lado y por eso se piden al servidor; "sólo frescos" es un recorte de lo que la
+lista ya trajo. Buscando no se aplica ni se dibuja: la búsqueda es por nombre
+sobre toda la base, y que el bar que estás tipeando desaparezca porque nadie
+pasó a mirar su pizarra sería contestar otra cosa de la que se preguntó.
+
+### Dos arreglos del Perfil
+
+* **La tuerca se veía cortada.** El mail es un token de veinte y pico de
+  caracteres sin espacios: se salía de su columna —`minWidth: 0` deja que el
+  contenedor se encoja, pero no impide que el texto se desborde— y empujaba la
+  tuerca y el botón de salir fuera del ancho de la pantalla. Ahora va en una
+  línea con elipsis, y el nombre corta con `overflowWrap: anywhere`.
+* **El símbolo de salir estaba descentrado.** Era el carácter `⇥`: un glifo de
+  texto se centra por su caja de avance y por la línea base, no por su tinta.
+  Pasó a SVG, con el mismo `viewBox` que la tuerca de al lado.
+
+## 2026-09-17 (cont.) — v0.22.0: el perfil, más cerca del diseño
+
+Tres cosas que la pantalla no tenía y el diseño sí:
+
+* **Título "Perfil".** Las otras tres pestañas lo tienen y ésta arrancaba
+  directamente con la cara. Con la barra de abajo mostrando las cuatro
+  etiquetas, un encabezado que dice dónde estás es lo que cierra el par.
+* **El avatar es un cuadrado de esquina blanda**, no un círculo: es la forma
+  que la dirección usa para los avatares —la misma de las iniciales de cada
+  comentario en la ficha del bar— y el círculo era la única esquina redonda que
+  quedaba en una pantalla de filetes. Sin foto, las iniciales van en la familia
+  informativa.
+* **Los favoritos, en filas.** El diseño muestra los bares marcados en el
+  perfil y no sólo un número que lleva a otra pantalla, y es el lugar donde
+  corresponde: un favorito es de la cuenta, no de la zona, así que ésta es la
+  única pantalla donde la lista entera cabe sin que el radio la recorte. Se
+  muestran los primeros cinco; "Ver en la lista" lleva a `/lista?favoritos=1`,
+  que abre la Lista con el ámbito de favoritos ya puesto. Por la URL y no por
+  estado de router, así el enlace se puede compartir y el botón de atrás
+  devuelve el ámbito que había.
+
+### Lo que queda distinto del diseño, a propósito
+
+* **La tarjeta de karma no está**, por lo de la v0.20.0: el sistema no existe.
+* **"Aportando desde hace N meses"** no se puede decir: `User` no trae la fecha
+  de alta. En su lugar queda el mail, que es el dato que sí hay.
+* **Reseñas y aportes siguen siendo destinos y no listas inline.** El diseño
+  los apila en la misma pantalla porque el mockup no tiene sub-pantallas;
+  acá existen, con paginado y con su propio filtro, y duplicarlos en el perfil
+  sería bajarse dos veces lo mismo para mostrar las primeras tres filas.

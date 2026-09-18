@@ -15,6 +15,7 @@ import { PintLoader } from './ui/PintLoader'
 import { Tour, TOUR_ANON, type TourView } from './ui/Tour'
 import { MapScreen } from './screens/MapScreen'
 import { ListScreen } from './screens/ListScreen'
+import { NearbyScreen } from './screens/Nearby'
 import { BarDetailScreen } from './screens/BarDetail'
 import { AddBarScreen } from './screens/AddBar'
 import { ProfileScreen } from './screens/Profile'
@@ -209,13 +210,15 @@ function Shell() {
 
   const afterChange = useCallback(() => { invalidate(); refresh(true) }, [invalidate, refresh])
 
-  const showNav = ['/', '/lista', '/perfil'].includes(route.pathname)
+  const showNav = ['/', '/cerca', '/lista', '/perfil'].includes(route.pathname)
 
   // El tutorial es por pantalla, así que la ruta decide qué se enseña. Las
   // pantallas que no están acá —agregar bar, moderación, info— no tienen
   // tutorial: o son de un solo uso o ya se explican solas.
   const tourView: TourView | null =
     route.pathname === '/' ? 'map'
+      // "Cerca" no tiene tutorial: es una pantalla de lectura, sin controles
+      // que descubrir más allá del radio, que se explica solo.
       : route.pathname === '/lista' ? 'list'
       : route.pathname === '/perfil' ? 'profile'
       : route.pathname.startsWith('/bar/') ? 'bar'
@@ -259,6 +262,14 @@ function Shell() {
               if (!simulated) request()
               if (target) setPanTo(t => ({ target, token: (t?.token ?? 0) + 1 }))
             }}
+          />
+        } />
+        <Route path="/cerca" element={
+          <NearbyScreen
+            bars={bars} loading={loading}
+            center={queryPoint ?? null} radius={radius} onRadius={setRadius}
+            styleFilter={styleFilter} styles={styles}
+            simulated={simulated}
           />
         } />
         <Route path="/lista" element={

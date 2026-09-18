@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import { clearCached, useCached } from '../data/cached'
-import type { User, UserStats } from '../data/types'
+import type { BarPin, User, UserStats } from '../data/types'
 import { isModerator } from '../data/types'
 import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
 import { SectionLabel, Tile } from '../ui/Kit'
+import { PriceColumn } from '../ui/Empty'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -97,23 +98,58 @@ export function ProfileScreen({ user, onSession }: {
 
   return (
     <Wrap>
+      {/* El título de la pantalla, que faltaba: las otras tres pestañas lo
+          tienen y ésta arrancaba directamente con la cara. Con la barra de
+          abajo mostrando las cuatro etiquetas, un encabezado que dice dónde
+          estás es lo que cierra el par. */}
+      <h1 className="ttl" style={{
+        fontSize: 'var(--t-7)', margin: '0 0 var(--s-4)',
+        paddingBottom: 'var(--s-3)', borderBottom: '1px solid var(--hairline)',
+      }}>Perfil</h1>
+
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
         {/* La foto se edita en configuración; acá sólo se ve. Un perfil sin
-            cara es una lista de números con un nombre arriba. */}
+            cara es una lista de números con un nombre arriba.
+
+            Cuadrado con esquina blanda y no círculo: es la forma que usa la
+            dirección para los avatares —la misma de las iniciales de cada
+            comentario en la ficha del bar— y el círculo era la única esquina
+            redonda que quedaba en una pantalla de filetes. Sin foto, las
+            iniciales van en la familia informativa, que es donde la pizarra
+            manda todo lo que identifica sin ser el dato. */}
         {user.avatarUrl ? (
           <img src={user.avatarUrl} alt="" width={56} height={56}
-            style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            style={{ borderRadius: 'var(--r-2)', objectFit: 'cover', flexShrink: 0 }} />
         ) : (
           <div className="num" aria-hidden style={{
-            width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+            width: 56, height: 56, borderRadius: 'var(--r-2)', flexShrink: 0,
             display: 'grid', placeItems: 'center',
-            background: 'var(--elevated)', color: 'var(--muted)', fontSize: 'var(--t-6)',
+            background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+            color: 'var(--info-bright)', fontSize: 'var(--t-6)',
           }}>{user.displayName.charAt(0).toUpperCase()}</div>
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{user.displayName}</h1>
-          <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '4px 0 0' }}>{user.email}</p>
+          {/* `minWidth: 0` en el contenedor deja que la columna se encoja,
+              pero no impide que el TEXTO se salga: un nombre de una sola
+              palabra larga no tiene dónde cortar y desborda igual. Con
+              `overflowWrap: anywhere` corta donde haga falta. */}
+          <h1 className="ttl" style={{
+            fontSize: 'var(--t-7)', margin: 0, overflowWrap: 'anywhere',
+          }}>{user.displayName}</h1>
+          {/* El mail va en una línea con elipsis, y ésta es la que rompía la
+              fila: un mail es un token sin espacios de veinte y pico de
+              caracteres, así que se salía de su columna y empujaba la tuerca y
+              el botón de salir fuera del ancho de la pantalla. Se veía como
+              una tuerca cortada por el borde.
+
+              Elipsis y no corte en dos renglones porque un mail partido al
+              medio no se lee mejor que uno recortado, y el dato entero está en
+              Configuración. */}
+          <p title={user.email} style={{
+            color: 'var(--faint)', fontSize: 'var(--t-3)', margin: '4px 0 0',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{user.email}</p>
         </div>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
@@ -139,7 +175,20 @@ export function ProfileScreen({ user, onSession }: {
           style={{
             background: 'transparent', border: '1px solid var(--danger)',
             color: 'var(--danger)',
-          }}>⇥</button>
+          }}>
+          {/* Era el carácter `⇥`, y por eso se veía descentrado: un glifo de
+              texto se centra por su caja de avance y por la línea base, no por
+              su tinta, así que la flecha quedaba corrida y un poco arriba por
+              más que el botón estuviera centrado. Un SVG con el mismo `viewBox`
+              que la tuerca de al lado se centra por su geometría y además pesa
+              lo mismo que ella. */}
+          <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+            fill="none" stroke="currentColor" strokeWidth="1.9"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+            <path d="M10 8l4 4-4 4M14 12H3" />
+          </svg>
+        </button>
       </div>
 
       {/* El rol es información sobre la cuenta. Va en el tono informativo y no
@@ -173,6 +222,8 @@ export function ProfileScreen({ user, onSession }: {
         <Tile label="Birras tomadas" value={stats?.beers}
           onClick={() => nav('/mis-birras')} />
       </div>
+
+      <Favoritos />
 
       {/* Sin `gap`: las filas se separan con su propio filete. Un hueco entre
           filetes deja la línea flotando y se lee como cinco tarjetas otra vez,
@@ -215,6 +266,86 @@ export function ProfileScreen({ user, onSession }: {
         />
       )}
     </Wrap>
+  )
+}
+
+/**
+ * Los bares marcados, en el perfil.
+ *
+ * Es de la dirección: el perfil muestra los favoritos, no sólo un número que
+ * lleva a otra pantalla. Y tiene sentido acá y no en otro lado — un favorito
+ * es de la cuenta, no de la zona, así que ésta es la única pantalla donde la
+ * lista entera cabe sin que el radio la recorte.
+ *
+ * Se muestran los primeros y el resto queda a un toque, en la Lista con el
+ * ámbito de favoritos puesto. No es paginado: el endpoint devuelve todos, pero
+ * treinta filas entre las baldosas y los destinos convierten el perfil en un
+ * scroll largo, y el que quiere la lista entera quiere la Lista.
+ */
+const FAVS_EN_PERFIL = 5
+
+function Favoritos() {
+  const nav = useNavigate()
+  const [bars, setBars] = useState<BarPin[] | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    api.favorites()
+      .then(r => { if (alive) setBars(r) })
+      .catch(() => { if (alive) setBars([]) })
+    return () => { alive = false }
+  }, [])
+
+  // Mientras no se sabe, no se dibuja nada. Un "Favoritos · 0" que aparece y
+  // se corrige medio segundo después es peor que esperar.
+  if (bars == null) return null
+
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-3)' }}>
+        <SectionLabel>{`Favoritos · ${bars.length}`}</SectionLabel>
+        {bars.length > 0 && (
+          <button
+            onClick={() => nav('/lista?favoritos=1')}
+            className="lbl"
+            style={{
+              marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-2)',
+              minHeight: 44,
+            }}
+          >Ver en la lista</button>
+        )}
+      </div>
+
+      {bars.length === 0 ? (
+        <p style={{
+          margin: 0, fontSize: 'var(--t-3)', color: 'var(--muted)',
+          lineHeight: 1.5, textWrap: 'pretty',
+        }}>
+          Tocá el corazón al final de cualquier fila de la lista —o el de la
+          ficha del bar— y el bar queda acá.
+        </p>
+      ) : bars.slice(0, FAVS_EN_PERFIL).map(b => (
+        <button key={b.id} onClick={() => nav(`/bar/${b.id}`)} className="row-hover" style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-3)', width: '100%',
+          padding: 'var(--s-3) 2px', textAlign: 'left',
+          borderBottom: '1px solid var(--hairline)',
+        }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden
+            fill="var(--favorito)" style={{ flexShrink: 0 }}>
+            <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13L12 20.3Z" />
+          </svg>
+          <span className="lbl" style={{
+            flex: 1, minWidth: 0, fontSize: 'var(--t-4)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{b.name}</span>
+          {/* La misma columna de siempre: el precio nunca sin su antigüedad. */}
+          <PriceColumn
+            price={b.fromPrice} currency={b.currency} ageDays={b.freshestAgeDays}
+            size="var(--t-5)"
+          />
+        </button>
+      ))}
+    </>
   )
 }
 

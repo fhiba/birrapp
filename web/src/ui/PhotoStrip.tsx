@@ -2,17 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { Photo } from '../data/types'
 import { compressImage } from '../data/image'
 import { shortAge } from '../data/format'
+import { KARMA, KARMA_VISIBLE } from '../data/karma'
 
 /**
  * Lo que suma subir una foto, para mostrarlo dentro del botón.
  *
- * No es un número inventado para adornar: es el peso que le da el servidor a
- * una foto en el ranking de colaboradores (`CONTRIBUTION_WEIGHT` en
- * `AnalyticsRepo.kt`: precio 3, bar 3, foto 2, nota 2, confirmación 1). Vive
- * acá copiado y no pedido a la API porque es una constante de producto, no un
- * dato de la sesión; si el peso cambia allá, hay que cambiarlo acá.
+ * El número y el interruptor viven en `data/karma.ts`: hoy no se dibuja porque
+ * el sistema de karma todavía no existe.
  */
-const PTS_FOTO = 2
+const PTS_FOTO = KARMA.foto
 
 /**
  * Carrusel de fotos de una birra, con el botón de agregar al final.
@@ -171,7 +169,9 @@ export function PhotoStrip({
         {canAdd && (
           <button
             onClick={() => picker.current?.click()} disabled={busy}
-            aria-label={`Agregar una foto, suma ${PTS_FOTO} puntos`}
+            aria-label={KARMA_VISIBLE
+              ? `Agregar una foto, suma ${PTS_FOTO} puntos`
+              : 'Agregar una foto'}
             style={{
               flex: '0 0 auto', width: 112, height: 112, borderRadius: 'var(--r-1)',
               // Punteado y en la familia de `--info`: es un hueco a llenar, no
@@ -186,10 +186,14 @@ export function PhotoStrip({
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
                 </svg>
-                {/* Los puntos van adentro del botón y al lado del verbo, como
-                    en "Sigue igual": lo que se gana es parte de la acción, no
-                    un renglón aparte. */}
-                <span className="num" style={{ fontSize: 'var(--t-1)' }}>+{PTS_FOTO} pts</span>
+                {/* Con el karma prendido, los puntos van adentro del botón y
+                    al lado del verbo, como en "Sigue igual": lo que se gana es
+                    parte de la acción, no un renglón aparte. Apagado, el hueco
+                    no queda mudo: un cuadro punteado con una cámara adentro y
+                    nada más se lee como una foto que no cargó. */}
+                <span className="num" style={{ fontSize: 'var(--t-1)' }}>
+                  {KARMA_VISIBLE ? `+${PTS_FOTO} pts` : 'Agregar'}
+                </span>
               </>
             )}
           </button>

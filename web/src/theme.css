@@ -199,6 +199,15 @@
    * porque una es una estrella y el otro es una fecha.
    */
   --fresh: #FFFC9A;
+  /* El relleno de un control **prendido** que habla de frescura, para cuando
+     lo que queda por detrás es la pantalla. Misma opacidad que
+     `--favorito-soft`, para que un filtro puesto se vea igual de puesto sea
+     del color que sea: lo único que cambia es de qué está hablando.
+
+     No existe su gemelo para el mapa, y es a propósito: ahí un relleno
+     translúcido deja el contraste a merced de lo que pase por debajo, así que
+     el prendido se pinta opaco. Ver el comentario de `.glass`. */
+  --fresh-soft: rgba(255,252,154,.16);
   --aging: #EE9A52;
   /* Malva apagado, el mismo tono que `--faint`. Que un precio viejo se pinte
      del color de los metadatos es el mensaje: dejó de ser noticia. */
@@ -370,17 +379,34 @@ a { color: var(--acento); }
    * esmerilado y menos se reconoce lo que hay detrás. Con 14 se leen las
    * calles del mapa a través del panel.
    *
-   * El 0.45 sale de medir el peor caso real: una cápsula de precio ámbar
-   * justo detrás del panel. Ahí el texto principal da 5,67:1. Sobre el mapa
-   * oscuro, que es lo normal, da 15,96:1.
+   * El 0.35 sale de medir el peor caso real: el objeto más claro que puede
+   * pasar justo por detrás del panel. Ahí el texto principal da 5,74:1 y el
+   * secundario 4,64:1. Sobre el mapa oscuro, que es lo normal, da 16:1.
+   *
+   * **Era 0.45 y tuvo que bajar con la paleta.** Ese número se había medido
+   * contra una cápsula de precio ámbar `#FFB627`, que era lo más brillante
+   * que había en el mapa. Heritage invirtió la cápsula del pin seleccionado:
+   * ahora es hueso pleno `#FFFDF4`, bastante más clara, y contra eso el 0.45
+   * dejaba el texto principal en 4,10:1 y el secundario en 3,31:1 — los dos
+   * por debajo de 1.4.3.
+   *
+   * Es la trampa de este parámetro y por eso queda escrita: no depende de la
+   * paleta del vidrio sino de lo más claro que pueda quedar debajo, así que
+   * cada vez que cambie un color del MAPA hay que volver a medirlo acá.
+   *
+   * Lo que este número **no** puede salvar es el color sobre vidrio: `--info`
+   * no llega a 3:1 contra ese fondo con ningún brillo razonable. Por eso lo
+   * que se apoya sobre vidrio va en hueso, y un control **prendido** sobre el
+   * mapa se pinta opaco en vez de con un tinte translúcido: opaco no depende
+   * de lo que pase por detrás.
    */
   background: linear-gradient(
     rgba(255,255,255,.11),
     rgba(255,255,255,.03) 45%,
     rgba(255,255,255,.07)
   );
-  backdrop-filter: blur(14px) saturate(180%) brightness(.45);
-  -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(.45);
+  backdrop-filter: blur(14px) saturate(180%) brightness(.35);
+  -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(.35);
   border: .8px solid rgba(255,255,255,.18);
   box-shadow:
     /* el canto de arriba, que es de donde "entra" la luz */

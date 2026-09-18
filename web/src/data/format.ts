@@ -143,8 +143,24 @@ export const shortAge = (d: number | null) =>
 export const freshnessColor = (f: Freshness) =>
   f === 'fresh' ? 'var(--fresh)' : f === 'aging' ? 'var(--aging)' : 'var(--stale)'
 
+/**
+ * Los dos cortes de frescura, que son de los pocos números de la app que
+ * significan algo.
+ *
+ * Están acá y exportados porque ya no los usa sólo `ageColor`: el filtro de
+ * "sólo frescos" del mapa pregunta por el mismo umbral, y un filtro con su
+ * propio 14 sería un segundo significado de "fresco" esperando a separarse del
+ * primero. Los mismos cortes viven en el backend (`freshness` en las vistas);
+ * si se mueven allá, se mueven acá.
+ */
+export const FRESCO_DIAS = 14
+export const VIEJO_DIAS = 45
+
 export const ageColor = (d: number | null) =>
-  d == null ? 'var(--stale)' : d < 14 ? 'var(--fresh)' : d < 45 ? 'var(--aging)' : 'var(--stale)'
+  d == null ? 'var(--stale)'
+    : d < FRESCO_DIAS ? 'var(--fresh)'
+      : d < VIEJO_DIAS ? 'var(--aging)'
+        : 'var(--stale)'
 
 /**
  * Color por precio, relativo a lo que hay en pantalla.
