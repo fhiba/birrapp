@@ -8,6 +8,7 @@ import { Confirm } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
 import { SectionLabel, Tile } from '../ui/Kit'
+import { nivelDe } from '../data/nivel'
 import { PriceColumn } from '../ui/Empty'
 
 export function ProfileScreen({ user, onSession }: {
@@ -48,6 +49,16 @@ export function ProfileScreen({ user, onSession }: {
         .catch(() => {})
     }
   }, [user])
+
+  /*
+   * El nivel sale de las birras de los últimos 45 días, no del total.
+   *
+   * Mientras `stats` no llegó se dibuja el nivel de cero y no un esqueleto: es
+   * el nivel real de quien todavía no anotó ninguna, así que en el peor caso
+   * la barra se mueve una vez —igual que los contadores de abajo, que
+   * `useCached` también pinta con lo último que supo—.
+   */
+  const nivel = nivelDe(stats?.beersRecent ?? 0)
 
   const login = async () => {
     setBusy(true); setError(null)
@@ -162,7 +173,13 @@ export function ProfileScreen({ user, onSession }: {
             Sueltos en la fila, cada uno negociaba su lugar por separado con el
             nombre del medio; agrupados, o entran los dos o no entra ninguno, y
             `flexShrink: 0` garantiza que sea lo primero. */}
-        <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+          gap: 'var(--s-2)', flexShrink: 0,
+        }}>
+        <Emblema nivel={nivel} />
+
+        <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
             leer una lista para encontrar la configuración, la busca arriba a
@@ -213,7 +230,17 @@ export function ProfileScreen({ user, onSession }: {
           </svg>
         </button>
         </div>
+        </div>
       </div>
+
+      {/* El nivel, debajo del nombre y a todo el ancho.
+
+          A lo ancho y no metido en la columna del nombre: ahí compite con un
+          mail de veinte caracteres y con los botones, y una barra de progreso
+          de ochenta píxeles no se lee como progreso, se lee como un renglón
+          más. Acá el número de birras queda a la izquierda, lo que falta a la
+          derecha, y la barra debajo cruza la pantalla. */}
+      <NivelBarra nivel={nivel} birras={stats?.beersRecent} />
 
       {/* El rol es información sobre la cuenta. Va en el tono informativo y no
           en el acento: en heritage el acento es hueso, el mismo color del
@@ -442,5 +469,80 @@ function GoogleG() {
       <path fill="#FBBC05" d="M3.96 10.71a5.4 5.4 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33Z"/>
       <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58Z"/>
     </svg>
+  )
+}
+
+/**
+ * El emblema del nivel: por ahora, el número.
+ *
+ * Es el lugar reservado para el dibujo que vaya cuando exista. Hasta entonces
+ * muestra el número del nivel, que no es relleno — dice lo mismo que va a
+ * decir el emblema y ya sirve para reconocerse de un vistazo.
+ *
+ * Va en la familia del oro de la nota (`--nota`) y no en el acento: es un
+ * logro, no una acción, y el acento en heritage es el hueso del botón que
+ * manda.
+ */
+function Emblema({ nivel }: { nivel: ReturnType<typeof nivelDe> }) {
+  return (
+    <div
+      className="num"
+      title={nivel.nombre}
+      aria-label={`Nivel ${nivel.numero}: ${nivel.nombre}`}
+      style={{
+        width: 48, height: 48, borderRadius: 'var(--r-2)', flexShrink: 0,
+        display: 'grid', placeItems: 'center',
+        background: 'var(--fresh-soft)', border: '1px solid var(--nota)',
+        color: 'var(--nota)', fontSize: 'var(--t-6)', lineHeight: 1,
+      }}
+    >{nivel.numero}</div>
+  )
+}
+
+/** El nombre del nivel, cuánto falta para el que sigue, y la barra. */
+function NivelBarra(
+  { nivel, birras }: { nivel: ReturnType<typeof nivelDe>; birras: number | undefined },
+) {
+  return (
+    <div style={{ marginTop: 'var(--s-4)' }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)',
+      }}>
+        <span className="lbl" style={{
+          flex: 1, minWidth: 0, fontSize: 'var(--t-4)', color: 'var(--cream)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{nivel.nombre}</span>
+        {/* Lo que falta, no lo que llevás: "te faltan 3" es accionable esta
+            misma noche, "12 de 15" es una fracción que hay que restar. */}
+        <span className="num" style={{
+          flexShrink: 0, fontSize: 'var(--t-2)', color: 'var(--faint)',
+        }}>
+          {nivel.proximo == null
+            ? 'nivel máximo'
+            : `${nivel.faltan} para el ${nivel.numero + 1}`}
+        </span>
+      </div>
+
+      <div aria-hidden style={{
+        height: 6, marginTop: 'var(--s-2)', borderRadius: 3,
+        background: 'var(--film-2)', overflow: 'hidden',
+      }}>
+        <div style={{
+          width: `${Math.round(nivel.progreso * 100)}%`, height: '100%',
+          background: 'var(--nota)', transition: 'width .3s ease-out',
+        }} />
+      </div>
+
+      {/* Que la cuenta sea de los últimos 45 días hay que decirlo, y acá:
+          sin eso, quien anotó cuarenta birras el año pasado ve un nivel 1 y lo
+          lee como un bug. Es la misma regla que el resto de la app —ningún
+          número sin su alcance— aplicada al único contador que baja. */}
+      <p style={{
+        margin: 'var(--s-2) 0 0', fontSize: 'var(--t-1)', color: 'var(--faint)',
+      }}>
+        {birras ?? 0} {birras === 1 ? 'birra anotada' : 'birras anotadas'} en los
+        últimos 45 días. Si dejás de anotar, el nivel baja.
+      </p>
+    </div>
   )
 }

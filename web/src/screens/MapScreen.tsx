@@ -294,37 +294,6 @@ export function MapScreen(p: Props) {
             display: 'flex', gap: 'var(--ctl-gap)', flexWrap: 'wrap',
             alignItems: 'flex-start', minWidth: 0, pointerEvents: 'auto',
           }}>
-            {/*
-              El "?", arriba a la izquierda y en el mismo renglón que los
-              filtros.
-
-              Estaba abajo, flotando sobre el mapa arriba del botón de centrar,
-              y ahí tenía dos problemas: aparecía en la esquina de las acciones
-              —el lugar de "hacer", no el de "entender"— y el glifo "?" de la
-              fuente se posiciona por baseline, así que adentro de un círculo
-              nunca quedaba centrado. Ahora el signo es un `<path>` dibujado en
-              un lienzo de 24 y cae en el centro exacto, como el "+".
-
-              Va primero de todo porque es lo que necesita quien abrió la app,
-              ve pines de colores y no sabe qué está mirando. Con sesión el
-              tutorial arranca solo; sin sesión, éste es el único camino, y es
-              justo quien más lo necesita.
-            */}
-            <button
-              onClick={p.onHelp}
-              aria-label="Cómo funciona la app"
-              className="glass pill"
-              style={{
-                width: 44, height: 44, flexShrink: 0, padding: 0,
-                display: 'grid', placeItems: 'center',
-                color: 'var(--sobre-vidrio)',
-              }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 17.1a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7Zm.2-13.1c2.5 0 4.4 1.7 4.4 4.1 0 1.9-1.1 3-2.4 3.8-1 .7-1.3 1.1-1.3 1.9v.7h-2.2v-1c0-1.6.7-2.5 1.9-3.3 1-.7 1.6-1.2 1.6-2.1 0-1.1-.9-1.9-2.1-1.9-1.3 0-2.2.8-2.3 2.1H7.5C7.6 5.7 9.6 4 12.2 4Z" />
-              </svg>
-            </button>
-
             {/* La fila de chips scrolleaba mal: el gesto competía con el paneo
                 del mapa, así que a veces se movía el mapa en vez de la lista, y
                 encima ocupaba una franja permanente de pantalla. */}
@@ -617,17 +586,46 @@ export function MapScreen(p: Props) {
       </div>
 
       {/*
-        El botón de centrar se va mientras hay preview: ocupa exactamente la
+        Los dos flotantes se van mientras hay preview: ocupan exactamente la
         franja donde entra la tarjeta. Google Maps hace lo mismo, y por la
-        misma razón — mientras mirás un lugar, moverte de lugar no es lo que
-        estás por hacer.
+        misma razón — mientras mirás un lugar, ni moverte de lugar ni leer el
+        tutorial es lo que estás por hacer.
 
-        Al lado tenía el "+", que se mudó al centro de la barra de pestañas:
-        agregar algo no es una acción del mapa sino de la app, y ahí está a
-        mano desde las cuatro pantallas y no sólo desde ésta. El "?" también se
-        fue de esta esquina — ahora abre la franja de controles, arriba.
+        A la derecha estaba el "+", que se mudó al centro de la barra de
+        pestañas: agregar algo no es una acción del mapa sino de la app, y ahí
+        está a mano desde las cuatro pantallas. La esquina quedó libre y la
+        ocupa el "?".
       */}
       {!preview && (
+        <>
+        {/*
+          El "?", abajo a la derecha, en el lugar que dejó el "+".
+
+          Probamos subirlo a la franja de controles de arriba y no va: esa
+          franja ya lleva cuatro píldoras y el corazón, y un botón más la
+          apilaba en dos renglones sobre el mapa, que es lo que no se puede
+          gastar. Abajo tiene una esquina entera para él.
+
+          Lo que sí se queda del intento anterior: el signo es un `<path>` y no
+          el glifo "?". Un glifo se posiciona por baseline y adentro de un
+          círculo nunca queda centrado, que era el otro defecto.
+        */}
+        <button
+          onClick={p.onHelp}
+          aria-label="Cómo funciona la app"
+          className="glass"
+          style={{
+            position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
+            width: 48, height: 48, borderRadius: '50%', zIndex: 10,
+            display: 'grid', placeItems: 'center', padding: 0,
+            color: 'var(--sobre-vidrio)',
+          }}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 17.1a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7Zm.2-13.1c2.5 0 4.4 1.7 4.4 4.1 0 1.9-1.1 3-2.4 3.8-1 .7-1.3 1.1-1.3 1.9v.7h-2.2v-1c0-1.6.7-2.5 1.9-3.3 1-.7 1.6-1.2 1.6-2.1 0-1.1-.9-1.9-2.1-1.9-1.3 0-2.2.8-2.3 2.1H7.5C7.6 5.7 9.6 4 12.2 4Z" />
+          </svg>
+        </button>
+
         <button onClick={p.onRecenter} className="glass" style={{
           position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
           width: 48, height: 48, borderRadius: '50%', zIndex: 10,
@@ -646,6 +644,7 @@ export function MapScreen(p: Props) {
             <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
           </svg>
         </button>
+        </>
       )}
 
       {preview && (

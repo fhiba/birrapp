@@ -3510,3 +3510,39 @@ la zona", "RESEÑAS" → "LO QUE DICEN". El resto de la copy ya estaba en voseo.
 para mandar a Perfil sin sesión, que es el "Cannot update a component while
 rendering a different component" de React. Pasaron a `<Navigate>`. Falta ver el
 resto: sin navegador acá no se puede leer la consola.
+
+## 2026-09-18 (cont.) — v0.24.0: el PATCH que CORS no dejaba pasar, y niveles en el perfil
+
+**El bug del alias y las birras favoritas.** No era del front. Ktor trae
+permitidos GET, POST y HEAD nada más; el backend había agregado `Delete` y
+nunca `Patch`, y `PATCH /auth/me` es el único PATCH de toda la app — o sea
+exactamente el alias y las favoritas, y nada más. El preflight se rechazaba,
+así que el fetch fallaba como error de red ("Load failed" en Safari) sin que el
+backend llegara a loguear nada ni el front a ver un status. Una línea:
+`allowMethod(HttpMethod.Patch)`.
+
+**El "?" vuelve abajo a la derecha**, al lugar que dejó el "+". Subirlo a la
+franja de controles la apilaba en dos renglones sobre el mapa. Lo que se queda
+del intento anterior es el signo dibujado como `<path>`: como glifo se
+posiciona por baseline y no se centra adentro de un círculo.
+
+**Niveles en el perfil.** Ocho por ahora, de Pichi a Super saiyajin birrero,
+en `web/src/data/nivel.ts`. Se cuentan **las birras de los últimos 45 días**, no
+el total histórico: es una ventana móvil, así que el nivel se mantiene tomando
+y baja si dejás de anotar. Un total que sólo sube no es una noticia. 45 días es
+el mismo corte que `VIEJO_DIAS`.
+
+El número sale de `UserStats.beersRecent`, una subconsulta más en la consulta
+de stats que ya existía — no un endpoint nuevo, y el índice
+`(user_id, drank_at DESC)` ya cubre el filtro. `BeerLogTest` tiene el caso:
+tres birras de hace 10 días, dos de hace 44 y siete de hace 46 dan 12 de total
+y 5 de nivel. Existe porque el corte está escrito en SQL adentro de otras seis
+subconsultas y nada impide que alguien lo copie de la de al lado.
+
+En pantalla: el emblema arriba a la derecha (por ahora el número del nivel, en
+el oro de la nota) y, debajo del nombre y a todo el ancho, el nombre del nivel,
+cuánto falta para el que sigue y la barra. Al pie dice que la cuenta es de 45
+días — sin eso, quien anotó cuarenta birras el año pasado ve un nivel 1 y lo
+lee como un bug.
+
+Faltan dos nombres para llegar a los diez niveles pedidos.

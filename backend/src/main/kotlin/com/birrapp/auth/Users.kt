@@ -61,6 +61,19 @@ data class UserStats(
      * deserializando esto sin romperse.
      */
     val beers: Int = 0,
+    /**
+     * Las birras de los últimos 45 días, que es de donde sale el nivel del
+     * perfil.
+     *
+     * Ventana móvil y no total histórico: el nivel se mantiene tomando. Quien
+     * dejó de anotar hace dos meses baja, y eso es lo que lo hace decir algo
+     * sobre cómo venís y no sobre cuánto acumulaste alguna vez.
+     *
+     * 45 días es el mismo corte que `VIEJO_DIAS` —cuándo un precio deja de ser
+     * referencia— y no es casualidad: es lo que el proyecto ya considera
+     * "todavía cuenta".
+     */
+    val beersRecent: Int = 0,
 )
 
 @Serializable
@@ -349,9 +362,16 @@ class UserRepo(private val db: Db) {
               -- las rachas, los bares top y los emblemas. Era la consulta más
               -- cara de la pantalla, para dibujar un entero.
               (SELECT coalesce(sum(qty), 0)::int FROM beer_logs
-                WHERE user_id = ?) AS birras
+                WHERE user_id = ?) AS birras,
+              -- Las de los últimos 45 días, que es de lo que sale el nivel.
+              -- Es una ventana móvil a propósito: el nivel se mantiene tomando,
+              -- no se gana una vez. El índice (user_id, drank_at DESC) ya
+              -- cubre el filtro.
+              (SELECT coalesce(sum(qty), 0)::int FROM beer_logs
+                WHERE user_id = ? AND drank_at > now() - interval '45 days')
+                AS birras_recientes
             """.trimIndent(),
-            userId, userId, userId, userId, userId, userId,
+            userId, userId, userId, userId, userId, userId, userId,
         ) { rs ->
             UserStats(
                 prices = rs.getInt("precios"),
@@ -360,6 +380,7 @@ class UserRepo(private val db: Db) {
                 reviews = rs.getInt("resenas"),
                 photos = rs.getInt("fotos"),
                 beers = rs.getInt("birras"),
+                beersRecent = rs.getInt("birras_recientes"),
             )
         } ?: UserStats(0, 0, 0, 0, 0)
     }

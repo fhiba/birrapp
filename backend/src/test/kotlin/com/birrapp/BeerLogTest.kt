@@ -2,6 +2,7 @@ package com.birrapp
 
 import com.birrapp.beers.BeerRepo
 import com.birrapp.beers.NewBeerLogRequest
+import com.birrapp.auth.UserRepo
 import com.birrapp.core.ApiException
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -161,5 +162,27 @@ class BeerLogTest {
         val u = TestDb.insertUser()
         val pendiente = TestDb.insertBar("Sin aprobar", -34.6, -58.4, status = "pending")
         assertFailsWith<ApiException> { repo.log(NewBeerLogRequest(barId = pendiente), u) }
+    }
+
+    /**
+     * El nivel del perfil se cuenta con una ventana de 45 días, no con el
+     * total histórico: es lo que hace que baje si dejás de anotar.
+     *
+     * Este test existe porque el corte está escrito en SQL, en una subconsulta
+     * adentro de otras seis, y no hay nada en el tipo que impida que alguien
+     * la copie de la de al lado —que sí es el total— y el nivel deje de bajar
+     * sin que se note.
+     */
+    @Test
+    fun `beersRecent cuenta los ultimos 45 dias y beers el total`() {
+        val u = TestDb.insertUser()
+        repo.log(NewBeerLogRequest(qty = 3, drankAt = daysAgo(10)), u)
+        repo.log(NewBeerLogRequest(qty = 2, drankAt = daysAgo(44)), u)
+        // Fuera de la ventana: suma al total, no al nivel.
+        repo.log(NewBeerLogRequest(qty = 7, drankAt = daysAgo(46)), u)
+
+        val s = UserRepo(TestDb.db).stats(u)
+        assertEquals(12, s.beers, "el total las cuenta todas")
+        assertEquals(5, s.beersRecent, "el nivel, sólo las de los últimos 45 días")
     }
 }
