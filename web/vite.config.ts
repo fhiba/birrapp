@@ -1,9 +1,25 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const BASE = process.env.VITE_BASE_PATH ?? '/app/'
-const VERSION = '0.22.2'
+
+/**
+ * La versión sale de `package.json`, no de una constante acá.
+ *
+ * Estaba escrita a mano, y era el único de los lugares del versionado que no
+ * se nota cuando se olvida: la app seguía diciendo 0.22.2 en pantalla mientras
+ * corría código de cuatro versiones después, y desde afuera no había forma de
+ * saber qué estaba corriendo cada quien. Pasó exactamente eso.
+ *
+ * Con esto queda un solo número para la web. `readFileSync` y no un `import`
+ * del JSON: no depende de `resolveJsonModule` ni de atributos de import, y
+ * esto corre en Node al armar la config, no en el navegador.
+ */
+const VERSION = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+).version as string
 
 export default defineConfig({
   plugins: [

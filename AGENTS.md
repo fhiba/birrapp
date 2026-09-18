@@ -89,17 +89,22 @@ Todo cambio que se publica lleva versión nueva, y el commit se titula
 `vX.Y.Z: qué cambió` en minúscula y en castellano. Nunca un commit de cambios
 sin subir la versión.
 
-Se suben los **tres** lugares en el mismo commit, o quedan desincronizados:
+Se suben los **dos** lugares en el mismo commit, o quedan desincronizados:
 
 | Archivo | Qué |
 |---|---|
 | `app/build.gradle.kts` | `versionName` y `versionCode` (este último sólo crece: Android rechaza instalar un código menor o igual al instalado) |
-| `web/package.json` | `version` |
-| `web/vite.config.ts` | `const VERSION` — alimenta `__APP_VERSION__`, que es lo que se ve en Perfil |
+| `web/package.json` | `version` — de acá sale todo lo de la web |
 
-Si se olvida `vite.config.ts`, la app sigue reportando la versión vieja en
-pantalla aunque el código sea nuevo, y deja de haber forma de saber qué está
-corriendo cada quien.
+`web/package-lock.json` lo repite en dos lugares y lo sincroniza `npm`, pero si
+se edita `package.json` a mano hay que tocarlo a mano también, o `npm ci` se
+queja.
+
+`web/vite.config.ts` **ya no lleva la versión escrita**: la lee de
+`package.json` y se la pasa a `__APP_VERSION__`, que es lo que se ve en Perfil
+y en Info. Era un tercer lugar, y era el único que no se nota cuando se olvida
+— la app siguió mostrando 0.22.2 durante cuatro versiones sin que nada fallara.
+Si algún día vuelve a haber un número escrito a mano ahí, volvió el problema.
 
 Única excepción: un commit que **sólo** toca documentación no sube versión,
 porque no se publica nada. Si toca una línea de código, sube.
