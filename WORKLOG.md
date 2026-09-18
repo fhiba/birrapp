@@ -3585,3 +3585,15 @@ filtro de estilo se partió en dos —estilo y nota— la fila dejó de entrar: 
 campo le quedaban unos ochenta píxeles y no entraba ni el placeholder. Arriba
 tiene el ancho entero y además queda en el orden en que se usa: primero buscás
 un bar concreto, y si no, filtrás lo que hay.
+
+## 2026-09-18 (cont.) — v0.24.2: el emblema debajo de los botones, y sin el rol
+
+El emblema del nivel estaba arriba de la tuerca y del botón de salir, y los
+empujaba para abajo: dos controles que están siempre en el mismo lugar en todas
+las pantallas se movían de altura sólo en el perfil, y la fila entera quedaba
+desalineada con la foto. Debajo cuelga de la esquina sin mover nada.
+
+Se fue también la píldora del rol ("Usuario" / "Moderador" / "Admin"). Para la
+enorme mayoría decía "Usuario", que no es información: es la única opción que
+podés ser. Para quien modera, el acceso a Moderación de más abajo ya lo dice, y
+lo dice haciendo algo.
