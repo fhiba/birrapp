@@ -174,6 +174,8 @@ export interface UserStats {
   photos: number
   /** Birras anotadas. Viaja con el resto para que Perfil haga un solo pedido. */
   beers: number
+  /** Las de los últimos 45 días: es de donde sale el nivel. Ver `nivel.ts`. */
+  beersRecent: number
 }
 
 export interface MyBar {

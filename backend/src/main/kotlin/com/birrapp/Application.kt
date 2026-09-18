@@ -104,7 +104,18 @@ fun Application.module(cfg: Config, db: Db) {
             }
             allowHeader(io.ktor.http.HttpHeaders.Authorization)
             allowHeader(io.ktor.http.HttpHeaders.ContentType)
+            // Ktor trae permitidos GET, POST y HEAD nada más. Los otros dos
+            // que usa la PWA hay que nombrarlos:
+            //  - DELETE: borrar la cuenta, la foto, un aporte propio.
+            //  - PATCH: `/auth/me`, o sea el alias y las birras favoritas.
+            //
+            // El PATCH faltaba, y el síntoma no se parecía a CORS: el
+            // navegador manda el preflight, el servidor no lo aprueba y el
+            // fetch falla como error de red —"Load failed" en Safari— sin que
+            // el backend llegue a loguear nada ni el front a ver un status.
+            // Desde adentro parecía que guardar el alias no hacía nada.
             allowMethod(io.ktor.http.HttpMethod.Delete)
+            allowMethod(io.ktor.http.HttpMethod.Patch)
             // Sin credenciales: la sesión viaja en el header Authorization,
             // no en cookies, así que no hace falta y evita el requisito de
             // origen exacto.
