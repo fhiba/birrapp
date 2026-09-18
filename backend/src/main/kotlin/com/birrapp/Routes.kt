@@ -783,13 +783,27 @@ fun Route.apiRoutes(
                 call.respond(OkResponse())
             }
 
-            /** Sólo admin: nombrar y sacar moderadores. */
+            /**
+             * Sólo admin: nombrar y sacar moderadores y admins.
+             *
+             * **Nadie se cambia el rol a sí mismo**, y no es una formalidad: el
+             * rol sólo se siembra al crear la cuenta (`BOOTSTRAP_ADMIN_EMAILS`
+             * se lee en el INSERT y el upsert no lo toca nunca), así que el
+             * único que puede nombrar a un admin es otro admin. Un admin que se
+             * baja solo —siendo el único, o por un toque de más en una lista—
+             * deja el sistema sin nadie que pueda volver a subir a nadie, y la
+             * salida es un UPDATE a mano en la base de producción.
+             *
+             * Se frena acá y no en la pantalla porque la pantalla es una
+             * sugerencia: lo que impide perder el acceso tiene que estar del
+             * lado que no se puede editar desde el navegador.
+             */
             post("/users/{id}/role") {
-                call.requireRole(Role.admin)
+                val yo = call.requireRole(Role.admin)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
                 val role = runCatching { Role.valueOf(call.receive<RoleChangeRequest>().role) }
                     .getOrElse { badRequest("rol inválido: user, moderator o admin") }
-                if (!users.setRole(id, role)) notFound("no existe ese usuario")
+                if (!users.setRole(yo.userId, id, role)) notFound("no existe ese usuario")
                 call.respond(OkResponse())
             }
         }

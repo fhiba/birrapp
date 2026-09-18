@@ -109,20 +109,35 @@ export function ProfileScreen({ user, onSession }: {
 
   return (
     <Wrap>
-      {/* El título de la pantalla, que faltaba: las otras tres pestañas lo
-          tienen y ésta arrancaba directamente con la cara. Con la barra de
-          abajo mostrando las cuatro etiquetas, un encabezado que dice dónde
-          estás es lo que cierra el par. */}
-      <h1 className="ttl" style={{
-        fontSize: 'var(--t-7)', margin: '0 0 var(--s-4)',
-        paddingBottom: 'var(--s-3)', borderBottom: '1px solid var(--hairline)',
-      }}>Perfil</h1>
+      {/* El título de la pantalla, con la tuerca y el salir en su renglón.
+          
+          Las otras tres pestañas tienen título y ésta arrancaba con la cara;
+          con la barra de abajo mostrando las cuatro etiquetas, un encabezado
+          que dice dónde estás cierra el par.
+          
+          Los dos botones viven acá y no abajo con el nombre. Son controles de
+          la PANTALLA —configurarla, salir de ella—, no datos de la persona, y
+          en el renglón del nombre competían por ancho con un mail largo: la
+          fila tenía 56 de foto + 44 + 44 antes de que el nombre tuviera a dónde
+          ir. Arriba, a la altura del título, ocupan un renglón que estaba vacío
+          y le devuelven 88px al nombre. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+        margin: '0 0 var(--s-4)', paddingBottom: 'var(--s-3)',
+        borderBottom: '1px solid var(--hairline)',
+      }}>
+        <h1 className="ttl" style={{
+          flex: 1, minWidth: 0, fontSize: 'var(--t-7)', margin: 0,
+        }}>Perfil</h1>
+        <BotonesDeSesion onConfig={() => nav('/config')} onSalir={() => setConfirm('out')} />
+      </div>
 
-      {/* El aire entre la foto y el texto baja de 16 a 12, y los dos botones
-          se agrupan en un bloque propio: son 12px más de ancho para el nombre y
-          la garantía de que la tuerca y el botón de salir no se separan ni se
-          empujan entre sí. En un teléfono angosto, esa fila tiene 56 de foto +
-          44 + 44 de botones antes de que el nombre tenga a dónde ir. */}
+      {/* La fila de quién sos: cara, nombre y nivel, y nada más.
+          
+          Antes cargaba también la tuerca y el botón de salir, o sea 88px de
+          controles peleando ancho con un mail de veinte caracteres. Con esos
+          dos arriba en el título, lo único que queda a la derecha es el
+          emblema, que sí habla de la persona. */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s-3)' }}>
         {/* La foto se edita en configuración; acá sólo se ve. Un perfil sin
             cara es una lista de números con un nombre arriba.
@@ -178,75 +193,18 @@ export function ProfileScreen({ user, onSession }: {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{user.email}</p>
         </div>
-        {/* Los dos botones, en un bloque que no se puede partir.
-            Sueltos en la fila, cada uno negociaba su lugar por separado con el
-            nombre del medio; agrupados, o entran los dos o no entra ninguno, y
-            `flexShrink: 0` garantiza que sea lo primero. */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-          gap: 'var(--s-2)', flexShrink: 0,
-        }}>
-        <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
-        {/* La tuerca, donde se la busca. Era un renglón más en la lista de
-            abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
-            leer una lista para encontrar la configuración, la busca arriba a
-            la derecha. */}
-        <button onClick={() => nav('/config')} aria-label="Configuración" className="icon-btn"
-          style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
-          {/* La rueda se veía cortada arriba a la izquierda, y el defecto
-              estaba adentro del `path`: donde el diente de esa esquina pedía
-              un tramo relativo `l-1.9 3.2` había un absoluto `L1.1 8.9`. El
-              trazo se iba hasta x=1,1 y volvía derecho, o sea rebanaba la
-              esquina de un corte recto y dejaba el contorno asimétrico —el
-              diente de abajo a la izquierda sí estaba, y por eso se leía como
-              un recorte y no como un dibujo raro—.
-              Un absoluto donde iba un relativo no rompe el SVG: dibuja otra
-              figura, igual que los arcos del radar de la barra de abajo.
-              Con el tramo corregido la silueta cierra simétrica y el `viewBox`
-              vuelve a ser el de siempre. */}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2l-1.9 3.2a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
-          </svg>
-        </button>
+        {/* El emblema, a la altura del nombre y contra el borde derecho.
 
-        {/* Salir arriba a la derecha, con su color: es una acción de sesión,
-            no una opción más de la lista.
+            Colgaba debajo de la tuerca y el botón de salir, ocupando el aire
+            del mail. Con los dos botones mudados al título ese rincón quedó
+            libre, y el emblema puede estar donde corresponde: en el renglón de
+            quién sos, que es de lo que habla. Antes compartía columna con dos
+            controles de pantalla, o sea el nivel se leía como un tercer botón.
 
-            Borde coral y no relleno coral, que es la única forma que la pizarra
-            le da a lo destructivo —la misma de `Moderation`, `Person` y la zona
-            de riesgo de `Settings`—. El relleno lo dejaba tan apretable como la
-            tuerca de al lado, que no deshace nada; el borde lo distingue por
-            forma y no sólo por color, o sea también con la pantalla en blanco y
-            negro. */}
-        <button onClick={() => setConfirm('out')} aria-label="Cerrar sesión" className="icon-btn"
-          style={{
-            background: 'transparent', border: '1px solid var(--danger)',
-            color: 'var(--danger)',
-          }}>
-          {/* Era el carácter `⇥`, y por eso se veía descentrado: un glifo de
-              texto se centra por su caja de avance y por la línea base, no por
-              su tinta, así que la flecha quedaba corrida y un poco arriba por
-              más que el botón estuviera centrado. Un SVG con el mismo `viewBox`
-              que la tuerca de al lado se centra por su geometría y además pesa
-              lo mismo que ella. */}
-          <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
-            fill="none" stroke="currentColor" strokeWidth="1.9"
-            strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
-            <path d="M10 8l4 4-4 4M14 12H3" />
-          </svg>
-        </button>
-        </div>
-
-        {/* El emblema va DEBAJO de los dos botones, no arriba.
-
-            Arriba empujaba la tuerca y el botón de salir para abajo, o sea
-            movía dos controles que están siempre en el mismo lugar en todas
-            las pantallas, y la fila entera quedaba desalineada con la foto.
-            Debajo cuelga de la esquina sin mover nada: los botones se quedan a
-            la altura del nombre y el emblema ocupa el aire que el bloque de la
-            izquierda ya usaba con el mail. */}
-        <Emblema nivel={nivel} />
+            `alignSelf: center` lo centra contra las dos líneas de la izquierda
+            —nombre y mail— en vez de contra la primera sola. */}
+        <div style={{ flexShrink: 0, alignSelf: 'center' }}>
+          <Emblema nivel={nivel} />
         </div>
       </div>
 
@@ -469,6 +427,71 @@ function GoogleG() {
       <path fill="#FBBC05" d="M3.96 10.71a5.4 5.4 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33Z"/>
       <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58Z"/>
     </svg>
+  )
+}
+
+/**
+ * La tuerca y el botón de salir, juntos y en el renglón del título.
+ *
+ * Van en un bloque propio para que no se separen ni negocien su lugar por
+ * separado: o entran los dos o no entra ninguno.
+ */
+function BotonesDeSesion({ onConfig, onSalir }: {
+  onConfig: () => void
+  onSalir: () => void
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
+        {/* La tuerca, donde se la busca. Era un renglón más en la lista de
+            abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
+            leer una lista para encontrar la configuración, la busca arriba a
+            la derecha. */}
+        <button onClick={() => onConfig()} aria-label="Configuración" className="icon-btn"
+          style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
+          {/* La rueda se veía cortada arriba a la izquierda, y el defecto
+              estaba adentro del `path`: donde el diente de esa esquina pedía
+              un tramo relativo `l-1.9 3.2` había un absoluto `L1.1 8.9`. El
+              trazo se iba hasta x=1,1 y volvía derecho, o sea rebanaba la
+              esquina de un corte recto y dejaba el contorno asimétrico —el
+              diente de abajo a la izquierda sí estaba, y por eso se leía como
+              un recorte y no como un dibujo raro—.
+              Un absoluto donde iba un relativo no rompe el SVG: dibuja otra
+              figura, igual que los arcos del radar de la barra de abajo.
+              Con el tramo corregido la silueta cierra simétrica y el `viewBox`
+              vuelve a ser el de siempre. */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2l-1.9 3.2a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
+          </svg>
+        </button>
+
+        {/* Salir arriba a la derecha, con su color: es una acción de sesión,
+            no una opción más de la lista.
+
+            Borde coral y no relleno coral, que es la única forma que la pizarra
+            le da a lo destructivo —la misma de `Moderation`, `Person` y la zona
+            de riesgo de `Settings`—. El relleno lo dejaba tan apretable como la
+            tuerca de al lado, que no deshace nada; el borde lo distingue por
+            forma y no sólo por color, o sea también con la pantalla en blanco y
+            negro. */}
+        <button onClick={() => onSalir()} aria-label="Cerrar sesión" className="icon-btn"
+          style={{
+            background: 'transparent', border: '1px solid var(--danger)',
+            color: 'var(--danger)',
+          }}>
+          {/* Era el carácter `⇥`, y por eso se veía descentrado: un glifo de
+              texto se centra por su caja de avance y por la línea base, no por
+              su tinta, así que la flecha quedaba corrida y un poco arriba por
+              más que el botón estuviera centrado. Un SVG con el mismo `viewBox`
+              que la tuerca de al lado se centra por su geometría y además pesa
+              lo mismo que ella. */}
+          <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+            fill="none" stroke="currentColor" strokeWidth="1.9"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+            <path d="M10 8l4 4-4 4M14 12H3" />
+          </svg>
+        </button>
+    </div>
   )
 }
 
