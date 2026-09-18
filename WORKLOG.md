@@ -3424,3 +3424,25 @@ Tres cosas que la pantalla no tenía y el diseño sí:
   con la inicial en gris; ahora es el mismo cuadrado de esquina blanda con la
   inicial en la familia informativa. Encima era la que hay que tocar para
   cambiarla, así que era justamente la que tenía que enseñar cómo va a quedar.
+
+## 2026-09-17 (cont.) — v0.22.2: la tuerca, ahora sí
+
+El recorte no era del layout: estaba adentro del `path`. Donde el diente de
+arriba a la izquierda pedía un tramo **relativo** `l-1.9 3.2` había un
+**absoluto** `L1.1 8.9`. El trazo se iba hasta x=1,1 y volvía derecho, o sea
+rebanaba esa esquina de un corte recto y dejaba el contorno asimétrico: el
+diente de abajo a la izquierda sí estaba, y por eso se leía como un recorte y
+no como un dibujo raro.
+
+Es el mismo error que el ícono del radar de la barra de abajo, en otra forma:
+**un comando de SVG mal escrito no falla, dibuja otra cosa.** No hay error en
+consola, no lo ve el compilador, y el `path` sigue siendo válido.
+
+Con el tramo corregido el contorno cierra exacto en su punto de arranque
+(19,4 / 12,9) y la caja queda en x 3,1–21,5 e y 2,7–21,3. El `viewBox` vuelve a
+`0 0 24 24`: el `-0.7` del intento anterior compensaba el corrimiento que
+causaba el bug, y con el bug arreglado sobra.
+
+Lo que sí se queda de la v0.22.1 es el blindaje de la fila —menos aire, los dos
+botones agrupados, `overflow: hidden` en el nombre—: no era la causa de esto,
+pero es lo que evita que un nombre largo empuje los botones fuera de pantalla.

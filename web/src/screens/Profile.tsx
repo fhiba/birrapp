@@ -169,14 +169,19 @@ export function ProfileScreen({ user, onSession }: {
             la derecha. */}
         <button onClick={() => nav('/config')} aria-label="Configuración" className="icon-btn"
           style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
-          {/* El `viewBox` arranca en -0.7 y no en 0 para centrar el dibujo.
-              La silueta de la rueda ocupa de x=1.1 a x=21.5 dentro de una caja
-              de 24, o sea que tiene 1,1 de aire a la izquierda y 2,5 a la
-              derecha: dibujada en un círculo, se veía corrida —y contra el
-              borde del botón, cortada—. Corriendo la ventana en vez de
-              reescribir el `path` no hay forma de romper la silueta. */}
-          <svg width="20" height="20" viewBox="-0.7 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2L1.1 8.9a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
+          {/* La rueda se veía cortada arriba a la izquierda, y el defecto
+              estaba adentro del `path`: donde el diente de esa esquina pedía
+              un tramo relativo `l-1.9 3.2` había un absoluto `L1.1 8.9`. El
+              trazo se iba hasta x=1,1 y volvía derecho, o sea rebanaba la
+              esquina de un corte recto y dejaba el contorno asimétrico —el
+              diente de abajo a la izquierda sí estaba, y por eso se leía como
+              un recorte y no como un dibujo raro—.
+              Un absoluto donde iba un relativo no rompe el SVG: dibuja otra
+              figura, igual que los arcos del radar de la barra de abajo.
+              Con el tramo corregido la silueta cierra simétrica y el `viewBox`
+              vuelve a ser el de siempre. */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2l-1.9 3.2a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
           </svg>
         </button>
 
