@@ -80,8 +80,11 @@ export function PillRow({
 
   return (
     <>
+      {/* `gap: 6` y no 8: con las pastillas apretadas, los tres huecos de la
+          fila eran lo que hacía la diferencia entre entrar en un renglón y
+          partirse en dos justo arriba del precio. */}
       <div data-tour={dataTour} style={{
-        display: 'flex', gap: 8, padding: '4px 18px 0',
+        display: 'flex', gap: 6, padding: '4px 18px 0',
         alignItems: 'center', flexWrap: 'wrap',
       }}>
         {visibles.map(p => (
@@ -104,7 +107,7 @@ export function PillRow({
             style={{
               flex: '0 0 auto',
               // Mismo alto que las pastillas para que la fila no se escalone.
-              minWidth: 44, height: 36, borderRadius: 999,
+              minWidth: 36, height: 36, borderRadius: 999,
               display: 'grid', placeItems: 'center',
               // Es un chip apagado más: filete y nada de relleno. Con fondo
               // propio se leía como un control aparte y pesaba más que las

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Photo } from '../data/types'
 import { compressImage } from '../data/image'
-import { shortAge } from '../data/format'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
 
 /**
@@ -13,30 +12,30 @@ import { KARMA, KARMA_VISIBLE } from '../data/karma'
 const PTS_FOTO = KARMA.foto
 
 /**
- * Carrusel de fotos de una birra, con el botón de agregar al final.
+ * Carrusel de fotos de una birra, con el "+" al lado del título.
  *
  * Scroll horizontal con `scroll-snap`, no un carrusel con flechas: en un
  * teléfono el gesto natural es arrastrar, y en escritorio la barra alcanza.
  *
- * El botón dispara un único `input file` y nada más. Había un menú propio con
+ * El "+" dispara un único `input file` y nada más. Había un menú propio con
  * "sacar una foto" y "elegir de la galería", pero el selector del sistema ya
  * ofrece exactamente esas dos opciones: eran dos pasos para llegar al mismo
  * lugar. Sin `capture`, que forzaría la cámara y sacaría la galería del menú
  * nativo.
  *
- * ## El pulgar volvió a la tira, y por qué
+ * ## Qué muestra cada tarjeta: la foto, y el pulgar
  *
- * Estuvo acá, se sacó, y vuelve — pero en otro lado. Lo que estaba mal no era
- * votar desde la tira: era que el pulgar fuera una pastilla de 24px metida
- * *adentro* del botón que abre la foto, pegada a su borde. Dos blancos
- * superpuestos, uno de ellos por debajo del mínimo que se puede tocar con el
- * dedo: la mitad de los toques caían en el que no era.
+ * Nada más. Debajo de cada miniatura iba un renglón con el pulgar, el autor y
+ * la antigüedad: tres datos en 150 píxeles, así que la tira se leía como una
+ * lista de fichas en vez de como fotos y el nombre se cortaba con puntos
+ * suspensivos casi siempre. Todo eso vive en el visor, que es donde alguien de
+ * verdad está mirando la foto y donde hay lugar para leerlo.
  *
- * Ahora la tarjeta son dos piezas separadas y apiladas —la foto arriba, el
- * pulgar abajo— y el pulgar es el `.like` de verdad, con sus 44px de alto. No
- * se pisan, y se puede marcar una foto sin abrirla, que es lo que uno quiere
- * hacer pasando la tira. El visor sigue teniendo el suyo: son el mismo botón
- * en los dos lugares donde se mira una foto.
+ * El pulgar se queda, chico y sobre la esquina de arriba a la derecha: marcar
+ * una foto pasando la tira sí es algo que se quiere hacer sin abrirla. Va como
+ * **hermano** del botón que abre la foto y no adentro — un botón adentro de
+ * otro no es HTML válido y hace que la mitad de los toques caigan en el que no
+ * era, que es por lo que el pulgar se había sacado de acá una vez.
  */
 export function PhotoStrip({
   photos, canAdd, onAdd, onOpen, onVote,
@@ -80,27 +79,81 @@ export function PhotoStrip({
 
   return (
     <div>
-      {/* Rótulo de sección, igual que en los comentarios de abajo: con las dos
-          cosas una arriba de la otra y sin nada que las separe, la tira de
-          fotos parecía parte de la fila de puntaje. */}
-      <h3 className="section-label">
-        {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
-      </h3>
+      {/*
+        El rótulo y, pegado a él, el "+".
+
+        El botón de agregar estaba al final de la tira, o sea después de
+        arrastrar seis fotos hacia la izquierda. Escondía la acción justo
+        detrás del contenido: quien quería sumar una foto tenía que descubrir
+        que la fila se corre y llegar hasta el fondo. Al lado del título está
+        siempre a la vista y siempre en el mismo lugar, tenga el bar una foto o
+        veinte.
+
+        Y es un "+" chico, no un cuadro del tamaño de una foto: agregar es una
+        acción sobre la sección, no una tarjeta más de la tira.
+      */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
+        <h3 className="section-label" style={{ margin: 'var(--s-5) 0 var(--s-2)' }}>
+          {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
+        </h3>
+        {canAdd && (
+          <button
+            onClick={() => picker.current?.click()} disabled={busy}
+            aria-label={KARMA_VISIBLE
+              ? `Agregar una foto, suma ${PTS_FOTO} puntos`
+              : 'Agregar una foto'}
+            style={{
+              // Punteado y en la familia de `--info`: es un hueco a llenar. El
+              // mismo gesto se dibuja igual en toda la app.
+              width: 28, height: 28, borderRadius: 'var(--r-1)', padding: 0,
+              border: '1px dashed var(--info-border)', color: 'var(--info)',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+              marginTop: 'var(--s-2)',
+            }}
+          >
+            {busy ? <div className="spinner" /> : (
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 5v14M5 12h14" stroke="currentColor"
+                  strokeWidth="2.6" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
 
       <div data-tour="bar-photos" style={{
         display: 'flex', gap: 'var(--s-3)', overflowX: 'auto', paddingBottom: 'var(--s-1)',
         scrollSnapType: 'x mandatory',
       }}>
         {photos.map((p, i) => (
+          /*
+           * La tarjeta es la foto, y nada más.
+           *
+           * Abajo llevaba un renglón con el pulgar, el autor y la antigüedad.
+           * Eran tres datos en 150 píxeles, debajo de cada miniatura: la tira
+           * se leía como una lista de fichas y no como fotos, y el nombre se
+           * cortaba con puntos suspensivos casi siempre. Todo eso ya está en el
+           * visor, que es donde alguien de verdad está mirando la foto — y es
+           * donde tiene lugar para leerse.
+           *
+           * Queda sólo el pulgar, encima de la foto y en la esquina de arriba
+           * a la derecha, porque marcar una foto pasando la tira sí es algo que
+           * se quiere hacer sin abrirla.
+           *
+           * **Va como hermano del botón de abrir, no adentro.** Un botón
+           * adentro de otro botón no es HTML válido y además hace que la mitad
+           * de los toques caigan en el que no era — que es exactamente por lo
+           * que el pulgar se había sacado de acá la vez anterior.
+           */
           <div key={p.id} style={{
-            width: 150, flex: '0 0 auto', scrollSnapAlign: 'start',
+            position: 'relative', width: 184, flex: '0 0 auto', scrollSnapAlign: 'start',
           }}>
             <button
               onClick={() => onOpen(i)}
               aria-label={`Ver la foto${p.topOfMonth ? ' del mes' : ''}`}
               style={{
                 position: 'relative', display: 'block', padding: 0,
-                width: '100%', height: 112, borderRadius: 'var(--r-1)', overflow: 'hidden',
+                width: '100%', height: 138, borderRadius: 'var(--r-1)', overflow: 'hidden',
                 background: 'var(--elevated)',
               }}
             >
@@ -112,7 +165,7 @@ export function PhotoStrip({
               {/* La del mes se marca con una banderita cuadrada apoyada en la
                   esquina y no con una píldora flotando encima: la píldora
                   redonda es lo que se toca en esta app, y esto es un rótulo.
-                  Va arriba a la izquierda, que es donde no está la birra. */}
+                  Va arriba a la izquierda, o sea del lado opuesto al pulgar. */}
               {p.topOfMonth && (
                 <span className="lbl" style={{
                   position: 'absolute', left: 0, top: 0,
@@ -123,81 +176,54 @@ export function PhotoStrip({
               )}
             </button>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 'var(--s-2)', marginTop: 'var(--s-1)',
-            }}>
-              {onVote ? (
-                <button
-                  onClick={() => { if (!p.votedByMe) setPop(p.id); onVote(p) }}
-                  aria-pressed={p.votedByMe}
-                  aria-label={p.votedByMe ? 'Sacar tu me gusta' : 'Me gusta esta foto'}
-                  data-pop={pop === p.id ? '1' : undefined}
-                  className="like lbl"
-                  // Sin la etiqueta de texto, que acá no entra en 150px: el
-                  // pulgar relleno ya dice el estado y se distingue con la
-                  // pantalla en blanco y negro.
-                  style={{ padding: 'var(--s-2) var(--s-3)', fontSize: 'var(--t-2)' }}
-                >
-                  <Thumb filled={p.votedByMe} size={15} />
-                  {p.votes > 0 && <span className="like-n num">{p.votes}</span>}
-                </button>
-              ) : p.votes > 0 && (
-                // Sin sesión no hay nada que tocar: queda el número, que es dato.
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
-                  fontSize: 'var(--t-2)', color: 'var(--muted)',
-                }} aria-label={`${p.votes} me gusta`}>
-                  <Thumb filled size={13} />
-                  <span className="num">{p.votes}</span>
-                </span>
-              )}
-
-              {/* De quién es y de cuándo, igual que al pie de un comentario:
-                  una foto de hace dos años de una canilla que ya cambió dice
-                  menos de lo que parece. */}
+            {/* El fondo oscuro no es decoración: el pulgar se apoya sobre una
+                foto cualquiera, y sin él desaparece contra un cielo blanco o
+                una pared clara. */}
+            {onVote ? (
+              <button
+                onClick={() => { if (!p.votedByMe) setPop(p.id); onVote(p) }}
+                aria-pressed={p.votedByMe}
+                aria-label={p.votedByMe ? 'Sacar tu me gusta' : 'Me gusta esta foto'}
+                data-pop={pop === p.id ? '1' : undefined}
+                className="like lbl"
+                style={{
+                  position: 'absolute', top: 6, right: 6,
+                  // `minHeight` inline y no sólo `height`: `.like` declara
+                  // `min-height: 44px` para cuando el pulgar es el botón
+                  // principal —el del visor— y un `height` más chico no le
+                  // gana. Acá el botón se apoya sobre la foto y 44 la tapaba.
+                  minWidth: 34, height: 34, minHeight: 34,
+                  padding: '0 9px', borderRadius: 999,
+                  // El anillo de `.like` sobra sobre una foto: el velo oscuro
+                  // ya lo despega del fondo.
+                  boxShadow: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 'var(--s-1)', fontSize: 'var(--t-1)',
+                  background: p.votedByMe ? 'var(--acento)' : 'rgba(0,0,0,.5)',
+                  color: p.votedByMe ? 'var(--base)' : 'var(--cream)',
+                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                  border: 'none',
+                }}
+              >
+                <Thumb filled={p.votedByMe} size={14} />
+                {p.votes > 0 && <span className="like-n num">{p.votes}</span>}
+              </button>
+            ) : p.votes > 0 && (
+              // Sin sesión no hay nada que tocar: queda el número, que es dato.
               <span style={{
-                minWidth: 0, flex: 1, fontSize: 'var(--t-1)', color: 'var(--faint)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {[p.mine ? 'tuya' : p.authorName, shortAge(p.ageDays)]
-                  .filter(Boolean).join(' · ')}
+                position: 'absolute', top: 6, right: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--s-1)',
+                height: 26, padding: '0 8px', borderRadius: 999,
+                fontSize: 'var(--t-1)', color: 'var(--cream)',
+                background: 'rgba(0,0,0,.5)',
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              }} aria-label={`${p.votes} me gusta`}>
+                <Thumb filled size={12} />
+                <span className="num">{p.votes}</span>
               </span>
-            </div>
+            )}
           </div>
         ))}
-
-        {canAdd && (
-          <button
-            onClick={() => picker.current?.click()} disabled={busy}
-            aria-label={KARMA_VISIBLE
-              ? `Agregar una foto, suma ${PTS_FOTO} puntos`
-              : 'Agregar una foto'}
-            style={{
-              flex: '0 0 auto', width: 112, height: 112, borderRadius: 'var(--r-1)',
-              // Punteado y en la familia de `--info`: es un hueco a llenar, no
-              // una foto. El hueso lo dejaría pesando lo mismo que el botón que
-              // manda en la pantalla, que es "Sigue igual".
-              border: '1px dashed var(--info-border)', color: 'var(--info)',
-              display: 'grid', placeItems: 'center', gap: 'var(--s-1)',
-            }}
-          >
-            {busy ? <div className="spinner" /> : (
-              <>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-                </svg>
-                {/* Con el karma prendido, los puntos van adentro del botón y
-                    al lado del verbo, como en "Sigue igual": lo que se gana es
-                    parte de la acción, no un renglón aparte. Apagado, el hueco
-                    no queda mudo: un cuadro punteado con una cámara adentro y
-                    nada más se lee como una foto que no cargó. */}
-                <span className="num" style={{ fontSize: 'var(--t-1)' }}>
-                  {KARMA_VISIBLE ? `+${PTS_FOTO} pts` : 'Agregar'}
-                </span>
-              </>
-            )}
-          </button>
-        )}
       </div>
 
       {error && (
