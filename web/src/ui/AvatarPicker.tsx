@@ -44,19 +44,31 @@ export function AvatarPicker({
         onClick={() => picker.current?.click()}
         disabled={busy}
         aria-label="Cambiar tu foto de perfil"
+        // Mismo formato que el avatar del Perfil: cuadrado de esquina blanda y,
+        // sin foto, la inicial en la familia informativa. Eran dos formas para
+        // la misma cara —círculo acá, cuadrado allá— y encima la de acá es la
+        // que se toca para cambiarla, así que era la que tenía que enseñar cómo
+        // va a quedar.
+        //
+        // `overflow: visible` porque el lápiz se apoya en la esquina y con el
+        // recorte quedaba mordido; el recorte de la foto lo hace la `<img>`
+        // con su propio radio.
         style={{
-          position: 'relative', width: 64, height: 64, borderRadius: '50%',
-          flexShrink: 0, padding: 0, overflow: 'hidden',
-          background: 'var(--elevated)',
+          position: 'relative', width: 64, height: 64, borderRadius: 'var(--r-2)',
+          flexShrink: 0, padding: 0,
+          background: user.avatarUrl ? 'transparent' : 'var(--info-soft)',
+          border: user.avatarUrl ? 'none' : '1px solid var(--info-border)',
+          display: 'grid', placeItems: 'center',
         }}
       >
         {user.avatarUrl
           ? <img src={user.avatarUrl} alt="" style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              borderRadius: 'var(--r-2)',
             }} />
-          : <span className="ttl" style={{ fontSize: 'var(--t-7)', color: 'var(--muted)' }}>
-              {initial}
-            </span>}
+          : <span className="num" style={{
+              fontSize: 'var(--t-7)', color: 'var(--info-bright)',
+            }}>{initial}</span>}
 
         {/* El lápiz encima y no un botón al lado: la foto ES el control, y en
             un teléfono ese es el objetivo más fácil de acertar. */}

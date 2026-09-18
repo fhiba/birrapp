@@ -107,7 +107,12 @@ export function ProfileScreen({ user, onSession }: {
         paddingBottom: 'var(--s-3)', borderBottom: '1px solid var(--hairline)',
       }}>Perfil</h1>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+      {/* El aire entre la foto y el texto baja de 16 a 12, y los dos botones
+          se agrupan en un bloque propio: son 12px más de ancho para el nombre y
+          la garantía de que la tuerca y el botón de salir no se separan ni se
+          empujan entre sí. En un teléfono angosto, esa fila tiene 56 de foto +
+          44 + 44 de botones antes de que el nombre tenga a dónde ir. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s-3)' }}>
         {/* La foto se edita en configuración; acá sólo se ve. Un perfil sin
             cara es una lista de números con un nombre arriba.
 
@@ -129,11 +134,13 @@ export function ProfileScreen({ user, onSession }: {
           }}>{user.displayName.charAt(0).toUpperCase()}</div>
         )}
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           {/* `minWidth: 0` en el contenedor deja que la columna se encoja,
               pero no impide que el TEXTO se salga: un nombre de una sola
               palabra larga no tiene dónde cortar y desborda igual. Con
-              `overflowWrap: anywhere` corta donde haga falta. */}
+              `overflowWrap: anywhere` corta donde haga falta, y el `overflow:
+              hidden` de arriba es el cinturón: pase lo que pase acá adentro,
+              no empuja a los botones fuera de la pantalla. */}
           <h1 className="ttl" style={{
             fontSize: 'var(--t-7)', margin: 0, overflowWrap: 'anywhere',
           }}>{user.displayName}</h1>
@@ -151,13 +158,24 @@ export function ProfileScreen({ user, onSession }: {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{user.email}</p>
         </div>
+        {/* Los dos botones, en un bloque que no se puede partir.
+            Sueltos en la fila, cada uno negociaba su lugar por separado con el
+            nombre del medio; agrupados, o entran los dos o no entra ninguno, y
+            `flexShrink: 0` garantiza que sea lo primero. */}
+        <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
             leer una lista para encontrar la configuración, la busca arriba a
             la derecha. */}
         <button onClick={() => nav('/config')} aria-label="Configuración" className="icon-btn"
           style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          {/* El `viewBox` arranca en -0.7 y no en 0 para centrar el dibujo.
+              La silueta de la rueda ocupa de x=1.1 a x=21.5 dentro de una caja
+              de 24, o sea que tiene 1,1 de aire a la izquierda y 2,5 a la
+              derecha: dibujada en un círculo, se veía corrida —y contra el
+              borde del botón, cortada—. Corriendo la ventana en vez de
+              reescribir el `path` no hay forma de romper la silueta. */}
+          <svg width="20" height="20" viewBox="-0.7 0 24 24" fill="currentColor" aria-hidden>
             <path d="M19.4 12.9a7.8 7.8 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.3.9a7.4 7.4 0 0 0-1.6-.9l-.4-2.4a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.4a7.4 7.4 0 0 0-1.6.9l-2.3-.9a.5.5 0 0 0-.6.2L1.1 8.9a.5.5 0 0 0 .1.6l2 1.6a7.8 7.8 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.3-.9c.5.4 1 .7 1.6.9l.4 2.4a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.4c.6-.2 1.1-.5 1.6-.9l2.3.9a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6l-2-1.6ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
           </svg>
         </button>
@@ -189,6 +207,7 @@ export function ProfileScreen({ user, onSession }: {
             <path d="M10 8l4 4-4 4M14 12H3" />
           </svg>
         </button>
+        </div>
       </div>
 
       {/* El rol es información sobre la cuenta. Va en el tono informativo y no

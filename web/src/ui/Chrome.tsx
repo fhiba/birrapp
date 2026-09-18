@@ -2,11 +2,21 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const ICON = {
-  // El radar de "Cerca": tres arcos y un punto, o sea el alcance alrededor
-  // tuyo. Es el mismo ícono con el que el encabezado del mapa dice el ámbito,
-  // así que las dos pantallas nombran lo mismo de la misma forma.
+  // El radar de "Cerca": un aro y un punto, o sea el alcance alrededor tuyo.
+  //
+  // Es exactamente el mismo dibujo con el que el encabezado del mapa nombra el
+  // ámbito, así que las dos pantallas dicen lo mismo de la misma forma.
+  //
+  // Va con dos `<circle>` y no con un `<path>` de arcos. El primer intento
+  // eran tres arcos concéntricos abiertos, y se veía cortado: un arco elíptico
+  // con los flags de barrido mal puestos no falla, dibuja otra cosa — cierra
+  // por donde no corresponde y deja un mordisco. Dos círculos no tienen cómo
+  // salir mal.
   radar: (
-    <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0-4a5.5 5.5 0 0 0-3.9 9.4l1.4-1.4A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 2.5 6l1.4 1.4A5.5 5.5 0 0 0 12 6.5Zm0-4a9.5 9.5 0 0 0-6.7 16.2l1.4-1.4A7.5 7.5 0 1 1 17.3 19l1.4 1.4A9.5 9.5 0 0 0 12 2.5Z" />
+    <>
+      <circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="12" cy="12" r="3.1" />
+    </>
   ),
   map: <path d="M12 2a7 7 0 0 0-7 7c0 5 7 12 7 12s7-7 7-12a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />,
   list: <path d="M4 6h2v2H4V6Zm4 0h12v2H8V6ZM4 11h2v2H4v-2Zm4 0h12v2H8v-2ZM4 16h2v2H4v-2Zm4 0h12v2H8v-2Z" />,
@@ -71,9 +81,9 @@ export function BottomNav() {
         display: 'block',
         textDecoration: 'none',
         // Toda la jerarquía de la barra es un solo salto de color: hueso contra
-        // metadato. El ícono no cambia de forma porque los tres son siluetas
-        // rellenas, así que el color tiene que hacer todo el trabajo y por eso
-        // va al extremo de la rampa y no a un paso intermedio.
+        // metadato. El ícono no cambia de forma entre activo e inactivo, así
+        // que el color tiene que hacer todo el trabajo y por eso va al extremo
+        // de la rampa y no a un paso intermedio.
         color: isActive ? 'var(--cream)' : 'var(--faint)',
         transition: 'color .15s',
       })}
