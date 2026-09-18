@@ -311,16 +311,17 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
         </>
       )}
 
-      {/* El pie es parte del dato, no una nota al pie: un promedio sin su
-          unidad y sin su alcance temporal es otra forma de mentir. */}
-      <p className="num" style={{
+      {/* El pie dice de cuánto sale el promedio, y nada más.
+          Traía además la normalización y la ventana —"llevados a una pinta de
+          473 ml, de menos de 45 días"—, dos renglones de letra chica que
+          nadie leía y que empujaban la tarjeta. La unidad no se pierde: el
+          titular ya dice "la pinta, típico" al lado del número. */}
+      <p style={{
         margin: 'var(--s-3) 0 0', paddingTop: 'var(--s-3)',
         borderTop: '1px solid var(--hairline)',
         fontSize: 'var(--t-1)', color: 'var(--faint)', lineHeight: 1.5,
-        fontWeight: 400, letterSpacing: 0, fontFamily: 'inherit',
       }}>
-        {stats.samples} precios · {stats.bars} {stats.bars === 1 ? 'bar' : 'bares'} ·
-        llevados a una pinta de 473 ml, de menos de 45 días
+        {stats.samples} precios · {stats.bars} {stats.bars === 1 ? 'bar' : 'bares'}
       </p>
     </div>
   )

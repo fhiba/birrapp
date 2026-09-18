@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import * as fb from '../data/feedback'
@@ -10,7 +10,7 @@ import { Chip } from './Preferences'
 
 /** El techo del servidor para las favoritas. */
 const MAX_FAVORITAS = 10
-const PASOS = 3
+const PASOS = 4
 
 /**
  * La bienvenida de una cuenta nueva (V22).
@@ -71,13 +71,46 @@ export function OnboardingScreen({ user, styles, brands, onSession }: {
   const [moneda, setMoneda] = useState(user?.currency ?? 'ARS')
   const [tamano, setTamano] = useState(user?.defaultSizeMl ?? 473)
 
+  /**
+   * La bienvenida se marca como vista apenas se abre, no al terminarla.
+   *
+   * Antes se cerraba en el último paso, y el que no llegaba hasta ahí —se fue
+   * al mapa, cerró la app, tocó afuera— quedaba con la cuenta sin marcar. El
+   * próximo inicio de sesión se la volvía a poner adelante, ya con el alias y
+   * las birras elegidas: una pantalla que reaparece después de haberla
+   * contestado se lee como que la app no guardó nada.
+   *
+   * Marcarla al abrirla la vuelve lo que dice ser: una oferta que se hace una
+   * vez. Lo que se elige adentro se sigue guardando paso a paso, así que irse
+   * a la mitad conserva lo contestado — lo único que no vuelve es la pantalla.
+   *
+   * Sin `await` ni spinner: no hay nada en pantalla que dependa de esto. Si
+   * falla —sin señal, por ejemplo— el peor caso es el de antes.
+   */
+  useEffect(() => {
+    if (!user || user.onboarded) return
+    api.updateMe({ onboarded: true })
+      .then(u => { api.updateSessionUser(u); onSession() })
+      .catch(() => { /* se reintenta solo en el último paso */ })
+    // A propósito sin dependencias: se corre una vez por montaje y no cada vez
+    // que `user` cambia, que es en cada paso que guarda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   if (!user) return <Navigate to="/perfil" replace />
 
-  /** Lo que guarda cada paso. Saltear manda lo mismo que no cambiar nada. */
+  /**
+   * Lo que guarda cada paso. Saltear manda lo mismo que no cambiar nada.
+   *
+   * El último no guarda: es el que explica cómo funciona la app y no tiene
+   * nada que elegir. "Saltear" y "Listo" hacen exactamente lo mismo ahí, y
+   * está bien que así sea — lo que se saltea es la lectura.
+   */
   const cambios = (n: number): Parameters<typeof api.updateMe>[0] => {
     if (n === 0) return { alias: alias.trim() }
     if (n === 1) return { favoriteStyles: estilos, favoriteBrands: marcas }
-    return { defaultRadiusM: radio, currency: moneda, defaultSizeMl: tamano }
+    if (n === 2) return { defaultRadiusM: radio, currency: moneda, defaultSizeMl: tamano }
+    return {}
   }
 
   const avanzar = async (guardar: boolean) => {
@@ -148,6 +181,8 @@ export function OnboardingScreen({ user, styles, brands, onSession }: {
               </Grupo>
             </>
           )}
+
+          {paso === 3 && <PasoComoFunciona />}
 
           {paso === 2 && <PasoAjustes
             radio={radio} onRadio={setRadio}
@@ -323,6 +358,57 @@ function PasoAjustes({
         </select>
       </Campo>
     </>
+  )
+}
+
+/**
+ * El cuarto paso: las dos cosas de la app que no se adivinan mirándola.
+ *
+ * **Se explican acá y en ningún otro lado.** Las dos vivían como letra chica
+ * permanente en la pantalla donde aparecen —un renglón bajo la nota del bar,
+ * otro bajo la barra de nivel— y eso es el peor lugar posible: se entienden
+ * una vez y después son ruido para siempre, todos los días, en la pantalla que
+ * más se mira. Dicho una vez acá, la pantalla queda limpia.
+ *
+ * Son estas dos y no más. El resto de la app se explica sola o se explica con
+ * el tutorial; éstas dos no, porque las dos contradicen lo que uno supondría:
+ * que el nivel sube y no baja, y que la nota de un bar es del bar.
+ */
+function PasoComoFunciona() {
+  return (
+    <>
+      <Titulo
+        titulo="Dos cosas y arrancamos"
+        bajada="Lo único de la app que no se entiende mirándola."
+      />
+
+      <Punto titulo="Tu nivel puede bajar">
+        Sale de las birras que anotaste en los <strong>últimos 45 días</strong>,
+        no del total de siempre. Si dejás de anotar, baja. Por eso dice cómo
+        venís y no cuánto acumulaste alguna vez.
+      </Punto>
+
+      <Punto titulo="La nota es de las birras, no del bar">
+        Se puntúa cada birra arrastrando el dedo sobre las estrellas, de a medio
+        punto. La nota que ves arriba de un bar es el promedio de las notas de
+        sus birras — no es una opinión sobre el lugar, la música ni la moza.
+      </Punto>
+    </>
+  )
+}
+
+/** Un punto del último paso: título corto y un párrafo. */
+function Punto({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ margin: 'var(--s-6) 0 0' }}>
+      <h2 className="lbl" style={{
+        margin: 0, fontSize: 'var(--t-4)', color: 'var(--cream)',
+      }}>{titulo}</h2>
+      <p style={{
+        margin: 'var(--s-2) 0 0', fontSize: 'var(--t-3)',
+        color: 'var(--muted)', lineHeight: 1.6,
+      }}>{children}</p>
+    </div>
   )
 }
 

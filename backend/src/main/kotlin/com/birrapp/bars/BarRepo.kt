@@ -242,7 +242,7 @@ class BarRepo(private val db: Db) {
             if (filtered) add(c.createArrayOf("text", styleSlugs.toTypedArray()))
             add(userId)
             if (minRating != null) add(minRating)
-            add(limit.coerceIn(1, 500))
+            add(limit.coerceIn(1, com.birrapp.core.MAX_BARES_POR_PEDIDO))
         }
 
         c.query(

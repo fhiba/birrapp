@@ -158,10 +158,15 @@ class CoverageBudgetTest {
 
     @Test
     fun `un solo pedido al tope de limit siempre entra en el presupuesto`() {
-        // Si MAX_LIMIT llegara a superar a DEFAULT_PER_DAY, un request lleno
-        // sería irrespondible SIEMPRE, para cualquiera, desde el primer toque.
-        // Este test es el que avisa si alguien sube uno sin mirar el otro.
-        val maxLimit = 200
+        // Si el tope de filas llegara a superar a DEFAULT_PER_DAY, un request
+        // lleno sería irrespondible SIEMPRE, para cualquiera, desde el primer
+        // toque. Este test es el que avisa si alguien sube uno sin mirar el
+        // otro.
+        //
+        // Lee la constante de verdad y no una copia: escrito a mano acá, el
+        // test seguía diciendo 200 después de que el techo real subiera, o sea
+        // dejaba de vigilar justo cuando había algo que vigilar.
+        val maxLimit = com.birrapp.core.MAX_BARES_POR_PEDIDO
         assertTrue(
             maxLimit < CoverageBudget.DEFAULT_PER_DAY,
             "MAX_LIMIT ($maxLimit) tiene que entrar en el presupuesto diario " +

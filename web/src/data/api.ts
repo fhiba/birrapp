@@ -194,7 +194,7 @@ async function req<T>(
 // ---------- lectura pública ----------
 export const nearbyBars = (
   lat: number, lng: number, radius = 2000, sort = 'distance',
-  style?: string[], limit = 200, minRating?: number,
+  style?: string[], limit = 1_000, minRating?: number,
 ) => req<BarPin[]>('GET', '/bars', {
   // Los estilos viajan separados por coma. Con uno solo queda `?style=ipa`,
   // que es exactamente lo que mandaba antes: el servidor no distingue.

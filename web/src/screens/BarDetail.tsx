@@ -309,25 +309,6 @@ export function BarDetailScreen({
   const hayCabecera = portada != null || cargandoFotos
 
   /**
-   * Los tres estados que la ficha puede afirmar con datos que tiene.
-   *
-   * Nada de "abierto ahora": el modelo no guarda horarios, y un cartel verde
-   * que dice que el bar está abierto cuando nadie lo sabe es peor que no
-   * decir nada. Lo que sí sabemos:
-   *
-   *  - **Al día**: todos los precios cargados se reportaron hace menos de 14
-   *    días. Es la promesa entera de la app cumplida en este bar.
-   *  - **Cuántas canillas** hay cargadas, que es el tamaño de lo que vas a
-   *    encontrar acá adentro.
-   *  - **Verificado · N**: cuánta gente hay detrás del precio mejor
-   *    respaldado. Desde tres reportes el precio deja de ser el último que
-   *    alguien tiró y pasa a ser la mediana de esa gente.
-   */
-  const conPrecio = bar.prices.filter(p => p.price != null)
-  const alDia = conPrecio.length > 0 && conPrecio.every(p => p.freshness === 'fresh')
-  const respaldo = Math.max(0, ...bar.prices.map(p => p.voters ?? 0))
-
-  /**
    * Guarda la nota de una birra.
    *
    * Vivía adentro de la hoja de comentarios, que es de donde salió: puntuar
@@ -689,22 +670,22 @@ export function BarDetailScreen({
                 {votes === 1 ? '1 voto' : `${votes} votos`}
               </span>
             </div>
-            {/* Una línea y no el párrafo de dos renglones que tenía la sección
-                del fondo: lo que hay que aclarar es de dónde sale el número, y
-                eso entra en media línea. */}
-            <p style={{
-              margin: '3px 0 0', fontSize: 'var(--t-1)', color: 'var(--faint)',
-            }}>
-              Promedio de las birras de este bar, no una nota al lugar.
-            </p>
           </div>
         )}
 
-        <FilaDeEstado
-          alDia={alDia}
-          canillas={bar.prices.length}
-          respaldo={respaldo}
-        />
+        {/* Un filete y nada más.
+            Acá vivía una fila de rótulos —"Al día", "N canillas", "Verificado
+            · N"— que sonaba a etiquetas de otra app: tres afirmaciones en
+            mayúscula chica compitiendo entre ellas justo arriba de los
+            precios, que es lo único que se vino a mirar. Las canillas ya se
+            cuentan solas mirando la lista, y la frescura la dice cada fila con
+            su "hace N d" en el color de la edad. El filete se queda porque
+            separar el encabezado de los precios sí hacía falta. */}
+        {bar.prices.length > 0 && (
+          <div aria-hidden style={{
+            marginTop: 'var(--s-4)', borderTop: '1px solid var(--hairline)',
+          }} />
+        )}
       </div>
 
       {bar.prices.length === 0 ? (
@@ -1655,21 +1636,22 @@ function BeerRating({
         </span>
       )}
 
-      {price.ratingCount > 0 ? (
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-          {/* `ratingRaw` y no `ratingAvg`: el segundo lleva shrinkage y sirve
-              para ordenar, pero mostrarle 3,8 a alguien que acaba de poner
-              cinco estrellas hace que el número parezca roto. El conteo al
-              lado es lo que comunica cuánta confianza tiene. */}
-          {price.ratingRaw!.toFixed(1)} · {price.ratingCount === 1
-            ? '1 voto' : `${price.ratingCount} votos`}
-          {price.ratingAgeDays != null && price.ratingAgeDays > 45 && ' · sin votos nuevos'}
-        </span>
-      ) : (
+      {/* La nota y los votos NO se repiten acá: ya están arriba, debajo del
+          nombre de la birra. Eran el mismo "4,5 · 3 votos" dos veces en la
+          misma tarjeta, a diez píxeles de distancia, y leer dos veces el mismo
+          número hace dudar de si son dos números distintos.
+
+          Lo que sí se queda es el aviso de que la nota quedó vieja, porque eso
+          no está en ningún otro lado y cambia cuánto vale lo que se lee. */}
+      {price.ratingCount === 0 ? (
         <span style={{
           marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)',
         }}>Sin votos</span>
-      )}
+      ) : price.ratingAgeDays != null && price.ratingAgeDays > 45 ? (
+        <span style={{
+          marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)',
+        }}>Sin votos nuevos</span>
+      ) : null}
 
       {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene qué
           retirar. Va en su propio renglón y en gris: es la salida, no una
@@ -1684,80 +1666,6 @@ function BeerRating({
   )
 }
 
-/**
- * La fila de estado, entre el nombre del bar y sus canillas.
- *
- * Tres afirmaciones cortas separadas por filete arriba y abajo: es la línea
- * que contesta "¿me sirve este lugar?" antes de bajar a los precios. Va en
- * mayúscula chica con tracking porque es rótulo y no texto — tiene que
- * leerse de un barrido, no leerse.
- *
- * Lo que NO está acá también es una decisión: no hay "abierto ahora" porque el
- * modelo no guarda horarios, ni "mejor precio de la zona" porque esta pantalla
- * no sabe qué hay alrededor. Un cartel que afirma algo que la app no sabe es
- * peor que un cartel que falta.
- */
-function FilaDeEstado({ alDia, canillas, respaldo }: {
-  /** Todos los precios cargados tienen menos de 14 días. */
-  alDia: boolean
-  canillas: number
-  /** Cuánta gente hay detrás del precio mejor respaldado del bar. */
-  respaldo: number
-}) {
-  if (canillas === 0) return null
-
-  const chip = {
-    display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' as const,
-  }
-
-  return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-      gap: 'var(--s-2) var(--s-4)',
-      margin: 'var(--s-3) 0 0', padding: 'var(--s-3) 0',
-      borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)',
-      fontFamily: 'var(--display)', fontWeight: 500, fontSize: 'var(--t-1)',
-      letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1,
-    }}>
-      {alDia && (
-        <span style={{ ...chip, color: 'var(--fresh)' }}>
-          {/* El punto late porque "al día" es un estado vivo: es lo único de
-              la ficha que puede dejar de ser cierto mientras la mirás. */}
-          <span aria-hidden style={{
-            width: 6, height: 6, borderRadius: 3, background: 'var(--fresh)',
-            animation: 'pulso-fresco 2s ease-in-out infinite',
-          }} />
-          Al día
-        </span>
-      )}
-
-      <span style={{ ...chip, color: 'var(--info)' }}>
-        <span className="num">{canillas}</span>
-        {canillas === 1 ? 'canilla' : 'canillas'}
-      </span>
-
-      {respaldo >= 3 && (
-        <span style={{ ...chip, color: 'var(--info)' }}
-          title={`${respaldo} personas confirmaron el precio`}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 2 4 5.4v5.2c0 4.7 3.4 9.1 8 10.2 4.6-1.1 8-5.5 8-10.2V5.4L12 2Zm-1 13.4L7.6 12l1.4-1.4 2 2 4.4-4.4L16.8 9 11 15.4Z" />
-          </svg>
-          Verificado · <span className="num">{respaldo}</span>
-        </span>
-      )}
-
-      {/* El latido vive acá y no en theme.css porque es de esta fila y de
-          ninguna otra. Con "reducir movimiento" prendido se apaga solo: la
-          regla global de theme.css lo alcanza. */}
-      <style>{`
-        @keyframes pulso-fresco {
-          0%, 100% { opacity: 1; }
-          50%      { opacity: .32; }
-        }
-      `}</style>
-    </div>
-  )
-}
 
 /**
  * Cinco estrellas de lectura, en el tono de la nota.

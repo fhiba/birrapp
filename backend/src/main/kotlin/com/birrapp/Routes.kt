@@ -50,19 +50,9 @@ private fun estilos(raw: String?): List<String> =
 /** Cómo quedó el pulgar de una foto después de tocarlo (BIR-10). */
 @Serializable data class PhotoVotes(val votes: Int, val votedByMe: Boolean)
 
-/**
- * Techos de `/bars`. Ver [CoverageBudget] para por qué existen estos números.
- *
- * La relación que importa es **`MAX_LIMIT` < `CoverageBudget.DEFAULT_PER_DAY`**:
- * si un solo request pudiera traer más bares que el presupuesto de todo el día,
- * ese request sería irrespondible siempre y el endpoint quedaría roto para
- * cualquiera. Con 200 contra 400 hay margen de dos pedidos completos de
- * territorio nuevo antes de tocar el techo.
- *
- * El tope viejo era 500, y con ~738 bares cargados eso es el 68% de la base en
- * una sola llamada: no había presupuesto de cobertura posible que sirviera.
- */
-private const val MAX_LIMIT = 200
+/** El techo de filas de `/bars`. Ver `core/Limits.kt` por qué es del tamaño de
+ *  la base: en 200 el radio del mapa mentía. */
+private const val MAX_LIMIT = com.birrapp.core.MAX_BARES_POR_PEDIDO
 
 /**
  * 20 km. El slider del mapa llega a 15, y `useBars` sobre-pide 2.5x, así que el
