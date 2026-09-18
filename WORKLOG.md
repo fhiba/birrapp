@@ -3403,3 +3403,24 @@ Tres cosas que la pantalla no tenía y el diseño sí:
   los apila en la misma pantalla porque el mockup no tiene sub-pantallas;
   acá existen, con paginado y con su propio filtro, y duplicarlos en el perfil
   sería bajarse dos veces lo mismo para mostrar las primeras tres filas.
+
+## 2026-09-17 (cont.) — v0.22.1: cuatro cosas que se veían mal
+
+* **El ícono de "Cerca" se veía cortado.** Eran tres arcos concéntricos
+  escritos a mano en un `path`, y un arco elíptico con los flags de barrido mal
+  puestos no falla: dibuja otra cosa. Cerraba por donde no correspondía y
+  dejaba un mordisco. Pasó a dos `<circle>` —un aro y un punto—, que es además
+  el mismo dibujo con el que el encabezado del mapa nombra el ámbito.
+* **Faltaba el filete bajo el título de "Cerca".** Es el mismo que el del
+  Perfil: separa el encabezado del contenido que scrollea por debajo.
+* **La tuerca del Perfil se veía cortada.** Dos causas, las dos arregladas: la
+  silueta de la rueda ocupa de x=1,1 a x=21,5 en una caja de 24, o sea corrida
+  a la izquierda, y contra el borde del botón eso se lee como un recorte — el
+  `viewBox` arranca ahora en -0,7 y la centra sin tocar el `path`. Y la fila
+  quedó blindada: el aire baja de 16 a 12, los dos botones se agrupan en un
+  bloque con `flexShrink: 0` —o entran los dos o no entra ninguno— y la columna
+  del nombre lleva `overflow: hidden`.
+* **La foto en Configuración no tenía el formato del Perfil.** Era un círculo
+  con la inicial en gris; ahora es el mismo cuadrado de esquina blanda con la
+  inicial en la familia informativa. Encima era la que hay que tocar para
+  cambiarla, así que era justamente la que tenía que enseñar cómo va a quedar.

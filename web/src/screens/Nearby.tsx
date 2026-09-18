@@ -80,7 +80,14 @@ export function NearbyScreen(p: {
       padding: `calc(var(--safe-top) + var(--s-3)) 0 calc(var(--s-5) + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
-        <header style={{ padding: '0 var(--s-4)' }}>
+        {/* El filete bajo el título es el mismo que el del Perfil: separa el
+            encabezado de la pantalla del contenido que scrollea por debajo.
+            Sin él, el título y el primer bloque flotaban juntos y no se sabía
+            dónde terminaba uno. */}
+        <header style={{
+          padding: '0 var(--s-4) var(--s-3)',
+          borderBottom: '1px solid var(--hairline)',
+        }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--s-3)' }}>
             <h1 className="ttl" style={{ flex: 1, fontSize: 'var(--t-7)', margin: 0 }}>Cerca</h1>
             {/* El radio es el ámbito de todo lo que sigue, así que se dice en
