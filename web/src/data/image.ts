@@ -36,3 +36,53 @@ export async function compressImage(file: File): Promise<Blob> {
     bitmap.close()
   }
 }
+
+/**
+ * El lado de la foto de perfil ya recortada, en píxeles.
+ *
+ * Se muestra a 64 CSS px y en una pantalla de teléfono eso son 192 reales. 512
+ * deja margen para que mañana se vea más grande sin volver a pedirle la foto a
+ * nadie, y sigue pesando menos que la original sin tocar.
+ */
+const LADO_AVATAR = 512
+
+/**
+ * Recorta un cuadrado de la imagen y lo devuelve listo para subir.
+ *
+ * El rectángulo viene en píxeles de la imagen original —lo calcula quien
+ * maneja el encuadre— y acá sólo se dibuja. La cuenta vive allá porque depende
+ * de cuánto se movió y se acercó la foto en pantalla; esto es la parte que
+ * toca el canvas.
+ *
+ * Igual que [compressImage], volver a codificar borra el EXIF y con él las
+ * coordenadas GPS. Acá importa lo mismo: una foto de perfil vive en una URL
+ * abierta.
+ */
+export async function cropToSquare(
+  file: File, rect: { x: number; y: number; side: number },
+): Promise<Blob> {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = LADO_AVATAR
+    canvas.height = LADO_AVATAR
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('No se pudo procesar la imagen')
+
+    // Suavizado en alto: al bajar de 3000px a 512 sin esto quedan escalones en
+    // los bordes, y en una cara se notan.
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(
+      bitmap,
+      rect.x, rect.y, rect.side, rect.side,
+      0, 0, LADO_AVATAR, LADO_AVATAR,
+    )
+
+    const blob = await new Promise<Blob | null>(resolve =>
+      canvas.toBlob(resolve, 'image/webp', QUALITY))
+    if (!blob) throw new Error('No se pudo comprimir la imagen')
+    return blob
+  } finally {
+    bitmap.close()
+  }
+}

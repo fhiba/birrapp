@@ -10,6 +10,7 @@ import type { User } from './data/types'
 import { BA_CENTER, useBars, useLocation, type Sort } from './data/useBars'
 import { Crash } from './ui/Crash'
 import { OfflineBanner } from './ui/Offline'
+import * as fb from './data/feedback'
 import { BottomNav, Toast } from './ui/Chrome'
 import { PintLoader } from './ui/PintLoader'
 import { Tour, TOUR_ANON, type TourView } from './ui/Tour'
@@ -27,6 +28,9 @@ import { MyContributionsScreen } from './screens/MyContributions'
 import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
 import { PreferencesScreen } from './screens/Preferences'
+import { OnboardingScreen } from './screens/Onboarding'
+import { areaKey } from './screens/Nearby'
+import { prefetchCached } from './data/cached'
 import { PersonScreen } from './screens/Person'
 import { useFavorites } from './data/useFavorites'
 import { ReportFlow, type FlowBar } from './screens/ReportFlow'
@@ -176,26 +180,23 @@ function Shell() {
         api.saveSession(s)
         setToast(`¡Hola, ${s.user.displayName}!`)
         /*
-         * Recién llegado y sin birras elegidas: se ofrece elegirlas una vez.
+         * Cuenta recién creada: la bienvenida.
          *
          * Se pregunta acá y no en el mapa porque es el único momento en que la
          * persona ya decidió quedarse —acaba de crear la cuenta— y todavía no
          * vino a hacer otra cosa. Interrumpirla más tarde sería cortarle algo.
          *
-         * `vioBienvenida` es lo que hace que sea UNA vez y no en cada login.
-         * Sin esa marca, quien decide no elegir ninguna se come la pantalla
-         * cada vez que entra, que es la forma más rápida de que una pantalla
-         * opcional se vuelva molesta.
+         * La marca de "ya la hizo" la lleva la cuenta (`onboarded`, V22) y no
+         * este navegador. Antes era `localStorage`, y alcanzaba mientras la
+         * pantalla sólo ofrecía birras favoritas: volver a ofrecerlas en otra
+         * computadora no rompe nada. Ahora también decide el nombre público y
+         * la foto, así que entrar desde otro teléfono no puede volver a
+         * pedirte lo que ya elegiste.
          *
          * Al mapa en los demás casos, no a donde se había tocado "Entrar": el
          * tutorial empieza ahí y arranca explicando de qué va la app.
          */
-        if (s.user.favoriteStyles.length === 0 && !vioBienvenida(s.user.id)) {
-          marcarBienvenida(s.user.id)
-          nav('/bienvenida', { replace: true })
-        } else {
-          nav('/', { replace: true })
-        }
+        nav(s.user.onboarded ? '/' : '/bienvenida', { replace: true })
       })
       .catch(() => setToast('El inicio de sesión expiró. Probá de nuevo.'))
   }, [nav])
@@ -216,6 +217,34 @@ function Shell() {
   }, [queryPoint, radius, sort, styleFilter, minRating, camera?.zoom, load])
 
   useEffect(() => { refresh() }, [refresh])
+
+  /**
+   * Se adelanta el promedio de la zona mientras mirás el mapa.
+   *
+   * Los bares ya son compartidos: el mapa, la lista y "Cerca" leen el mismo
+   * `bars` de acá, así que cambiar de pestaña no los vuelve a pedir. El que
+   * faltaba era el promedio de la zona, que sólo se pedía al abrir "Cerca" —y
+   * como la clave depende de dónde está la cámara, moverse por el mapa y
+   * después entrar daba siempre pantalla vacía y un viaje de espera.
+   *
+   * Corre 700 ms después de que el mapa se queda quieto. Antes de eso, un
+   * paneo largo dispararía una consulta por cada cuadro intermedio, que son
+   * zonas por las que la persona pasó sin mirar.
+   *
+   * No corre si ya estás en "Cerca": ahí la pantalla pide lo suyo y las dos
+   * consultas competirían por la misma clave.
+   */
+  useEffect(() => {
+    if (!queryPoint || route.pathname === '/cerca') return
+    const t = setTimeout(() => {
+      const { lat, lng } = queryPoint
+      void prefetchCached(
+        areaKey(lat, lng, radius, styleFilter),
+        () => api.areaStats(lat, lng, radius, styleFilter),
+      )
+    }, 700)
+    return () => clearTimeout(t)
+  }, [queryPoint, radius, styleFilter, route.pathname])
 
   const onCamera = useCallback((center: google.maps.LatLngLiteral, zoom: number) => {
     setCamera({ center, zoom })
@@ -339,10 +368,9 @@ function Shell() {
         {/* La misma pantalla, pero llegando recién de iniciar sesión: sin
             botón de volver —no hay a dónde— y con salida al mapa. */}
         <Route path="/bienvenida" element={
-          <PreferencesScreen
+          <OnboardingScreen
             user={user} styles={styles} brands={brands}
             onSession={() => setUser(api.currentUser())}
-            primeraVez
           />
         } />
         <Route path="/info" element={<InfoScreen />} />
@@ -407,11 +435,12 @@ function Shell() {
               const r = await api.reportPrice({
                 barId: bar.id, styleSlug, brandSlug, price, sizeMl,
               })
+              fb.exito()
               setToast(r.message)
               // El pin tiene que reflejarlo al toque: es el agujero de BIR-23,
               // que se arregló en la ficha del bar y volvería a aparecer acá.
               afterChange()
-            } catch (e) { setToast((e as Error).message) }
+            } catch (e) { fb.error(); setToast((e as Error).message) }
           }}
         />
       )}
@@ -421,26 +450,4 @@ function Shell() {
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </>
   )
-}
-
-/**
- * Si a esta cuenta ya se le ofreció elegir sus birras.
- *
- * Por cuenta y no global: en un teléfono compartido, que una persona haya
- * dicho "ahora no" no puede dejar a la siguiente sin la oferta.
- *
- * En `localStorage` y no en la base porque es una preferencia de esta
- * instalación sobre una pantalla, no un dato de la persona. Si se limpia el
- * sitio y vuelve a aparecer una vez, no pasa nada.
- */
-const BIENVENIDA = 'birrapp:bienvenida:'
-
-function vioBienvenida(userId: number): boolean {
-  try { return localStorage.getItem(BIENVENIDA + userId) != null }
-  catch { return false }
-}
-
-function marcarBienvenida(userId: number) {
-  try { localStorage.setItem(BIENVENIDA + userId, '1') }
-  catch { /* modo privado: se vuelve a ofrecer, y no es grave */ }
 }

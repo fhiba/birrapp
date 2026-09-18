@@ -138,6 +138,11 @@ export interface User {
    */
   favoriteStyles: string[]
   favoriteBrands: string[]
+  /**
+   * Si ya pasó por la bienvenida (V22). Falso sólo en una cuenta recién
+   * creada, y es lo único que decide si se la muestra.
+   */
+  onboarded: boolean
 }
 
 /** Una fila de la tabla de colaboradores del mes (BIR-9). */

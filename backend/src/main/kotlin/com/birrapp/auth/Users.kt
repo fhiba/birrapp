@@ -7,9 +7,25 @@ import com.birrapp.core.queryOne
 import com.birrapp.core.update
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.sql.Connection
 import java.sql.ResultSet
 import java.time.Instant
 import java.util.Base64
+import kotlin.random.Random
+
+/**
+ * Los límites del alias, en un solo lugar.
+ *
+ * Los usan la validación de lo que alguien escribe y la derivación automática
+ * del alias de una cuenta nueva. Separados, el generador podía producir algo
+ * que la validación rechazaba — y el que lo iba a descubrir era el que tocaba
+ * "Guardar" sobre un alias que la app le había puesto sola.
+ */
+private const val MIN_ALIAS = 3
+private const val MAX_ALIAS = 20
+
+/** Cuántos alias con número se prueban antes de rendirse. */
+private const val INTENTOS_ALIAS = 12
 
 enum class Role { user, moderator, admin;
     /** admin implica moderator; moderator implica user. */
@@ -37,6 +53,11 @@ data class User(
     /** Slugs de los estilos y marcas favoritos. Ver `V21__beer_preferences.sql`. */
     val favoriteStyles: List<String> = emptyList(),
     val favoriteBrands: List<String> = emptyList(),
+    /**
+     * Cuándo terminó la bienvenida. Null = cuenta recién creada que todavía no
+     * la hizo, y es lo que decide si la app la muestra. Ver `V22__onboarding.sql`.
+     */
+    val onboardedAt: Instant? = null,
 ) {
     val isBanned: Boolean get() = bannedAt != null
 }
@@ -102,6 +123,14 @@ data class UserDto(
      */
     val favoriteStyles: List<String> = emptyList(),
     val favoriteBrands: List<String> = emptyList(),
+    /**
+     * Si ya pasó por la bienvenida. Viaja como booleano y no como fecha porque
+     * la app sólo necesita decidir si la muestra; cuándo fue no lo usa nadie.
+     *
+     * Default `true` para que una app vieja, que no lo manda ni lo espera, no
+     * se coma una bienvenida que no sabe dibujar.
+     */
+    val onboarded: Boolean = true,
 )
 
 /** Lo que una persona puede cambiar de sí misma. Todo opcional: se manda lo que cambió. */
@@ -122,12 +151,19 @@ data class UpdateMeRequest(
     val currency: String? = null,
     val defaultSizeMl: Int? = null,
     val defaultRadiusM: Int? = null,
+    /**
+     * `true` cierra la bienvenida. Sólo se puede cerrar: mandar `false` no la
+     * reabre, porque nada en la app necesita volver a mostrarla y un cliente
+     * con un bug no tiene por qué poder devolverle a alguien una pantalla que
+     * ya pasó.
+     */
+    val onboarded: Boolean? = null,
 )
 
 fun User.toDto() = UserDto(
     id, email, displayName, avatarUrl, role.name,
     currency, defaultSizeMl, defaultRadiusM, alias,
-    favoriteStyles, favoriteBrands,
+    favoriteStyles, favoriteBrands, onboardedAt != null,
 )
 
 /** Lo que hay que limpiar fuera de la base después de borrar una cuenta. */
@@ -149,6 +185,7 @@ class UserRepo(private val db: Db) {
         alias = rs.getString("alias"),
         favoriteStyles = slugs(rs, "favorite_styles"),
         favoriteBrands = slugs(rs, "favorite_brands"),
+        onboardedAt = rs.getTimestamp("onboarded_at")?.toInstant(),
     )
 
     fun findById(id: Long): User? = db.conn {
@@ -201,7 +238,72 @@ class UserRepo(private val db: Db) {
             identity.sub, identity.email, identity.name, identity.picture,
             identity.picture, initialRole.name,
         )
-        c.queryOne("SELECT * FROM users WHERE google_sub = ?", identity.sub, map = ::map)!!
+        val u = c.queryOne("SELECT * FROM users WHERE google_sub = ?", identity.sub, map = ::map)!!
+
+        // Cuenta recién creada: se le deja un alias puesto para que la
+        // bienvenida tenga algo que mostrar. Ver `aliasAutomatico`.
+        if (u.onboardedAt == null && u.alias == null) {
+            val propuesto = aliasAutomatico(c, u.displayName)
+            if (propuesto != null) {
+                c.update("UPDATE users SET alias = ? WHERE id = ?", propuesto, u.id)
+                return@tx u.copy(alias = propuesto)
+            }
+        }
+        u
+    }
+
+    /**
+     * Un alias libre derivado del nombre de la cuenta: "Felipe Hiba" da
+     * `felipe_hiba`.
+     *
+     * **Sólo para cuentas nuevas, y sólo porque la bienvenida lo muestra.**
+     * V20 dejó el alias opt-in y sin default a propósito: `display_name` viene
+     * de Google y suele ser el nombre real, y sembrarlo solo equivale a
+     * publicar a alguien en la tabla de colaboradores sin preguntarle. Eso
+     * sigue valiendo para todo el que ya tiene cuenta — por eso V22 los marca
+     * como que ya pasaron por la bienvenida, y por acá no vuelven a pasar.
+     *
+     * Lo que cambia para una cuenta nueva es que **hay una pantalla**: el
+     * primer paso de la bienvenida muestra este alias ya escrito en el campo,
+     * dice que es el nombre con el que se la va a ver en público, y deja
+     * cambiarlo o borrarlo antes de seguir. El default deja de ser algo que
+     * pasa a escondidas y pasa a ser algo que se acepta; sin él, el campo
+     * arranca vacío y la mayoría sigue de largo sin entender qué se perdió.
+     *
+     * **El número al final es por el índice único.** Los nombres se repiten y
+     * los alias no pueden: dos "Juan Pérez" no pueden ser los dos `juan_perez`.
+     * Se prueba primero el limpio, que es el que alguien querría, y recién si
+     * está tomado se le cuelga un número.
+     *
+     * Devuelve null si no encontró ninguno libre. En ese caso la cuenta queda
+     * sin alias y la bienvenida la recibe con el campo vacío, que es un peor
+     * comienzo pero no un error: el alias se puede poner después.
+     */
+    private fun aliasAutomatico(c: Connection, nombre: String): String? {
+        // Todo lo que no sea letra o número pasa a ser un guión bajo, y las
+        // corridas se colapsan en uno solo: "Ana  María  de la Cruz" no puede
+        // dar `ana__maría__de_la_cruz`.
+        val base = nombre.trim().lowercase()
+            .replace(Regex("[^\\p{L}\\p{N}]+"), "_")
+            .trim('_')
+            .take(MAX_ALIAS)
+            .trimEnd('_')
+            .ifEmpty { "birrero" }
+
+        fun libre(a: String) = c.queryOne(
+            "SELECT 1 FROM users WHERE lower(alias) = lower(?)", a,
+        ) { true } == null
+
+        if (base.length >= MIN_ALIAS && libre(base)) return base
+
+        // Con el número, el alias tiene que seguir entrando en el límite, así
+        // que lo que se recorta es la parte del nombre y no el sufijo.
+        repeat(INTENTOS_ALIAS) {
+            val sufijo = "_" + Random.nextInt(100, 10_000)
+            val cand = base.take(MAX_ALIAS - sufijo.length).trimEnd('_') + sufijo
+            if (libre(cand)) return cand
+        }
+        return null
     }
 
     /**
@@ -227,8 +329,8 @@ class UserRepo(private val db: Db) {
                 c.update("UPDATE users SET alias = NULL WHERE id = ?", userId)
                 return@let
             }
-            if (alias.length < 3) com.birrapp.core.badRequest("el alias es demasiado corto")
-            if (alias.length > 20) com.birrapp.core.badRequest("el alias es demasiado largo")
+            if (alias.length < MIN_ALIAS) com.birrapp.core.badRequest("el alias es demasiado corto")
+            if (alias.length > MAX_ALIAS) com.birrapp.core.badRequest("el alias es demasiado largo")
             // Letras, números, espacio y guiones. Sin esto entran emojis,
             // saltos de línea y espacios invisibles, y la tabla pública es
             // justo donde eso se usa para hacerse notar.
@@ -274,6 +376,15 @@ class UserRepo(private val db: Db) {
         req.defaultRadiusM?.let { m ->
             if (m !in 300..20_000) com.birrapp.core.badRequest("radio fuera de rango")
             c.update("UPDATE users SET default_radius_m = ? WHERE id = ?", m, userId)
+        }
+        // Cerrar la bienvenida. `IS NULL` para que reintentar el pedido —o dos
+        // pestañas cerrándola a la vez— no corra la fecha: el primero que la
+        // cierra es el que vale.
+        if (req.onboarded == true) {
+            c.update(
+                "UPDATE users SET onboarded_at = now() WHERE id = ? AND onboarded_at IS NULL",
+                userId,
+            )
         }
         c.queryOne("SELECT * FROM users WHERE id = ?", userId, map = ::map)!!
     }

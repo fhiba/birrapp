@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import * as fb from '../data/feedback'
 import { useNavigate } from 'react-router-dom'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { useMapsLibrary } from '@vis.gl/react-google-maps'
@@ -156,11 +157,14 @@ export function AddBarScreen(
             // tu configuración.
             currency,
           })
+      // Un bar nuevo es el aporte más grande que se puede hacer y hasta acá no
+      // devolvía nada: la pantalla se cerraba y listo.
+      fb.exito()
       onAdded(chosen ? { id: r.id, name: chosen.name } : { id: r.id, name: query.trim() })
       // Embebida no navega: el flujo que la abrió sigue donde estaba, con el
       // bar recién creado ya elegido.
       if (!embedded) nav('/')
-    } catch (e) { setError((e as Error).message) } finally { setSending(false) }
+    } catch (e) { fb.error(); setError((e as Error).message) } finally { setSending(false) }
   }
 
   return (

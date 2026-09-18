@@ -121,3 +121,25 @@ export function error() {
   vibrar([40, 60, 40])
   if (sonidoPrendido()) tono(220, 160, 0.06)
 }
+
+/**
+ * Cada muesca de un control que se arrastra: el radio, el zoom del encuadre.
+ *
+ * **Sólo vibra, nunca suena.** Un slider que emite un tono por paso es
+ * insoportable a los tres segundos, y el radio tiene 148 pasos. La vibración
+ * corta hace lo que se busca —que el dedo sienta que el valor cambió sin
+ * mirar el número— y no se escucha desde la mesa de al lado.
+ *
+ * Y va limitada en el tiempo: arrastrar de punta a punta dispara un `change`
+ * por paso, y ciento cuarenta vibraciones seguidas se sienten como un zumbido
+ * continuo, que es justo lo contrario de marcar una muesca. Con el tope, un
+ * arrastre rápido da unos pocos golpecitos espaciados.
+ */
+let ultimoPaso = 0
+
+export function paso() {
+  const ahora = Date.now()
+  if (ahora - ultimoPaso < 35) return
+  ultimoPaso = ahora
+  vibrar(4)
+}

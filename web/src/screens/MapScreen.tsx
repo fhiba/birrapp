@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import * as fb from '../data/feedback'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import type { BarPin, BeerStyle } from '../data/types'
@@ -419,7 +420,7 @@ export function MapScreen(p: Props) {
             <input
               className="range"
               type="range" min={RADIUS_MIN} max={RADIUS_MAX} step={100} value={p.radius}
-              onChange={e => p.onRadius(Number(e.target.value))}
+              onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
               style={{
                 ['--fill' as string]:
                   `${((p.radius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN)) * 100}%`,

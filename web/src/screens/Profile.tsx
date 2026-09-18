@@ -142,7 +142,7 @@ export function ProfileScreen({ user, onSession }: {
             display: 'grid', placeItems: 'center',
             background: 'var(--info-soft)', border: '1px solid var(--info-border)',
             color: 'var(--info-bright)', fontSize: 'var(--t-6)',
-          }}>{user.displayName.charAt(0).toUpperCase()}</div>
+          }}>{(user.alias ?? user.displayName).charAt(0).toUpperCase()}</div>
         )}
 
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -152,9 +152,18 @@ export function ProfileScreen({ user, onSession }: {
               `overflowWrap: anywhere` corta donde haga falta, y el `overflow:
               hidden` de arriba es el cinturón: pase lo que pase acá adentro,
               no empuja a los botones fuera de la pantalla. */}
+          {/* El alias manda sobre el nombre.
+
+              El perfil es la pantalla donde te ves como te ve el resto, y
+              afuera —en Colaboradores, en la firma de una foto— el único
+              nombre que circula es el alias. Mostrar acá el de Google era
+              enseñarte una identidad que nadie más ve, y de paso dejaba sin
+              respuesta la única pregunta que importa del alias: cómo quedó.
+
+              Sin alias sigue el nombre, que es lo único que hay. */}
           <h1 className="ttl" style={{
             fontSize: 'var(--t-7)', margin: 0, overflowWrap: 'anywhere',
-          }}>{user.displayName}</h1>
+          }}>{user.alias ?? user.displayName}</h1>
           {/* El mail va en una línea con elipsis, y ésta es la que rompía la
               fila: un mail es un token sin espacios de veinte y pico de
               caracteres, así que se salía de su columna y empujaba la tuerca y

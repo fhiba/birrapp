@@ -3692,3 +3692,132 @@ Ahora `vite.config.ts` lee la versión de `package.json` con `readFileSync`, as�
 que para la web queda un solo número. AGENTS.md pasa de tres lugares a dos, y
 deja anotado que si vuelve a aparecer un número escrito a mano ahí, volvió el
 problema.
+
+## 2026-09-18 (cont.) — v0.27.0: bienvenida, encuadre de la foto y la barra que tapaba
+
+### La foto de perfil rompía Configuración
+
+Subir una foto vertical desbordaba el avatar: la imagen salía del botón y tapaba
+el campo del nombre. Con la foto de Google no pasaba nunca, y por eso había
+sobrevivido — es cuadrada y chica, así que el bug era invisible hasta que
+alguien subía una propia.
+
+La causa no era el tamaño del archivo sino la forma de pedir las medidas. El
+botón del avatar es `display: grid` con `placeItems: center`, o sea que la fila
+se dimensiona **por su contenido**. La `<img>` pedía `height: '100%'`, que
+necesita una altura contra la cual resolver; como no la hay, cae a `auto` y la
+foto se dibuja con su alto natural. El ancho sí resolvía, contra los 64px
+fijos del botón: de ahí que quedara una tira angosta y larga. Y el botón lleva
+`overflow: visible` a propósito —para que el lápiz de la esquina no quede
+mordido—, así que no había nada que la recortara.
+
+Ahora la foto pide `LADO` en píxeles, la misma constante que usa el botón. Sin
+porcentajes no hay contra qué resolver nada.
+
+### Encuadrar antes de subir
+
+El avatar se muestra en un cuadrado y las fotos de teléfono son verticales, así
+que `object-fit: cover` recortaba por el centro geométrico — que en una foto
+vertical cae en el pecho. Subías una foto tuya y salía tu remera.
+
+`CropSquare` es una hoja con un recuadro: se arrastra para mover y hay una barra
+para acercar. La barra y no el pellizco de dos dedos porque esto también se abre
+desde una computadora, donde el pellizco no existe; arrastrar funciona igual en
+los dos lados y se queda como está. El zoom mínimo es el que hace que la foto
+tape el cuadrado entero y el desplazamiento se recorta contra los bordes: sin
+eso se puede encuadrar el vacío y el avatar sale con una franja transparente.
+
+Lo que se sube ya es un cuadrado de 512, así que ninguna vista tiene que
+defenderse de una proporción rara. Y como todo pasa por un canvas, se sigue
+borrando el EXIF con las coordenadas GPS, que es la razón por la que la foto
+nunca se sube tal cual.
+
+### La bienvenida, en tres pasos (V22)
+
+Crear la cuenta te dejaba en el mapa. Todo lo que hace que la app sea tuya
+—cómo te llamás en público, qué tomás, en qué moneda cargás— vivía detrás de la
+tuerca de Configuración, o sea de algo que nadie abre el primer día.
+
+Tres pasos y no una pantalla, porque son tres decisiones con costos distintos:
+quién sos se contesta en diez segundos, qué birras te gustan requiere leer una
+lista larga, y el radio y la moneda no significan nada hasta que usaste la app.
+Amontonadas, la larga del medio se come a las otras dos. Separadas, además, cada
+una se saltea por su cuenta.
+
+Cada paso guarda al pasar al siguiente. Guardar todo junto al final convertiría
+cada abandono a mitad de camino en la pérdida de lo que ya se había contestado.
+
+**La marca de "ya la hizo" se mudó de `localStorage` a la cuenta.** Alcanzaba
+mientras la pantalla ofrecía sólo birras favoritas: volver a ofrecerlas en otra
+computadora no rompe nada. Ahora también decide el nombre público y la foto, y
+entrar desde otro teléfono no puede volver a pedirte lo que ya elegiste.
+
+### El alias por defecto, y por qué es una excepción y no un cambio de criterio
+
+V20 dejó el alias **opt-in y sin default**, con un argumento que sigue en pie:
+`display_name` viene de Google y suele ser el nombre real, así que sembrarlo
+solo equivale a publicar a alguien en una tabla pública sin preguntarle.
+
+Una cuenta nueva ahora arranca con `nombre_apellido` puesto. Lo que hace que no
+sea la publicación silenciosa que V20 evitó es que **hay una pantalla**: el
+primer paso muestra ese alias ya escrito en el campo, dice que es el nombre con
+el que se te va a ver en público, y deja cambiarlo o borrarlo antes de seguir.
+El default deja de ser algo que pasa a escondidas y pasa a ser algo que se
+acepta. Sin él, el campo arranca vacío y la mayoría sigue de largo sin entender
+qué se perdió.
+
+Para que la excepción no se derrame, V22 marca a **todos los que ya existen**
+como que ya pasaron por la bienvenida. `onboarded_at IS NULL` es de acá en más
+"cuenta creada después de este deploy", y es lo único de lo que cuelga el alias
+automático. Sin ese relleno, el próximo login de cualquiera de los que ya usan
+la app le habría asignado un alias derivado de su nombre de Google.
+
+El número al final es por el índice único: los nombres se repiten y los alias no
+pueden. Se prueba primero el limpio, que es el que alguien querría, y recién si
+está tomado se le cuelga uno.
+
+`OnboardingTest` cuida sobre todo **a quién no se le toca el alias**: que volver
+a entrar no se lo cambie a nadie, y que quien lo borró a propósito no lo
+recupere en el próximo login.
+
+### El perfil muestra el alias
+
+El perfil es donde te ves como te ve el resto, y afuera —en Colaboradores, al
+pie de una foto— el único nombre que circula es el alias. Mostrar ahí el de
+Google era enseñarte una identidad que nadie más ve, y de paso dejaba sin
+contestar la única pregunta que importa del alias: cómo quedó.
+
+### La barra de abajo tapaba el botón de Cerca
+
+En "Cerca", el botón de cargar un precio quedaba detrás de la barra. No era que
+la lista no scrolleara hasta abajo: era que abajo no había lugar reservado.
+
+El `padding-bottom` de cada pantalla estaba escrito a ojo y ninguno coincidía
+—había un `60px`, un `40px + gap` y un `24px + gap`— contra una barra que mide
+49px más el `--nav-gap`. El de Cerca era menos de la mitad. Ahora hay un token,
+`--nav-h`, y quien scrollea por debajo de la barra usa `calc(var(--nav-h) + aire)`
+en vez de un número estimado.
+
+### Adelantar el promedio de la zona
+
+Los bares ya eran compartidos: el mapa, la lista y "Cerca" leen el mismo `bars`,
+así que cambiar de pestaña no los vuelve a pedir. El que faltaba era el promedio
+de la zona, que sólo se pedía al abrir "Cerca" — y como su clave depende de
+dónde está la cámara, moverse por el mapa y después entrar daba siempre pantalla
+vacía y un viaje de espera.
+
+`prefetchCached` calienta esa clave 700 ms después de que el mapa se queda
+quieto. **Sólo pide si la clave está fría**: si ya hay algo guardado, `useCached`
+lo pinta al instante y revalida por su cuenta, y volver a pedirlo sería una
+consulta de más por cada paneo. Lo que se compra es que no haya pantalla en
+blanco, no que el número sea de hace un segundo en vez de hace un minuto.
+
+### Más feedback, y el háptico de los sliders
+
+Faltaban los dos aportes más grandes: cargar un precio desde el "+" y dar de
+alta un bar no devolvían nada.
+
+Los sliders llevan `paso()`, que **sólo vibra y nunca suena**: el radio tiene 148
+pasos y un tono por paso es insoportable a los tres segundos. Va limitado en el
+tiempo, porque ciento cuarenta vibraciones seguidas se sienten como un zumbido
+continuo — lo contrario de marcar una muesca.
