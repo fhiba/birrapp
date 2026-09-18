@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { AreaStats, BarPin, BeerStyle } from '../data/types'
@@ -6,6 +6,7 @@ import {
   FRESCO_DIAS, ageColor, formatDistance, formatPrice, formatRadius,
 } from '../data/format'
 import { PriceColumn, SkeletonRows } from '../ui/Empty'
+import { useCached } from '../data/cached'
 
 /**
  * "Cerca" — cómo viene la zona, antes de mirar un bar.
@@ -51,22 +52,33 @@ export function NearbyScreen(p: {
   simulated: google.maps.LatLngLiteral | null
 }) {
   const nav = useNavigate()
-  const [stats, setStats] = useState<AreaStats | null>(null)
   const [radioAbierto, setRadioAbierto] = useState(false)
 
-  useEffect(() => {
-    const c = p.center
-    if (!c) return
-    let alive = true
-    // El rebote es el mismo de la tarjeta vieja y por lo mismo: el radio se
-    // mueve con un slider, y sin esto sería una consulta por píxel arrastrado.
-    const t = setTimeout(() => {
-      api.areaStats(c.lat, c.lng, p.radius, p.styleFilter)
-        .then(d => { if (alive) setStats(d) })
-        .catch(() => { if (alive) setStats(null) })
-    }, 350)
-    return () => { alive = false; clearTimeout(t) }
-  }, [p.center?.lat, p.center?.lng, p.radius, p.styleFilter])
+  /*
+   * El promedio de la zona, pintado con lo último que se supo mientras se
+   * vuelve a preguntar.
+   *
+   * Antes arrancaba en `null` en cada entrada a la pestaña —la pantalla se
+   * desmonta al cambiar de pestaña— y encima el rebote de 350 ms corría
+   * también en el primer render: abrir "Cerca" costaba un tercio de segundo de
+   * nada antes de que la consulta saliera, más el viaje. Lo primero que se ve
+   * de la pantalla es justo lo que más tarda.
+   *
+   * **La clave redondea la posición a dos decimales**, o sea a un kilómetro y
+   * pico. Con las coordenadas enteras la caché no serviría para nada: la
+   * cámara cambia con cada paneo del mapa y nunca se repetiría una clave. A
+   * esta escala, volver al mismo barrio vuelve a la misma entrada, y cruzar la
+   * ciudad estrena una — que es exactamente cuándo el número tiene que cambiar.
+   *
+   * El rebote se queda, ahora adentro de `useCached`: el radio se mueve con un
+   * slider y sin él sería una consulta por píxel arrastrado.
+   */
+  const c = p.center
+  const { data: stats } = useCached<AreaStats>(
+    c ? `area:${c.lat.toFixed(2)}:${c.lng.toFixed(2)}:${p.radius}:${p.styleFilter.join(',')}` : null,
+    () => api.areaStats(c!.lat, c!.lng, p.radius, p.styleFilter),
+    350,
+  )
 
   const conPrecio = p.bars.filter(b => b.fromPrice != null && b.freshestAgeDays != null)
   const recientes = [...conPrecio]

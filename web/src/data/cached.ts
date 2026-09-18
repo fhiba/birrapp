@@ -23,11 +23,23 @@ import { useEffect, useRef, useState } from 'react'
  * Va en `localStorage` y no en memoria porque el caso es justamente volver a
  * entrar, y en una PWA eso muchas veces es una carga nueva de la app.
  *
- * Sólo para datos chicos, propios y que se pueden mostrar un segundo viejos:
- * los cinco contadores de Perfil. Nada de precios — un precio viejo pintado
- * como fresco es exactamente lo que esta app existe para no hacer.
+ * Sólo para datos chicos, propios y que se pueden mostrar un segundo viejos.
+ * Nada de un precio suelto: un precio viejo pintado como fresco es exactamente
+ * lo que esta app existe para no hacer.
+ *
+ * El promedio de la zona (`AreaStats`) sí pasa, y la diferencia es que ese
+ * número **dice su alcance al lado** —"N precios, de menos de 45 días"— así
+ * que no se puede leer como el precio de hoy de ningún bar. Además se
+ * reemplaza en cuanto llega el fresco, que es el mismo round-trip que hoy se
+ * espera mirando el vacío.
+ *
+ * `delayMs` es para las claves que cambian arrastrando un slider: sin él, el
+ * radio pediría una vez por píxel. El rebote corre por cada clave nueva, así
+ * que la última gana y las intermedias no llegan a salir.
  */
-export function useCached<T>(key: string | null, fetcher: () => Promise<T>) {
+export function useCached<T>(
+  key: string | null, fetcher: () => Promise<T>, delayMs = 0,
+) {
   const [data, setData] = useState<T | null>(() => read<T>(key))
   const [error, setError] = useState<string | null>(null)
 
@@ -43,20 +55,22 @@ export function useCached<T>(key: string | null, fetcher: () => Promise<T>) {
     setData(read<T>(key))
 
     let alive = true
-    fetch.current()
-      .then(fresh => {
-        if (!alive) return
-        write(key, fresh)
-        setData(fresh)
-        setError(null)
-      })
-      .catch((e: unknown) => {
-        // Con algo guardado, un fallo de red no borra la pantalla: lo que se
-        // ve sigue siendo verdad, sólo que de hace un rato.
-        if (alive && read(key) == null) setError((e as Error).message)
-      })
-    return () => { alive = false }
-  }, [key])
+    const t = setTimeout(() => {
+      fetch.current()
+        .then(fresh => {
+          if (!alive) return
+          write(key, fresh)
+          setData(fresh)
+          setError(null)
+        })
+        .catch((e: unknown) => {
+          // Con algo guardado, un fallo de red no borra la pantalla: lo que se
+          // ve sigue siendo verdad, sólo que de hace un rato.
+          if (alive && read(key) == null) setError((e as Error).message)
+        })
+    }, delayMs)
+    return () => { alive = false; clearTimeout(t) }
+  }, [key, delayMs])
 
   return { data, error }
 }

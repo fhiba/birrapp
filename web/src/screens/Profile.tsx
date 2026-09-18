@@ -274,7 +274,7 @@ export function ProfileScreen({ user, onSession }: {
           onClick={() => nav('/mis-birras')} />
       </div>
 
-      <Favoritos />
+      <Favoritos userId={user.id} />
 
       {/* Sin `gap`: las filas se separan con su propio filete. Un hueco entre
           filetes deja la línea flotando y se lee como cinco tarjetas otra vez,
@@ -335,20 +335,15 @@ export function ProfileScreen({ user, onSession }: {
  */
 const FAVS_EN_PERFIL = 5
 
-function Favoritos() {
+function Favoritos({ userId }: { userId: number }) {
   const nav = useNavigate()
-  const [bars, setBars] = useState<BarPin[] | null>(null)
+  // Lo mismo que la grilla de números de arriba: se pinta lo guardado al
+  // instante y se pregunta igual. Es una lista corta y propia, y la sección
+  // entera aparecía medio segundo tarde en cada entrada al perfil.
+  const { data: bars } = useCached<BarPin[]>(`favs:${userId}`, api.favorites)
 
-  useEffect(() => {
-    let alive = true
-    api.favorites()
-      .then(r => { if (alive) setBars(r) })
-      .catch(() => { if (alive) setBars([]) })
-    return () => { alive = false }
-  }, [])
-
-  // Mientras no se sabe, no se dibuja nada. Un "Favoritos · 0" que aparece y
-  // se corrige medio segundo después es peor que esperar.
+  // La primera vez, mientras no se sabe, no se dibuja nada. Un "Favoritos · 0"
+  // que aparece y se corrige medio segundo después es peor que esperar.
   if (bars == null) return null
 
   return (

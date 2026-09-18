@@ -319,16 +319,52 @@ export function ListScreen(p: Props) {
         display: 'flex', flexDirection: 'column', gap: 'var(--s-3)',
       }}>
         {/*
-          Los dos filtros flanquean la búsqueda, y no viven en la franja de
-          abajo. El de favoritos estaba al final de una fila que scrollea: con
-          tres controles antes, quedaba fuera de pantalla y había que descubrir
-          que se podía arrastrar para encontrarlo. Un filtro que no se ve es un
-          filtro que no existe.
+          El buscador, en su propio renglón y arriba de todo.
 
-          El estilo a la izquierda y favoritos a la derecha: los dos acotan
-          QUÉ bares se ven, mientras que lo de abajo decide en qué ORDEN.
+          Estaba en el medio de la fila de filtros, con dos píldoras a la
+          izquierda y dos botones a la derecha. Cuando el filtro de estilo pasó
+          a ser dos píldoras —estilo y nota— la fila dejó de entrar: el campo
+          se quedaba con lo que sobraba, que en un teléfono son unos ochenta
+          píxeles, y "Buscar un bar" ni siquiera entraba como placeholder.
+
+          Arriba tiene el ancho entero, que es lo que un campo de texto pide, y
+          además queda en el orden en que se usa: primero buscás un bar
+          concreto, y si no, filtrás lo que hay.
         */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)' }}>
+        <div style={{ position: 'relative' }} data-tour="list-search">
+          <input
+            value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar un bar" type="search"
+            style={{
+              width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
+              background: 'var(--raised)', border: '1px solid var(--hairline)',
+              // Ver --t-field: abajo de 16px iOS acerca la pantalla al enfocar.
+              fontSize: 'var(--t-field)',
+            }}
+          />
+          {query !== '' && (
+            <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
+              position: 'absolute', right: 2, top: 0, bottom: 0, width: 44,
+              color: 'var(--faint)', fontSize: 'var(--t-5)',
+            }}>×</button>
+          )}
+        </div>
+
+        {/*
+          Los cuatro filtros, en su renglón, y no en la franja de abajo: todos
+          acotan QUÉ bares se ven, mientras que lo de abajo decide en qué
+          ORDEN.
+
+          El de favoritos estaba al final de una fila que scrollea: con tres
+          controles antes, quedaba fuera de pantalla y había que descubrir que
+          se podía arrastrar para encontrarlo. Un filtro que no se ve es un
+          filtro que no existe. El `wrap` es la red de seguridad para cuando el
+          nombre de un estilo largo empuja: mejor que bajen de línea a que se
+          desborden.
+        */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--s-2)', flexWrap: 'wrap',
+        }}>
           <StyleFilter
             styles={p.styles} selected={p.styleFilter} onSelect={p.onStyle}
             tone="plain" size={38} tourId="list-style"
@@ -341,25 +377,6 @@ export function ListScreen(p: Props) {
             minRating={p.minRating} onMinRating={p.onMinRating}
             tone="plain" size={38}
           />
-
-          <div style={{ position: 'relative', flex: 1, minWidth: 0 }} data-tour="list-search">
-            <input
-              value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar un bar" type="search"
-              style={{
-                width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
-                background: 'var(--raised)', border: '1px solid var(--hairline)',
-                // Ver --t-field: abajo de 16px iOS acerca la pantalla al enfocar.
-                fontSize: 'var(--t-field)',
-              }}
-            />
-            {query !== '' && (
-              <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
-                position: 'absolute', right: 2, top: 0, bottom: 0, width: 44,
-                color: 'var(--faint)', fontSize: 'var(--t-5)',
-              }}>×</button>
-            )}
-          </div>
 
           {/* Sin favoritos marcados no aparece: un filtro que siempre devuelve
               una lista vacía sólo ocupa lugar.
