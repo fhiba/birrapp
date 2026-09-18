@@ -177,8 +177,6 @@ export function ProfileScreen({ user, onSession }: {
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
           gap: 'var(--s-2)', flexShrink: 0,
         }}>
-        <Emblema nivel={nivel} />
-
         <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
@@ -230,6 +228,16 @@ export function ProfileScreen({ user, onSession }: {
           </svg>
         </button>
         </div>
+
+        {/* El emblema va DEBAJO de los dos botones, no arriba.
+
+            Arriba empujaba la tuerca y el botón de salir para abajo, o sea
+            movía dos controles que están siempre en el mismo lugar en todas
+            las pantallas, y la fila entera quedaba desalineada con la foto.
+            Debajo cuelga de la esquina sin mover nada: los botones se quedan a
+            la altura del nombre y el emblema ocupa el aire que el bloque de la
+            izquierda ya usaba con el mail. */}
+        <Emblema nivel={nivel} />
         </div>
       </div>
 
@@ -241,18 +249,6 @@ export function ProfileScreen({ user, onSession }: {
           más. Acá el número de birras queda a la izquierda, lo que falta a la
           derecha, y la barra debajo cruza la pantalla. */}
       <NivelBarra nivel={nivel} birras={stats?.beersRecent} />
-
-      {/* El rol es información sobre la cuenta. Va en el tono informativo y no
-          en el acento: en heritage el acento es hueso, el mismo color del
-          nombre de arriba, así que la etiqueta pesaba igual que el título. */}
-      <span className="lbl pill" style={{
-        display: 'inline-block', marginTop: 'var(--s-4)', padding: 'var(--s-2) var(--s-3)',
-        fontSize: 'var(--t-2)',
-        background: isModerator(user) ? 'var(--info-soft)' : 'var(--film-2)',
-        color: isModerator(user) ? 'var(--info-bright)' : 'var(--muted)',
-      }}>
-        {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderador' : 'Usuario'}
-      </span>
 
       <SectionLabel>Lo tuyo</SectionLabel>
       {/* Cada cuadrado abre SU lista, no una pantalla común con todo apilado.
