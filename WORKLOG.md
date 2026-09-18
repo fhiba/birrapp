@@ -3546,3 +3546,42 @@ días — sin eso, quien anotó cuarenta birras el año pasado ve un nivel 1 y l
 lee como un bug.
 
 Faltan dos nombres para llegar a los diez niveles pedidos.
+
+## 2026-09-18 (cont.) — v0.24.1: dejar de preguntar lo mismo, y el buscador arriba
+
+**Las pantallas que arrancaban en blanco.** El patrón estaba copiado en cuatro
+lugares: `useState(null)` + `useEffect` que pide, o sea vacío garantizado en
+cada entrada aunque el dato no hubiera cambiado. Y como las pantallas se
+desmontan al cambiar de pestaña, "cada entrada" es seguido.
+
+Ya existía la pieza que resuelve esto —`useCached`, *stale-while-revalidate*
+sobre localStorage, escrita para los contadores del perfil— y no se había usado
+en ningún otro lado. Ahora la usan:
+
+- **Cerca**, el promedio de la zona. Era el peor: además de arrancar vacío, el
+  rebote de 350 ms del slider corría también en el primer render, así que abrir
+  la pestaña costaba un tercio de segundo de nada antes de que la consulta
+  saliera. La clave redondea la posición a dos decimales (~1 km): con
+  coordenadas enteras nunca se repetiría una clave, porque la cámara cambia con
+  cada paneo.
+- **Perfil**, los favoritos.
+- **Dashboard**, los tres pedidos. `dashboardAnalytics` es la consulta más cara
+  de la app y se disparaba en blanco cada vez.
+- **Colaboradores**, la tabla del mes. Se vaciaba también al cambiar de mes y
+  volver, que es el gesto de comparar.
+
+`useCached` ganó un `delayMs` opcional para el caso del slider, que es lo único
+que faltaba para que Cerca pudiera usarlo.
+
+**No se cachean** `MisAportes` ni `MisBirras`, a propósito: las dos borran cosas
+y recargan, y sin una forma de invalidar la entrada mostrarían lo borrado. Y
+ningún precio suelto, que es la regla de siempre. El promedio de zona sí pasa
+porque dice su alcance al lado —"N precios, de menos de 45 días"— así que no se
+puede leer como el precio de hoy de ningún bar.
+
+**El buscador de la Lista, arriba de los filtros.** Estaba en el medio de la
+fila, con dos píldoras a la izquierda y dos botones a la derecha. Cuando el
+filtro de estilo se partió en dos —estilo y nota— la fila dejó de entrar: al
+campo le quedaban unos ochenta píxeles y no entraba ni el placeholder. Arriba
+tiene el ancho entero y además queda en el orden en que se usa: primero buscás
+un bar concreto, y si no, filtrás lo que hay.

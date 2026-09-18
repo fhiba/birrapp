@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
+import { useCached } from '../data/cached'
 import { HBars, KIND_COLORS, Legend, LineChart, StackedBars } from '../ui/charts/Chart'
 import { Segmented } from '../ui/Segmented'
 import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
@@ -19,28 +20,30 @@ import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../dat
  */
 export function DashboardScreen() {
   const nav = useNavigate()
-  const [users, setUsers] = useState<DashboardUser[] | null>(null)
-  const [summary, setSummary] = useState<DashboardSummary | null>(null)
-  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [sort, setSort] = useState<'nuevos' | 'aportes'>('nuevos')
 
-  const load = useCallback(async () => {
-    setError(null)
-    try {
-      const [s, u] = await Promise.all([api.dashboardSummary(), api.dashboardUsers()])
-      setSummary(s); setUsers(u)
-    } catch (e) { setError((e as Error).message) }
-    // Las analíticas van aparte: Vercel publica la web sola y el backend se
-    // sube a mano, así que el endpoint nuevo puede tirar 404 mientras el resto
-    // anda. Su fallo deja `analytics` en null —el render ya lo contempla— y no
-    // pisa el error que muestran las otras dos consultas.
-    try {
-      setAnalytics(await api.dashboardAnalytics())
-    } catch { /* sin gráficos y listo */ }
-  }, [])
-
-  useEffect(() => { load() }, [load])
+  /*
+   * Los tres pedidos, cada uno pintando lo último que se supo mientras
+   * pregunta de nuevo.
+   *
+   * Los gráficos eran lo peor de la pantalla: `dashboardAnalytics` es la
+   * consulta más cara de la app y se disparaba en blanco en cada entrada, así
+   * que abrir el dashboard eran tres segundos de spinner para ver números que
+   * cambian de a poco a lo largo del día.
+   *
+   * Siguen siendo tres consultas y no una: las analíticas van aparte a
+   * propósito, porque Vercel publica la web sola y el backend se sube a mano,
+   * así que ese endpoint puede tirar 404 mientras el resto anda. `useCached`
+   * ya se traga el error cuando hay algo guardado, y cuando no lo hay el
+   * render contempla el `null`.
+   */
+  const { data: summary, error } = useCached<DashboardSummary>(
+    'dash:summary', api.dashboardSummary,
+  )
+  const { data: users } = useCached<DashboardUser[]>('dash:users', api.dashboardUsers)
+  const { data: analytics } = useCached<DashboardAnalytics>(
+    'dash:analytics', api.dashboardAnalytics,
+  )
 
   const shown = useMemo(() => {
     if (!users) return null

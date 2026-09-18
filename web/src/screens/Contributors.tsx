@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
+import { useCached } from '../data/cached'
 import type { Contributor, Leaderboard, PhotoOfMonth, User } from '../data/types'
 import { Empty } from '../ui/Empty'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
@@ -18,18 +19,16 @@ import { KARMA, KARMA_VISIBLE } from '../data/karma'
  */
 export function ContributorsScreen({ user }: { user: User | null }) {
   const nav = useNavigate()
-  const [data, setData] = useState<Leaderboard | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [month, setMonth] = useState<string | undefined>()
 
-  useEffect(() => {
-    let alive = true
-    setData(null)
-    api.leaderboard(month)
-      .then(d => { if (alive) { setData(d); setError(null) } })
-      .catch(e => { if (alive) setError((e as Error).message) })
-    return () => { alive = false }
-  }, [month])
+  // La tabla del mes es pública, de sólo lectura y se mueve de a poco, así que
+  // se pinta la última que se vio y se pregunta igual. Antes se vaciaba en
+  // cada entrada —y también al cambiar de mes y volver al anterior, que es
+  // justo el gesto de comparar—.
+  const { data, error } = useCached<Leaderboard>(
+    `leaderboard:${month ?? 'actual'}`,
+    () => api.leaderboard(month),
+  )
 
   /*
    * Tu fila, si estás en la tabla.
