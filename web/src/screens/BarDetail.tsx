@@ -15,6 +15,7 @@ import { PriceHistory } from '../ui/PriceHistory'
 import { Stars } from '../ui/Stars'
 import { PillRow, chipStyle } from '../ui/PillRow'
 import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
+import { SumarEnRotulo } from '../ui/Kit'
 import { BeerComments } from '../ui/BeerComments'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
 
@@ -661,11 +662,48 @@ export function BarDetailScreen({
           }}>{meta}</p>
         )}
 
+        {/*
+          La nota del bar, acá, y no en una sección al final de la pantalla.
+          
+          Vivió en tres lugares y los dos primeros estaban mal por motivos
+          distintos. Pegada al nombre, en el mismo renglón, competía por ancho
+          con el nombre y con el botón de cómo llegar, y no dejaba lugar para
+          decir de qué es esa nota — que es una distinción de producto: NO es
+          una nota al bar, es el promedio de las notas de sus birras. Mandada a
+          una sección propia al fondo, se enteraba sólo quien scrolleaba hasta
+          el final, y arriba quedaba un "★ 4,1" de once píxeles perdido entre
+          las canillas y el "Al día".
+          
+          Acá abajo del nombre tiene el ancho entero: entra el número grande,
+          las estrellas, los votos y el renglón que lo explica. Es lo segundo
+          que se lee de la ficha, que es lo que es.
+        */}
+        {barAvg != null && (
+          <div style={{ margin: 'var(--s-3) 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)' }}>
+              <span className="num" style={{
+                fontSize: 'var(--t-6)', lineHeight: 1, color: 'var(--cream)',
+              }}>{barAvg.toFixed(1).replace('.', ',')}</span>
+              <EstrellasNota value={barAvg} size={14} />
+              <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
+                {votes === 1 ? '1 voto' : `${votes} votos`}
+              </span>
+            </div>
+            {/* Una línea y no el párrafo de dos renglones que tenía la sección
+                del fondo: lo que hay que aclarar es de dónde sale el número, y
+                eso entra en media línea. */}
+            <p style={{
+              margin: '3px 0 0', fontSize: 'var(--t-1)', color: 'var(--faint)',
+            }}>
+              Promedio de las birras de este bar, no una nota al lugar.
+            </p>
+          </div>
+        )}
+
         <FilaDeEstado
           alDia={alDia}
           canillas={bar.prices.length}
           respaldo={respaldo}
-          nota={barAvg}
         />
       </div>
 
@@ -682,7 +720,27 @@ export function BarDetailScreen({
         </div>
       ) : (
         <>
-          <h2 className="section-label" style={{ padding: '0 18px' }}>LA PINTA ACÁ</h2>
+          {/* El rótulo y, contra el borde derecho, el "+" de cargar otra birra.
+
+              Estaba adentro de la fila de pastillas, como una pastilla más. Ahí
+              era una acción de ancho fijo peleando el renglón con N opciones de
+              ancho variable: bastaba un estilo de nombre largo para que la fila
+              se partiera en dos y el "⋯" se cayera solo al renglón de abajo.
+
+              En el rótulo no compite con nada, está siempre en el mismo lugar
+              —tenga el bar una birra o doce— y es el mismo gesto que el "+" de
+              FOTOS. Ámbar punteado, que es como se dibuja "agregar algo que
+              todavía no está" en toda la app. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--s-3)', padding: '0 18px',
+          }}>
+            <h2 className="section-label" style={{ flex: 1, minWidth: 0 }}>LA PINTA ACÁ</h2>
+            <SumarEnRotulo
+              label="Otra birra"
+              aria="Cargar otra birra de este bar"
+              onClick={() => user ? setReporting({}) : nav('/perfil')}
+            />
+          </div>
 
           {/* Una pestaña por birra en vez de apilarlas todas. Con cinco
               estilos, precio + nota + fotos de cada uno era una pantalla que
@@ -731,48 +789,37 @@ export function BarDetailScreen({
             // se partía en dos renglones justo arriba del precio, que es el
             // dato. Con 11 entran, y el `flexWrap` de PillRow queda de red de
             // seguridad para los nombres largos.
+            // El nombre se recorta en vez de empujar: la fila ya no envuelve
+            // (ver PillRow) y lo que cede es el texto. "Hazy IPA de Juguetes
+            // Perdidos" entra recortado y entero adentro del "⋯".
             renderPill={(p, on) => (
               <span style={{
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                 padding: '8px 11px', borderRadius: 999, fontSize: 'var(--t-3)',
-                whiteSpace: 'nowrap',
                 ...chipStyle(on),
               }}>
-                {p.label}
+                <span style={{
+                  minWidth: 0, overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{p.label}</span>
                 {p.extra}
               </span>
             )}
-            trailing={
-              <button
-                onClick={() => user ? setReporting({}) : nav('/perfil')}
-                className="lbl" aria-label="Cargar otra birra"
-                style={{
-                  flex: '0 0 auto',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '8px 11px', borderRadius: 999, fontSize: 'var(--t-3)',
-                  whiteSpace: 'nowrap', color: 'var(--info)',
-                  // Punteado: es un hueco a llenar, igual que el "+" de las
-                  // fotos. El mismo gesto se dibuja igual en toda la app.
-                  border: '1px dashed var(--info-border)',
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
-                  <path d="M12 5v14M5 12h14" stroke="currentColor"
-                    strokeWidth="2.6" strokeLinecap="round" />
-                </svg>
-                Otra
-              </button>
-            }
           />
 
-          {/* Segunda fila: las marcas de ese estilo.
+          {/* Segunda fila: las marcas de ese estilo, y **sólo si hay más de
+              una**.
               Se ve una marca por vez y se alterna entre ellas — mostrar dos
               precios juntos bajo el rótulo "IPA" es exactamente lo que hacía
-              que el número no significara nada. La fila aparece siempre,
-              incluso con una sola marca, porque es donde vive el "+": un
-              control que aparece y desaparece según cuántas haya es un control
-              que no se encuentra cuando se lo necesita. */}
-          {group && (
+              que el número no significara nada.
+
+              Aparecía siempre, incluso con una sola marca, y el argumento era
+              que ahí vivía el "+". Con el "+" mudado al rótulo, lo que quedaba
+              era una fila de una sola pastilla que no alterna nada: un segundo
+              renglón de chips, debajo de otro renglón de chips, que en el caso
+              normal —un bar con una marca por estilo— no ofrece ninguna
+              elección. */}
+          {group && group.beers.length > 1 && (
             <PillRow
               sheetTitle={`Qué ${group.name.toLowerCase()}`}
               selected={active?.brandSlug ?? '_'}
@@ -803,36 +850,17 @@ export function BarDetailScreen({
               onPick={key => setTab({ style: group.slug, brand: key === '_' ? null : key })}
               renderPill={(p, on) => (
                 <span style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
+                  display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                   padding: '8px 10px', borderRadius: 999, fontSize: 'var(--t-2)',
-                  whiteSpace: 'nowrap',
                   ...chipStyle(on),
                 }}>
-                  {p.label}
+                  <span style={{
+                    minWidth: 0, overflow: 'hidden',
+                    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{p.label}</span>
                   {p.extra}
                 </span>
               )}
-              trailing={
-                <button
-                  onClick={() => user
-                    ? setReporting({ style: group.slug })
-                    : nav('/perfil')}
-                  className="lbl" aria-label="Cargar otra marca"
-                  style={{
-                    flex: '0 0 auto',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '8px 10px', borderRadius: 999, fontSize: 'var(--t-2)',
-                    whiteSpace: 'nowrap', color: 'var(--info)',
-                    border: '1px dashed var(--info-border)',
-                  }}
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M12 5v14M5 12h14" stroke="currentColor"
-                      strokeWidth="2.6" strokeLinecap="round" />
-                  </svg>
-                  Otra
-                </button>
-              }
             />
           )}
 
@@ -905,41 +933,6 @@ export function BarDetailScreen({
           )}
 
         </>
-      )}
-
-      {/*
-        * La nota del lugar, con la línea que dice de qué es.
-        *
-        * Estaba arriba, pegada al nombre, sin lugar para explicarla — y
-        * explicarla importa: esta nota NO es una nota al bar, es el promedio
-        * de las notas de sus birras, ponderado por cuánta gente votó cada
-        * una. Sin esa línea, quien acaba de puntuar una IPA con cinco no
-        * entiende por qué el bar dice 4,1.
-        *
-        * Va después de la birra y antes de las reseñas porque es lo último
-        * que se mira: primero cuánto sale, después cómo está, después qué
-        * dijeron los demás.
-        */}
-      {barAvg != null && (
-        <section style={{ padding: '0 18px' }}>
-          <h2 className="section-label">NOTA DEL LUGAR</h2>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-3)' }}>
-            <span className="num" style={{
-              fontSize: 'var(--t-8)', lineHeight: 1, color: 'var(--cream)',
-            }}>{barAvg.toFixed(1)}</span>
-            <EstrellasNota value={barAvg} />
-            <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
-              {votes === 1 ? '1 voto' : `${votes} votos`}
-            </span>
-          </div>
-          <p style={{
-            margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)', lineHeight: 1.5,
-            color: 'var(--faint)', textWrap: 'pretty',
-          }}>
-            Sale del promedio de las birras de este bar, no de una nota al lugar.
-            Cada birra tiene la suya, arriba.
-          </p>
-        </section>
       )}
 
       {reviews.length > 0 && (
@@ -1704,13 +1697,12 @@ function BeerRating({
  * no sabe qué hay alrededor. Un cartel que afirma algo que la app no sabe es
  * peor que un cartel que falta.
  */
-function FilaDeEstado({ alDia, canillas, respaldo, nota }: {
+function FilaDeEstado({ alDia, canillas, respaldo }: {
   /** Todos los precios cargados tienen menos de 14 días. */
   alDia: boolean
   canillas: number
   /** Cuánta gente hay detrás del precio mejor respaldado del bar. */
   respaldo: number
-  nota: number | null
 }) {
   if (canillas === 0) return null
 
@@ -1736,15 +1728,6 @@ function FilaDeEstado({ alDia, canillas, respaldo, nota }: {
             animation: 'pulso-fresco 2s ease-in-out infinite',
           }} />
           Al día
-        </span>
-      )}
-
-      {nota != null && (
-        <span style={{ ...chip, color: 'var(--nota)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9L12 2.6Z" />
-          </svg>
-          <span className="num">{nota.toFixed(1)}</span>
         </span>
       )}
 

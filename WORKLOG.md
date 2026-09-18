@@ -3633,3 +3633,44 @@ cola de moderación de precios que sólo habían cambiado.
   `min-height: 44px` de `.like` a mano — esa regla es para el pulgar del visor,
   que ahí sí es el botón principal.
 - Y las fotos pasan de 150×112 a 184×138.
+
+## 2026-09-18 (cont.) — v0.26.0: pasada sobre la ficha del bar
+
+La pantalla más importante de la app estaba cargada, y casi todo lo que sobraba
+venía del mismo patrón: **una acción metida adentro del contenido que venía a
+ampliar**. Cada una pagaba su precio en el mismo lugar.
+
+**Los "+" se van al rótulo de la sección.** "Otra birra" y "Otra marca" eran
+pastillas más adentro de las filas de chips: una acción de ancho fijo peleando
+el renglón con N nombres de ancho variable. Bastaba un estilo de nombre largo
+para que la fila se partiera en dos y el "⋯" se cayera solo al renglón de
+abajo. Ahora hay un solo "+" al lado de LA PINTA ACÁ, del mismo modo que el de
+FOTOS, y los dos salen de la misma pieza: `SumarEnRotulo` en `Kit.tsx`. Ámbar
+punteado, que es como se dibuja "agregar algo que todavía no está" en el resto
+de la app — el azul es el color de lo estructural ("esto se despliega", "esto
+lleva a otra pantalla") y acá no se navega, se suma.
+
+**`PillRow` ya no envuelve.** Con las acciones afuera, la fila es N opciones más
+el "⋯" y puede ser un renglón siempre: `flexWrap: nowrap`, las pastillas ceden
+con `flex: 0 1 auto` y recortan el nombre con puntos suspensivos, y el "⋯" no
+cede nunca. El nombre entero se lee adentro del desplegable, que es su lugar.
+
+**La fila de marcas aparece sólo si hay más de una.** Aparecía siempre porque
+ahí vivía el "+". Sin el "+", lo que quedaba en el caso normal —un bar con una
+marca por estilo— era un segundo renglón de chips, debajo de otro renglón de
+chips, que no ofrece ninguna elección.
+
+**La nota del bar sube a debajo del nombre.** Vivió en tres lugares. Pegada al
+nombre competía por ancho con el nombre y con el botón de cómo llegar, y no
+dejaba lugar para decir de qué es —y hay que decirlo: no es una nota al bar, es
+el promedio de las notas de sus birras—. En una sección propia al fondo se
+enteraba sólo quien scrolleaba hasta el final, y arriba quedaba un "★ 4,1" de
+once píxeles perdido entre las canillas y el "Al día". Abajo del nombre tiene
+el ancho entero: número grande, estrellas, votos y una línea que lo explica.
+
+Con eso se fueron: una sección entera con su párrafo de dos renglones, el chip
+de la nota en la fila de estado (que lo duplicaba), dos pastillas de "Otra" y,
+en el caso normal, una fila de chips completa.
+
+**Fotos:** el "+" contra el borde derecho —pegado al título se leía como parte
+de la palabra FOTOS— y más aire entre el rótulo y la tira.

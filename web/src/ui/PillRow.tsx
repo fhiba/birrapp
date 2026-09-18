@@ -47,6 +47,12 @@ export interface Pastilla {
  * Tres y un desplegable dicen la verdad: hay más, y están acá. El "⋯" siempre
  * ocupa el mismo lugar, así que se aprende una vez.
  *
+ * **Acá no vive ningún botón de "agregar".** Lo tuvo, y era lo que rompía la
+ * fila: una acción de ancho fijo peleando el renglón con N opciones de ancho
+ * variable sólo puede terminar en dos renglones. El "+" vive en el rótulo de
+ * la sección, que es donde no compite con nada. Ver `BarDetail` y `PhotoStrip`:
+ * los dos lo hacen igual.
+ *
  * ## Cuáles son los tres
  *
  * En orden, y sin repetir:
@@ -63,14 +69,12 @@ export interface Pastilla {
  * fila baila debajo del dedo.
  */
 export function PillRow({
-  items, selected, onPick, sheetTitle, trailing, renderPill, dataTour,
+  items, selected, onPick, sheetTitle, renderPill, dataTour,
 }: {
   items: Pastilla[]
   selected: string | null
   onPick: (key: string) => void
   sheetTitle: string
-  /** El botón de "agregar otra", que va siempre al final. */
-  trailing?: ReactNode
   renderPill: (p: Pastilla, on: boolean) => ReactNode
   dataTour?: string
 }) {
@@ -80,12 +84,22 @@ export function PillRow({
 
   return (
     <>
-      {/* `gap: 6` y no 8: con las pastillas apretadas, los tres huecos de la
-          fila eran lo que hacía la diferencia entre entrar en un renglón y
-          partirse en dos justo arriba del precio. */}
+      {/*
+        Un renglón, siempre.
+
+        Antes la fila envolvía —`flexWrap: wrap`— y con eso bastaba un estilo de
+        nombre largo para que el "⋯" se cayera al renglón de abajo, solo. Una
+        fila de tres cosas que a veces son dos renglones y a veces uno hace que
+        la pantalla salte de alto según qué bar abriste.
+
+        Ahora no envuelve y son las pastillas las que ceden: `flex: 0 1 auto`
+        con `minWidth: 0`, así el nombre largo se recorta con puntos suspensivos
+        en vez de empujar. El "⋯" no cede nunca —`flexShrink: 0`— porque es la
+        salida a la lista completa, y ahí el nombre entero se lee igual.
+      */}
       <div data-tour={dataTour} style={{
         display: 'flex', gap: 6, padding: '4px 18px 0',
-        alignItems: 'center', flexWrap: 'wrap',
+        alignItems: 'center', flexWrap: 'nowrap',
       }}>
         {visibles.map(p => (
           <button
@@ -93,7 +107,7 @@ export function PillRow({
             onClick={() => onPick(p.key)}
             aria-pressed={p.key === selected}
             className="lbl"
-            style={{ flex: '0 0 auto' }}
+            style={{ flex: '0 1 auto', minWidth: 0 }}
           >
             {renderPill(p, p.key === selected)}
           </button>
@@ -105,7 +119,7 @@ export function PillRow({
             aria-label={`Ver las ${items.length} opciones`}
             className="lbl"
             style={{
-              flex: '0 0 auto',
+              flexShrink: 0,
               // Mismo alto que las pastillas para que la fila no se escalone.
               minWidth: 36, height: 36, borderRadius: 999,
               display: 'grid', placeItems: 'center',
@@ -117,8 +131,6 @@ export function PillRow({
             }}
           >⋯</button>
         )}
-
-        {trailing}
       </div>
 
       {abierto && (

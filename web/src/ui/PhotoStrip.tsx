@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Photo } from '../data/types'
 import { compressImage } from '../data/image'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
+import { SumarEnRotulo } from './Kit'
 
 /**
  * Lo que suma subir una foto, para mostrarlo dentro del botón.
@@ -92,35 +93,35 @@ export function PhotoStrip({
         Y es un "+" chico, no un cuadro del tamaño de una foto: agregar es una
         acción sobre la sección, no una tarjeta más de la tira.
       */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
-        <h3 className="section-label" style={{ margin: 'var(--s-5) 0 var(--s-2)' }}>
+      {/* El "+" contra el borde derecho —`flex: 1` en el rótulo, que lo empuja
+          hasta el fondo— y no pegado al título: ahí se leía como parte del
+          texto "FOTOS", no como un botón.
+
+          Y en ámbar punteado, la forma que tiene "agregar algo" en el resto de
+          la app. En azul se confundía con lo estructural, que es el color de
+          "esto se despliega" y "esto lleva a otra pantalla": acá no se navega,
+          se suma. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+        margin: 'var(--s-5) 0 var(--s-3)',
+      }}>
+        <h3 className="section-label" style={{ margin: 0, flex: 1, minWidth: 0 }}>
           {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
         </h3>
         {canAdd && (
-          <button
-            onClick={() => picker.current?.click()} disabled={busy}
-            aria-label={KARMA_VISIBLE
+          <SumarEnRotulo
+            busy={busy}
+            aria={KARMA_VISIBLE
               ? `Agregar una foto, suma ${PTS_FOTO} puntos`
               : 'Agregar una foto'}
-            style={{
-              // Punteado y en la familia de `--info`: es un hueco a llenar. El
-              // mismo gesto se dibuja igual en toda la app.
-              width: 28, height: 28, borderRadius: 'var(--r-1)', padding: 0,
-              border: '1px dashed var(--info-border)', color: 'var(--info)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-              marginTop: 'var(--s-2)',
-            }}
-          >
-            {busy ? <div className="spinner" /> : (
-              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
-                <path d="M12 5v14M5 12h14" stroke="currentColor"
-                  strokeWidth="2.6" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
+            onClick={() => picker.current?.click()}
+          />
         )}
       </div>
 
+      {/* El aire entre el rótulo y la tira lo pone el `margin` de arriba: sin
+          él las fotos quedaban pegadas a la palabra FOTOS y se leía como si el
+          rótulo fuera el pie de la foto anterior. */}
       <div data-tour="bar-photos" style={{
         display: 'flex', gap: 'var(--s-3)', overflowX: 'auto', paddingBottom: 'var(--s-1)',
         scrollSnapType: 'x mandatory',
