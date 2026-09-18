@@ -3,11 +3,28 @@ import { useEffect, useState, type ReactNode } from 'react'
 export type AddAction = 'beer' | 'price' | 'bar'
 
 /**
- * El "+" del mapa, que pasó de hacer una sola cosa a preguntar cuál (BIR-36).
+ * El "+" de la app, que pasó de hacer una sola cosa a preguntar cuál (BIR-36).
  *
- * Es un desplegable chico anclado al botón, no una pantalla: elegir qué vas a
- * cargar es un paso de tránsito y una vista entera lo convertiría en un
- * trámite. Tres renglones, el ancho justo, y el mapa sigue visible detrás.
+ * **Vive en el centro de la barra de pestañas**, y no flotando en la esquina
+ * del mapa. Flotando tenía dos problemas. Uno: sólo existía en el mapa, aunque
+ * "me tomé una birra" o "cargar un precio" no son acciones del mapa sino de la
+ * app — desde la lista o desde Cerca no había por dónde entrar. Dos: en la
+ * esquina de abajo a la derecha competía con el pulgar que panea el mapa, y
+ * quedaba a la misma altura que el botón de centrar, o sea dos círculos
+ * flotantes diciendo cosas de familias distintas.
+ *
+ * En el centro de la barra queda donde el pulgar llega solo, aparece en las
+ * cuatro pantallas, y el resto de la barra sigue siendo navegación: esto es lo
+ * único que *hace* algo, y por eso es lo único que no es una pestaña.
+ *
+ * Se dibuja más grande que los íconos de las pestañas y apenas por encima del
+ * filete, asomando arriba de la barra. Las dos cosas dicen lo mismo: no es una
+ * pestaña más, es la acción. El aro de `--base` alrededor es lo que lo despega
+ * —sin él, el círculo apoyado sobre el filete se lee como pegado a la barra—.
+ *
+ * El menú es un desplegable chico anclado al botón, no una pantalla: elegir
+ * qué vas a cargar es un paso de tránsito y una vista entera lo convertiría en
+ * un trámite. Tres renglones, el ancho justo, y lo de atrás sigue visible.
  *
  * El "+" gira 45° y se vuelve una cruz mientras está abierto: el mismo botón
  * abre y cierra, así que tiene que decir en qué estado está.
@@ -27,16 +44,23 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
   const pick = (a: AddAction) => { setOpen(false); onPick(a) }
 
   return (
-    <>
+    <div style={{
+      // Ancho fijo y no `flex: 1`: las cuatro pestañas se reparten lo que
+      // queda, y si esto creciera con ellas el círculo dejaría de estar en el
+      // centro exacto de la barra en cuanto una etiqueta fuera más larga.
+      width: 72, flexShrink: 0,
+      display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
+    }}>
       {/*
-        Capa que se come el toque de afuera. Va debajo del menú y por encima
-        del mapa: sin ella, tocar el mapa para cerrar movería la cámara al
-        mismo tiempo.
+        Capa que se come el toque de afuera. `fixed` y no `absolute`: la barra
+        de pestañas es angosta y baja, así que un overlay medido contra ella no
+        cubriría nada. Va debajo del menú y por encima de todo lo demás —sin
+        ella, tocar el mapa para cerrar movería la cámara al mismo tiempo.
       */}
       {open && (
         <div
           onClick={() => setOpen(false)}
-          style={{ position: 'absolute', inset: 0, zIndex: 19 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 59 }}
           aria-hidden
         />
       )}
@@ -51,12 +75,13 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
           aria-label="Qué querés agregar"
           className="glass"
           style={{
-            position: 'absolute', right: 14, zIndex: 20,
-            bottom: `calc(72px + var(--nav-gap) + 60px)`,
-            borderRadius: 'var(--r-3)', padding: 'var(--s-2)', minWidth: 208,
+            position: 'fixed', zIndex: 60,
+            left: '50%', transform: 'translateX(-50%)',
+            bottom: `calc(74px + var(--nav-gap))`,
+            borderRadius: 'var(--r-3)', padding: 'var(--s-2)', minWidth: 216,
             display: 'flex', flexDirection: 'column',
             // Nace desde el botón, que es de donde viene.
-            transformOrigin: 'bottom right',
+            transformOrigin: 'bottom center',
             animation: 'addmenu-in .13s ease-out',
           }}
         >
@@ -71,17 +96,21 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
         aria-label={open ? 'Cerrar el menú de agregar' : 'Agregar'}
         aria-expanded={open}
         style={{
-          position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
-          width: 52, height: 52, borderRadius: '50%', background: 'var(--acento)',
-          zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 6px 22px rgba(0,0,0,.4)', padding: 0,
+          width: 56, height: 56, borderRadius: '50%', background: 'var(--acento)',
+          // Lo sube por encima del filete de la barra. El aro del mismo color
+          // que el fondo es lo que lo recorta contra ella.
+          marginTop: -16, border: '4px solid var(--base)',
+          position: 'relative', zIndex: 61,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, flexShrink: 0,
+          boxShadow: '0 6px 22px rgba(0,0,0,.4)',
           transition: 'transform .13s ease-out',
           transform: open ? 'rotate(45deg)' : 'none',
         }}
       >
         {/* Dibujado y no un glifo: un "+" de fuente se posiciona por baseline
             y nunca queda centrado en un círculo. */}
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
+        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
           <path d="M12 4.5v15M4.5 12h15" stroke="var(--base)"
             strokeWidth="2.6" strokeLinecap="round" />
         </svg>
@@ -89,11 +118,11 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
 
       <style>{`
         @keyframes addmenu-in {
-          from { opacity: 0; transform: scale(.88) translateY(6px); }
-          to   { opacity: 1; transform: none; }
+          from { opacity: 0; transform: translateX(-50%) scale(.88) translateY(6px); }
+          to   { opacity: 1; transform: translateX(-50%); }
         }
       `}</style>
-    </>
+    </div>
   )
 }
 

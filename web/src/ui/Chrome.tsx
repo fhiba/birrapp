@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { AddMenu, type AddAction } from './AddMenu'
 
 const ICON = {
   // El radar de "Cerca": un aro y un punto, o sea el alcance alrededor tuyo.
@@ -66,7 +67,14 @@ const ALTO_BARRA = 49
  * vocabulario que `.tab-underline` usa para los segmentados: una sola forma
  * para "estás acá" en toda la app.
  */
-export function BottomNav() {
+export function BottomNav({ onAdd }: {
+  /**
+   * Qué eligió la persona en el "+" del centro. Lo resuelve `Shell`, que es
+   * quien tiene la sesión y monta las hojas de carga: la barra sabe dibujar
+   * el botón, no qué hacer con lo que se elija.
+   */
+  onAdd: (a: AddAction) => void
+}) {
   const tab = (to: string, label: string, icon: keyof typeof ICON) => (
     <NavLink
       to={to}
@@ -147,13 +155,23 @@ export function BottomNav() {
         {/* Cuatro pestañas, en el orden del diseño: Cerca, Mapa, Lista,
             Perfil. "Cerca" va primera porque contesta la pregunta más general
             —cuánto sale la pinta por acá— y las otras dos la responden cada vez
-            más fino: el mapa dice dónde, la lista dice cuál. */}
+            más fino: el mapa dice dónde, la lista dice cuál.
+
+            Y el "+" justo en el medio, partiendo las cuatro en dos y dos.
+            No es una quinta pestaña: es lo único de la barra que hace algo en
+            vez de llevarte a algún lado, y por eso se dibuja distinto —círculo
+            lleno, más grande, asomando arriba del filete—. Ver `AddMenu`.
+
+            `alignItems: flex-start` para que el círculo pueda subir con su
+            `marginTop` negativo sin estirar la fila: sin esto las cuatro
+            pestañas crecerían para igualar el alto del botón. */}
         <div className="desk-narrow" style={{
-          display: 'flex',
+          display: 'flex', alignItems: 'flex-start',
           borderTop: '1px solid var(--hairline)',
         }}>
           {tab('/cerca', 'Cerca', 'radar')}
           {tab('/', 'Mapa', 'map')}
+          <AddMenu onPick={onAdd} />
           {tab('/lista', 'Lista', 'list')}
           {tab('/perfil', 'Perfil', 'person')}
         </div>

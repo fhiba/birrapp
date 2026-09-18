@@ -20,13 +20,31 @@ interface Suggestion { placeId: string; primary: string; secondary: string }
  *     tiene con qué verificar nada.
  */
 export function AddBarScreen(
-  { user, center, onAdded }: {
+  { user, center, onAdded, onBack, embedded = false }: {
     user: User | null
     center: google.maps.LatLngLiteral | null
-    onAdded: () => void
+    /**
+     * El bar quedó elegido. Llega con el bar cuando hay uno —recién dado de
+     * alta, o uno que ya estaba y se encontró buscando—; sin argumento desde
+     * la pantalla suelta, donde lo único que hace falta es invalidar la caché.
+     */
+    onAdded: (bar?: { id: number; name: string }) => void
+    /** Qué hace la flecha. Por defecto, la vuelta atrás del navegador. */
+    onBack?: () => void
+    /**
+     * Montada adentro de otro flujo (hoy, el paso "el bar no está" de la carga
+     * de precio) y no como su propia ruta.
+     *
+     * Cambia tres cosas, todas por lo mismo — acá el alta es un desvío y no el
+     * destino: no navega a ningún lado al terminar, tocar un bar que ya existe
+     * lo elige en vez de abrir su ficha, y se dibuja como una capa encima en
+     * vez de ocupar el lugar de la pantalla.
+     */
+    embedded?: boolean
   },
 ) {
   const nav = useNavigate()
+  const volver = onBack ?? (() => nav(-1))
   const placesLib = useMapsLibrary('places')
 
   const [query, setQuery] = useState('')
@@ -124,7 +142,7 @@ export function AddBarScreen(
     if (!center && !chosen) return
     setSending(true); setError(null)
     try {
-      await api.addBar(chosen
+      const r = await api.addBar(chosen
         ? {
             name: chosen.name, lat: chosen.lat, lng: chosen.lng,
             address: chosen.address, googlePlaceId: chosen.placeId,
@@ -138,21 +156,28 @@ export function AddBarScreen(
             // tu configuración.
             currency,
           })
-      onAdded()
-      nav('/')
+      onAdded(chosen ? { id: r.id, name: chosen.name } : { id: r.id, name: query.trim() })
+      // Embebida no navega: el flujo que la abrió sigue donde estaba, con el
+      // bar recién creado ya elegido.
+      if (!embedded) nav('/')
     } catch (e) { setError((e as Error).message) } finally { setSending(false) }
   }
 
   return (
     <div style={{
-      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+      position: embedded ? 'fixed' : 'absolute', inset: 0,
+      // Por encima de la carga de precio, que es `fixed` con z-index 70.
+      zIndex: embedded ? 75 : undefined,
+      background: embedded ? 'var(--base)' : undefined,
+      display: 'flex', flexDirection: 'column',
       paddingTop: 'var(--safe-top)',
+      paddingBottom: embedded ? 'var(--safe-bottom)' : undefined,
     }}>
       <header style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
         borderBottom: '1px solid var(--hairline)',
       }}>
-        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+        <button onClick={volver} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
         <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Bar nuevo</h1>
       </header>
 
@@ -221,8 +246,16 @@ export function AddBarScreen(
                 decía "ya está" en el verde de la frescura, que es color de
                 precio y acá no hay ninguno, y la distancia competía con el
                 nombre del bar desde el gris de los metadatos. */}
+            {/* Embebida, un bar que ya existe no es un desvío a su ficha: es
+                justamente el bar que estabas buscando. Tocarlo lo elige y el
+                flujo sigue, que era lo que venías a hacer. */}
             {existing.map(b => (
-              <button key={b.id} onClick={() => nav(`/bar/${b.id}`)} style={{
+              <button
+                key={b.id}
+                onClick={() => embedded
+                  ? onAdded({ id: b.id, name: b.name })
+                  : nav(`/bar/${b.id}`)}
+                style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 minHeight: 44, padding: '12px 0', textAlign: 'left',
                 borderBottom: '1px solid var(--hairline)',
@@ -234,7 +267,9 @@ export function AddBarScreen(
                     {formatDistance(b.distanceMeters)}
                   </span>
                 </span>
-                <span className="lbl" style={{ color: 'var(--info)', fontSize: 'var(--t-3)' }}>Ver</span>
+                <span className="lbl" style={{ color: 'var(--info)', fontSize: 'var(--t-3)' }}>
+                  {embedded ? 'Elegir' : 'Ver'}
+                </span>
               </button>
             ))}
 

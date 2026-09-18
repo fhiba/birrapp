@@ -29,6 +29,9 @@ import { SettingsScreen } from './screens/Settings'
 import { PreferencesScreen } from './screens/Preferences'
 import { PersonScreen } from './screens/Person'
 import { useFavorites } from './data/useFavorites'
+import { ReportFlow, type FlowBar } from './screens/ReportFlow'
+import { LogBeerSheet } from './screens/LogBeer'
+import type { AddAction } from './ui/AddMenu'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
@@ -115,6 +118,17 @@ function Shell() {
   // dos toques seguidos en el mismo lugar no cambiarían el estado y el
   // segundo se perdería.
   const [panTo, setPanTo] = useState<{ target: google.maps.LatLngLiteral; token: number } | null>(null)
+
+  /**
+   * Lo que se está cargando desde el "+" de la barra de pestañas.
+   *
+   * Vive acá y no en el mapa desde que el "+" se mudó al centro de la barra:
+   * la barra se ve en las cuatro pestañas, así que el flujo tiene que poder
+   * abrirse desde cualquiera de ellas y sobrevivir a que se cambie de pestaña
+   * por debajo. `bar` es el que ya está elegido cuando se entra desde la vista
+   * previa de un bar sin precio — una pregunta menos.
+   */
+  const [add, setAdd] = useState<{ action: AddAction; bar?: FlowBar } | null>(null)
 
   useEffect(() => api.onSessionChange(setUser), [])
 
@@ -210,6 +224,20 @@ function Shell() {
 
   const afterChange = useCallback(() => { invalidate(); refresh(true) }, [invalidate, refresh])
 
+  /**
+   * Abrir la carga, venga del "+" o de la vista previa de un bar.
+   *
+   * Agregar un bar se puede sin cuenta hasta el formulario, que ya avisa. Las
+   * otras dos escriben en nombre de la persona, así que sin sesión no hay nada
+   * que hacer más que ofrecerle entrar. Y el alta de bar es una pantalla
+   * propia con su URL, no una hoja: se navega.
+   */
+  const startAdd = useCallback((action: AddAction, bar?: FlowBar) => {
+    if (action !== 'bar' && !api.currentUser()) { nav('/perfil'); return }
+    if (action === 'bar') { nav('/agregar'); return }
+    setAdd({ action, bar })
+  }, [nav])
+
   const showNav = ['/', '/cerca', '/lista', '/perfil'].includes(route.pathname)
 
   // El tutorial es por pantalla, así que la ruta decide qué se enseña. Las
@@ -235,10 +263,9 @@ function Shell() {
         <Route path="/" element={
           <MapScreen
             bars={bars} styles={styles} loading={loading}
-            user={user} brands={brands} favorites={favorites.ids}
+            favorites={favorites.ids}
             onToggleFavorite={id => user ? favorites.toggle(id) : nav('/perfil')}
-            onBrandCreated={addBrand} onStyleCreated={addStyle}
-            onChanged={afterChange}
+            onAddPrice={bar => startAdd('price', bar)}
             center={coords ?? BA_CENTER} simulated={simulated}
             radius={radius} styleFilter={styleFilter}
             minRating={minRating} onMinRating={setMinRating}
@@ -350,7 +377,44 @@ function Shell() {
 
       <OfflineBanner />
 
-      {showNav && <BottomNav />}
+      {showNav && <BottomNav onAdd={startAdd} />}
+
+      {add?.action === 'beer' && (
+        <LogBeerSheet
+          nearby={bars} styles={styles} brands={brands}
+          onBrandCreated={addBrand} onStyleCreated={addStyle}
+          onClose={() => setAdd(null)}
+          onDone={m => { setAdd(null); setToast(m) }}
+        />
+      )}
+
+      {/* Se pregunta todo: estilo, marca y bar, y recién ahí el monto —salvo
+          lo que ya se sepa, como el bar cuando se entra desde su vista previa.
+          Antes esto elegía el bar y te dejaba en su ficha con el teclado
+          abierto; el resto de la birra lo tenías que resolver ahí arriba,
+          encima del teclado. */}
+      {add?.action === 'price' && (
+        <ReportFlow
+          styles={styles} brands={brands} user={user}
+          nearby={bars} center={coords ?? camera?.center ?? null}
+          bar={add.bar}
+          onStyleCreated={addStyle}
+          onBrandCreated={addBrand}
+          onCancel={() => setAdd(null)}
+          onSubmit={async ({ bar, styleSlug, brandSlug, price, sizeMl }) => {
+            setAdd(null)
+            try {
+              const r = await api.reportPrice({
+                barId: bar.id, styleSlug, brandSlug, price, sizeMl,
+              })
+              setToast(r.message)
+              // El pin tiene que reflejarlo al toque: es el agujero de BIR-23,
+              // que se arregló en la ficha del bar y volvería a aparecer acá.
+              afterChange()
+            } catch (e) { setToast((e as Error).message) }
+          }}
+        />
+      )}
       {error && bars.length === 0 && (
         <Toast text={error} onDone={() => {}} />
       )}

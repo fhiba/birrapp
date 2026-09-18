@@ -209,6 +209,11 @@
      el prendido se pinta opaco. Ver el comentario de `.glass`. */
   --fresh-soft: rgba(255,252,154,.16);
   --aging: #EE9A52;
+  /* El gemelo translúcido del ámbar, con el mismo .16 que el resto de la
+     familia `-soft`. Lo usa el botón de "no está en la lista" cuando el campo
+     de alta está abierto: es el único control de la app que habla en ámbar,
+     porque es el único que carga algo que queda a revisión. */
+  --aging-soft: rgba(238,154,82,.16);
   /* Malva apagado, el mismo tono que `--faint`. Que un precio viejo se pinte
      del color de los metadatos es el mensaje: dejó de ser noticia. */
   --stale: #9C8A90;

@@ -47,25 +47,25 @@ export function InfoScreen() {
       </Section>
 
       {/* En el mapa conviven DOS codificaciones de color, y esta sección
-          existe para que no se confundan. Hasta la pizarra había una sola —el
-          precio— y este párrafo alcanzaba con nombrarla; desde que la cápsula
-          lleva el punto de frescura, decir "el color del pin va del más barato
-          al más caro" es explicar mal justo el pin que más se mira.
+          existe para que no se confundan: el fondo de la chapita habla de
+          plata, el puntito de adentro habla de tiempo.
 
-          Van en este orden porque es el orden en que se los encuentra en
-          pantalla: primero se ven las chapitas con número, y los puntos
-          pelados son lo que queda cuando la etiqueta no entró. */}
-      <Section title="El punto de la chapita es la frescura, no el precio">
-        La chapita con el precio escrito lleva al lado un punto del color de la
-        escala de acá arriba: el número ya dice cuánto sale, así que el color
-        dice de cuándo es. Nunca vas a ver un precio sin ese punto.
+          Van en este orden porque es el orden en que se los lee: primero el
+          color de la chapita, que se ve de lejos, y después el punto, que hay
+          que mirar. */}
+      <Section title="El color del pin va de barato a caro">
+        Lima es lo más barato que tengas en pantalla y coral lo más caro; el
+        medio es el puesto de cada bar adentro de ese rango. La escala se
+        reacomoda al moverte, así que el color siempre habla del barrio que
+        estás mirando y no de toda la ciudad.
       </Section>
 
-      <Section title="Los puntos sin número sí van de barato a caro">
-        Cuando dos bares quedan tan cerca que las chapitas se taparían, sólo
-        una muestra el precio y el resto queda como punto. Ese punto es lo
-        único que puede hablar de plata, y va del más barato al más caro según
-        lo que tengas en pantalla, así que la escala se reacomoda al moverte.
+      <Section title="El puntito de adentro es la frescura">
+        Adentro de cada chapita, a la izquierda del número, hay un punto del
+        color de la escala de acá arriba: dice de cuándo es ese precio. Va
+        sobre un cuadradito oscuro justamente para que se distinga del fondo,
+        que es de la misma familia de colores pero significa otra cosa. Nunca
+        vas a ver un precio sin ese punto.
       </Section>
 
       {/* La pastilla "barato ●●●● caro" se sacó del mapa —la escala se lee
