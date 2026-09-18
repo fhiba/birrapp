@@ -3936,3 +3936,45 @@ screenshot no pueden convivir. Lo más probable es el service worker sirviendo e
 bundle anterior —`registerType: 'autoUpdate'` cambia el SW pero la pestaña
 abierta sigue con el JS viejo hasta recargar—, así que hay que volver a mirarlo
 después de cerrar y abrir la app.
+
+## 2026-09-18 (cont.) — v0.29.0: nombrar admins desde la app, y la cabecera del perfil
+
+### El endpoint de roles existía y no lo llamaba nadie
+
+Pedido: hacer admin a Pitu. Resultó que no había forma desde la app.
+
+`POST /moderation/users/{id}/role` está desde siempre y no tenía ni cliente ni
+UI: el Dashboard **mostraba** el rol y no lo dejaba cambiar. Y
+`BOOTSTRAP_ADMIN_EMAILS` no sirve para esto, porque se lee en el INSERT y el
+upsert no toca el rol nunca —a propósito, para que un re-login no degrade a
+nadie—. O sea que para nombrar a un moderador había que entrar a la base a mano,
+que es la forma más rápida de que no se nombre a nadie.
+
+Ahora la etiqueta del rol, siendo admin, es el `<select>` que lo cambia. Un
+selector y no un botón que rota: son tres roles y uno es admin, así que hay que
+poder elegir a cuál se va y no descubrirlo tocando.
+
+**Antes de exponerlo hubo que ponerle el candado que no tenía.** `setRole` no
+impedía que un admin se bajara a sí mismo, y como el rol sólo se siembra al
+crear la cuenta, al último admin no lo puede volver a subir nadie: un toque de
+más en una lista de usuarios y la única salida es un UPDATE a mano en
+producción.
+
+La regla quedó en el repo y no en el handler, y eso fue deliberado: el proyecto
+no tiene pruebas de ruta, así que una guardia en la ruta habría sido una guardia
+sin cubrir. En `UserRepo.setRole(actorId, targetId, role)` la alcanza
+`RoleTest`, que verifica las dos mitades — que rebotar no lo deje a medio camino
+y que a otro sí lo pueda cambiar, que es para lo que existe.
+
+### La cabecera del perfil
+
+La tuerca y el botón de salir subieron al renglón del título. Son controles de
+la **pantalla** —configurarla, salir de ella—, no datos de la persona, y en la
+fila del nombre eran 88px peleando ancho con un mail de veinte caracteres: esa
+fila tenía 56 de foto + 44 + 44 antes de que el nombre tuviera a dónde ir.
+Arriba ocupan un renglón que estaba vacío.
+
+Con ese rincón libre, el emblema del nivel pudo dejar de colgar debajo de los
+botones y pasar al renglón del nombre, contra el borde derecho. Compartiendo
+columna con dos controles, el nivel se leía como un tercer botón; al lado del
+nombre se lee como lo que es.

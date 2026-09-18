@@ -419,8 +419,26 @@ class UserRepo(private val db: Db) {
         previous
     }
 
-    fun setRole(userId: Long, role: Role): Boolean = db.conn {
-        it.update("UPDATE users SET role = ?::user_role WHERE id = ?", role.name, userId) > 0
+    /**
+     * Cambia el rol de alguien, de parte de [actorId].
+     *
+     * **Nadie se cambia el rol a sí mismo.** No es una formalidad: el rol sólo
+     * se siembra al crear la cuenta —`BOOTSTRAP_ADMIN_EMAILS` se lee en el
+     * INSERT y el upsert no lo toca nunca—, así que al único admin que queda no
+     * lo puede volver a subir nadie. Un toque de más en una lista de usuarios y
+     * la salida es un UPDATE a mano en la base de producción.
+     *
+     * La regla vive acá y no en el handler porque acá la alcanzan los tests: el
+     * proyecto no tiene pruebas de ruta, así que una guardia en la ruta sería
+     * una guardia sin cubrir.
+     */
+    fun setRole(actorId: Long, targetId: Long, role: Role): Boolean {
+        if (actorId == targetId) {
+            com.birrapp.core.badRequest("no podés cambiarte el rol a vos mismo: pedíselo a otro admin")
+        }
+        return db.conn {
+            it.update("UPDATE users SET role = ?::user_role WHERE id = ?", role.name, targetId) > 0
+        }
     }
 
     /**

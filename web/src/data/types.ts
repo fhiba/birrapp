@@ -266,6 +266,9 @@ export interface Person {
 export const isModerator = (u: User | null) =>
   u?.role === 'moderator' || u?.role === 'admin'
 
+/** Nombrar moderadores y admins es sólo de admin, no de todo el staff. */
+export const isAdmin = (u: User | null) => u?.role === 'admin'
+
 export interface ModerationSummary {
   pendingBars: number
   openFlags: number

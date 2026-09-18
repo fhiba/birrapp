@@ -510,6 +510,15 @@ export const rejectBar = (id: number) => req<unknown>('POST', `/moderation/bars/
 export const deleteBar = (id: number) => req<unknown>('POST', `/moderation/bars/${id}/delete`, { auth: true })
 export const resolveFlag = (id: number) => req<unknown>('POST', `/moderation/flags/${id}/resolve`, { auth: true })
 export const approvePrice = (id: number) => req<unknown>('POST', `/moderation/prices/${id}/approve`, { auth: true })
+/**
+ * Cambia el rol de alguien. Sólo admin, y nunca el propio (lo frena el
+ * servidor: ver el comentario del endpoint en Routes.kt).
+ */
+export const setUserRole = (id: number, role: 'user' | 'moderator' | 'admin') =>
+  req<{ ok: boolean }>('POST', `/moderation/users/${id}/role`, {
+    body: { role }, auth: true,
+  })
+
 export const dashboardUsers = (limit = 200) =>
   req<DashboardUser[]>('GET', '/moderation/dashboard/users', {
     auth: true, params: { limit },

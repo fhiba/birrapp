@@ -5,7 +5,9 @@ import * as api from '../data/api'
 import { useCached } from '../data/cached'
 import { HBars, KIND_COLORS, Legend, LineChart, StackedBars } from '../ui/charts/Chart'
 import { Segmented } from '../ui/Segmented'
+import { isAdmin } from '../data/types'
 import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
+import * as fb from '../data/feedback'
 
 /**
  * Quién se anotó y qué aportó.
@@ -21,6 +23,25 @@ import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../dat
 export function DashboardScreen() {
   const nav = useNavigate()
   const [sort, setSort] = useState<'nuevos' | 'aportes'>('nuevos')
+  const yo = api.currentUser()
+  const soyAdmin = isAdmin(yo)
+  const [rolError, setRolError] = useState<string | null>(null)
+  /** Roles ya cambiados en esta sesión, para pintarlos sin volver a pedir todo. */
+  const [rolNuevo, setRolNuevo] = useState<Record<number, string>>({})
+
+  const cambiarRol = async (id: number, role: 'user' | 'moderator' | 'admin') => {
+    setRolError(null)
+    // Optimista y con vuelta atrás: la lista viene de una consulta cara y
+    // recargarla entera por un cambio de una fila es medio segundo de nada.
+    const antes = rolNuevo[id]
+    setRolNuevo(r => ({ ...r, [id]: role }))
+    try { await api.setUserRole(id, role); fb.exito() }
+    catch (e) {
+      fb.error()
+      setRolError((e as Error).message)
+      setRolNuevo(r => ({ ...r, [id]: antes ?? '' }))
+    }
+  }
 
   /*
    * Los tres pedidos, cada uno pintando lo último que se supo mientras
@@ -110,13 +131,33 @@ export function DashboardScreen() {
           />
         </div>
 
+        {rolError && (
+          <p role="alert" style={{
+            color: 'var(--danger)', fontSize: 'var(--t-2)', lineHeight: 1.5,
+            padding: '0 var(--s-4) var(--s-2)',
+          }}>{rolError}</p>
+        )}
+
         {shown?.length === 0 && (
           <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 48 }}>
             Todavía no hay nadie registrado.
           </p>
         )}
 
-        {shown?.map(u => <UserRow key={u.id} u={u} />)}
+        {shown?.map(u => (
+          <UserRow
+            key={u.id}
+            // El rol cambiado en esta sesión pisa el que trajo la consulta: si
+            // no, el selector vuelve solo al valor viejo hasta la próxima
+            // recarga y parece que no guardó.
+            u={rolNuevo[u.id] ? { ...u, role: rolNuevo[u.id] } : u}
+            // El selector de rol sólo para admin, y nunca sobre uno mismo: el
+            // servidor lo rechaza igual, pero ofrecer un control que va a
+            // fallar es peor que no ofrecerlo.
+            puedeCambiarRol={soyAdmin && u.id !== yo?.id}
+            onRol={cambiarRol}
+          />
+        ))}
       </div>
     </div>
   )
@@ -150,7 +191,11 @@ function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean
   )
 }
 
-function UserRow({ u }: { u: DashboardUser }) {
+function UserRow({ u, puedeCambiarRol, onRol }: {
+  u: DashboardUser
+  puedeCambiarRol: boolean
+  onRol: (id: number, role: 'user' | 'moderator' | 'admin') => void
+}) {
   const total = u.prices + u.confirmations + u.bars + u.photos + u.ratings
   const age = u.ageDays <= 0 ? 'hoy' : u.ageDays === 1 ? 'ayer' : `hace ${u.ageDays} d`
 
@@ -176,7 +221,35 @@ function UserRow({ u }: { u: DashboardUser }) {
           {/* El rol es información sobre la cuenta, no un logro: va en el tono
               informativo y no en el acento, que acá es hueso y hacía que la
               etiqueta pesara igual que el nombre. */}
-          {u.role !== 'user' && (
+          {/*
+            Siendo admin, la etiqueta del rol pasa a ser el control que lo
+            cambia. El endpoint existía desde siempre y no lo llamaba nadie: para
+            nombrar a un moderador había que entrar a la base a mano, que es la
+            forma más rápida de que no se nombre a nadie.
+
+            Un `<select>` y no un botón que rota: son tres roles y uno de ellos
+            es admin, así que hay que poder elegir a cuál se va y no descubrirlo
+            tocando. Sin `<option>` vacío tampoco: el rol siempre es uno de los
+            tres, nunca ninguno.
+          */}
+          {puedeCambiarRol ? (
+            <select
+              value={u.role}
+              onChange={e => onRol(u.id, e.target.value as 'user' | 'moderator' | 'admin')}
+              aria-label={`Rol de ${u.displayName}`}
+              className="lbl"
+              style={{
+                fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 6px',
+                borderRadius: 999, border: '1px solid var(--info-border)',
+                background: u.role === 'user' ? 'transparent' : 'var(--info-soft)',
+                color: u.role === 'user' ? 'var(--faint)' : 'var(--info-bright)',
+              }}
+            >
+              <option value="user">USER</option>
+              <option value="moderator">MODERATOR</option>
+              <option value="admin">ADMIN</option>
+            </select>
+          ) : u.role !== 'user' && (
             <span className="lbl" style={{
               fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 8px', borderRadius: 999,
               background: 'var(--info-soft)', color: 'var(--info-bright)',
