@@ -35,7 +35,7 @@ bin/
 
 # Claves del frontend web
 web/.env.local
-web/node_modules/
+web/node_modules
 web/dist/
 # Caché incremental de tsc. Estaba versionada desde que se armó la PWA, así que
 # cambiaba en cada build y aparecía en el diff de cada rama — dos ramas que
