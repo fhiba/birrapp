@@ -3597,3 +3597,39 @@ Se fue también la píldora del rol ("Usuario" / "Moderador" / "Admin"). Para la
 enorme mayoría decía "Usuario", que no es información: es la única opción que
 podés ser. Para quien modera, el acceso a Moderación de más abajo ya lo dice, y
 lo dice haciendo algo.
+
+## 2026-09-18 (cont.) — v0.25.0: la ficha del bar, más apretada arriba y más ancha abajo
+
+**Las pestañas de birra, en un renglón.** Con el padding de 16 a los costados,
+tres estilos más el "⋯" más "Otra birra" no entraban en un teléfono y la fila
+se partía en dos justo arriba del precio, que es lo que se vino a mirar. Se
+apretó el padding a 11, el gap de `PillRow` de 8 a 6, el "⋯" de 44 a 36 de
+ancho, y "Otra birra"/"Otra marca" pasaron a "Otra" — la fila ya dice de qué
+está hablando. Las pastillas se quedan: con esto entran, y no hacía falta
+cambiarles la forma.
+
+**"Este precio está mal" quedó para moderación.** Estaba para cualquiera, con
+el argumento de que quien ve el precio mal es el que está parado ahí. Pero para
+eso ya está **Actualizar**, que arregla el número en el acto y además aporta el
+dato; la denuncia no corrige nada, abre un trámite. Ofrecer el camino que no
+arregla nada al lado del que sí es empujar a la opción equivocada, y llena la
+cola de moderación de precios que sólo habían cambiado.
+
+**Las fotos.** Tres cosas:
+
+- El botón de agregar estaba **al final de la tira**, o sea después de
+  arrastrar seis fotos. Ahora es un "+" chico al lado del rótulo FOTOS:
+  siempre a la vista y siempre en el mismo lugar, tenga el bar una foto o
+  veinte.
+- Se fue el renglón debajo de cada miniatura (pulgar + autor + antigüedad).
+  Eran tres datos en 150 píxeles: la tira se leía como una lista de fichas y el
+  nombre se cortaba con puntos suspensivos casi siempre. Todo eso ya estaba en
+  el visor, que es donde alguien de verdad mira una foto.
+- El pulgar se queda, chico y sobre la esquina de arriba a la derecha, con
+  velo oscuro para que se lea sobre cualquier foto. Va como **hermano** del
+  botón que abre la foto, no adentro: un botón adentro de otro no es HTML
+  válido y hace que la mitad de los toques caigan en el que no era, que es por
+  lo que el pulgar se había sacado de la tira una vez. Hay que pisarle el
+  `min-height: 44px` de `.like` a mano — esa regla es para el pulgar del visor,
+  que ahí sí es el botón principal.
+- Y las fotos pasan de 150×112 a 184×138.

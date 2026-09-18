@@ -726,10 +726,15 @@ export function BarDetailScreen({
             // pieza que más se repite en la app y cada copia se fue separando.
             // Acá el prendido era hueso lleno, o sea del mismo peso que "Sigue
             // igual", y una pestaña no manda: informa.
+            // Apretadas: con el padding de 16 a los costados, tres estilos
+            // más el "⋯" más "Otra birra" no entraban en un teléfono y la fila
+            // se partía en dos renglones justo arriba del precio, que es el
+            // dato. Con 11 entran, y el `flexWrap` de PillRow queda de red de
+            // seguridad para los nombres largos.
             renderPill={(p, on) => (
               <span style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 11px', borderRadius: 999, fontSize: 'var(--t-3)',
                 whiteSpace: 'nowrap',
                 ...chipStyle(on),
               }}>
@@ -743,11 +748,11 @@ export function BarDetailScreen({
                 className="lbl" aria-label="Cargar otra birra"
                 style={{
                   flex: '0 0 auto',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 16px', borderRadius: 999, fontSize: 'var(--t-3)',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '8px 11px', borderRadius: 999, fontSize: 'var(--t-3)',
                   whiteSpace: 'nowrap', color: 'var(--info)',
-                  // Punteado: es un hueco a llenar, igual que el cuadro de
-                  // agregar foto. El mismo gesto se dibuja igual en toda la app.
+                  // Punteado: es un hueco a llenar, igual que el "+" de las
+                  // fotos. El mismo gesto se dibuja igual en toda la app.
                   border: '1px dashed var(--info-border)',
                 }}
               >
@@ -755,7 +760,7 @@ export function BarDetailScreen({
                   <path d="M12 5v14M5 12h14" stroke="currentColor"
                     strokeWidth="2.6" strokeLinecap="round" />
                 </svg>
-                Otra birra
+                Otra
               </button>
             }
           />
@@ -798,8 +803,8 @@ export function BarDetailScreen({
               onPick={key => setTab({ style: group.slug, brand: key === '_' ? null : key })}
               renderPill={(p, on) => (
                 <span style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 10px', borderRadius: 999, fontSize: 'var(--t-2)',
                   whiteSpace: 'nowrap',
                   ...chipStyle(on),
                 }}>
@@ -816,7 +821,7 @@ export function BarDetailScreen({
                   style={{
                     flex: '0 0 auto',
                     display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '8px 12px', borderRadius: 999, fontSize: 'var(--t-2)',
+                    padding: '8px 10px', borderRadius: 999, fontSize: 'var(--t-2)',
                     whiteSpace: 'nowrap', color: 'var(--info)',
                     border: '1px dashed var(--info-border)',
                   }}
@@ -825,7 +830,7 @@ export function BarDetailScreen({
                     <path d="M12 5v14M5 12h14" stroke="currentColor"
                       strokeWidth="2.6" strokeLinecap="round" />
                   </svg>
-                  Otra marca
+                  Otra
                 </button>
               }
             />
@@ -1347,19 +1352,24 @@ function PriceRow({
         }}>
           Ver historial
         </button>
-        <span aria-hidden>·</span>
-        {/* "Este precio está mal" y no "reportar precio", que era ambiguo con
-            cargar uno: en esta app "reportar un precio" es justamente lo que
-            hace el botón de al lado. Cualquiera puede usarlo, no sólo
-            moderadores — quien ve el precio mal es el que está parado ahí. */}
-        <button onClick={onFlag} style={{
-          fontSize: 'var(--t-2)', color: 'var(--muted)',
-          padding: 'var(--s-3) 0', minHeight: 44,
-        }}>
-          Este precio está mal
-        </button>
+        {/* Denunciar el precio quedó para moderación.
+
+            Estaba para cualquiera, con el argumento de que quien ve el precio
+            mal es el que está parado ahí. Pero para eso ya está **Actualizar**,
+            que arregla el número en el acto y encima aporta el dato: la
+            denuncia no corrige nada, abre un trámite que alguien tiene que
+            revisar. Ofrecerle a todo el mundo el camino que no arregla nada, al
+            lado del que sí, es empujar a la opción equivocada — y llena la cola
+            de moderación de precios que sólo habían cambiado. */}
         {modMode && (
           <>
+            <span aria-hidden>·</span>
+            <button onClick={onFlag} style={{
+              fontSize: 'var(--t-2)', color: 'var(--muted)',
+              padding: 'var(--s-3) 0', minHeight: 44,
+            }}>
+              Este precio está mal
+            </button>
             <span style={{ marginLeft: 'auto' }} />
             <button disabled={busy} onClick={onRemove} style={{
               fontSize: 'var(--t-2)', color: 'var(--danger)',
