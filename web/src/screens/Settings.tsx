@@ -332,6 +332,7 @@ export function SettingsScreen({ user, onSession }: {
             value={radius}
             onChange={e => {
               const v = Number(e.target.value)
+              fb.paso()
               setRadius(v)
               clearTimeout(guardarRadio.current)
               guardarRadio.current = setTimeout(

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import * as fb from '../data/feedback'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
@@ -522,7 +523,8 @@ export function ListScreen(p: Props) {
             con la pista gruesa por defecto del navegador. */}
         <input
           className="range" type="range" min={300} max={15000} step={100}
-          value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
+          value={p.radius}
+          onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
           style={{
             marginTop: 8,
             ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,

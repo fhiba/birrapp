@@ -409,6 +409,8 @@ export const updateMe = (b: {
   /** Lista vacía = sacarlas todas; ausente = no tocarlas. */
   favoriteStyles?: string[]
   favoriteBrands?: string[]
+  /** `true` cierra la bienvenida. No se puede reabrir. */
+  onboarded?: boolean
 }) => req<User>('PATCH', '/auth/me', { body: b, auth: true })
 
 /**

@@ -75,6 +75,31 @@ export function useCached<T>(
   return { data, error }
 }
 
+/**
+ * Deja una clave cargada antes de que alguien entre a la pantalla que la usa.
+ *
+ * El caso es cambiar de pestaña: el mapa ya sabe qué zona estás mirando, pero
+ * "Cerca" no pide el promedio de esa zona hasta que la abrís, así que la
+ * pantalla arranca vacía y se queda un viaje entero así. Calentando la clave
+ * desde el mapa, al entrar ya hay algo escrito y `useCached` lo pinta en el
+ * primer render.
+ *
+ * **Sólo pide si la clave está fría.** Si ya hay algo guardado, `useCached`
+ * lo va a mostrar al instante y revalidar por su cuenta; volver a pedirlo acá
+ * sería una consulta de más por cada paneo del mapa para adelantar trabajo que
+ * ya está hecho. Lo que se está comprando es que no haya pantalla en blanco,
+ * no que el número sea de hace un segundo en vez de hace un minuto.
+ *
+ * Un fallo no se reporta a ningún lado: esto es trabajo especulativo para una
+ * pantalla en la que quizá nadie entre. Si sale mal, la pantalla pide el dato
+ * como pedía antes.
+ */
+export async function prefetchCached<T>(key: string, fetcher: () => Promise<T>) {
+  if (read(key) != null) return
+  try { write(key, await fetcher()) }
+  catch { /* especulativo: la pantalla lo vuelve a pedir si hace falta */ }
+}
+
 /** Se descarta lo guardado al cerrar sesión: son datos de una persona. */
 export function clearCached(prefix = PREFIX) {
   try {

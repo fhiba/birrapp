@@ -25,14 +25,12 @@ const MAX = 10
  * tomada, para un beneficio que la persona todavía no vio.
  */
 export function PreferencesScreen({
-  user, styles, brands, onSession, primeraVez = false,
+  user, styles, brands, onSession,
 }: {
   user: User | null
   styles: BeerStyle[]
   brands: Brand[]
   onSession: () => void
-  /** Se llegó recién iniciando sesión: cambia el texto y el botón de salida. */
-  primeraVez?: boolean
 }) {
   const nav = useNavigate()
   const [estilos, setEstilos] = useState<string[]>(user?.favoriteStyles ?? [])
@@ -96,9 +94,10 @@ export function PreferencesScreen({
     }
   }
 
-  // Recién logueado se va al mapa, que es a lo que vino; entrando desde
-  // Configuración, se vuelve de donde salió.
-  const salir = () => primeraVez ? nav('/', { replace: true }) : nav(-1)
+  // Siempre se vuelve de donde se entró. La variante "recién logueado" se la
+  // llevó la bienvenida (`Onboarding`), que es la única que llegaba sin
+  // historial atrás; acá se entra desde Configuración y de ningún otro lado.
+  const salir = () => nav(-1)
 
   return (
     <div style={{
@@ -107,12 +106,10 @@ export function PreferencesScreen({
     }}>
       <div className="desk-narrow">
         <div style={{ padding: '0 18px' }}>
-          {!primeraVez && (
-            <button onClick={() => nav(-1)} className="icon-btn"
-              style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          )}
+          <button onClick={() => nav(-1)} className="icon-btn"
+            style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>
-            {primeraVez ? '¿Qué tomás?' : 'Tus birras'}
+            Tus birras
           </h1>
           <p style={{
             color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '8px 0 0', lineHeight: 1.5,
@@ -174,7 +171,7 @@ export function PreferencesScreen({
           <button onClick={salir} className="lbl cta" style={{
             minHeight: 44, padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)',
             color: 'var(--info)',
-          }}>{primeraVez ? 'Ahora no' : 'Cancelar'}</button>
+          }}>Cancelar</button>
 
           <button
             onClick={guardar} disabled={guardando} className="lbl cta"
@@ -233,7 +230,9 @@ function Grupo({ titulo, elegidos, children }: {
  * Y sube a 44px de alto. Antes medía 38 y son botones que se tocan de a diez
  * seguidos: cada fallo obliga a desmarcar y volver a marcar.
  */
-function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+/** Se exporta porque la bienvenida elige las mismas birras con las mismas
+ *  pastillas: dos juegos de chips para la misma decisión se despegan solos. */
+export function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick} aria-pressed={on} className="lbl"
