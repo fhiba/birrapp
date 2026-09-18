@@ -195,3 +195,55 @@ export function AgregarOtro({ label, on, onClick }: {
     </button>
   )
 }
+
+/**
+ * El "+" que vive en el rótulo de una sección: sumar una birra, sumar una foto.
+ *
+ * Existe porque las dos acciones estaban metidas adentro del contenido que
+ * venían a ampliar —una pastilla más en la fila de estilos, un cuadro más al
+ * final de la tira de fotos— y las dos pagaban lo mismo. En la fila de
+ * estilos, una acción de ancho fijo peleando el renglón con nombres de ancho
+ * variable partía la fila en dos. En la tira de fotos, el botón quedaba detrás
+ * de seis fotos que hay que arrastrar. Pegado al rótulo no compite con nada y
+ * está siempre en el mismo lugar, tenga la sección un elemento o veinte.
+ *
+ * **Ámbar punteado**, que es como se dibuja "agregar algo que todavía no está"
+ * en el resto de la app —ver `AgregarOtro`, el de estilos y marcas—. El
+ * punteado es la convención de cualquier casillero de alta, y el ámbar lo
+ * separa del azul informativo, que es el color de lo estructural: "esto se
+ * despliega", "esto lleva a otra pantalla". Acá no se navega: se suma.
+ */
+export function SumarEnRotulo({ label, onClick, busy, aria }: {
+  /** Sin etiqueta queda sólo el "+", para cuando el rótulo ya lo dice todo. */
+  label?: string
+  onClick: () => void
+  busy?: boolean
+  /** Obligatorio si no hay etiqueta: sin texto no hay nombre accesible. */
+  aria?: string
+}) {
+  return (
+    <button
+      onClick={onClick} disabled={busy}
+      aria-label={aria ?? (label ? undefined : 'Agregar')}
+      className="lbl"
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+        flexShrink: 0, height: 30, padding: label ? '0 10px' : 0,
+        width: label ? undefined : 30,
+        borderRadius: 999, fontSize: 'var(--t-2)',
+        border: '1px dashed var(--aging)', color: 'var(--aging)',
+        background: 'transparent', whiteSpace: 'nowrap',
+      }}
+    >
+      {busy ? <span className="spinner" /> : (
+        <>
+          <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 5v14M5 12h14" stroke="currentColor"
+              strokeWidth="2.6" strokeLinecap="round" />
+          </svg>
+          {label}
+        </>
+      )}
+    </button>
+  )
+}
