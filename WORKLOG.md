@@ -3511,7 +3511,7 @@ para mandar a Perfil sin sesión, que es el "Cannot update a component while
 rendering a different component" de React. Pasaron a `<Navigate>`. Falta ver el
 resto: sin navegador acá no se puede leer la consola.
 
-## 2026-09-18 (cont.) — El PATCH que CORS no dejaba pasar, y niveles en el perfil
+## 2026-09-18 (cont.) — v0.24.0: el PATCH que CORS no dejaba pasar, y niveles en el perfil
 
 **El bug del alias y las birras favoritas.** No era del front. Ktor trae
 permitidos GET, POST y HEAD nada más; el backend había agregado `Delete` y
