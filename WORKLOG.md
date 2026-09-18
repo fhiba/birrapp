@@ -3447,7 +3447,7 @@ Lo que sí se queda de la v0.22.1 es el blindaje de la fila —menos aire, los d
 botones agrupados, `overflow: hidden` en el nombre—: no era la causa de esto,
 pero es lo que evita que un nombre largo empuje los botones fuera de pantalla.
 
-## 2026-09-18 — Pasada de UX sobre el mapa, la carga y la configuración
+## 2026-09-18 — v0.23.0: pasada de UX sobre el mapa, la carga y la configuración
 
 Doce correcciones pedidas mirando la PWA andando. La rama sale de `master` y no
 de `dev` porque `dev` estaba 14 commits atrás y no tenía nada de esta interfaz:
