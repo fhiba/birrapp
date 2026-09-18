@@ -3978,3 +3978,29 @@ Con ese rincón libre, el emblema del nivel pudo dejar de colgar debajo de los
 botones y pasar al renglón del nombre, contra el borde derecho. Compartiendo
 columna con dos controles, el nivel se leía como un tercer botón; al lado del
 nombre se lee como lo que es.
+
+## 2026-09-18 (cont.) — v0.29.1: el ancho de las cápsulas del mapa se medía a ojo
+
+Reporte: las cápsulas de precio del mapa tienen demasiado aire a la derecha.
+
+El ancho salía de `label.length * 8,6`, o sea 8,6px por carácter — y en
+"$ 7.125" hay un espacio y un punto de miles que miden cerca de la mitad. Dos
+caracteres angostos cobrados como anchos son unos 8px de sobra, y caían **todos
+del lado derecho**: el texto arranca pegado a la chapita de frescura, así que lo
+que sobra queda atrás. El padding izquierdo era el de verdad y el derecho era el
+error de la cuenta.
+
+Ahora se mide con un canvas, que usa las mismas métricas que el navegador va a
+usar al dibujar. `letterSpacing` no entra en `measureText` en todos los
+navegadores, así que se descuenta a mano con el mismo −.02em que pide el
+`<text>`.
+
+Dos detalles que hacían falta para que no fuera un arreglo a medias:
+
+- **El `Map` de la caché no podía ser un `Map`.** En `MapScreen`, `Map` es el
+  componente de `@vis.gl/react-google-maps`, así que `new Map()` construía eso.
+  Queda un objeto plano.
+- **La caché se descarta cuando termina de cargar la tipografía.** Los primeros
+  pines se dibujan antes de que Bricolage esté disponible, así que `measureText`
+  mide con la de respaldo del sistema; sin invalidar, ese ancho equivocado
+  quedaba guardado toda la sesión. Era el mismo bug entrando por otra puerta.
