@@ -35,7 +35,10 @@ data class NewBrandRequest(val name: String, val craft: Boolean = true)
 @Serializable
 data class PriceAccepted(
     val id: Long,
-    /** true = quedó en cola de moderación por precio atípico, no publicado. */
+    /**
+     * true = quedó en cola de moderación y NO publicado, por precio atípico o
+     * por volumen — ver [MAX_NEW_PRICES_PER_DAY].
+     */
     val heldForReview: Boolean,
     val message: String,
 )
@@ -103,6 +106,24 @@ private fun slugify(name: String): String = name.lowercase()
 /** Cuántas horas hay que esperar para volver a reportar el mismo (bar, estilo). */
 private const val REPORT_COOLDOWN_HOURS = 6
 
+/**
+ * Cuántos precios NUEVOS puede publicar una persona por día sin pasar por
+ * moderación.
+ *
+ * El cooldown de arriba es por birra: no frena a quien carga cincuenta precios
+ * distintos de una sentada, que es exactamente la forma que tuvo la carga en
+ * joda del 2026-09-18. Y el consenso tampoco lo frena: cuenta un voto por
+ * persona, así que contra una birra que nadie más reportó el troll ES el
+ * precio, con un voto.
+ *
+ * Pasado el tope no se rechaza, se retiene: quien releva veinte bares en un día
+ * es el mejor aporte que tiene el proyecto, no un ataque, y lo que hace falta es
+ * que alguien mire antes de publicarlo. Los "Sigue igual" no cuentan ni se
+ * retienen: confirmar es la operación que mantiene vivo el mapa y tiene que
+ * seguir costando un tap.
+ */
+private const val MAX_NEW_PRICES_PER_DAY = 30
+
 /** Un precio a más de N veces la mediana del estilo se retiene para revisión. */
 private const val OUTLIER_FACTOR = 3.0
 
@@ -161,9 +182,17 @@ class PriceRepo(private val db: Db) {
         if (slug.isBlank()) badRequest("ese nombre no es válido")
 
         val existing = c.queryOne(
-            "SELECT slug, name, craft FROM brands WHERE slug = ?", slug,
-        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
-        if (existing != null) return@conn existing
+            "SELECT slug, name, craft, status::text AS status FROM brands WHERE slug = ?", slug,
+        ) { rs ->
+            BrandDto(
+                rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft"),
+            ) to rs.getString("status")
+        }
+        // Una rechazada NO se devuelve. Devolverla era la puerta por la que
+        // volvía: no aparece en la lista, pero el que escribía el nombre a mano
+        // se la llevaba igual y quedaba colgada de un precio nuevo.
+        if (existing?.second == "rejected") badRequest("esa marca ya fue rechazada")
+        if (existing != null) return@conn existing.first
 
         c.queryOne(
             "INSERT INTO brands (slug, name, craft, status, created_by) " +
@@ -178,10 +207,47 @@ class PriceRepo(private val db: Db) {
         ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
     }
 
-    fun setBrandStatus(slug: String, status: String): Boolean = db.conn {
-        it.update(
+    /**
+     * Aprobar o rechazar una marca.
+     *
+     * Rechazar no es sólo marcar la fila. Hasta acá lo único que hacía era
+     * sacarla de la lista que se ofrece al cargar, y todo lo que YA estaba
+     * cargado con esa marca seguía mostrando el nombre —el precio en la ficha
+     * del bar, "Mis aportes", las fotos, los votos, los comentarios—, porque
+     * ninguna de esas consultas mira el status de la marca. Resultado: la marca
+     * rechazada seguía apareciendo por todos lados y el rechazo no se notaba.
+     *
+     * Así que el rechazo baja el contenido a `removed`, que es el mismo estado
+     * en el que espera un precio atípico: no se muestra, no se borra, y
+     * aprobar la marca de nuevo no lo resucita solo pero tampoco perdió nada.
+     * La fila de `brands` queda: es lo que impide que alguien vuelva a crear el
+     * mismo slug.
+     *
+     * `beer_logs` es la excepción: es el contador propio de cada uno, privado y
+     * sin status. Ahí la birra no se baja —nadie dejó de tomársela porque la
+     * marca fuera basura—, se le saca la marca y queda como birra sin marca,
+     * que es un estado previsto (`brand_id` es nullable a propósito).
+     */
+    fun setBrandStatus(slug: String, status: String, moderatorId: Long): Boolean = db.tx { c ->
+        val ok = c.update(
             "UPDATE brands SET status = ?::moderation_status WHERE slug = ?", status, slug,
         ) > 0
+        if (ok && status == "rejected") {
+            val id = c.queryOne("SELECT id FROM brands WHERE slug = ?", slug) { it.getInt("id") }!!
+            c.update(
+                "UPDATE price_reports SET status = 'removed', removed_by = ? " +
+                    "WHERE brand_id = ? AND status = 'active'",
+                moderatorId, id,
+            )
+            for (t in listOf("bar_photos", "beer_ratings", "beer_comments")) {
+                c.update(
+                    "UPDATE $t SET status = 'removed' WHERE brand_id = ? AND status = 'active'",
+                    id,
+                )
+            }
+            c.update("UPDATE beer_logs SET brand_id = NULL WHERE brand_id = ?", id)
+        }
+        ok
     }
 
     fun styles(): List<StyleDto> = db.conn {
@@ -367,14 +433,19 @@ class PriceRepo(private val db: Db) {
             if (req.sizeMl !in 100..2000) badRequest("tamaño fuera de rango (100-2000 ml)")
 
             val styleId = c.queryOne(
-                "SELECT id FROM beer_styles WHERE slug = ? AND active", req.styleSlug,
+                "SELECT id FROM beer_styles WHERE slug = ? AND active " +
+                    "AND status <> 'rejected'",
+                req.styleSlug,
             ) { it.getLong("id") } ?: notFound("estilo desconocido: ${req.styleSlug}")
 
             // La marca puede venir sin aprobar todavía: quien la creó puede
-            // usarla enseguida, y el moderador decide después si queda.
+            // usarla enseguida, y el moderador decide después si queda. Pero
+            // una ya rechazada no, o el rechazo no significa nada: alcanzaba
+            // con mandar el slug a mano para volver a colgarla de un precio.
             val brandId = req.brandSlug?.let { slug ->
-                c.queryOne("SELECT id FROM brands WHERE slug = ?", slug) { it.getLong("id") }
-                    ?: notFound("marca desconocida: $slug")
+                c.queryOne(
+                    "SELECT id FROM brands WHERE slug = ? AND status <> 'rejected'", slug,
+                ) { it.getLong("id") } ?: notFound("marca desconocida: $slug")
             }
 
             // La moneda sale del bar, no de quien reporta: es una propiedad
@@ -403,6 +474,19 @@ class PriceRepo(private val db: Db) {
                         "$REPORT_COOLDOWN_HOURS horas",
                 )
             }
+
+            // Ver [MAX_NEW_PRICES_PER_DAY]. Cuenta sólo cargas nuevas y sólo
+            // las que se publicaron: las retenidas ya están esperando a un
+            // moderador y no tiene sentido que sigan corriendo el contador.
+            val hoy = if (isConfirmation) 0 else c.queryOne(
+                """
+                SELECT count(*) AS n FROM price_reports
+                WHERE reported_by = ? AND NOT is_confirmation AND status = 'active'
+                  AND created_at > now() - interval '24 hours'
+                """.trimIndent(),
+                userId,
+            ) { it.getInt("n") } ?: 0
+            val sobreTope = hoy >= MAX_NEW_PRICES_PER_DAY
 
             // Detección de outliers contra la mediana de LOS BARES DE AL LADO,
             // en la misma moneda. Normalizada a precio por litro: comparar una
@@ -452,6 +536,11 @@ class PriceRepo(private val db: Db) {
                 (perLitre > medianPerLitre * OUTLIER_FACTOR ||
                     perLitre < medianPerLitre / OUTLIER_FACTOR)
 
+            // Las dos razones para no publicar de una terminan en el mismo
+            // lugar: el precio queda registrado, en moderación, con una
+            // denuncia automática que dice por qué.
+            val held = isOutlier || sobreTope
+
             val id = c.queryOne(
                 """
                 INSERT INTO price_reports
@@ -461,29 +550,37 @@ class PriceRepo(private val db: Db) {
                 RETURNING id
                 """.trimIndent(),
                 req.barId, styleId, brandId, req.price, req.sizeMl, currency, userId,
-                // Un outlier entra como 'removed': queda registrado pero no
+                // Retenido entra como 'removed': queda registrado pero no
                 // aparece en el mapa hasta que un moderador lo habilite.
-                if (isOutlier) "removed" else "active",
+                if (held) "removed" else "active",
                 isConfirmation,
             ) { it.getLong("id") }!!
 
-            if (isOutlier) {
+            if (held) {
                 c.update(
                     "INSERT INTO flags (target_type, target_id, reporter_id, reason) " +
                         "VALUES ('price', ?, ?, ?)",
                     id, userId,
-                    ("auto: %.0f/L contra una mediana de %.0f/L (%s) " +
-                        "entre los bares a menos de %d km")
-                        .format(perLitre, medianPerLitre, currency, OUTLIER_RADIUS_M / 1000),
+                    if (isOutlier) {
+                        ("auto: %.0f/L contra una mediana de %.0f/L (%s) " +
+                            "entre los bares a menos de %d km")
+                            .format(perLitre, medianPerLitre, currency, OUTLIER_RADIUS_M / 1000)
+                    } else {
+                        "auto: $hoy precios cargados en las últimas 24 h " +
+                            "(el tope sin revisar es $MAX_NEW_PRICES_PER_DAY)"
+                    },
                 )
             }
 
             PriceAccepted(
                 id = id,
-                heldForReview = isOutlier,
+                heldForReview = held,
                 message = if (isOutlier) {
                     "Lo mandamos a revisión porque está muy lejos del resto de los precios. " +
                         "Si es correcto, un moderador lo publica."
+                } else if (sobreTope) {
+                    "¡Gracias! Cargaste muchos precios hoy, así que este pasa por revisión " +
+                        "antes de aparecer en el mapa."
                 } else {
                     "¡Gracias! Ya está en el mapa."
                 },
