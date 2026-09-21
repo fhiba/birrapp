@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import { clearCached, useCached } from '../data/cached'
 import type { BarPin, User, UserStats } from '../data/types'
@@ -407,6 +407,16 @@ const Footer = () => (
       birrapp {__APP_VERSION__}<br />
       datos de bares © colaboradores de OpenStreetMap
     </p>
+    {/* Privacidad va en el pie y no en la lista de acciones de arriba: el pie
+        es lo único que se dibuja con sesión y sin ella, y la política tiene que
+        poder encontrarse sin cuenta. Al lado de "Buscar actualización", que es
+        el otro enlace chico de servicio. */}
+    {/* `Link` y no un `<a href>`: la app vive bajo el basename `/app`, así que
+        un enlace absoluto recarga la página entera y encima apunta afuera. */}
+    <Link to="/privacidad" style={{
+      color: 'var(--info)', fontSize: 'var(--t-1)', textDecoration: 'underline',
+      display: 'inline-block', lineHeight: '44px', marginRight: 'var(--s-4)',
+    }}>Privacidad</Link>
     {/* Sin cuenta el enlace no aparece en la lista de acciones, pero la
         actualización tiene que estar igual: alguien puede quedar trabado en
         una versión vieja antes de siquiera loguearse. */}

@@ -21,6 +21,7 @@ import { BarDetailScreen } from './screens/BarDetail'
 import { AddBarScreen } from './screens/AddBar'
 import { ProfileScreen } from './screens/Profile'
 import { InfoScreen } from './screens/Info'
+import { PrivacyScreen } from './screens/Privacy'
 import { ContributorsScreen } from './screens/Contributors'
 import { ModerationScreen } from './screens/Moderation'
 import { DashboardScreen } from './screens/Dashboard'
@@ -374,6 +375,10 @@ function Shell() {
           />
         } />
         <Route path="/info" element={<InfoScreen />} />
+        {/* La política de privacidad tiene que ser alcanzable por URL sin
+            cuenta y sin pasar por ningún menú: es lo que piden Play y App
+            Store, y es la dirección que se pega en la ficha de la tienda. */}
+        <Route path="/privacidad" element={<PrivacyScreen />} />
         <Route path="/mis-birras" element={<MyBeersScreen />} />
         {/* Una pantalla por tipo de aporte. Sin `:tipo` se cae en precios,
             que es el aporte que todo el mundo tiene. */}
