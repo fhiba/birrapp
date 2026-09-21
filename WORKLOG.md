@@ -4047,3 +4047,59 @@ encasillados con las líneas": los dos caminos —"Otra birra" en la ficha y el
 "+" del centro— montan el mismo `ReportFlow` con el mismo `StyleChips
 layout="grid"`, así que no hay dos vestidos que unificar. Falta una captura
 para saber qué pantalla es.
+
+## 2026-09-19 — v0.30.0: el rechazo de una marca ahora se nota, y un tope de carga diaria
+
+> Escrita el 19/9 como v0.27.0 y mergeada recién el 21/9: la rama quedó dos
+> días con el PR abierto y mientras tanto master se llevó ese número y dos
+> más. Renumerada a v0.30.0 al integrarla, que es la que se publica.
+
+Dos reportes de Felipe sobre la misma cosa: decisiones de moderación que el
+código no estaba cumpliendo.
+
+**Las marcas rechazadas seguían apareciendo.** `setBrandStatus` escribía
+`brands.status = 'rejected'` y nada más. Eso la saca de `PriceRepo.brands()`
+—la única consulta en todo el backend que mira el status de la marca— y de
+ningún otro lado: la ficha del bar, "Mis aportes", las fotos, los votos y los
+comentarios hacen `LEFT JOIN brands` sin condición, así que el nombre seguía
+ahí. Y por el otro lado `createBrand` devolvía la marca rechazada a quien
+volviera a escribir el nombre, y `report` aceptaba su slug, así que además
+volvía a entrar sola. Desde el lado del moderador el botón no hacía nada
+visible, que es exactamente lo que reportó.
+
+Ahora rechazar baja a `removed` el contenido que la usaba (precios, fotos,
+votos, comentarios) y le saca la marca al contador propio de cada uno
+(`beer_logs`, que es privado y no tiene status: nadie dejó de tomarse la birra
+porque la marca fuera basura). `removed` y no DELETE: es el mismo estado en el
+que espera un precio atípico, y el histórico de precios es el activo más valioso
+del proyecto. La fila de `brands` queda, que es lo que impide que alguien vuelva
+a crear el mismo slug. `V23__rejected_brands_cleanup.sql` hace lo mismo para las
+marcas que ya estaban rechazadas antes del arreglo — sin eso habría que volver a
+rechazarlas una por una para que se note.
+
+**La carga en joda del 18.** El cooldown de precios es por birra —(usuario, bar,
+estilo, marca), 6 horas—, así que no frena a quien carga cincuenta precios
+distintos de una sentada. El consenso tampoco: cuenta un voto por persona, así
+que contra una birra que nadie más reportó, el que la cargó *es* el precio con
+un solo voto. Y la detección de outliers no ve nada raro mientras los valores
+sean plausibles entre ellos.
+
+Tope de 30 precios nuevos por persona por día. Pasado el tope no se rechaza: se
+retiene igual que un outlier —registrado, invisible, con denuncia automática—
+porque quien releva veinte bares en un día es el mejor aporte que tiene el
+proyecto, no un ataque, y lo que falta es que alguien mire antes de publicarlo.
+Los "Sigue igual" no cuentan ni se retienen nunca: confirmar es lo que mantiene
+vivo el mapa y tiene que seguir costando un tap.
+
+Los precios de ese día no se pudieron revisar: los borró él antes, y la base
+local es un fixture de doce filas, no la de producción.
+
+**Numeración de migraciones:** esta salió `V23` porque otro agente ya tiene una
+`V22__onboarding.sql` aplicada en la base de test compartida, sin mergear
+todavía. El `V22` queda para esa.
+
+**Queda afuera, mismo agujero:** un *estilo* rechazado sigue mostrándose igual
+que las marcas (`v_current_prices` hace `JOIN beer_styles` sin mirar status).
+`report` ya dejó de aceptarlos, pero lo que quedó cargado se sigue viendo, y
+`style_id` es NOT NULL así que no se arregla despegándolo. Falta decidir si se
+baja el contenido o se re-apunta a otro estilo.

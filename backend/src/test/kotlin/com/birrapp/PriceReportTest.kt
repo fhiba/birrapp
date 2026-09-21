@@ -154,6 +154,36 @@ class PriceReportTest {
         assertEquals(12000, porMarca["Juguetes Perdidos"])
     }
 
+    /**
+     * El agujero por el que entró la carga en joda del 2026-09-18: el cooldown
+     * es por birra, así que una sola persona podía publicar cincuenta precios
+     * distintos sin que nada los mirara.
+     */
+    @Test
+    fun `pasado el tope diario los precios quedan retenidos`() {
+        val u = TestDb.insertUser("cargador")
+        // Todos al mismo precio: así ninguno es atípico y lo único que puede
+        // retener al último es el tope.
+        val bares = (0 until 31).map { TestDb.insertBar("Bar$it", lat + it * 0.0005, lng) }
+        bares.take(30).forEach {
+            assertFalse(repo.report(NewPriceRequest(it, "rubia", 4500.0), u).heldForReview)
+        }
+
+        val pasado = repo.report(NewPriceRequest(bares[30], "rubia", 4500.0), u)
+        assertTrue(pasado.heldForReview, "el precio 31 del día tiene que ir a revisión")
+        assertTrue(
+            com.birrapp.bars.BarRepo(TestDb.db).detail(bares[30], null, null)!!.prices.isEmpty(),
+            "retenido = no visible",
+        )
+
+        // "Sigue igual" no cuenta contra el tope ni se retiene: es la operación
+        // que mantiene vivo el mapa y tiene que seguir costando un tap.
+        val otro = TestDb.insertUser("otro")
+        val barAjeno = TestDb.insertBar("Ajeno", lat, lng + 0.002)
+        TestDb.insertPrice(barAjeno, "rubia", 4500.0, daysAgo = 1, userId = otro)
+        assertFalse(repo.confirm(barAjeno, "rubia", null, u).heldForReview)
+    }
+
     @Test
     fun `el cooldown es por marca, no por estilo`() {
         TestDb.reset()

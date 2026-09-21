@@ -698,16 +698,22 @@ fun Route.apiRoutes(
             }
 
             post("/brands/{slug}/approve") {
-                call.requireRole(Role.moderator)
+                val caller = call.requireRole(Role.moderator)
                 val slug = call.parameters["slug"] ?: badRequest("falta slug")
-                if (!prices.setBrandStatus(slug, "approved")) notFound("no existe esa marca")
+                if (!prices.setBrandStatus(slug, "approved", caller.userId)) {
+                    notFound("no existe esa marca")
+                }
                 call.respond(OkResponse())
             }
 
+            // Rechazar también baja el contenido que ya usaba la marca. Ver
+            // PriceRepo.setBrandStatus.
             post("/brands/{slug}/reject") {
-                call.requireRole(Role.moderator)
+                val caller = call.requireRole(Role.moderator)
                 val slug = call.parameters["slug"] ?: badRequest("falta slug")
-                if (!prices.setBrandStatus(slug, "rejected")) notFound("no existe esa marca")
+                if (!prices.setBrandStatus(slug, "rejected", caller.userId)) {
+                    notFound("no existe esa marca")
+                }
                 call.respond(OkResponse())
             }
 
