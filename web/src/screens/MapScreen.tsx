@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import * as fb from '../data/feedback'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
 import type { BarPin, BeerStyle } from '../data/types'
@@ -419,7 +420,7 @@ export function MapScreen(p: Props) {
             <input
               className="range"
               type="range" min={RADIUS_MIN} max={RADIUS_MAX} step={100} value={p.radius}
-              onChange={e => p.onRadius(Number(e.target.value))}
+              onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
               style={{
                 ['--fill' as string]:
                   `${((p.radius - RADIUS_MIN) / (RADIUS_MAX - RADIUS_MIN)) * 100}%`,
@@ -756,10 +757,39 @@ function Pins({
 }) {
   const map = useMap()
   const [zoom, setZoom] = useState(15)
+  /** El rectángulo visible, con un margen. Ver `enPantalla`. */
+  const [caja, setCaja] = useState<google.maps.LatLngBoundsLiteral | null>(null)
 
   useEffect(() => {
     if (!map) return
     const l = map.addListener('zoom_changed', () => setZoom(map.getZoom() ?? 15))
+    return () => l.remove()
+  }, [map])
+
+  /**
+   * El recuadro visible, releído cuando el mapa se queda quieto.
+   *
+   * `idle` y no `bounds_changed`: el segundo dispara decenas de veces por
+   * gesto y cada uno recalcularía qué pines van, en medio del paneo.
+   *
+   * El margen del 35% es para que panear no haga aparecer los pines de golpe
+   * contra el borde: cuando entran a pantalla ya estaban dibujados.
+   */
+  useEffect(() => {
+    if (!map) return
+    const leer = () => {
+      const b = map.getBounds()
+      if (!b) return
+      const ne = b.getNorthEast(), sw = b.getSouthWest()
+      const mLat = (ne.lat() - sw.lat()) * 0.35
+      const mLng = (ne.lng() - sw.lng()) * 0.35
+      setCaja({
+        north: ne.lat() + mLat, south: sw.lat() - mLat,
+        east: ne.lng() + mLng, west: sw.lng() - mLng,
+      })
+    }
+    leer()
+    const l = map.addListener('idle', leer)
     return () => l.remove()
   }, [map])
 
@@ -768,11 +798,39 @@ function Pins({
   // que tumba la app entera en blanco, no sólo el mapa.
   if (!map) return null
 
+  /**
+   * Sólo se dibujan los pines que están en pantalla.
+   *
+   * **Cuántos bares trae la consulta y cuántos marcadores existen son dos
+   * preguntas distintas, y antes eran la misma.** El radio decide lo primero:
+   * si pedís 7 km, los bares de 7 km tienen que estar, y por eso el techo de
+   * filas subió a mil (ver `core/Limits.kt`). Pero cada pin es un
+   * `google.maps.Marker`, o sea un objeto del SDK con su overlay: mil de esos
+   * en un teléfono se sienten al panear, y la mayoría está fuera de la
+   * pantalla, donde no los ve nadie.
+   *
+   * Recortar por el recuadro visible desacopla las dos cosas: los datos quedan
+   * completos —la lista, el promedio de la zona y "más barata cerca" siguen
+   * viendo todo— y el mapa dibuja las decenas que de verdad se están mirando.
+   * Al alejarte entran más, que es exactamente cuando querés verlos.
+   *
+   * Sin caja todavía —el primer render, antes del primer `idle`— se dibuja
+   * todo: es preferible un cuadro pesado a un mapa vacío.
+   */
+  const enPantalla = caja == null ? bars : bars.filter(b =>
+    // El abierto se dibuja siempre, aunque quede afuera del recuadro. Al
+    // tocarlo el mapa se centra en él, pero entre el toque y el `idle` el
+    // recuadro todavía es el de antes: sin esta excepción, el pin del bar que
+    // acabás de abrir desaparecía debajo de su propia tarjeta.
+    b.id === selectedId ||
+    (b.lat >= caja.south && b.lat <= caja.north &&
+     b.lng >= caja.west && b.lng <= caja.east))
+
   // El puesto se calcula sobre lo que hay en pantalla, así que la escala se
   // reajusta al moverse: en Palermo lo barato es otro número que en Liniers, y
   // un color absoluto no diría nada en ninguno de los dos.
   const ranks = priceRanks(
-    bars.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
+    enPantalla.filter(b => b.fromPrice != null).map(b => [b.id, b.fromPrice!]),
   )
 
   // Sin precio no hay puesto, y un bar sin precio no es "caro": es desconocido.
@@ -807,7 +865,7 @@ function Pins({
     const metersPerPx = 156543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** zoom
     const minSep = 132 * metersPerPx
     const kept: BarPin[] = []
-    for (const b of bars.filter(b => b.fromPrice != null)
+    for (const b of enPantalla.filter(b => b.fromPrice != null)
       .sort((a, b) => a.fromPrice! - b.fromPrice!)) {
       const clash = kept.some(k => {
         const dLat = (k.lat - b.lat) * 111_320
@@ -820,7 +878,7 @@ function Pins({
 
   return (
     <>
-      {bars.map(b => {
+      {enPantalla.map(b => {
         const on = b.id === selectedId
         // El elegido siempre con su precio: es el que se está mirando, y que
         // el descarte de etiquetas lo dejara como punto era perder el dato
@@ -877,6 +935,61 @@ const svgUrl = (svg: string) =>
   'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
 
 /**
+ * Cuánto mide un texto en la tipografía del pin.
+ *
+ * Los pines son un SVG dentro de un `data:` URI, así que no hay layout que
+ * pregunte: el ancho de la cápsula hay que saberlo antes de escribirla. Se mide
+ * con un canvas, que usa las mismas métricas que va a usar el navegador al
+ * dibujar.
+ *
+ * `letterSpacing` no entra en `measureText` en todos los navegadores, así que se
+ * descuenta a mano con el mismo −.02em que pide el `<text>`.
+ *
+ * Si no hay canvas se vuelve a la estimación vieja: una cápsula con aire de más
+ * es mejor que un pin que no se dibuja.
+ *
+ * La caché existe porque los íconos se rehacen en cada movimiento de cámara y
+ * los precios se repiten mucho entre pines.
+ */
+// Un objeto y no un `Map`: en este archivo `Map` es el componente del mapa de
+// `@vis.gl/react-google-maps`, y `new Map()` acá construiría eso.
+let anchos: Record<string, number> = {}
+let lienzo: CanvasRenderingContext2D | null | undefined
+
+/**
+ * Se descarta lo medido cuando termina de cargar la tipografía.
+ *
+ * Sin esto la caché sería una trampa: los primeros pines se dibujan antes de
+ * que Bricolage esté disponible, así que `measureText` mide con la tipografía
+ * de respaldo del sistema, y ese ancho equivocado quedaría guardado para el
+ * resto de la sesión. Es el mismo error que este cambio vino a arreglar, sólo
+ * que llegando por otro lado.
+ */
+if (typeof document !== 'undefined') {
+  document.fonts?.ready.then(() => { anchos = {} }).catch(() => { /* da igual */ })
+}
+
+function anchoTexto(label: string, px: number): number {
+  const clave = `${label}|${px.toFixed(2)}`
+  const guardado = anchos[clave]
+  if (guardado !== undefined) return guardado
+
+  if (lienzo === undefined) lienzo = document.createElement('canvas').getContext('2d')
+  let w: number
+  if (lienzo) {
+    lienzo.font = `700 ${px}px "Bricolage Grotesque", system-ui, sans-serif`
+    w = lienzo.measureText(label).width - 0.02 * px * label.length
+  } else {
+    w = label.length * 8.6
+  }
+
+  // Un tope para que la caché no crezca sin fin con precios de toda la ciudad.
+  if (Object.keys(anchos).length > 1000) anchos = {}
+  anchos[clave] = w
+  return w
+}
+
+/**
  * Cápsula con el precio, como marcador.
  *
  * La cápsula **es** el color del precio —lima el más barato de la pantalla,
@@ -927,11 +1040,15 @@ function priceIcon(
   const punto = 6 * s           // el punto de frescura, adentro de la chapita
   const heart = 14 * s          // el dibujo del corazón
   const heartBox = fav ? heart + gap : 0   // lo que reserva, dibujo + aire
-  // El ancho se estima como 8,6px por carácter, y eso sólo es cierto si todos
-  // los dígitos miden lo mismo — por eso el `<text>` de abajo pide cifras
-  // tabulares. Sin ellas, "$11.111" queda nadando en una cápsula de más y
-  // "$8.888" se sale por los costados.
-  const w = padX * 2 + heartBox + chapa + gap + label.length * 8.6 * s
+  // El ancho del texto se MIDE, no se estima.
+  //
+  // Era `label.length * 8,6`, o sea 8,6px por carácter contando el espacio y
+  // el punto de los miles, que miden la mitad. En "$ 7.125" son dos caracteres
+  // angostos cobrados como anchos: sobraban unos 8px, todos del lado derecho,
+  // porque el texto arranca pegado a la chapita y lo que quede libre queda
+  // atrás. De ahí que las cápsulas se vieran desbalanceadas — el padding
+  // izquierdo era el de verdad y el derecho era el error de la cuenta.
+  const w = padX * 2 + heartBox + chapa + gap + anchoTexto(label, 13 * s)
   const h = 26 * s
   // El borde se dibuja por dentro, así que el lienzo tiene que agrandarse o
   // WebKit lo recorta a la mitad.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import * as fb from '../data/feedback'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { AreaStats, BarPin, BeerStyle } from '../data/types'
@@ -7,6 +8,18 @@ import {
 } from '../data/format'
 import { PriceColumn, SkeletonRows } from '../ui/Empty'
 import { useCached } from '../data/cached'
+
+/**
+ * La clave de caché del promedio de la zona.
+ *
+ * Se exporta porque el mapa la calienta antes de que nadie entre acá (ver
+ * `prefetchCached`). Si cada uno armara la suya, la del mapa y la de esta
+ * pantalla se despegarían al primer cambio y el prefetch dejaría de servir sin
+ * que nadie se entere: no rompe nada, simplemente vuelve el segundo en blanco.
+ */
+export const areaKey = (
+  lat: number, lng: number, radius: number, styles: string[],
+) => `area:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}:${styles.join(',')}`
 
 /**
  * "Cerca" — cómo viene la zona, antes de mirar un bar.
@@ -75,7 +88,7 @@ export function NearbyScreen(p: {
    */
   const c = p.center
   const { data: stats } = useCached<AreaStats>(
-    c ? `area:${c.lat.toFixed(2)}:${c.lng.toFixed(2)}:${p.radius}:${p.styleFilter.join(',')}` : null,
+    c ? areaKey(c.lat, c.lng, p.radius, p.styleFilter) : null,
     () => api.areaStats(c!.lat, c!.lng, p.radius, p.styleFilter),
     350,
   )
@@ -89,7 +102,7 @@ export function NearbyScreen(p: {
   return (
     <div style={{
       position: 'absolute', inset: 0, overflowY: 'auto',
-      padding: `calc(var(--safe-top) + var(--s-3)) 0 calc(var(--s-5) + var(--nav-gap))`,
+      padding: `calc(var(--safe-top) + var(--s-3)) 0 calc(var(--nav-h) + var(--s-5))`,
     }}>
       <div className="desk-narrow">
         {/* El filete bajo el título es el mismo que el del Perfil: separa el
@@ -129,7 +142,8 @@ export function NearbyScreen(p: {
             <input
               className="range" type="range" min={300} max={15000} step={100}
               aria-label="Radio de la zona"
-              value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
+              value={p.radius}
+              onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
               style={{
                 marginTop: 'var(--s-3)',
                 ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,
@@ -297,16 +311,17 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
         </>
       )}
 
-      {/* El pie es parte del dato, no una nota al pie: un promedio sin su
-          unidad y sin su alcance temporal es otra forma de mentir. */}
-      <p className="num" style={{
+      {/* El pie dice de cuánto sale el promedio, y nada más.
+          Traía además la normalización y la ventana —"llevados a una pinta de
+          473 ml, de menos de 45 días"—, dos renglones de letra chica que
+          nadie leía y que empujaban la tarjeta. La unidad no se pierde: el
+          titular ya dice "la pinta, típico" al lado del número. */}
+      <p style={{
         margin: 'var(--s-3) 0 0', paddingTop: 'var(--s-3)',
         borderTop: '1px solid var(--hairline)',
         fontSize: 'var(--t-1)', color: 'var(--faint)', lineHeight: 1.5,
-        fontWeight: 400, letterSpacing: 0, fontFamily: 'inherit',
       }}>
-        {stats.samples} precios · {stats.bars} {stats.bars === 1 ? 'bar' : 'bares'} ·
-        llevados a una pinta de 473 ml, de menos de 45 días
+        {stats.samples} precios · {stats.bars} {stats.bars === 1 ? 'bar' : 'bares'}
       </p>
     </div>
   )

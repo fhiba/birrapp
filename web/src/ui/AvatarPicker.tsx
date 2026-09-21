@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import * as api from '../data/api'
 import type { User } from '../data/types'
-import { compressImage } from '../data/image'
 import { Confirm } from './Chrome'
+import { CropSquare } from './CropSquare'
 
 /**
  * Foto de perfil.
@@ -17,6 +17,10 @@ import { Confirm } from './Chrome'
  * EXIF, y ahí viven las coordenadas GPS de dónde se sacó. Una foto de perfil
  * subida tal cual publicaría la casa de quien la sacó en una URL abierta.
  */
+/** El lado del avatar en pantalla. Lo comparten el botón y la foto: ver abajo
+ *  por qué la foto no puede pedirlo en porcentaje. */
+const LADO = 64
+
 export function AvatarPicker({
   user, onChange,
 }: { user: User; onChange: (u: User) => void }) {
@@ -25,14 +29,27 @@ export function AvatarPicker({
   const [error, setError] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState(false)
 
-  const take = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  /** La foto elegida, esperando que se la encuadre. */
+  const [aEncuadrar, setAEncuadrar] = useState<File | null>(null)
+
+  const take = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     // Se limpia el input o elegir la misma foto dos veces no dispara `change`.
     e.target.value = ''
     if (!file) return
-    setError(null); setBusy(true)
-    try { onChange(await api.uploadAvatar(await compressImage(file))) }
-    catch (err) { setError((err as Error).message) }
+    // No se sube todavía: primero se encuadra. El avatar se muestra en un
+    // cuadrado y recortar por el centro en una foto vertical no suele dar la
+    // cara de nadie. Ver `CropSquare`.
+    setError(null)
+    setAEncuadrar(file)
+  }
+
+  const subir = async (blob: Blob) => {
+    setBusy(true)
+    try {
+      onChange(await api.uploadAvatar(blob))
+      setAEncuadrar(null)
+    } catch (err) { setError((err as Error).message) }
     finally { setBusy(false) }
   }
 
@@ -54,7 +71,7 @@ export function AvatarPicker({
         // recorte quedaba mordido; el recorte de la foto lo hace la `<img>`
         // con su propio radio.
         style={{
-          position: 'relative', width: 64, height: 64, borderRadius: 'var(--r-2)',
+          position: 'relative', width: LADO, height: LADO, borderRadius: 'var(--r-2)',
           flexShrink: 0, padding: 0,
           background: user.avatarUrl ? 'transparent' : 'var(--info-soft)',
           border: user.avatarUrl ? 'none' : '1px solid var(--info-border)',
@@ -62,8 +79,14 @@ export function AvatarPicker({
         }}
       >
         {user.avatarUrl
-          ? <img src={user.avatarUrl} alt="" style={{
-              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+          // Medidas en píxeles y no en porcentaje. El `<button>` es una grilla
+          // con `placeItems: center`, así que la fila se dimensiona por su
+          // contenido: `height: '100%'` no tiene contra qué resolver, cae a
+          // `auto`, y la foto se dibuja con su alto natural. Con la de Google,
+          // que es cuadrada y chica, no se notaba; con una foto de teléfono la
+          // imagen salía del botón y tapaba el campo del nombre.
+          ? <img src={user.avatarUrl} alt="" width={LADO} height={LADO} style={{
+              width: LADO, height: LADO, objectFit: 'cover', display: 'block',
               borderRadius: 'var(--r-2)',
             }} />
           : <span className="num" style={{
@@ -113,6 +136,14 @@ export function AvatarPicker({
           <p style={{ color: 'var(--danger)', fontSize: 'var(--t-2)', margin: '4px 0 0' }}>{error}</p>
         )}
       </div>
+
+      {aEncuadrar && (
+        <CropSquare
+          file={aEncuadrar}
+          onCancel={() => setAEncuadrar(null)}
+          onDone={subir}
+        />
+      )}
 
       {confirmRemove && (
         <Confirm

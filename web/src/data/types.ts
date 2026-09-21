@@ -138,6 +138,11 @@ export interface User {
    */
   favoriteStyles: string[]
   favoriteBrands: string[]
+  /**
+   * Si ya pasó por la bienvenida (V22). Falso sólo en una cuenta recién
+   * creada, y es lo único que decide si se la muestra.
+   */
+  onboarded: boolean
 }
 
 /** Una fila de la tabla de colaboradores del mes (BIR-9). */
@@ -260,6 +265,9 @@ export interface Person {
 
 export const isModerator = (u: User | null) =>
   u?.role === 'moderator' || u?.role === 'admin'
+
+/** Nombrar moderadores y admins es sólo de admin, no de todo el staff. */
+export const isAdmin = (u: User | null) => u?.role === 'admin'
 
 export interface ModerationSummary {
   pendingBars: number

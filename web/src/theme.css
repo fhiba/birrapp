@@ -294,6 +294,22 @@
    * justo para despejar el indicador sin regalar media pantalla.
    */
   --nav-gap: max(12px, calc(env(safe-area-inset-bottom, 0px) - 12px));
+
+  /**
+   * Lo que ocupa la barra de abajo, entera.
+   *
+   * Son los 49px de la fila de pestañas más el `--nav-gap` que la despega del
+   * indicador de home. Existe como token porque cada pantalla que scrollea por
+   * debajo de la barra tiene que reservar este espacio al final, y hasta ahora
+   * cada una lo estimaba por su cuenta: había un `60px`, un `40px + gap` y un
+   * `24px + gap`. El último es menos de la mitad de lo que mide la barra, y por
+   * eso en "Cerca" el botón de cargar un precio quedaba tapado — no es que la
+   * lista no scrollee hasta abajo, es que abajo no había lugar reservado.
+   *
+   * Quien scrollea bajo la barra usa `calc(var(--nav-h) + algo de aire)`, nunca
+   * un número a ojo.
+   */
+  --nav-h: calc(49px + var(--nav-gap));
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }

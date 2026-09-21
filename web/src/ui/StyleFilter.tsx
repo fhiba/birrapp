@@ -108,12 +108,30 @@ function FilterPill({
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-          <div style={{
+          {/*
+            Sobre el mapa el menú es vidrio, con la receta única de `.glass`.
+
+            Es lo que manda la dirección: hay vidrio donde algo flota, y esto
+            flota sobre el mapa igual que la píldora que lo abre. Era un panel
+            opaco colgando de una píldora translúcida, o sea la única pieza de
+            la franja de controles que tapaba el mapa entero.
+
+            Ni el fondo ni la sombra van inline cuando es vidrio: `.glass` trae
+            los suyos —el `brightness` adentro del `backdrop-filter` y los dos
+            cantos— y un `background` en el `style` los pisaría por
+            especificidad, que es cómo se pierde el vidrio sin que se note.
+
+            En la lista sigue sólido: ahí abajo hay contenido, no mapa, y un
+            menú translúcido sobre una lista de precios es un menú que se lee
+            mal.
+          */}
+          <div className={tone === 'glass' ? 'glass' : undefined} style={{
             position: 'absolute', left: 0, top: size + 6, zIndex: 21, minWidth: menuWidth,
             maxHeight: 320, overflowY: 'auto',
-            background: 'var(--elevated)', borderRadius: 'var(--r-3)', padding: 8,
-            border: '.8px solid var(--hairline)',
-            boxShadow: '0 10px 34px rgba(0,0,0,.5)',
+            background: tone === 'glass' ? undefined : 'var(--elevated)',
+            borderRadius: 'var(--r-3)', padding: 8,
+            border: tone === 'glass' ? undefined : '.8px solid var(--hairline)',
+            boxShadow: tone === 'glass' ? undefined : '0 10px 34px rgba(0,0,0,.5)',
           }}>
             {children(() => setOpen(false))}
           </div>

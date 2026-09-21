@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import * as fb from '../data/feedback'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BarPin, BeerStyle } from '../data/types'
@@ -436,6 +437,26 @@ export function ListScreen(p: Props) {
               </svg>
             </button>
           )}
+
+          {/* Qué se está mirando, al final de la misma fila y contra el borde.
+
+              Va acá y no en su propio renglón porque es el resultado de estos
+              filtros: pegado a ellos, "200 bares" se lee como lo que dejaron
+              pasar. Un renglón aparte lo convertía en un título suelto, y de
+              paso comía alto entre los controles y la lista.
+
+              `marginLeft: auto` y no una columna: si los filtros bajan de
+              línea —un estilo de nombre largo—, el contador baja con ellos en
+              vez de quedar colgado arriba a la derecha de la nada.
+
+              Buscando no va: ahí el renglón de abajo ya dice "N resultados", y
+              dos contadores del mismo conjunto se leen como un error. */}
+          {!isSearch && resumen && (
+            <div style={{
+              marginLeft: 'auto', fontSize: 'var(--t-1)', color: 'var(--info)',
+              fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+            }}>{resumen}</div>
+          )}
         </div>
 
         {/* Buscando, el orden no aplica: los resultados vienen del servidor
@@ -459,14 +480,6 @@ export function ListScreen(p: Props) {
           </div>
         ) : (
           <>
-            {/* Qué se está mirando, antes de en qué orden. */}
-            {resumen && (
-              <div style={{
-                fontSize: 'var(--t-1)', color: 'var(--info)',
-                fontVariantNumeric: 'tabular-nums',
-              }}>{resumen}</div>
-            )}
-
             {/* El orden, como pestañas de texto con subrayado de 2px.
                 Eran cápsulas rellenas: pesaban lo mismo que un CTA y competían
                 con el precio, que es el dato de la pantalla. El subrayado dice
@@ -522,7 +535,8 @@ export function ListScreen(p: Props) {
             con la pista gruesa por defecto del navegador. */}
         <input
           className="range" type="range" min={300} max={15000} step={100}
-          value={p.radius} onChange={e => p.onRadius(Number(e.target.value))}
+          value={p.radius}
+          onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
           style={{
             marginTop: 8,
             ['--fill' as string]: `${((p.radius - 300) / (15000 - 300)) * 100}%`,

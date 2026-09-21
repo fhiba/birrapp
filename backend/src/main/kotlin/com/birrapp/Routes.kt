@@ -50,19 +50,9 @@ private fun estilos(raw: String?): List<String> =
 /** Cómo quedó el pulgar de una foto después de tocarlo (BIR-10). */
 @Serializable data class PhotoVotes(val votes: Int, val votedByMe: Boolean)
 
-/**
- * Techos de `/bars`. Ver [CoverageBudget] para por qué existen estos números.
- *
- * La relación que importa es **`MAX_LIMIT` < `CoverageBudget.DEFAULT_PER_DAY`**:
- * si un solo request pudiera traer más bares que el presupuesto de todo el día,
- * ese request sería irrespondible siempre y el endpoint quedaría roto para
- * cualquiera. Con 200 contra 400 hay margen de dos pedidos completos de
- * territorio nuevo antes de tocar el techo.
- *
- * El tope viejo era 500, y con ~738 bares cargados eso es el 68% de la base en
- * una sola llamada: no había presupuesto de cobertura posible que sirviera.
- */
-private const val MAX_LIMIT = 200
+/** El techo de filas de `/bars`. Ver `core/Limits.kt` por qué es del tamaño de
+ *  la base: en 200 el radio del mapa mentía. */
+private const val MAX_LIMIT = com.birrapp.core.MAX_BARES_POR_PEDIDO
 
 /**
  * 20 km. El slider del mapa llega a 15, y `useBars` sobre-pide 2.5x, así que el
@@ -799,13 +789,27 @@ fun Route.apiRoutes(
                 call.respond(OkResponse())
             }
 
-            /** Sólo admin: nombrar y sacar moderadores. */
+            /**
+             * Sólo admin: nombrar y sacar moderadores y admins.
+             *
+             * **Nadie se cambia el rol a sí mismo**, y no es una formalidad: el
+             * rol sólo se siembra al crear la cuenta (`BOOTSTRAP_ADMIN_EMAILS`
+             * se lee en el INSERT y el upsert no lo toca nunca), así que el
+             * único que puede nombrar a un admin es otro admin. Un admin que se
+             * baja solo —siendo el único, o por un toque de más en una lista—
+             * deja el sistema sin nadie que pueda volver a subir a nadie, y la
+             * salida es un UPDATE a mano en la base de producción.
+             *
+             * Se frena acá y no en la pantalla porque la pantalla es una
+             * sugerencia: lo que impide perder el acceso tiene que estar del
+             * lado que no se puede editar desde el navegador.
+             */
             post("/users/{id}/role") {
-                call.requireRole(Role.admin)
+                val yo = call.requireRole(Role.admin)
                 val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
                 val role = runCatching { Role.valueOf(call.receive<RoleChangeRequest>().role) }
                     .getOrElse { badRequest("rol inválido: user, moderator o admin") }
-                if (!users.setRole(id, role)) notFound("no existe ese usuario")
+                if (!users.setRole(yo.userId, id, role)) notFound("no existe ese usuario")
                 call.respond(OkResponse())
             }
         }

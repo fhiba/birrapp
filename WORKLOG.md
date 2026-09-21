@@ -3693,7 +3693,366 @@ que para la web queda un solo número. AGENTS.md pasa de tres lugares a dos, y
 deja anotado que si vuelve a aparecer un número escrito a mano ahí, volvió el
 problema.
 
-## 2026-09-19 — v0.27.0: el rechazo de una marca ahora se nota, y un tope de carga diaria
+## 2026-09-18 (cont.) — v0.27.0: bienvenida, encuadre de la foto y la barra que tapaba
+
+### La foto de perfil rompía Configuración
+
+Subir una foto vertical desbordaba el avatar: la imagen salía del botón y tapaba
+el campo del nombre. Con la foto de Google no pasaba nunca, y por eso había
+sobrevivido — es cuadrada y chica, así que el bug era invisible hasta que
+alguien subía una propia.
+
+La causa no era el tamaño del archivo sino la forma de pedir las medidas. El
+botón del avatar es `display: grid` con `placeItems: center`, o sea que la fila
+se dimensiona **por su contenido**. La `<img>` pedía `height: '100%'`, que
+necesita una altura contra la cual resolver; como no la hay, cae a `auto` y la
+foto se dibuja con su alto natural. El ancho sí resolvía, contra los 64px
+fijos del botón: de ahí que quedara una tira angosta y larga. Y el botón lleva
+`overflow: visible` a propósito —para que el lápiz de la esquina no quede
+mordido—, así que no había nada que la recortara.
+
+Ahora la foto pide `LADO` en píxeles, la misma constante que usa el botón. Sin
+porcentajes no hay contra qué resolver nada.
+
+### Encuadrar antes de subir
+
+El avatar se muestra en un cuadrado y las fotos de teléfono son verticales, así
+que `object-fit: cover` recortaba por el centro geométrico — que en una foto
+vertical cae en el pecho. Subías una foto tuya y salía tu remera.
+
+`CropSquare` es una hoja con un recuadro: se arrastra para mover y hay una barra
+para acercar. La barra y no el pellizco de dos dedos porque esto también se abre
+desde una computadora, donde el pellizco no existe; arrastrar funciona igual en
+los dos lados y se queda como está. El zoom mínimo es el que hace que la foto
+tape el cuadrado entero y el desplazamiento se recorta contra los bordes: sin
+eso se puede encuadrar el vacío y el avatar sale con una franja transparente.
+
+Lo que se sube ya es un cuadrado de 512, así que ninguna vista tiene que
+defenderse de una proporción rara. Y como todo pasa por un canvas, se sigue
+borrando el EXIF con las coordenadas GPS, que es la razón por la que la foto
+nunca se sube tal cual.
+
+### La bienvenida, en tres pasos (V22)
+
+Crear la cuenta te dejaba en el mapa. Todo lo que hace que la app sea tuya
+—cómo te llamás en público, qué tomás, en qué moneda cargás— vivía detrás de la
+tuerca de Configuración, o sea de algo que nadie abre el primer día.
+
+Tres pasos y no una pantalla, porque son tres decisiones con costos distintos:
+quién sos se contesta en diez segundos, qué birras te gustan requiere leer una
+lista larga, y el radio y la moneda no significan nada hasta que usaste la app.
+Amontonadas, la larga del medio se come a las otras dos. Separadas, además, cada
+una se saltea por su cuenta.
+
+Cada paso guarda al pasar al siguiente. Guardar todo junto al final convertiría
+cada abandono a mitad de camino en la pérdida de lo que ya se había contestado.
+
+**La marca de "ya la hizo" se mudó de `localStorage` a la cuenta.** Alcanzaba
+mientras la pantalla ofrecía sólo birras favoritas: volver a ofrecerlas en otra
+computadora no rompe nada. Ahora también decide el nombre público y la foto, y
+entrar desde otro teléfono no puede volver a pedirte lo que ya elegiste.
+
+### El alias por defecto, y por qué es una excepción y no un cambio de criterio
+
+V20 dejó el alias **opt-in y sin default**, con un argumento que sigue en pie:
+`display_name` viene de Google y suele ser el nombre real, así que sembrarlo
+solo equivale a publicar a alguien en una tabla pública sin preguntarle.
+
+Una cuenta nueva ahora arranca con `nombre_apellido` puesto. Lo que hace que no
+sea la publicación silenciosa que V20 evitó es que **hay una pantalla**: el
+primer paso muestra ese alias ya escrito en el campo, dice que es el nombre con
+el que se te va a ver en público, y deja cambiarlo o borrarlo antes de seguir.
+El default deja de ser algo que pasa a escondidas y pasa a ser algo que se
+acepta. Sin él, el campo arranca vacío y la mayoría sigue de largo sin entender
+qué se perdió.
+
+Para que la excepción no se derrame, V22 marca a **todos los que ya existen**
+como que ya pasaron por la bienvenida. `onboarded_at IS NULL` es de acá en más
+"cuenta creada después de este deploy", y es lo único de lo que cuelga el alias
+automático. Sin ese relleno, el próximo login de cualquiera de los que ya usan
+la app le habría asignado un alias derivado de su nombre de Google.
+
+El número al final es por el índice único: los nombres se repiten y los alias no
+pueden. Se prueba primero el limpio, que es el que alguien querría, y recién si
+está tomado se le cuelga uno.
+
+`OnboardingTest` cuida sobre todo **a quién no se le toca el alias**: que volver
+a entrar no se lo cambie a nadie, y que quien lo borró a propósito no lo
+recupere en el próximo login.
+
+### El perfil muestra el alias
+
+El perfil es donde te ves como te ve el resto, y afuera —en Colaboradores, al
+pie de una foto— el único nombre que circula es el alias. Mostrar ahí el de
+Google era enseñarte una identidad que nadie más ve, y de paso dejaba sin
+contestar la única pregunta que importa del alias: cómo quedó.
+
+### La barra de abajo tapaba el botón de Cerca
+
+En "Cerca", el botón de cargar un precio quedaba detrás de la barra. No era que
+la lista no scrolleara hasta abajo: era que abajo no había lugar reservado.
+
+El `padding-bottom` de cada pantalla estaba escrito a ojo y ninguno coincidía
+—había un `60px`, un `40px + gap` y un `24px + gap`— contra una barra que mide
+49px más el `--nav-gap`. El de Cerca era menos de la mitad. Ahora hay un token,
+`--nav-h`, y quien scrollea por debajo de la barra usa `calc(var(--nav-h) + aire)`
+en vez de un número estimado.
+
+### Adelantar el promedio de la zona
+
+Los bares ya eran compartidos: el mapa, la lista y "Cerca" leen el mismo `bars`,
+así que cambiar de pestaña no los vuelve a pedir. El que faltaba era el promedio
+de la zona, que sólo se pedía al abrir "Cerca" — y como su clave depende de
+dónde está la cámara, moverse por el mapa y después entrar daba siempre pantalla
+vacía y un viaje de espera.
+
+`prefetchCached` calienta esa clave 700 ms después de que el mapa se queda
+quieto. **Sólo pide si la clave está fría**: si ya hay algo guardado, `useCached`
+lo pinta al instante y revalida por su cuenta, y volver a pedirlo sería una
+consulta de más por cada paneo. Lo que se compra es que no haya pantalla en
+blanco, no que el número sea de hace un segundo en vez de hace un minuto.
+
+### Más feedback, y el háptico de los sliders
+
+Faltaban los dos aportes más grandes: cargar un precio desde el "+" y dar de
+alta un bar no devolvían nada.
+
+Los sliders llevan `paso()`, que **sólo vibra y nunca suena**: el radio tiene 148
+pasos y un tono por paso es insoportable a los tres segundos. Va limitado en el
+tiempo, porque ciento cuarenta vibraciones seguidas se sienten como un zumbido
+continuo — lo contrario de marcar una muesca.
+
+## 2026-09-18 (cont.) — v0.28.0: el radio del mapa mentía, y una pasada de ajustes
+
+### El tope de filas, no el radio
+
+Reporte: con el radio en 7,2 km, dos bares a 5 km no aparecían en el mapa.
+
+El radio funcionaba. Lo que fallaba era el techo de filas. Los pines vuelven
+**ordenados por distancia**, así que un tope recorta por afuera, y estaba en
+200. Medido contra la base real (995 bares aprobados):
+
+- dentro de 7,2 km desde Palermo: **526 bares**
+- Quaystone, el que faltaba: a **4.765 m**, con **377 bares más cerca que él**
+
+O sea puesto 378 de una lista que se cortaba en 200. Desde afuera eso no se lee
+como un tope: se lee como que el bar no está cargado, o como que el control del
+radio no hace nada.
+
+**Había un segundo tope tapado por el primero.** `project()` en `useBars` hacía
+`slice(0, 400)` sobre lo ya traído. Con 526 bares en rango, subir sólo el del
+servidor no habría alcanzado — dos topes distintos para lo mismo garantizan que
+arreglar uno no arregle nada.
+
+Los dos pasan a `MAX_BARES_POR_PEDIDO` (1000), en `core/Limits.kt` y espejado en
+`useBars`. Es del tamaño de la base a propósito: el slider llega a 15 km, que
+desde cualquier punto de la ciudad abarca casi todo lo cargado, así que el único
+número que no miente es uno así.
+
+BIR-13 había bajado el tope a 200 para que un pedido no se llevara media base.
+Esa parte del mecanismo no defendía nada: `CoverageBudget` cuenta bares
+**distintos** por día justamente porque un tope de filas no separa al usuario
+del scraper — el scraper pide menos filas que alguien paseando el mapa. Lo que
+sí se mantiene es la relación `MAX_BARES_POR_PEDIDO < DEFAULT_PER_DAY`, que subió
+a 3000 con él; `CoverageBudgetTest` ahora lee las dos constantes en vez de una
+copia escrita a mano, que era lo que dejaba el test diciendo 200 para siempre.
+
+`RadiusCapTest` fija la propiedad: **un bar dentro del radio no puede
+desaparecer por tener muchos más cerca.** Verificado por las dos puntas —
+falla con el techo en 200 y pasa en 1000.
+
+### Cuántos bares traigo y cuántos marcadores dibujo eran la misma pregunta
+
+Subir el techo a 1000 abre la otra mitad del problema. El payload no es nada:
+los 995 bares son **108 kB** de JSON crudo, unos 30 comprimidos, contra un
+bundle de 512 kB. Pero cada pin es un `google.maps.Marker`, un objeto del SDK
+con su overlay, y mil de esos en un teléfono se sienten al panear. Antes el
+`slice(0, 400)` los limitaba de rebote; sacarlo los dejaba sueltos.
+
+`Pins` ahora dibuja sólo los que caen en el recuadro visible, con un margen del
+35% para que panear no los haga aparecer contra el borde. Los datos quedan
+completos —la lista, el promedio de la zona y "más barata cerca" siguen viendo
+todo— y el mapa dibuja las decenas que se están mirando. El recuadro se relee en
+`idle` y no en `bounds_changed`, que dispara decenas de veces por gesto.
+
+De paso, el puesto de precio y el descarte de etiquetas ahora se calculan sobre
+lo visible, que es lo que su propio comentario ya decía que hacían.
+
+Queda [BIR-49] para cuando la base pase los mil: al truncar, preferir los bares
+con precio. Tiene una trampa —`useBars` deduce la cobertura del último elemento
+de la lista, y eso deja de valer si el orden de supervivencia no es la
+distancia— así que va con la mitad del servidor que devuelve el radio cubierto,
+o cambia un bug visible por uno silencioso.
+
+### La bienvenida no vuelve más
+
+Se cerraba en el último paso, así que quien no llegaba hasta ahí —se fue al
+mapa, cerró la app— quedaba con la cuenta sin marcar y el siguiente login se la
+ponía de nuevo adelante, ya con el alias y las birras elegidas. Una pantalla que
+reaparece después de haberla contestado se lee como que no se guardó nada.
+
+Ahora se marca al abrirla. Lo de adentro se sigue guardando paso a paso, así que
+irse a la mitad conserva lo contestado; lo único que no vuelve es la pantalla.
+
+### Un cuarto paso, y dos pantallas que quedaron limpias
+
+La bienvenida explica ahora las dos cosas de la app que no se adivinan
+mirándola: que **el nivel puede bajar** —sale de los últimos 45 días— y que **la
+nota es de las birras y no del bar**.
+
+Las dos vivían como letra chica permanente en la pantalla donde aparecen, que es
+el peor lugar posible: se entienden una vez y después son ruido para siempre, en
+la pantalla que más se mira. Dicho una vez en la bienvenida, se fueron de la
+ficha del bar y del perfil.
+
+En el perfil se fue también el "te faltan 3 para el 4". Convertía el nivel en
+una tarea pendiente: cada visita al perfil te recordaba lo que no hiciste. Queda
+el nombre y la barra, que dicen que hay recorrido sin poner deberes.
+
+### Lo demás de la pasada
+
+**Ficha del bar:** fuera la fila de "Al día · N canillas · Verificado" — tres
+rótulos en mayúscula chica compitiendo entre ellos justo arriba de los precios,
+que es lo único que se vino a mirar. Las canillas se cuentan mirando la lista y
+la frescura la dice cada fila con su "hace N d". Queda el filete, que sí separaba
+algo. Y la nota de la birra dejó de estar dos veces en la misma tarjeta: queda la
+de abajo del nombre, y sólo sobrevive el aviso de "sin votos nuevos", que no está
+en ningún otro lado.
+
+**Cerca:** el pie de la tarjeta dice sólo de cuántos precios y bares sale. La
+unidad no se pierde, el titular ya dice "la pinta, típico".
+
+**Lista:** el contador de bares volvió a la fila de los filtros, contra el borde
+derecho. Pegado a ellos se lee como lo que dejaron pasar; en su propio renglón
+era un título suelto que comía alto.
+
+### Lo que no pude reproducir
+
+El reporte de que la lista filtra por favoritos con el corazón apagado y el
+vacío diciendo "ninguno de tus favoritos". Desde master no es alcanzable: el
+texto del resumen y el del vacío salen los dos de `favOnly`, y `traidos` vuelve
+a `p.bars` en el mismo render en que `favOnly` se apaga. Los dos textos del
+screenshot no pueden convivir. Lo más probable es el service worker sirviendo el
+bundle anterior —`registerType: 'autoUpdate'` cambia el SW pero la pestaña
+abierta sigue con el JS viejo hasta recargar—, así que hay que volver a mirarlo
+después de cerrar y abrir la app.
+
+## 2026-09-18 (cont.) — v0.29.0: nombrar admins desde la app, y la cabecera del perfil
+
+### El endpoint de roles existía y no lo llamaba nadie
+
+Pedido: hacer admin a Pitu. Resultó que no había forma desde la app.
+
+`POST /moderation/users/{id}/role` está desde siempre y no tenía ni cliente ni
+UI: el Dashboard **mostraba** el rol y no lo dejaba cambiar. Y
+`BOOTSTRAP_ADMIN_EMAILS` no sirve para esto, porque se lee en el INSERT y el
+upsert no toca el rol nunca —a propósito, para que un re-login no degrade a
+nadie—. O sea que para nombrar a un moderador había que entrar a la base a mano,
+que es la forma más rápida de que no se nombre a nadie.
+
+Ahora la etiqueta del rol, siendo admin, es el `<select>` que lo cambia. Un
+selector y no un botón que rota: son tres roles y uno es admin, así que hay que
+poder elegir a cuál se va y no descubrirlo tocando.
+
+**Antes de exponerlo hubo que ponerle el candado que no tenía.** `setRole` no
+impedía que un admin se bajara a sí mismo, y como el rol sólo se siembra al
+crear la cuenta, al último admin no lo puede volver a subir nadie: un toque de
+más en una lista de usuarios y la única salida es un UPDATE a mano en
+producción.
+
+La regla quedó en el repo y no en el handler, y eso fue deliberado: el proyecto
+no tiene pruebas de ruta, así que una guardia en la ruta habría sido una guardia
+sin cubrir. En `UserRepo.setRole(actorId, targetId, role)` la alcanza
+`RoleTest`, que verifica las dos mitades — que rebotar no lo deje a medio camino
+y que a otro sí lo pueda cambiar, que es para lo que existe.
+
+### La cabecera del perfil
+
+La tuerca y el botón de salir subieron al renglón del título. Son controles de
+la **pantalla** —configurarla, salir de ella—, no datos de la persona, y en la
+fila del nombre eran 88px peleando ancho con un mail de veinte caracteres: esa
+fila tenía 56 de foto + 44 + 44 antes de que el nombre tuviera a dónde ir.
+Arriba ocupan un renglón que estaba vacío.
+
+Con ese rincón libre, el emblema del nivel pudo dejar de colgar debajo de los
+botones y pasar al renglón del nombre, contra el borde derecho. Compartiendo
+columna con dos controles, el nivel se leía como un tercer botón; al lado del
+nombre se lee como lo que es.
+
+## 2026-09-18 (cont.) — v0.29.1: el ancho de las cápsulas del mapa se medía a ojo
+
+Reporte: las cápsulas de precio del mapa tienen demasiado aire a la derecha.
+
+El ancho salía de `label.length * 8,6`, o sea 8,6px por carácter — y en
+"$ 7.125" hay un espacio y un punto de miles que miden cerca de la mitad. Dos
+caracteres angostos cobrados como anchos son unos 8px de sobra, y caían **todos
+del lado derecho**: el texto arranca pegado a la chapita de frescura, así que lo
+que sobra queda atrás. El padding izquierdo era el de verdad y el derecho era el
+error de la cuenta.
+
+Ahora se mide con un canvas, que usa las mismas métricas que el navegador va a
+usar al dibujar. `letterSpacing` no entra en `measureText` en todos los
+navegadores, así que se descuenta a mano con el mismo −.02em que pide el
+`<text>`.
+
+Dos detalles que hacían falta para que no fuera un arreglo a medias:
+
+- **El `Map` de la caché no podía ser un `Map`.** En `MapScreen`, `Map` es el
+  componente de `@vis.gl/react-google-maps`, así que `new Map()` construía eso.
+  Queda un objeto plano.
+- **La caché se descarta cuando termina de cargar la tipografía.** Los primeros
+  pines se dibujan antes de que Bricolage esté disponible, así que `measureText`
+  mide con la de respaldo del sistema; sin invalidar, ese ancho equivocado
+  quedaba guardado toda la sesión. Era el mismo bug entrando por otra puerta.
+
+## 2026-09-20 — v0.29.2: el tutorial que volvía, y tres retoques de vestido
+
+### El tutorial que reaparecía en cada vuelta al Perfil
+
+El síntoma: pedir el tutorial, entrar a "Mis precios" desde el Perfil y volver
+—o ir de "Cerca" al Perfil— y el tutorial de vuelta, cada vez.
+
+Dos causas, las dos en `Tour.tsx`:
+
+1. **El token del "?" no se comparaba contra nada.** El efecto era
+   `if (openToken > 0) abrir()`. El token vive en `Shell`, que no se desmonta
+   al navegar: una vez tocado el "?" quedaba en 1 para siempre, así que el
+   efecto **abría el tutorial en cada montaje** — y `Tour` se monta de nuevo
+   cada vez que se entra a una pantalla con tutorial viniendo de una sin él
+   (Cerca, Mis aportes, Mis birras). Ahora se compara contra el último token
+   visto, guardado en un `useRef` inicializado con el valor de entrada.
+2. **La pantalla se anotaba como vista al TERMINAR el tutorial.** Irse a la
+   mitad —tocar uno de los cuadrados que el propio paso está señalando— la
+   dejaba sin marcar. Ahora se anota al abrirlo: lo que queda a mitad no se
+   repite solo, y para verlo entero está "Ver el tutorial de nuevo" en Perfil.
+
+### Vestido
+
+- **Vista previa del bar:** "Cargar el primer precio" se partía en tres
+  renglones adentro de una cápsula de 46px a media pantalla. Queda "Cargar
+  precio": el renglón de arriba ya dice "Sin precio vigente".
+- **Ficha del bar:** filete entre secciones —nota, fotos, comentarios, "Lo que
+  dicen"—. El encabezado ya tenía el suyo y de ahí para abajo seguía de largo:
+  tres rótulos chiquitos como única frontera se leen como un bloque que no
+  termina.
+- **Menús de filtro del mapa:** eran paneles opacos colgando de píldoras de
+  vidrio, la única pieza de la franja de controles que tapaba el mapa entero.
+  Ahora usan `.glass` cuando el tono es de mapa; en la lista siguen sólidos,
+  porque abajo hay precios y no mapa.
+
+### Pendiente
+
+Queda sin tocar lo de "desde la ficha del bar los tipos de birra no están
+encasillados con las líneas": los dos caminos —"Otra birra" en la ficha y el
+"+" del centro— montan el mismo `ReportFlow` con el mismo `StyleChips
+layout="grid"`, así que no hay dos vestidos que unificar. Falta una captura
+para saber qué pantalla es.
+
+## 2026-09-19 — v0.30.0: el rechazo de una marca ahora se nota, y un tope de carga diaria
+
+> Escrita el 19/9 como v0.27.0 y mergeada recién el 21/9: la rama quedó dos
+> días con el PR abierto y mientras tanto master se llevó ese número y dos
+> más. Renumerada a v0.30.0 al integrarla, que es la que se publica.
 
 Dos reportes de Felipe sobre la misma cosa: decisiones de moderación que el
 código no estaba cumpliendo.
