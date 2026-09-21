@@ -873,6 +873,7 @@ export function BarDetailScreen({
                 {/* El rótulo dice de quién es la nota. Sin él, las estrellas
                     de la birra y la nota del lugar —que está más abajo— se
                     leen como lo mismo puntuado dos veces. */}
+                <Filete />
                 <h3 className="section-label">TU NOTA DE ESTA BIRRA</h3>
                 <BeerRating
                   price={active}
@@ -882,6 +883,7 @@ export function BarDetailScreen({
                   onRetract={() => retract(active)}
                 />
 
+                <Filete />
                 <PhotoStrip
                   photos={beerPhotos}
                   canAdd={user != null}
@@ -899,6 +901,7 @@ export function BarDetailScreen({
                     ícono: es el orden en que se mira una birra —cuánto sale,
                     cómo se ve, qué dijeron— y lo que estaba escondido no lo
                     leía nadie. */}
+                <Filete />
                 <BeerComments
                   key={beerKey(active)}
                   barId={barId}
@@ -918,6 +921,7 @@ export function BarDetailScreen({
 
       {reviews.length > 0 && (
         <section style={{ padding: '0 18px' }}>
+          <Filete />
           <h2 className="section-label">LO QUE DICEN</h2>
           {reviews.map(r => (
             <div key={r.id} style={{
@@ -1708,6 +1712,26 @@ function EstrellasNota({ value, size = 16 }: { value: number; size?: number }) {
  * Alto 52 y no un padding: los CTA de la app miden lo mismo en todas las
  * pantallas, y con padding el alto salía distinto según el tamaño de letra.
  */
+/**
+ * El filete que separa una sección de la que viene arriba.
+ *
+ * La ficha ya tenía uno entre el encabezado y los precios, y de ahí para abajo
+ * seguía de largo: la nota, las fotos y los comentarios quedaban apilados con
+ * un rótulo chiquito como única frontera, y los tres se leían como un solo
+ * bloque que no termina nunca. Con la línea, cada sección se lee como pieza —es
+ * la misma gramática de pizarra que usan el perfil y la configuración.
+ *
+ * El margen de arriba es el mismo `--s-4` del filete del encabezado: debajo, el
+ * rótulo pone su propio aire con `.section-label`.
+ */
+function Filete() {
+  return (
+    <div aria-hidden style={{
+      marginTop: 'var(--s-4)', borderTop: '1px solid var(--hairline)',
+    }} />
+  )
+}
+
 function PrimaryAction({ label, puntos, onClick }: {
   label: string
   /** Lo que suma el aporte, adentro del botón y al lado del verbo. */

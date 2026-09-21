@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Tutorial progresivo, por pantalla.
@@ -199,6 +199,26 @@ export function Tour({ view, userId, autoStart, openToken = 0 }: {
   const [active, setActive] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
 
+  /**
+   * Abrir el tutorial de esta pantalla **y anotarla como vista**.
+   *
+   * Se anota al mostrarlo y no al terminarlo. Terminarlo era lo único que lo
+   * marcaba, así que irse a la mitad —tocar uno de los cuadrados que el propio
+   * paso está señalando— dejaba la pantalla sin marcar, y el tutorial volvía a
+   * aparecer cada vez que se entraba: desde "Mis precios", desde "Cerca",
+   * siempre. Un cartel que reaparece después de haberlo leído no se lee como
+   * ayuda, se lee como que la app no se entera de nada.
+   *
+   * Lo que queda a mitad no se repite solo; para verlo entero está "Ver el
+   * tutorial de nuevo" en Perfil.
+   */
+  const abrir = useCallback(() => {
+    setStep(0)
+    setActive(true)
+    const s = read(userId)
+    write(userId, { ...s, done: [...new Set([...s.done, view])] })
+  }, [userId, view])
+
   // Arranca al entrar a una pantalla que todavía no se explicó. El retraso es
   // para que la pantalla haya terminado de dibujarse: sin eso el ancla puede
   // no existir todavía y el paso se saltearía por nada.
@@ -206,27 +226,37 @@ export function Tour({ view, userId, autoStart, openToken = 0 }: {
     if (!autoStart) { setActive(false); return }
     const s = read(userId)
     if (s.skipped || s.done.includes(view)) { setActive(false); return }
-    const t = setTimeout(() => { setStep(0); setActive(true) }, 550)
+    const t = setTimeout(abrir, 550)
     return () => clearTimeout(t)
-  }, [view, userId, autoStart])
+  }, [view, userId, autoStart, abrir])
 
-  // Pedido a mano. Va sin el retraso de arriba: la pantalla ya está dibujada
-  // —se está mirando— y esperar medio segundo después de tocar un botón se
-  // siente como que el botón no anduvo.
+  /**
+   * Pedido a mano, desde el "?". Va sin el retraso de arriba: la pantalla ya
+   * está dibujada —se está mirando— y esperar medio segundo después de tocar
+   * un botón se siente como que el botón no anduvo.
+   *
+   * Se compara contra el último token visto y no contra cero. El token vive en
+   * `Shell`, que no se desmonta al navegar: una vez tocado el "?" quedaba en 1
+   * para siempre, así que **este efecto abría el tutorial en cada montaje** —y
+   * el componente se monta de nuevo cada vez que se entra a una pantalla con
+   * tutorial viniendo de una sin él. Ése era el tutorial que no se iba más.
+   */
+  const ultimoPedido = useRef(openToken)
   useEffect(() => {
-    if (openToken > 0) { setStep(0); setActive(true) }
-  }, [openToken])
+    if (openToken === ultimoPedido.current) return
+    ultimoPedido.current = openToken
+    abrir()
+  }, [openToken, abrir])
 
   const steps = STEPS[view]
   const current = steps[step]
 
+  // Cerrar. Lo visto ya quedó anotado al abrir; acá sólo se guarda el
+  // "no me lo muestres más", que apaga el tutorial de todas las pantallas.
   const finish = useCallback((skipAll: boolean) => {
     setActive(false)
-    const s = read(userId)
-    write(userId, skipAll
-      ? { ...s, skipped: true }
-      : { ...s, done: [...new Set([...s.done, view])] })
-  }, [userId, view])
+    if (skipAll) write(userId, { ...read(userId), skipped: true })
+  }, [userId])
 
   const next = useCallback(() => {
     if (step + 1 >= steps.length) finish(false)
