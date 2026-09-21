@@ -4004,3 +4004,46 @@ Dos detalles que hacían falta para que no fuera un arreglo a medias:
   pines se dibujan antes de que Bricolage esté disponible, así que `measureText`
   mide con la de respaldo del sistema; sin invalidar, ese ancho equivocado
   quedaba guardado toda la sesión. Era el mismo bug entrando por otra puerta.
+
+## 2026-09-20 — v0.29.2: el tutorial que volvía, y tres retoques de vestido
+
+### El tutorial que reaparecía en cada vuelta al Perfil
+
+El síntoma: pedir el tutorial, entrar a "Mis precios" desde el Perfil y volver
+—o ir de "Cerca" al Perfil— y el tutorial de vuelta, cada vez.
+
+Dos causas, las dos en `Tour.tsx`:
+
+1. **El token del "?" no se comparaba contra nada.** El efecto era
+   `if (openToken > 0) abrir()`. El token vive en `Shell`, que no se desmonta
+   al navegar: una vez tocado el "?" quedaba en 1 para siempre, así que el
+   efecto **abría el tutorial en cada montaje** — y `Tour` se monta de nuevo
+   cada vez que se entra a una pantalla con tutorial viniendo de una sin él
+   (Cerca, Mis aportes, Mis birras). Ahora se compara contra el último token
+   visto, guardado en un `useRef` inicializado con el valor de entrada.
+2. **La pantalla se anotaba como vista al TERMINAR el tutorial.** Irse a la
+   mitad —tocar uno de los cuadrados que el propio paso está señalando— la
+   dejaba sin marcar. Ahora se anota al abrirlo: lo que queda a mitad no se
+   repite solo, y para verlo entero está "Ver el tutorial de nuevo" en Perfil.
+
+### Vestido
+
+- **Vista previa del bar:** "Cargar el primer precio" se partía en tres
+  renglones adentro de una cápsula de 46px a media pantalla. Queda "Cargar
+  precio": el renglón de arriba ya dice "Sin precio vigente".
+- **Ficha del bar:** filete entre secciones —nota, fotos, comentarios, "Lo que
+  dicen"—. El encabezado ya tenía el suyo y de ahí para abajo seguía de largo:
+  tres rótulos chiquitos como única frontera se leen como un bloque que no
+  termina.
+- **Menús de filtro del mapa:** eran paneles opacos colgando de píldoras de
+  vidrio, la única pieza de la franja de controles que tapaba el mapa entero.
+  Ahora usan `.glass` cuando el tono es de mapa; en la lista siguen sólidos,
+  porque abajo hay precios y no mapa.
+
+### Pendiente
+
+Queda sin tocar lo de "desde la ficha del bar los tipos de birra no están
+encasillados con las líneas": los dos caminos —"Otra birra" en la ficha y el
+"+" del centro— montan el mismo `ReportFlow` con el mismo `StyleChips
+layout="grid"`, así que no hay dos vestidos que unificar. Falta una captura
+para saber qué pantalla es.

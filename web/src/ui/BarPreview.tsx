@@ -241,7 +241,12 @@ export function BarPreview({
               background: 'var(--acento)', color: 'var(--base)', fontWeight: 600,
             }}
           >
-            {price != null ? 'Ver bar' : 'Cargar el primer precio'}
+            {/* "Cargar el primer precio" no entra: son dos botones a mitad de
+                pantalla cada uno, y el texto largo se partía en tres renglones
+                dentro de una cápsula de 46px. Lo que hay que decir es el verbo
+                —que acá abajo, sin precio, no puede significar otra cosa— y en
+                el renglón de arriba ya dice "Sin precio vigente". */}
+            {price != null ? 'Ver bar' : 'Cargar precio'}
           </button>
 
           <a
