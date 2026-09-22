@@ -278,6 +278,17 @@ export function useLocation() {
   const [denied, setDenied] = useState(false)
   const [permission, setPermission] = useState<LocationPermission>('unknown')
   const lastAt = useRef(stored?.at ?? 0)
+  /**
+   * Si `coords` es una posición de AHORA y no la guardada de la última vez.
+   *
+   * Arranca en falso aunque haya posición guardada, y ésa es la distinción que
+   * faltaba: una cosa es "dónde abrir el mapa" —para lo que un punto de hace
+   * unos días sirve, y es mejor que el Obelisco— y otra es "acá estás", que es
+   * una afirmación sobre el presente. Se venían usando las dos desde la misma
+   * variable, así que el punto azul podía estar señalando un bar de otra
+   * ciudad con total seguridad.
+   */
+  const [fresh, setFresh] = useState(false)
 
   const locate = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
@@ -286,6 +297,7 @@ export function useLocation() {
         lastAt.current = f.at
         writeFix(f)
         setCoords({ lat: f.lat, lng: f.lng })
+        setFresh(true)
       },
       (err) => {
         // Bloqueo contra fallo. El código 1 es PERMISSION_DENIED, y es la
@@ -375,5 +387,33 @@ export function useLocation() {
     }).catch(() => locate())
   }, [locate, stored])
 
-  return { coords, denied, permission, request }
+  /**
+   * Al volver a la app, si el permiso está dado, se pregunta de nuevo.
+   *
+   * Éste es el arreglo del "la abro después de mucho tiempo y me muestra dónde
+   * estaba la última vez". Una PWA no se recarga al volver del segundo plano:
+   * el efecto de arranque corrió una sola vez, hace días, y desde entonces
+   * nadie le volvió a preguntar al GPS. La posición guardada se seguía usando
+   * por hasta una semana.
+   *
+   * Sólo con el permiso ya concedido. Con `prompt` esto abriría el cartel del
+   * navegador cada vez que traés la app al frente, que es exactamente lo que
+   * el arranque evita a propósito: preguntar sin que nadie lo haya pedido es
+   * la forma más rápida de que lo nieguen para siempre.
+   *
+   * Y sólo si lo que tenemos ya envejeció, para no castigar el GPS cada vez
+   * que alguien cambia de pestaña.
+   */
+  useEffect(() => {
+    if (permission !== 'granted') return
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastAt.current < FIX_FRESH_MS) return
+      locate()
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => document.removeEventListener('visibilitychange', alVolver)
+  }, [locate, permission])
+
+  return { coords, denied, permission, fresh, request }
 }

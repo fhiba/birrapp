@@ -4257,3 +4257,46 @@ Tres de entrada y un "Ver N más" que despliega en el lugar. Tres alcanzan para
 contestar qué se cargó último por acá; el cuarto y el quinto son la misma
 respuesta con más detalle, y eso puede pedirse. Sin botón para volver a plegar:
 una vez que pediste ver más, esconderlas de nuevo no es algo que nadie quiera.
+
+## 2026-09-22 (cont.) — v0.32.2: la ubicación vieja que se mostraba como actual
+
+Reporte: abrir la app después de mucho tiempo mostraba la ubicación del último
+lugar donde se había abierto, y recién al tocar el botón volvía a pedir permiso.
+
+Son dos cosas distintas y sólo una es arreglable.
+
+### La posición guardada se usaba para dos cosas que no son la misma
+
+`coords` servía a la vez para **dónde abrir el mapa** —para lo que un punto de
+hace unos días sirve, y es mucho mejor que el Obelisco— y para **"acá estás"**,
+que es una afirmación sobre el presente. El punto azul, las distancias y la
+sugerencia de "¿te la tomaste acá?" salían todas de ahí, así que con una
+posición de hace una semana la app señalaba un bar de otra ciudad con total
+seguridad.
+
+Ahora hay un `fresh` que dice si lo que tenemos es de ahora. El punto azul sólo
+se dibuja con eso; el centrado del mapa sigue usando la guardada, que es para lo
+que sirve.
+
+### Nadie le volvía a preguntar al GPS
+
+Éste es el arreglo de fondo. Una PWA **no se recarga al volver del segundo
+plano**: el efecto de arranque había corrido una sola vez, hacía días, y desde
+entonces nadie consultaba la posición otra vez. La guardada se seguía usando por
+hasta una semana.
+
+Ahora, al traer la app al frente, si el permiso ya está concedido y lo que
+tenemos envejeció, se vuelve a ubicar. Sólo con el permiso dado: con `prompt`
+esto abriría el cartel del navegador cada vez que cambiás de pestaña, que es
+justo lo que el arranque evita a propósito.
+
+Y el cartel de "no sabemos dónde estás" ahora también aparece cuando lo que hay
+es viejo. Antes, con una posición guardada, no había ni punto ni cartel ni
+pedido: la app mostraba otro barrio y se quedaba callada.
+
+### Lo que no se puede arreglar
+
+Que iOS vuelva a pedir el permiso. No lo recuerda entre lanzamientos de una PWA
+instalada, y desde la web no hay forma de conservarlo — ya estaba anotado en el
+comentario de `useLocation` antes de este reporte. Lo que sí cambia es que ahora
+quien **sí** tiene el permiso vivo no ve más la posición vieja.
