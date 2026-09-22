@@ -4216,3 +4216,44 @@ El `Cannot read properties of undefined (reading 'startTime')` no es nuestro.
 aparece en el bundle propio —verificado—, y la traza es de un script anónimo
 inyectado. Es el Speed Insights que Vercel agrega desde la configuración del
 proyecto. No rompe nada de la app: falla el script de métricas, no la página.
+
+## 2026-09-22 (cont.) — v0.32.1: las pastillas, el filete de más y Cerca más corta
+
+### El padding de abajo que nadie escribió
+
+Las pastillas de estilo y marca de la ficha se dimensionan solas: `padding` más
+la caja de línea, sin `height`. Y la caja de línea hereda el `1.5` del body, así
+que una pastilla de 13px medía 8 + 19,5 + 8 = 35,5px para trece píxeles de
+texto. Ese sobrante de 6,5px se reparte arriba y abajo del renglón, pero las
+métricas de la fuente lo dejan cargado abajo — y se lee como un padding inferior
+que nadie puso.
+
+Con `lineHeight: 1` la caja es exactamente padding más texto y queda pareja por
+construcción.
+
+**Las demás pastillas de la app no tenían el problema**, y por una razón que
+vale anotar: todas llevan `height` o `minHeight` y centran contra eso, así que
+el sobrante de la interlínea se reparte solo. Las únicas dos que se dimensionan
+por la caja de línea eran éstas y la cápsula de rol del dashboard, que también
+se corrigió.
+
+### Dos separadores donde iba uno
+
+Debajo de "Ver historial" quedaban dos líneas seguidas: el `borderBottom` del
+bloque de precio, que por ir en el borde llegaba de punta a punta, y el `Filete`
+del bloque siguiente, que vive adentro del canal de 18px y va sangrado. Dos
+separadores a unos píxeles, de dos anchos distintos.
+
+Se fue el `borderBottom`: el resto de la ficha separa con filetes sangrados, así
+que la que estaba fuera de norma era ésa.
+
+### Cerca: tres bares y el resto a pedido
+
+"Lo último que se cargó" mostraba seis fijos, y seis filas empujan la tabla de
+birras tan abajo que hay que scrollear a propósito para encontrarla — o sea que
+para quien abre la pestaña no existe.
+
+Tres de entrada y un "Ver N más" que despliega en el lugar. Tres alcanzan para
+contestar qué se cargó último por acá; el cuarto y el quinto son la misma
+respuesta con más detalle, y eso puede pedirse. Sin botón para volver a plegar:
+una vez que pediste ver más, esconderlas de nuevo no es algo que nadie quiera.

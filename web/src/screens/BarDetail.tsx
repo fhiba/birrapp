@@ -777,6 +777,17 @@ export function BarDetailScreen({
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                 padding: '8px 11px', borderRadius: 999, fontSize: 'var(--t-3)',
+                // `lineHeight: 1` y no el 1.5 que se hereda del body.
+                //
+                // Sin esto la pastilla mide 8 + 19,5 + 8 = 35,5px para 13px de
+                // texto: el sobrante de la interlínea se reparte arriba y abajo
+                // del renglón, pero las métricas de la fuente lo dejan cargado
+                // abajo, y se lee como un padding inferior que nadie escribió.
+                // Con 1, la caja es exactamente padding + texto y queda pareja
+                // por construcción. Las otras pastillas de la app no lo
+                // necesitan porque llevan `height` o `minHeight` y centran
+                // contra eso; ésta se dimensiona sola.
+                lineHeight: 1,
                 ...chipStyle(on),
               }}>
                 <span style={{
@@ -833,6 +844,8 @@ export function BarDetailScreen({
                 <span style={{
                   display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                   padding: '8px 10px', borderRadius: 999, fontSize: 'var(--t-2)',
+                  // Ver la pastilla de estilos, arriba: misma razón.
+                  lineHeight: 1,
                   ...chipStyle(on),
                 }}>
                   <span style={{
@@ -1236,7 +1249,17 @@ function PriceRow({
   ].filter(Boolean).join(' · ')
 
   return (
-    <div style={{ padding: 'var(--s-4) 18px', borderBottom: '1px solid var(--hairline)' }}>
+    // Sin `borderBottom`.
+    //
+    // Debajo de "Ver historial" quedaban DOS líneas seguidas: ésta, que iba en
+    // el borde del bloque y por lo tanto llegaba de punta a punta, y el
+    // `Filete` del bloque siguiente, que vive adentro del canal de 18px y va
+    // sangrado. Dos separadores a unos píxeles, de dos anchos distintos, se
+    // leen como un error de dibujo — y lo eran.
+    //
+    // Se va ésta y no el `Filete`: el resto de la ficha separa con filetes
+    // sangrados, así que la que estaba fuera de norma era la de acá.
+    <div style={{ padding: 'var(--s-4) 18px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s-3)' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="lbl" style={{ fontSize: 'var(--t-4)', color: 'var(--cream)' }}>

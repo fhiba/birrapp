@@ -24,6 +24,10 @@ import { useCached } from '../data/cached'
  * coordenadas enteras la clave cambia con cada paneo y la caché no sirve de
  * nada. Sin los estilos, que a la tabla de birras no la filtran.
  */
+/** Cuántos bares recientes se muestran plegado, y cuántos como mucho. */
+const RECIENTES_PLEGADO = 3
+const MAX_RECIENTES = 8
+
 export const birrasKey = (lat: number, lng: number, radius: number) =>
   `birras:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`
 
@@ -115,8 +119,23 @@ export function NearbyScreen(p: {
   const conPrecio = p.bars.filter(b => b.fromPrice != null && b.freshestAgeDays != null)
   const recientes = [...conPrecio]
     .sort((a, b) => a.freshestAgeDays! - b.freshestAgeDays!)
-    .slice(0, 6)
+    .slice(0, MAX_RECIENTES)
   const viejos = conPrecio.filter(b => b.freshestAgeDays! >= FRESCO_DIAS).length
+
+  /**
+   * De entrada se ven tres, y el resto se despliega.
+   *
+   * Eran seis fijos, y seis filas empujan la tabla de birras tan abajo que hay
+   * que scrollear a propósito para encontrarla — o sea que para quien abre la
+   * pestaña no existe. Tres alcanzan para contestar "qué se cargó último por
+   * acá"; el cuarto y el quinto ya son la misma respuesta con más detalle, y
+   * eso puede pedirse.
+   *
+   * Se despliega en el lugar y no navega a otro lado: es la misma lista, más
+   * larga.
+   */
+  const [todos, setTodos] = useState(false)
+  const visibles = todos ? recientes : recientes.slice(0, RECIENTES_PLEGADO)
 
   return (
     <div style={{
@@ -205,7 +224,7 @@ export function NearbyScreen(p: {
                 <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
                   LO ÚLTIMO QUE SE CARGÓ
                 </h2>
-                {recientes.map(b => (
+                {visibles.map(b => (
                   <Fila
                     key={b.id}
                     nombre={b.name}
@@ -216,6 +235,22 @@ export function NearbyScreen(p: {
                     onClick={() => nav(`/bar/${b.id}`)}
                   />
                 ))}
+
+                {/* Sólo si hay algo que desplegar, y sin botón para volver a
+                    plegar: una vez que pediste ver más, esconderlas de nuevo no
+                    es algo que nadie quiera hacer. */}
+                {!todos && recientes.length > RECIENTES_PLEGADO && (
+                  <button
+                    onClick={() => { fb.tap(); setTodos(true) }}
+                    className="lbl cta"
+                    style={{
+                      display: 'block', width: 'calc(100% - var(--s-4) * 2)',
+                      margin: 'var(--s-3) var(--s-4) 0', minHeight: 40,
+                      borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+                      background: 'var(--film-1)', color: 'var(--info)',
+                    }}
+                  >Ver {recientes.length - RECIENTES_PLEGADO} más</button>
+                )}
               </>
             )}
 
