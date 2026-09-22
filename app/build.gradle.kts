@@ -33,8 +33,8 @@ android {
         // Subir en cada build que se distribuye. versionCode tiene que
         // crecer siempre: Android rechaza instalar una versión con código
         // menor o igual al instalado.
-        versionCode = 94
-        versionName = "0.32.1"
+        versionCode = 95
+        versionName = "0.32.2"
 
         // La API key del mapa se inyecta al manifest como placeholder.
         manifestPlaceholders["MAPS_API_KEY"] = localProp("MAPS_API_KEY")
