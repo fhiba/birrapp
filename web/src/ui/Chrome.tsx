@@ -293,10 +293,18 @@ function Modal({ label, onClose, variant = 'center', children }: {
 }
 
 export function Confirm({
-  title, body, confirmLabel, danger, requireWord, onCancel, onConfirm,
+  title, body, confirmLabel, danger, requireWord, cancelLabel, onCancel, onConfirm,
 }: {
   title: string; body: ReactNode; confirmLabel: string
   danger?: boolean; requireWord?: string
+  /**
+   * El texto del botón de salida, o `null` para que no haya ninguno.
+   *
+   * Sin esto, todo diálogo ofrecía elegir entre dos cosas. Hay avisos que no
+   * son una pregunta —el tope diario de birras es uno— y ahí un "Cancelar" al
+   * lado de un "Entendido" insinúa que había otra opción.
+   */
+  cancelLabel?: string | null
   onCancel: () => void; onConfirm: () => void
 }) {
   const [typed, setTyped] = useState('')
@@ -333,11 +341,13 @@ export function Confirm({
           display: 'flex', gap: 'var(--s-2)', justifyContent: 'flex-end',
           marginTop: 'var(--s-5)',
         }}>
-          <button onClick={onCancel} style={{
-            color: 'var(--muted)', padding: 'var(--s-3) var(--s-4)', minHeight: 44,
-          }}>
-            Cancelar
-          </button>
+          {cancelLabel !== null && (
+            <button onClick={onCancel} style={{
+              color: 'var(--muted)', padding: 'var(--s-3) var(--s-4)', minHeight: 44,
+            }}>
+              {cancelLabel ?? 'Cancelar'}
+            </button>
+          )}
           <button disabled={!armed} onClick={onConfirm} style={{
             padding: 'var(--s-3) var(--s-4)', fontWeight: 600, minHeight: 44,
             color: !armed ? 'var(--faint)' : danger ? 'var(--danger)' : 'var(--acento)',

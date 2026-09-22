@@ -66,6 +66,28 @@ export function MyBeersScreen() {
         />
       )}
 
+      {/*
+        La salida a la tabla de la zona.
+
+        Va acá arriba, pegada a los números propios, porque es la misma
+        pregunta mirada de afuera: cuántas llevo y cómo me deja eso contra el
+        resto. Al fondo de un calendario de treinta días nadie la encontraría.
+
+        Lleva a "Cerca", que es donde vive la tabla: no hay pantalla propia
+        porque la tabla depende de dónde estás parado, y una pantalla suelta
+        tendría que volver a preguntar radio y ubicación para decir lo mismo.
+      */}
+      <button onClick={() => nav('/cerca')} className="lbl cta" style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--s-2)', width: '100%',
+        minHeight: 46, marginBottom: 'var(--s-4)', padding: '0 var(--s-4)',
+        borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+        background: 'var(--info-soft)', border: '1px solid var(--info-border)',
+        color: 'var(--info-bright)', textAlign: 'left',
+      }}>
+        <span style={{ flex: 1 }}>Quién tomó más por tu zona</span>
+        <span aria-hidden>›</span>
+      </button>
+
       <div style={{ display: 'flex', gap: 12 }}>
         <Tile value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
         <Tile value={data.currentStreak} label="días seguidos"

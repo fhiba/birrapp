@@ -119,6 +119,30 @@ fun Route.apiRoutes(
         )
     }
 
+    /**
+     * Quiénes tomaron más entre los bares de esta zona (últimos 30 días).
+     *
+     * Pública, como el promedio de la zona y la tabla de colaboradores: son
+     * alias elegidos a propósito para aparecer, y esconderlas detrás del login
+     * las deja sin público.
+     *
+     * Mismos techos de radio que `/bars`: la consulta recorre las mismas filas.
+     */
+    get("/stats/beers") {
+        val lat = call.request.queryParameters["lat"]?.toDoubleOrNull()
+            ?: badRequest("falta lat")
+        val lng = call.request.queryParameters["lng"]?.toDoubleOrNull()
+            ?: badRequest("falta lng")
+        val radius = (call.request.queryParameters["radius"]?.toIntOrNull() ?: 2000)
+            .coerceIn(100, MAX_RADIUS_M)
+        call.respond(
+            beers.leaderboard(
+                lat, lng, radius,
+                limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10,
+            ),
+        )
+    }
+
     get("/brands") { call.respond(prices.brands()) }
 
     /**

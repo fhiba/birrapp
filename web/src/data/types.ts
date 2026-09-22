@@ -246,6 +246,20 @@ export interface ModeratedPhoto {
  * El perfil de otra persona (BIR-6). Sin email: lo que se ve de alguien es lo
  * que aportó, que ya está firmado con su nombre en el mapa.
  */
+/**
+ * Una fila de la tabla de birras por zona.
+ *
+ * `days` desempata y de paso dice algo: veinte birras en dos días y veinte en
+ * quince no son la misma historia.
+ */
+export interface BeerRank {
+  userId: number
+  alias: string
+  avatarUrl: string | null
+  beers: number
+  days: number
+}
+
 export interface Person {
   id: number
   displayName: string
