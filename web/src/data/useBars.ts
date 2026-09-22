@@ -80,8 +80,64 @@ export function useBars() {
   const keyOf = (f: Filtro = {}) =>
     `${[...(f.style ?? [])].sort().join(',')}|${f.minRating ?? ''}`
 
-  useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
-  useEffect(() => { api.brands().then(setBrands).catch(() => {}) }, [])
+  /**
+   * El vocabulario: los estilos y las marcas.
+   *
+   * ## Por qué reintenta
+   *
+   * Esto era `api.styles().then(setStyles).catch(() => {})`, o sea: si el
+   * pedido fallaba, la lista quedaba **vacía para toda la sesión**, sin error,
+   * sin reintento y sin nada que lo delatara. Y falla más seguido de lo que
+   * parece — el backend duerme y el primer pedido después de un rato puede
+   * tardar más que el timeout.
+   *
+   * El síntoma no se parecía a un error de red: al anotar una birra la lista
+   * de estilos salía vacía, con "Otro estilo" al lado, así que la app te
+   * ofrecía crear "IPA" como si no existiera. Un estilo que ya está no se
+   * puede crear de nuevo, así que además no había forma de salir adelante.
+   *
+   * ## Y por qué también al volver a la app
+   *
+   * El reintento con espera cubre "la red estaba lenta hace un segundo". Lo
+   * que no cubre es "abrí la app en el subte y la cerré": ahí se gastan los
+   * cuatro intentos sin señal y no hay más. Al traer la app al frente, si
+   * seguimos sin vocabulario, se prueba de nuevo — es el momento en que lo más
+   * probable es que la conexión haya vuelto.
+   */
+  useEffect(() => {
+    let vivo = true
+    // Banderas locales y no `styles.length`: el efecto corre una sola vez, así
+    // que su clausura ve las listas del primer render —vacías para siempre— y
+    // el reintento al volver se dispararía aunque ya estuvieran cargadas.
+    let hayEstilos = false
+    let hayMarcas = false
+
+    async function traer<T>(pedir: () => Promise<T[]>, set: (v: T[]) => void) {
+      for (let intento = 0; vivo && intento < 4; intento++) {
+        try {
+          const v = await pedir()
+          if (vivo) set(v)
+          // Una respuesta buena cierra el asunto aunque venga vacía: un
+          // vocabulario vacío es una verdad del servidor, no un fallo.
+          return true
+        } catch {
+          // 0,8s, 1,6s, 3,2s. Se corta solo al desmontar.
+          await new Promise(r => setTimeout(r, 800 * 2 ** intento))
+        }
+      }
+      return false
+    }
+
+    const cargar = () => {
+      if (!hayEstilos) void traer(api.styles, setStyles).then(ok => { hayEstilos = ok })
+      if (!hayMarcas) void traer(api.brands, setBrands).then(ok => { hayMarcas = ok })
+    }
+    cargar()
+
+    const alVolver = () => { if (document.visibilityState === 'visible') cargar() }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => { vivo = false; document.removeEventListener('visibilitychange', alVolver) }
+  }, [])
 
   /**
    * Una marca recién creada todavía no está en la lista del servidor —queda
