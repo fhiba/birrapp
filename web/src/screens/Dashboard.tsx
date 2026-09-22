@@ -252,6 +252,11 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
           ) : u.role !== 'user' && (
             <span className="lbl" style={{
               fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 8px', borderRadius: 999,
+              // Misma razón que las pastillas de la ficha del bar: sin esto la
+              // cápsula mide el 1.5 de interlínea que hereda del body y queda
+              // cargada abajo. Es la única otra de la app que se dimensiona por
+              // la caja de línea; el resto lleva `height` propia.
+              lineHeight: 1.4,
               background: 'var(--info-soft)', color: 'var(--info-bright)',
             }}>{u.role.toUpperCase()}</span>
           )}
