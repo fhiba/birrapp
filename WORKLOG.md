@@ -4300,3 +4300,55 @@ Que iOS vuelva a pedir el permiso. No lo recuerda entre lanzamientos de una PWA
 instalada, y desde la web no hay forma de conservarlo — ya estaba anotado en el
 comentario de `useLocation` antes de este reporte. Lo que sí cambia es que ahora
 quien **sí** tiene el permiso vivo no ve más la posición vieja.
+
+## 2026-09-22 (cont.) — v0.32.3: el vocabulario que fallaba y no se enteraba nadie
+
+Reporte: al anotar una birra la lista de estilos sale vacía, y buscando tampoco
+aparecen los que están cargados. En la compu sí, en el celular no.
+
+### El servidor está bien
+
+Lo primero fue descartarlo, contra producción: `/styles` devuelve los diecisiete
+estilos, `/brands` la lista entera, y las dos con el `Access-Control-Allow-Origin`
+correcto para el dominio de la web. El problema estaba del lado del cliente.
+
+### Un `catch` vacío que duraba toda la sesión
+
+Esto era, literalmente:
+
+```ts
+useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
+```
+
+Si el pedido fallaba, la lista quedaba **vacía para siempre**: sin error, sin
+reintento y sin nada que lo delatara. Y el síntoma no se parecía en nada a un
+error de red — se parecía a que la app no tuviera estilos.
+
+Peor: con la lista vacía, `canCreate` daba verdadero para cualquier cosa, así
+que la app ofrecía crear "IPA" como si no existiera. Y crear un estilo que ya
+está no se puede, así que tampoco había salida: sólo un formulario que rebota.
+
+Ahora reintenta cuatro veces con espera creciente, y **vuelve a intentar al
+traer la app al frente** si sigue sin vocabulario — que es el momento en que lo
+más probable es que la conexión haya vuelto. Las banderas de "ya lo tengo" son
+locales al efecto y no `styles.length`: el efecto corre una sola vez, así que su
+clausura ve las listas del primer render, vacías para siempre, y el reintento se
+dispararía aunque ya estuvieran cargadas.
+
+### Y que se note
+
+`StyleChips` con la lista vacía ahora lo dice, en ámbar, y **esconde "Otro
+estilo"**: proponer un estilo cuando no sabemos cuáles existen es invitar a
+duplicar los que ya están.
+
+La lista vacía se puede tratar como error sin miedo porque del lado del servidor
+nunca lo está: son diecisiete sembrados desde V2.
+
+### Lo que queda sin confirmar
+
+Por qué falla en esa computadora y no en el teléfono. Con el servidor sano, CORS
+correcto y `runtimeCaching: []` en el service worker —los datos no se cachean—,
+lo que queda es el navegador: un bloqueador de contenido que corta `/styles` y
+`/brands` mientras deja pasar `/bars` encaja con el patrón. Se comprueba en un
+paso, mirando la pestaña Red. El arreglo de arriba vale igual: la app se
+recupera sola y, si no puede, lo dice.
