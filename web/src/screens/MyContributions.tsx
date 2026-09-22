@@ -43,6 +43,29 @@ const TITLE: Record<Kind, string> = {
   bares: 'Mis bares',
 }
 
+/** Lo mismo cuando se está mirando a otra persona: "Precios de Ana". */
+const TITLE_AJENO: Record<Kind, string> = {
+  precios: 'Precios de',
+  fotos: 'Fotos de',
+  comentarios: 'Comentarios de',
+  bares: 'Bares de',
+}
+
+/**
+ * El vacío de la lista de otra persona.
+ *
+ * No puede ser el de arriba: "Todavía no cargaste ningún precio" le habla a
+ * quien mira, y acá quien mira es un moderador revisando a un tercero. Y no
+ * lleva acción, porque no hay nada que quien modera tenga que hacer al
+ * respecto — que la lista esté vacía es la respuesta, no un problema.
+ */
+const VACIO_AJENO: Record<Kind, string> = {
+  precios: 'No cargó ningún precio',
+  fotos: 'No subió ninguna foto',
+  comentarios: 'No escribió ningún comentario',
+  bares: 'No agregó ningún bar',
+}
+
 /** Qué decir cuando la lista está vacía, y cuál es el paso siguiente. */
 const EMPTY: Record<Kind, { title: string; hint: string; action: string }> = {
   precios: {
@@ -85,6 +108,21 @@ const EMPTY: Record<Kind, { title: string; hint: string; action: string }> = {
  * puede tener precios y fotos de otra gente, así que borrarlo no es deshacer
  * tu aporte sino borrar el de terceros. Para eso está la denuncia, que la
  * revisa un moderador.
+ *
+ * ## La misma pantalla sirve para mirar a otro
+ *
+ * Con `/usuario/:id/aportes/:tipo` la lista es la de esa persona, y eso es
+ * sólo para moderadores —lo hace cumplir el servidor, no esta pantalla—.
+ *
+ * Existe porque para revisar a alguien había que entrar bar por bar: el perfil
+ * decía "14 precios" y no había manera de ver cuáles. Un número que no se
+ * puede abrir no alcanza para decidir nada.
+ *
+ * **Mirando a otro no hay botones de borrar.** No es sólo que fallarían —los
+ * endpoints de borrado comprueban la pertenencia en el WHERE—, es que bajar
+ * contenido ajeno es una acción de moderación y tiene su lugar, con su
+ * registro y su motivo. Esto es la lectura que hace falta antes de esa
+ * decisión, no un atajo para saltearla.
  */
 export function MyContributionsScreen(
   {
@@ -98,9 +136,12 @@ export function MyContributionsScreen(
   }: { onChanged: () => void },
 ) {
   const nav = useNavigate()
-  const { tipo } = useParams()
+  const { tipo, id } = useParams()
   const kind: Kind = (['precios', 'fotos', 'comentarios', 'bares'] as Kind[])
     .includes(tipo as Kind) ? tipo as Kind : 'precios'
+  /** Con `id` en la ruta, se está mirando a otra persona. */
+  const ajeno = id ? Number(id) : null
+  const [quien, setQuien] = useState<string | null>(null)
   const [data, setData] = useState<MyContributions | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -114,18 +155,35 @@ export function MyContributionsScreen(
     // Al cambiar de solapa se limpia lo que había: si no, se ven los precios
     // mientras cargan las fotos y parece que la pantalla se equivocó.
     setData(null); setError(null)
-    try { setData(await api.myContributions(API_KIND[kind])) }
+    try {
+      setData(ajeno
+        ? await api.userContributions(ajeno, API_KIND[kind])
+        : await api.myContributions(API_KIND[kind]))
+    }
     catch (e) { setError((e as Error).message) }
-  }, [kind])
+  }, [kind, ajeno])
 
   useEffect(() => { load() }, [load])
+
+  // El nombre, aparte y sin bloquear la lista: el título puede esperar un
+  // renglón, los aportes no. Si falla, queda el título genérico.
+  useEffect(() => {
+    if (!ajeno) return
+    let vivo = true
+    api.person(ajeno)
+      .then(p => { if (vivo) setQuien(p.displayName) })
+      .catch(() => { /* el título se arregla solo sin el nombre */ })
+    return () => { vivo = false }
+  }, [ajeno])
 
   /** La página siguiente, pegada abajo. */
   const loadMore = async () => {
     if (!data?.nextCursor || more) return
     setMore(true)
     try {
-      const next = await api.myContributions(API_KIND[kind], data.nextCursor)
+      const next = ajeno
+        ? await api.userContributions(ajeno, API_KIND[kind], data.nextCursor)
+        : await api.myContributions(API_KIND[kind], data.nextCursor)
       setData(cur => cur && append(cur, next, API_KIND[kind]))
     } catch (e) { setError((e as Error).message) }
     finally { setMore(false) }
@@ -143,7 +201,10 @@ export function MyContributionsScreen(
         <div style={{ padding: '0 var(--s-4)' }}>
           <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>
-            {TITLE[kind]}
+            {/* Mirando a otro, el nombre va en el título y no en un subtítulo:
+                es lo único que distingue esta pantalla de la lista propia, y
+                confundirlas es revisar a la persona equivocada. */}
+            {ajeno ? `${TITLE_AJENO[kind]} ${quien ?? '…'}` : TITLE[kind]}
             {count != null && count > 0 && (
               /* Cuántos son va en el tono informativo: es el ámbito de lo que
                  estás mirando, no parte del título. En `--faint` se leía como
@@ -163,14 +224,16 @@ export function MyContributionsScreen(
             la pantalla no salta cuando llegan y se entiende qué se espera. */}
         {!data && !error && <SkeletonRows rows={5} />}
 
-        {count === 0 && (
+        {count === 0 && (ajeno ? (
+          <Empty title={VACIO_AJENO[kind]} />
+        ) : (
           <Empty
             title={EMPTY[kind].title}
             hint={EMPTY[kind].hint}
             action={EMPTY[kind].action}
             onAction={() => nav(kind === 'bares' ? '/agregar' : '/')}
           />
-        )}
+        ))}
 
         {/* El monto sale del título y se va a la derecha, grande y tabular, con
             la edad debajo: es la forma que usa toda la app y es lo que deja
@@ -179,7 +242,7 @@ export function MyContributionsScreen(
           <Item
             key={p.id}
             onOpen={() => nav(`/bar/${p.barId}`)}
-            onRemove={() => setKillPrice(p)}
+            onRemove={ajeno ? undefined : () => setKillPrice(p)}
             title={p.styleName + (p.brandName ? ` · ${p.brandName}` : '')}
             sub={`${p.barName}${p.sizeMl !== 473 ? ` · ${p.sizeMl} ml` : ''}`}
             age={p.ageDays}
@@ -193,7 +256,7 @@ export function MyContributionsScreen(
           <Item
             key={f.id}
             onOpen={() => nav(`/bar/${f.barId}`)}
-            onRemove={() => setKillPhoto(f)}
+            onRemove={ajeno ? undefined : () => setKillPhoto(f)}
             title={f.brandName ? `${f.styleName} · ${f.brandName}` : f.styleName}
             sub={f.barName}
             age={f.ageDays}
@@ -205,7 +268,7 @@ export function MyContributionsScreen(
           <Resena
             key={c.id}
             onOpen={() => nav(`/bar/${c.barId}`)}
-            onRemove={() => setKillComment(c)}
+            onRemove={ajeno ? undefined : () => setKillComment(c)}
             c={c}
           />
         ))}
@@ -221,7 +284,7 @@ export function MyContributionsScreen(
           />
         ))}
 
-        {kind === 'bares' && data && data.bars.length > 0 && (
+        {kind === 'bares' && !ajeno && data && data.bars.length > 0 && (
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
             padding: 'var(--s-4) var(--s-4) 0',
@@ -422,7 +485,8 @@ function Item({
  * en `--nota`, que es el tono de lo que se puntúa.
  */
 function Resena({ c, onOpen, onRemove }: {
-  c: MyComment; onOpen: () => void; onRemove: () => void
+  /** Sin `onRemove` no hay botón de borrar: es la lista de otra persona. */
+  c: MyComment; onOpen: () => void; onRemove?: () => void
 }) {
   return (
     <div style={{
@@ -452,7 +516,7 @@ function Resena({ c, onOpen, onRemove }: {
         <span className="num" style={{
           fontSize: 'var(--t-1)', color: 'var(--faint)', flexShrink: 0,
         }}>{shortAge(c.ageDays)}</span>
-        <Borrar onClick={onRemove} />
+        {onRemove && <Borrar onClick={onRemove} />}
       </div>
       <p style={{
         fontSize: 'var(--t-3)', lineHeight: 1.5, color: 'var(--cream-soft)',

@@ -381,6 +381,11 @@ function Shell() {
         <Route path="/mis-aportes/:tipo" element={
           <MyContributionsScreen onChanged={afterChange} />
         } />
+        {/* La misma pantalla, mirando a otra persona. Sólo moderadores: lo hace
+            cumplir el servidor, que es donde tiene que estar. */}
+        <Route path="/usuario/:id/aportes/:tipo" element={
+          <MyContributionsScreen onChanged={afterChange} />
+        } />
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -474,6 +474,19 @@ export const myContributions = (tipo?: ContributionKind, before?: string | null)
   req<MyContributions>('GET', '/auth/me/contributions', {
     auth: true, params: { tipo, before: before ?? undefined },
   })
+/**
+ * Lo mismo, pero de otra persona y sólo para moderadores.
+ *
+ * Misma forma de respuesta que [myContributions] a propósito: la pantalla de
+ * lista es una sola y sólo cambia de dónde saca los datos.
+ */
+export const userContributions = (
+  userId: number, tipo?: ContributionKind, before?: string | null,
+) =>
+  req<MyContributions>('GET', `/moderation/users/${userId}/contributions`, {
+    auth: true, params: { tipo, before: before ?? undefined },
+  })
+
 export const removeMyPrice = (id: number) =>
   req<unknown>('POST', `/auth/me/prices/${id}/remove`, { auth: true })
 export const removeMyPhoto = (id: number) =>
