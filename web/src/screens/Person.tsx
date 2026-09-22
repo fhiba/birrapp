@@ -38,6 +38,19 @@ export function PersonScreen({ user }: { user: User | null }) {
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'block' | 'ban' | null>(null)
 
+  const modera = isModerator(user)
+
+  /**
+   * Abre la lista de ese tipo de aporte, o nada si no se puede.
+   *
+   * Devuelve `undefined` sin rol, y con eso `Tile` se dibuja como un `div` en
+   * vez de un botón: una baldosa que no lleva a ningún lado no tiene que
+   * anunciarse como tocable.
+   */
+  const abrir = (tipo: string) => modera
+    ? () => nav(`/usuario/${personId}/aportes/${tipo}`)
+    : undefined
+
   const load = useCallback(() => {
     api.person(personId).then(p => { setPerson(p); setError(null) })
       .catch(e => setError((e as Error).message))
@@ -102,13 +115,33 @@ export function PersonScreen({ user }: { user: User | null }) {
       )}
 
       <SectionLabel>Lo que aportó</SectionLabel>
+      {/*
+        Moderando, cada número se abre.
+
+        Antes eran cuatro números y nada más: el perfil decía "14 precios" y
+        para ver cuáles había que entrar bar por bar. Un contador que no se
+        puede abrir no alcanza para decidir si alguien está cargando mal o de
+        mala fe, que es justo lo que hay que decidir mirando este perfil.
+
+        Se abren las que tienen lista del otro lado. "Notas" no: las
+        puntuaciones no tienen pantalla propia en ningún lado, ni siquiera para
+        lo propio, así que una baldosa tocable llevaría a nada. Vale más un
+        número quieto que un botón que no cumple.
+
+        Y "Comentarios" aparece sólo moderando: es el aporte que más se revisa
+        —es el único con texto libre— y el dato ya venía en la respuesta sin
+        que nadie lo mostrara.
+      */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }}>
-        <Tile label="Precios" value={person.prices} />
-        <Tile label="Bares" value={person.bars} />
-        <Tile label="Fotos" value={person.photos} />
+        <Tile label="Precios" value={person.prices} onClick={abrir('precios')} />
+        <Tile label="Bares" value={person.bars} onClick={abrir('bares')} />
+        <Tile label="Fotos" value={person.photos} onClick={abrir('fotos')} />
         <Tile label="Notas" value={person.ratings} />
+        {modera && (
+          <Tile label="Comentarios" value={person.comments} onClick={abrir('comentarios')} />
+        )}
       </div>
 
       {!esVos && user && (

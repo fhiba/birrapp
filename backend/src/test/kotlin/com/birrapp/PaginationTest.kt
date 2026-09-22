@@ -24,6 +24,42 @@ class PaginationTest {
     private fun diezPrecios(user: Long, bar: Long) =
         (1..10).map { TestDb.insertPrice(bar, "ipa", 1000.0 * it, daysAgo = 11 - it, userId = user) }
 
+    /**
+     * Cada lista es de la persona que se pide y de nadie más.
+     *
+     * Parece obvio y lo era mientras `forUser` sólo se llamaba con el id de
+     * quien preguntaba. Ahora también lo llama el endpoint de moderación con
+     * el id de un tercero, así que el aislamiento pasó de ser una propiedad
+     * incidental a ser de lo que depende la pantalla: si se colaran aportes de
+     * otro, un moderador estaría por sancionar a la persona equivocada.
+     */
+    @Test
+    fun `los aportes son de quien se pide y no se mezclan`() {
+        val ana = TestDb.insertUser("ana")
+        val beto = TestDb.insertUser("beto")
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816, createdBy = ana)
+
+        TestDb.insertPrice(bar, "ipa", 5000.0, daysAgo = 1, userId = ana)
+        TestDb.insertPrice(bar, "ipa", 6000.0, daysAgo = 2, userId = beto)
+        TestDb.insertPrice(bar, "ipa", 7000.0, daysAgo = 3, userId = beto)
+        TestDb.insertPhoto(bar, "ipa", beto)
+
+        val deAna = repo.forUser(ana, ContributionKind.prices)
+        assertEquals(1, deAna.prices.size, "el precio de Ana, y sólo ése")
+        assertEquals(5000.0, deAna.prices[0].price)
+
+        val deBeto = repo.forUser(beto, ContributionKind.prices)
+        assertEquals(2, deBeto.prices.size)
+        assertTrue(deBeto.prices.none { it.price == 5000.0 }, "el de Ana no entra acá")
+
+        // El bar lo creó Ana: no puede aparecer entre los aportes de Beto.
+        assertTrue(repo.forUser(beto, ContributionKind.bars).bars.isEmpty())
+        assertEquals(1, repo.forUser(ana, ContributionKind.bars).bars.size)
+        // Y la foto es de Beto, no de Ana.
+        assertEquals(1, repo.forUser(beto, ContributionKind.photos).photos.size)
+        assertTrue(repo.forUser(ana, ContributionKind.photos).photos.isEmpty())
+    }
+
     @Test
     fun `trae una sola clase de aporte cuando se pide una`() {
         val u = TestDb.insertUser()

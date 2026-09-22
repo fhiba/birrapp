@@ -84,6 +84,8 @@ fun Route.apiRoutes(
     analytics: AnalyticsRepo,
     users: UserRepo,
     traffic: TrafficRepo,
+    /** Para que un moderador pueda ver lo que cargó alguien. Ver el endpoint. */
+    contributions: com.birrapp.auth.ContributionRepo,
     /** Cuántos bares distintos puede descubrir una IP por día. Ver BIR-13. */
     budget: CoverageBudget,
     /** Borra el objeto del bucket. Ver PhotoRepo.remove: bajar una foto no
@@ -674,6 +676,38 @@ fun Route.apiRoutes(
                 call.requireRole(Role.moderator)
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
                 call.respond(moderation.recentUsers(limit.coerceIn(1, 500)))
+            }
+
+            /**
+             * Lo que cargó una persona, para quien modera.
+             *
+             * Es el mismo listado que cada uno ve de lo suyo en "Mis aportes",
+             * con el mismo repo y la misma paginación — lo único que cambia es
+             * de quién. Hasta acá, para revisar a alguien había que entrar bar
+             * por bar: el perfil decía "14 precios" y no había forma de ver
+             * cuáles eran. Un número que no se puede abrir no sirve para
+             * decidir nada.
+             *
+             * Detrás del rol de moderador y no del de admin, por lo mismo que
+             * el dashboard: es lectura, y es la lectura que necesita
+             * exactamente quien modera.
+             */
+            get("/users/{id}/contributions") {
+                call.requireRole(Role.moderator)
+                val id = call.parameters["id"]?.toLongOrNull() ?: badRequest("id inválido")
+                val raw = call.request.queryParameters["tipo"]
+                val kind = raw?.let {
+                    runCatching { com.birrapp.auth.ContributionKind.valueOf(it) }
+                        .getOrElse { badRequest("no existe ese tipo de aporte: $raw") }
+                }
+                call.respond(
+                    contributions.forUser(
+                        id,
+                        kind = kind,
+                        limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 30,
+                        before = call.request.queryParameters["before"],
+                    ),
+                )
             }
 
             get("/dashboard/summary") {

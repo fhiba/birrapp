@@ -4103,3 +4103,42 @@ que las marcas (`v_current_prices` hace `JOIN beer_styles` sin mirar status).
 `report` ya dejó de aceptarlos, pero lo que quedó cargado se sigue viendo, y
 `style_id` es NOT NULL así que no se arregla despegándolo. Falta decidir si se
 baja el contenido o se re-apunta a otro estilo.
+
+## 2026-09-22 — v0.31.0: abrir los aportes de otra persona, moderando
+
+El perfil de alguien decía "14 precios" y ahí terminaba. Para revisar esos
+catorce había que acordarse en qué bares fue y entrar uno por uno. Un contador
+que no se puede abrir no alcanza para decidir si alguien carga mal o de mala fe,
+que es exactamente lo que hay que decidir mirando ese perfil.
+
+Ahora, con rol de moderador, cada baldosa se abre y lleva a la misma lista que
+cada uno ve de lo suyo.
+
+**Casi no hubo que escribir nada nuevo.** `ContributionRepo.forUser` ya recibía
+un `userId`; el que estaba atado a quien preguntaba era el endpoint, que pasaba
+`caller.userId`. Así que alcanzó con un `GET /moderation/users/{id}/contributions`
+detrás de `requireRole(moderator)` y con la misma paginación.
+
+Del lado de la web, `MyContributionsScreen` toma la ruta
+`/usuario/:id/aportes/:tipo` y cambia de dónde saca los datos. Tres decisiones
+que no son cosméticas:
+
+- **Mirando a otro no hay botones de borrar.** No es sólo que fallarían —los
+  endpoints de borrado comprueban la pertenencia en el WHERE—: bajar contenido
+  ajeno es una acción de moderación, con su registro y su motivo. Esto es la
+  lectura que va **antes** de esa decisión, no un atajo para saltearla.
+- **"Notas" no se abre.** Las puntuaciones no tienen pantalla propia en ningún
+  lado, ni para lo propio. Vale más un número quieto que un botón que no cumple.
+- **"Comentarios" aparece sólo moderando.** Es el único aporte con texto libre,
+  o sea el que más se revisa, y el número ya venía en la respuesta sin que nadie
+  lo mostrara.
+
+El test que se sumó no es del endpoint sino de la propiedad de la que depende:
+que cada lista sea de la persona que se pide y de nadie más. Era incidental
+mientras `forUser` se llamaba sólo con el id propio; ahora es de lo que cuelga
+la pantalla, porque aportes mezclados serían un moderador sancionando a la
+persona equivocada.
+
+**Lo que no se puede testear acá**: que la ruta exija rol de moderador. El
+proyecto no tiene pruebas de ruta, así que ese `requireRole` queda cubierto por
+lectura y no por test — igual que los otros veinte del archivo.
