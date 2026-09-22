@@ -4,7 +4,7 @@ import * as fb from '../data/feedback'
 import type { BarPin, BeerStyle, Brand } from '../data/types'
 import { formatDistance } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
-import { Sheet } from '../ui/Chrome'
+import { Confirm, Sheet } from '../ui/Chrome'
 import { SectionLabel } from '../ui/Kit'
 import { StyleChips } from '../ui/StyleChips'
 
@@ -55,6 +55,8 @@ export function LogBeerSheet({
   const [brand, setBrand] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** El mensaje del servidor cuando se llegó al tope del día. */
+  const [tope, setTope] = useState<string | null>(null)
 
   const submit = async () => {
     setBusy(true); setError(null)
@@ -74,7 +76,9 @@ export function LogBeerSheet({
       )
     } catch (e) {
       fb.error()
-      setError((e as Error).message)
+      // El tope diario no se muestra como un error más. Ver `Tope`.
+      if (e instanceof api.ApiError && e.code === 'limite_diario') setTope(e.message)
+      else setError((e as Error).message)
       setBusy(false)
     }
   }
@@ -176,6 +180,8 @@ export function LogBeerSheet({
         background: busy ? 'var(--elevated)' : 'var(--acento)',
         color: busy ? 'var(--faint)' : 'var(--base)',
       }}>{busy ? '…' : 'Anotar'}</button>
+
+      {tope && <Tope mensaje={tope} onCerrar={() => setTope(null)} />}
     </Sheet>
   )
 }
@@ -193,5 +199,44 @@ function Step({ label, disabled, onClick }: {
         color: disabled ? 'var(--faint)' : 'var(--cream)',
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}>{label}</button>
+  )
+}
+
+/**
+ * El aviso del tope diario.
+ *
+ * Quince birras en un día es mucho, y el momento en que alguien va por la
+ * dieciséis es el único en que la app puede decir algo útil. Así que en vez de
+ * un renglón rojo con "límite alcanzado" —que se lee como una traba y se
+ * intenta de nuevo mañana— acá se dice qué pasa y dónde pedir ayuda.
+ *
+ * **El tono está medido a propósito.** No diagnostica a nadie ni lo trata de
+ * alcohólico: quien de verdad esté en problemas es exactamente a quien un
+ * chiste le cierra la puerta, y quien está de joda no necesita un reto. Dice
+ * el hecho, dice el número, y se corre.
+ *
+ * La 141 es de SEDRONAR: gratis, anónima, todo el día y en todo el país. Se
+ * aclara que no hace falta una emergencia porque esa creencia es justamente la
+ * que hace que nadie llame a tiempo.
+ *
+ * Sin botón de cancelar: no es una pregunta.
+ */
+function Tope({ mensaje, onCerrar }: { mensaje: string; onCerrar: () => void }) {
+  return (
+    <Confirm
+      title="Pará un poco"
+      body={<>
+        {mensaje} Quince en un mismo día es el tope, y no es un número
+        caprichoso: de ahí para arriba ya no es una salida.
+        <br /><br />
+        Si te está pasando seguido, la <strong>línea 141</strong> es gratis,
+        anónima y atiende todo el día en todo el país. No hace falta que sea una
+        emergencia para llamar.
+      </>}
+      confirmLabel="Entendido"
+      cancelLabel={null}
+      onCancel={onCerrar}
+      onConfirm={onCerrar}
+    />
   )
 }

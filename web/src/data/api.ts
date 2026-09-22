@@ -1,5 +1,5 @@
 import type {
-  AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
+  AreaStats, BarDetail, BarPin, BeerLog, BeerRank, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
   ContributionKind, Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
@@ -29,7 +29,17 @@ const KEY = 'birrapp.session'
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message) }
+  /**
+   * El `code` del servidor, cuando vino.
+   *
+   * Hace falta para poder distinguir un error de otro sin leer el texto: el
+   * tope diario de birras abre un aviso propio y el resto de los 400 se
+   * muestran en un renglón. Comparar mensajes sería atar la app a una cadena
+   * en castellano que cualquiera puede reescribir.
+   */
+  constructor(public status: number, message: string, public code?: string) {
+    super(message)
+  }
 }
 
 let session: Session | null = (() => {
@@ -185,8 +195,13 @@ async function req<T>(
 
   if (!res.ok) {
     let message = `Error ${res.status}`
-    try { message = (await res.json()).message ?? message } catch { /* respuesta sin json */ }
-    throw new ApiError(res.status, message)
+    let code: string | undefined
+    try {
+      const body = await res.json()
+      message = body.message ?? message
+      code = body.code
+    } catch { /* respuesta sin json */ }
+    throw new ApiError(res.status, message, code)
   }
   return res.status === 204 ? (undefined as T) : res.json()
 }
@@ -530,6 +545,19 @@ export const approvePrice = (id: number) => req<unknown>('POST', `/moderation/pr
 export const setUserRole = (id: number, role: 'user' | 'moderator' | 'admin') =>
   req<{ ok: boolean }>('POST', `/moderation/users/${id}/role`, {
     body: { role }, auth: true,
+  })
+
+/**
+ * Quiénes tomaron más entre los bares de esta zona (últimos 30 días).
+ *
+ * Pública, como el promedio de la zona: son alias elegidos a propósito para
+ * aparecer.
+ */
+export const beerLeaderboard = (
+  lat: number, lng: number, radius: number, limit = 10,
+) =>
+  req<BeerRank[]>('GET', '/stats/beers', {
+    params: { lat, lng, radius, limit },
   })
 
 export const dashboardUsers = (limit = 200) =>

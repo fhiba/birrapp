@@ -4142,3 +4142,77 @@ persona equivocada.
 **Lo que no se puede testear acá**: que la ruta exija rol de moderador. El
 proyecto no tiene pruebas de ruta, así que ese `requireRole` queda cubierto por
 lectura y no por test — igual que los otros veinte del archivo.
+
+## 2026-09-22 (cont.) — v0.32.0: quién tomó más por la zona, y el tope que la hace creíble
+
+### La tabla
+
+En "Cerca", debajo de lo último que se cargó: quiénes más tomaron entre los
+bares de este radio, últimos 30 días. Va abajo y no arriba porque "Cerca"
+contesta cuánto sale la pinta por acá y eso manda; esto es una razón para
+volver, no la razón para entrar.
+
+**Una birra sin bar no entra, y punto.** Sin bar no se la puede ubicar, y un
+ranking por cercanía que incluya lo que no sabe dónde pasó no es por cercanía.
+La consecuencia conocida es que la tabla va a estar casi vacía al principio,
+porque la mayoría se anota sin decir dónde — se prefiere eso a un número que no
+significa nada. La bienvenida gana un punto que lo avisa antes de que alguien
+anote la primera y se pregunte por qué no figura, y el vacío de la tabla lo
+repite.
+
+Sólo figura quien tiene alias: la misma regla que la tabla de colaboradores
+(V20), el nombre de Google no se publica en ningún lado.
+
+La carga usa `useCached` igual que el promedio de la zona —se pinta lo último
+que se supo y se pregunta de nuevo en segundo plano— con el mismo rebote de
+350 ms, porque la clave también cambia arrastrando el radio.
+
+### El tope: quince por día de calendario
+
+Sin tope, la tabla la gana quien tenga más paciencia tocando un botón, no quien
+más tomó. Quince es alto a propósito: no está para discutirle a nadie cuánto
+tomó, está para que el número cueste algo del mundo real.
+
+**Día de calendario, no 24 horas móviles.** Ocho el viernes y ocho el sábado son
+dos salidas y tienen que poder anotarse las dos; una ventana móvil las junta y
+rebota la segunda por algo que no pasó. El día se corta en Buenos Aires, igual
+que el calendario de "Mis birras".
+
+Mira `drank_at` y no `created_at`: si mirara cuándo se anotó, se saltea cargando
+al día siguiente lo de anoche.
+
+**Se aplica dos veces, y la segunda no es redundante.** Al escribir, y otra vez
+al contar con `least(sum(qty), 15)` por día. La consulta también lee filas
+anteriores al tope, que nunca pasaron por ese control: confiar en el dato sería
+dejar el ranking decidido por lo que se cargó antes de que la regla existiera.
+Hay un test que lo fija, con un helper que escribe la fila a mano justamente
+porque por el camino normal ya es imposible.
+
+### El aviso
+
+Llegar al tope no se muestra como un error más. El servidor devuelve un `code`
+propio —para eso `ApiError` ahora lo lleva— y la app abre un aviso en vez de un
+renglón rojo.
+
+**El tono está medido.** No diagnostica a nadie ni lo trata de alcohólico: quien
+de verdad esté en problemas es exactamente a quien un chiste le cierra la
+puerta, y quien está de joda no necesita un reto. Dice el hecho, da la línea 141
+—gratis, anónima, todo el día, todo el país— aclara que no hace falta una
+emergencia para llamar, y se corre. `Confirm` aprendió a no mostrar "Cancelar",
+porque esto no es una pregunta.
+
+### Los 404 de la consola
+
+`/bar/favicon.svg` y `/bar/icon-192.png` daban 404 en cualquier ficha. El
+index.html las pedía con `./`, y Vite **no reescribe** las rutas relativas a
+`public/` del index —sí el CSS y el manifest—, así que el navegador las resolvía
+contra la ruta actual: en la raíz andaban, en `/bar/123` no. Pasan a
+`%BASE_URL%`, que Vite reemplaza por la base.
+
+### Lo que NO se tocó
+
+El `Cannot read properties of undefined (reading 'startTime')` no es nuestro.
+`reportAllChanges` es de `web-vitals`, que no está en las dependencias ni
+aparece en el bundle propio —verificado—, y la traza es de un script anónimo
+inyectado. Es el Speed Insights que Vercel agrega desde la configuración del
+proyecto. No rompe nada de la app: falla el script de métricas, no la página.

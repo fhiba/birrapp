@@ -138,6 +138,29 @@ object TestDb {
      * puede producir, y todo lo que filtra por moneda —outliers, stats— daría
      * resultados que no significan nada.
      */
+    /**
+     * Una birra anotada escribiendo la fila a mano, sin pasar por `BeerRepo.log`.
+     *
+     * Existe para poder crear lo que el repo ya no deja crear: filas que se
+     * pasan del tope diario, como las que quedaron de antes de que el tope
+     * existiera. Por el camino normal es imposible, y esa imposibilidad es
+     * justo lo que hay que poder saltear para probar que la consulta se
+     * defiende sola.
+     */
+    fun insertBeerLogRaw(
+        userId: Long, barId: Long?, qty: Int, diasAtras: Int,
+    ): Long = db.conn { c ->
+        c.prepareStatement(
+            "INSERT INTO beer_logs (user_id, bar_id, qty, drank_at) " +
+                "VALUES (?, ?, ?, now() - make_interval(days => ?)) RETURNING id"
+        ).use { st ->
+            st.setLong(1, userId)
+            if (barId != null) st.setLong(2, barId) else st.setNull(2, java.sql.Types.BIGINT)
+            st.setInt(3, qty); st.setInt(4, diasAtras)
+            st.executeQuery().use { rs -> rs.next(); rs.getLong(1) }
+        }
+    }
+
     fun insertPrice(
         barId: Long, styleSlug: String, price: Double, daysAgo: Int,
         userId: Long, sizeMl: Int = 473, isConfirmation: Boolean = false,

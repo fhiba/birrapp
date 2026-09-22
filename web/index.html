@@ -13,9 +13,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="birrapp" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
-    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <!--
+      `%BASE_URL%` y no `./`.
+
+      Estos tres archivos viven en `public/`, y Vite NO reescribe las rutas
+      relativas a `public/` del index: reescribe el CSS y el manifest, y estas
+      las deja como están. Con `./`, el navegador las resuelve contra la ruta
+      actual, así que en la raíz funcionaban y en `/bar/123` pedían
+      `/bar/favicon.svg` y daban 404. Se veía sólo en la consola y sólo dentro
+      de una ficha, que es el peor lugar para que algo falle en silencio.
+
+      `%BASE_URL%` lo reemplaza Vite por la base configurada, así que apunta al
+      mismo lugar desde cualquier ruta.
+    -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%icon-192.png" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icon-192.png" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" />

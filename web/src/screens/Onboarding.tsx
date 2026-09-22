@@ -370,15 +370,16 @@ function PasoAjustes({
  * una vez y después son ruido para siempre, todos los días, en la pantalla que
  * más se mira. Dicho una vez acá, la pantalla queda limpia.
  *
- * Son estas dos y no más. El resto de la app se explica sola o se explica con
- * el tutorial; éstas dos no, porque las dos contradicen lo que uno supondría:
- * que el nivel sube y no baja, y que la nota de un bar es del bar.
+ * Son estas tres y no más. El resto de la app se explica solo o se explica con
+ * el tutorial; éstas no, porque las tres contradicen lo que uno supondría: que
+ * el nivel sube y no baja, que la nota de un bar es del bar, y que anotar una
+ * birra sin decir dónde cuenta igual que anotarla con bar.
  */
 function PasoComoFunciona() {
   return (
     <>
       <Titulo
-        titulo="Dos cosas y arrancamos"
+        titulo="Tres cosas y arrancamos"
         bajada="Lo único de la app que no se entiende mirándola."
       />
 
@@ -386,6 +387,13 @@ function PasoComoFunciona() {
         Sale de las birras que anotaste en los <strong>últimos 45 días</strong>,
         no del total de siempre. Si dejás de anotar, baja. Por eso dice cómo
         venís y no cuánto acumulaste alguna vez.
+      </Punto>
+
+      <Punto titulo="Anotá dónde te la tomaste">
+        Decir en qué bar es opcional, pero <strong>las birras sin bar no entran
+        en la tabla de quién tomó más por la zona</strong>: sin bar no hay forma
+        de ubicarlas, y esa tabla es por cercanía. Es un toque más y es lo que
+        te pone en el ranking.
       </Punto>
 
       <Punto titulo="La nota es de las birras, no del bar">

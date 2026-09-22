@@ -27,6 +27,29 @@ private const val TZ = "America/Argentina/Buenos_Aires"
 /** Techo de antigüedad al anotar. Un año atrás ya no es "me tomé una birra". */
 private const val MAX_BACKDATE_DAYS = 365L
 
+/**
+ * Cuántas birras se pueden anotar en un día.
+ *
+ * **Día de calendario, no 24 horas móviles.** Ocho el viernes a la noche y ocho
+ * el sábado a la noche son dos salidas y tienen que poder anotarse las dos; una
+ * ventana móvil de 24 horas las junta y rebota la segunda por algo que no pasó.
+ * El día se corta en Buenos Aires, igual que el calendario de "Mis birras".
+ *
+ * El tope mira `drank_at` y no `created_at`: si mirara cuándo se anotó, se
+ * saltea cargando al día siguiente lo de anoche.
+ *
+ * Quince es alto a propósito. No está para discutirle a nadie cuánto tomó —una
+ * previa larga entra— sino para que el ranking no lo gane quien tenga más
+ * paciencia tocando un botón.
+ */
+const val MAX_BIRRAS_POR_DIA = 15
+
+/** El código que la app reconoce para abrir el aviso. Ver `LogBeerSheet`. */
+const val CODIGO_LIMITE_DIARIO = "limite_diario"
+
+/** Cuánto hacia atrás mira la tabla de birras por zona. */
+private const val DIAS_RANKING = 30
+
 @Serializable
 data class NewBeerLogRequest(
     /** Opcional: se puede anotar una birra sin decir dónde. */
@@ -56,6 +79,22 @@ data class BeerLogDto(
 /** Un día con birras. Los días en cero no viajan: el calendario los dibuja igual. */
 @Serializable
 data class BeerDayDto(val day: String, val qty: Int)
+
+/**
+ * Una fila de la tabla de birras por zona.
+ *
+ * `days` viaja porque desempata y porque dice algo: veinte birras en dos días
+ * y veinte en quince no son la misma historia, y el orden usa el menor número
+ * de días como segundo criterio sólo para que el empate sea estable.
+ */
+@Serializable
+data class BeerRankDto(
+    val userId: Long,
+    val alias: String,
+    val avatarUrl: String?,
+    val beers: Int,
+    val days: Int,
+)
 
 @Serializable
 data class BeerBarDto(val barId: Long, val barName: String, val qty: Int)
@@ -128,6 +167,30 @@ class BeerRepo(private val db: Db) {
                 ?: notFound("marca desconocida: $slug")
         }
 
+        // El tope del día, contra lo que ya hay anotado para esa misma fecha.
+        // Se cuenta sobre `drank_at` de las dos puntas: la birra que entra y
+        // las que ya están.
+        val yaEseDia = c.queryOne(
+            """
+            SELECT coalesce(sum(qty), 0)::int AS n FROM beer_logs
+            WHERE user_id = ?
+              AND (drank_at AT TIME ZONE ?)::date = (?::timestamptz AT TIME ZONE ?)::date
+            """.trimIndent(),
+            userId, TZ, java.sql.Timestamp.from(drankAt), TZ,
+        ) { it.getInt("n") } ?: 0
+
+        if (yaEseDia + req.qty > MAX_BIRRAS_POR_DIA) {
+            // Código propio para que la app pueda abrir el aviso en vez de
+            // mostrar el texto del error en un renglón rojo. Lo que hay que
+            // decir acá no entra en una línea, y no es un reto: es el único
+            // momento en que la app puede decir algo útil.
+            throw com.birrapp.core.ApiException(
+                io.ktor.http.HttpStatusCode.BadRequest,
+                "Ya tenés $yaEseDia birras anotadas para ese día.",
+                CODIGO_LIMITE_DIARIO,
+            )
+        }
+
         c.queryOne(
             """
             INSERT INTO beer_logs (user_id, bar_id, style_id, brand_id, qty, drank_at)
@@ -138,6 +201,79 @@ class BeerRepo(private val db: Db) {
             java.sql.Timestamp.from(drankAt),
         ) { it.getLong("id") }!!.let { id ->
             c.queryOne("$LOG_SELECT WHERE l.id = ?", id, map = ::toLog)!!
+        }
+    }
+
+    /**
+     * Quiénes tomaron más, entre los bares de esta zona (últimos 30 días).
+     *
+     * ## Por qué cuenta bares y no personas
+     *
+     * Una birra sin bar **no entra**. No es una omisión: sin bar no se la puede
+     * ubicar, y un ranking por cercanía que incluya lo que no sabe dónde pasó
+     * no es por cercanía. Se avisa en la bienvenida, antes de que alguien anote
+     * la primera y se pregunte por qué no figura.
+     *
+     * La contra conocida es que la tabla va a estar casi vacía al principio,
+     * porque la mayoría de las birras se anotan sin decir dónde. Se prefiere
+     * eso a un número que no significa nada.
+     *
+     * ## El tope diario se aplica también acá
+     *
+     * `least(sum(qty), MAX_BIRRAS_POR_DIA)` por persona y por día. El tope ya
+     * se controla al anotar, pero esta tabla también lee filas **anteriores al
+     * tope**, que nunca pasaron por ese control. Confiar en el dato sería dejar
+     * el ranking decidido por lo que se cargó antes de que existiera la regla.
+     *
+     * Ojo con qué recorta: el tope se aplica a las birras **de esta zona**. Diez
+     * acá y diez en otro barrio el mismo día no se suman para recortarse entre
+     * ellas, y está bien — cada zona cuenta lo suyo.
+     *
+     * ## Quién aparece
+     *
+     * Sólo quien tiene alias, la misma regla que la tabla de colaboradores
+     * (V20): el nombre de Google no se publica en ningún lado. Y las cuentas
+     * suspendidas no figuran.
+     */
+    fun leaderboard(
+        lat: Double, lng: Double, radiusMeters: Int, limit: Int = 10,
+    ): List<BeerRankDto> = db.conn { c ->
+        c.query(
+            """
+            WITH cerca AS (
+                SELECT id FROM bars
+                WHERE status = 'approved'
+                  AND ST_DWithin(location, ST_MakePoint(?, ?)::geography, ?)
+            ),
+            por_dia AS (
+                SELECT l.user_id,
+                       least(sum(l.qty), ?) AS qty
+                  FROM beer_logs l
+                  JOIN cerca b ON b.id = l.bar_id
+                 WHERE l.drank_at > now() - make_interval(days => ?)
+                 GROUP BY l.user_id, (l.drank_at AT TIME ZONE ?)::date
+            )
+            SELECT u.id, u.alias, u.avatar_url,
+                   sum(p.qty)::int AS birras,
+                   count(*)::int   AS dias
+              FROM por_dia p
+              JOIN users u ON u.id = p.user_id
+             WHERE u.alias IS NOT NULL AND u.banned_at IS NULL
+             GROUP BY u.id, u.alias, u.avatar_url
+             ORDER BY birras DESC, dias ASC, lower(u.alias)
+             LIMIT ?
+            """.trimIndent(),
+            lng, lat, radiusMeters,
+            MAX_BIRRAS_POR_DIA, DIAS_RANKING, TZ,
+            limit.coerceIn(1, 50),
+        ) { rs ->
+            BeerRankDto(
+                userId = rs.getLong("id"),
+                alias = rs.getString("alias"),
+                avatarUrl = rs.getString("avatar_url"),
+                beers = rs.getInt("birras"),
+                days = rs.getInt("dias"),
+            )
         }
     }
 
