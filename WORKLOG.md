@@ -4344,11 +4344,27 @@ duplicar los que ya están.
 La lista vacía se puede tratar como error sin miedo porque del lado del servidor
 nunca lo está: son diecisiete sembrados desde V2.
 
-### Lo que queda sin confirmar
+### Era el bundle viejo, y esa es la tercera vez
 
-Por qué falla en esa computadora y no en el teléfono. Con el servidor sano, CORS
-correcto y `runtimeCaching: []` en el service worker —los datos no se cachean—,
-lo que queda es el navegador: un bloqueador de contenido que corta `/styles` y
-`/brands` mientras deja pasar `/bars` encaja con el patrón. Se comprueba en un
-paso, mirando la pestaña Red. El arreglo de arriba vale igual: la app se
-recupera sola y, si no puede, lo dice.
+Confirmado por Felipe: un Ctrl+F5 y aparecieron. La computadora estaba corriendo
+JavaScript anterior al arreglo.
+
+**Es el tercer reporte de esta sesión con la misma causa**: un filtro de
+favoritos que "no andaba", un padding que "no se había arreglado" y esta lista
+vacía. En los tres el código en producción ya estaba bien. El costo no es el
+deploy que tarda, es el rato que se pierde buscando el bug en el lugar
+equivocado — dos de esas tres veces las busqué a fondo antes de sospechar de la
+caché.
+
+La recarga automática ya existía (`watchForUpdates` escucha `controllerchange`),
+y ahí estaba el agujero: **alguien tiene que descubrir primero que hay versión
+nueva.** El navegador busca la actualización al registrar el service worker, o
+sea una vez por carga de página, y una app que se queda abierta no vuelve a
+cargar nunca. Una PWA en el teléfono puede pasar días así.
+
+Ahora se pregunta cada vez que la app vuelve al frente. Sin novedad es un pedido
+condicional que devuelve 304; con novedad, el service worker nuevo toma control
+y el `controllerchange` que ya estaba recarga.
+
+El arreglo del `catch` vacío vale igual, y por su cuenta: una lista de estilos
+que no llega tiene que reintentar y, si no puede, decirlo.
