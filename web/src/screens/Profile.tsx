@@ -4,13 +4,13 @@ import * as api from '../data/api'
 import { clearCached, useCached } from '../data/cached'
 import type { BarPin, User, UserStats } from '../data/types'
 import { isModerator } from '../data/types'
-import { Confirm } from '../ui/Chrome'
+import { Confirm, Sheet } from '../ui/Chrome'
 import { forceUpdate } from '../data/update'
 import { resetTour, tourPending } from '../ui/Tour'
 import { SectionLabel, Tile } from '../ui/Kit'
 import { nivelDe } from '../data/nivel'
 import { PriceColumn } from '../ui/Empty'
-import { t } from '../i18n'
+import { IDIOMAS, LANG, nombreIdioma, setIdioma, t } from '../i18n'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -441,7 +441,7 @@ function GoogleG() {
 }
 
 /**
- * La tuerca y el botón de salir, juntos y en el renglón del título.
+ * El idioma, la tuerca y el botón de salir, juntos y en el renglón del título.
  *
  * Van en un bloque propio para que no se separen ni negocien su lugar por
  * separado: o entran los dos o no entra ninguno.
@@ -450,8 +450,44 @@ function BotonesDeSesion({ onConfig, onSalir }: {
   onConfig: () => void
   onSalir: () => void
 }) {
+  const [idiomas, setIdiomas] = useState(false)
   return (
     <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
+        {/* El idioma, con su abreviatura y no una banderita: una bandera es
+            un país, y el portugués o el castellano no son de uno solo. */}
+        <button onClick={() => setIdiomas(true)} aria-label={t('Profile.cambiarIdioma')}
+          className="icon-btn lbl"
+          style={{ background: 'var(--film-2)', color: 'var(--muted)', fontSize: 'var(--t-2)' }}>
+          {LANG.toUpperCase()}
+        </button>
+
+        {idiomas && (
+          <Sheet title={t('Profile.idioma')} onClose={() => setIdiomas(false)}>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {IDIOMAS.map(l => (
+                <button
+                  key={l} lang={l} aria-pressed={l === LANG}
+                  onClick={() => { setIdiomas(false); if (l !== LANG) setIdioma(l) }}
+                  className="lbl"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    padding: '13px 14px', borderRadius: 'var(--r-2)', textAlign: 'left',
+                    fontSize: 'var(--t-4)',
+                    // Los mismos colores que la hoja de `PillRow`.
+                    background: l === LANG ? 'var(--info-soft)' : 'var(--film-1)',
+                    color: l === LANG ? 'var(--info-bright)' : 'var(--cream)',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>{nombreIdioma(l)}</span>
+                  <span className="num" style={{ fontSize: 'var(--t-2)', opacity: .7 }}>
+                    {l.toUpperCase()}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Sheet>
+        )}
+
         {/* La tuerca, donde se la busca. Era un renglón más en la lista de
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
             leer una lista para encontrar la configuración, la busca arriba a

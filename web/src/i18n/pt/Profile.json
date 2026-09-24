@@ -24,5 +24,7 @@
   "buscarActualizacion": "Buscar atualização",
   "configuracion": "Configurações",
   "nivel": "Nível {n}: {nombre}",
-  "privacidad": "Privacidade"
+  "privacidad": "Privacidade",
+  "idioma": "Idioma",
+  "cambiarIdioma": "Mudar o idioma"
 }

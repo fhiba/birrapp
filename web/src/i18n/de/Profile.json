@@ -24,5 +24,7 @@
   "buscarActualizacion": "Nach Updates suchen",
   "configuracion": "Einstellungen",
   "nivel": "Level {n}: {nombre}",
-  "privacidad": "Datenschutz"
+  "privacidad": "Datenschutz",
+  "idioma": "Sprache",
+  "cambiarIdioma": "Sprache ändern"
 }
