@@ -4591,3 +4591,21 @@ Al mergear master entró la política de privacidad: el enlace del pie del perfi
 pasó a `Profile.privacidad` en los cinco idiomas. El cuerpo de la política
 sigue en castellano y escrito en el componente — traducir un texto legal es una
 decisión aparte, no un pase de i18n.
+
+## 2026-09-24 — El idioma se elige en el perfil (v0.36.0)
+
+Un botón chico con la abreviatura del idioma (`ES`, `EN`…) a la izquierda de la
+tuerca, en el encabezado del perfil. Abre una hoja con los cinco idiomas, cada
+uno con su nombre en ese idioma ("Deutsch", "Français") — sale de
+`Intl.DisplayNames`, no de una tabla.
+
+- La elección se guarda en `localStorage` (`birrapp.idioma`) y le gana a
+  `navigator.language`; sin elección, sigue mandando el navegador.
+- Cambiar recarga la página. A propósito: niveles, tarifas del karma y nombres
+  de moneda se resuelven una vez al cargar el módulo, y un cambio en caliente
+  los dejaría en el idioma anterior.
+- `LOCALE` ahora sigue al idioma elegido: con el navegador en `es-AR` y la app
+  en inglés, fechas y números van en `en`, no en castellano.
+
+Queda afuera: la elección es por dispositivo, no por cuenta; y sólo se ve con
+sesión iniciada, porque los botones del encabezado son los de la sesión.
