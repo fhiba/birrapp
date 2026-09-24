@@ -4368,3 +4368,66 @@ y el `controllerchange` que ya estaba recarga.
 
 El arreglo del `catch` vacío vale igual, y por su cuenta: una lista de estilos
 que no llega tiene que reintentar y, si no puede, decirlo.
+
+## 2026-09-23 — La ficha del aporte: quién lo cargó y qué se quiere hacer (v0.33.0)
+
+La cola de moderación mostraba el nombre del bar y dos coordenadas, la marca y
+su slug, y de una denuncia `price #42` con el motivo. Con eso no se aprueba
+nada: para saber quién cargó algo había que abrir el dashboard y buscar a mano,
+y para saber si el bar existe, el mapa en otra pestaña.
+
+Ahora cada fila de las cuatro colas trae **el autor** —nombre, antigüedad de la
+cuenta, si está baneado— y **qué se está queriendo hacer**, y al tocarla se abre
+una ficha con todo junto.
+
+### Qué se está queriendo hacer
+
+Es el dato que faltaba en las tres colas que no son bares. Una marca o un estilo
+no se crean sueltos: se crean **en medio de una carga de precio**. Entonces la
+fila de "Birra Trucha" ahora dice de dónde salió —"Se creó cargando $7.000 los
+473 ml de IPA en El Bar"— y la de un precio retenido por outlier dice qué se
+quiere publicar y dónde, en vez del id de la fila.
+
+Sale de un LEFT JOIN LATERAL al primer `price_report` que usó la marca o el
+estilo, **sin filtrar por status a propósito**: si ese precio quedó retenido, es
+justo el que hay que mirar.
+
+Las denuncias resuelven los tres tipos con un LEFT JOIN por tipo —sólo uno
+matchea por fila— y de ahí sale el autor: `price_reports.reported_by`,
+`reviews.user_id` o `bars.created_by`. Ojo con los dos nombres, que no son el
+mismo: el **autor** cargó el contenido, el **denunciante** lo marcó. En los
+precios retenidos por outlier coinciden, porque la denuncia la escribe el
+servidor al recibir la carga.
+
+### Los bares, con la ubicación entera
+
+Dirección, barrio, coordenadas con seis decimales, place_id, país y
+moneda, y tres links que salen: **Street View** —que es lo único que contesta de
+verdad si hay un bar en esa puerta—, el punto en el mapa, y la búsqueda por
+nombre, que lo encuentra aunque el pin esté marcado desde la vereda de enfrente.
+
+`bars.pending()` se fue de `BarRepo` a `ModerationRepo`: es una consulta de la
+cola, no del mapa, y el DTO del mapa no tiene por qué cargar con la dirección de
+cada pin. `BarPinDto` queda como estaba.
+
+### La ficha
+
+Se abre encima de la cola, no en otra ruta, y lo que se está mirando viaja en el
+`state` del historial. Dos razones: el botón de atrás del teléfono cierra la
+ficha en vez de salirse de moderación, y la cola queda montada abajo con su
+scroll donde estaba —después de resolver diez filas, esa es la diferencia entre
+seguir donde ibas y volver a empezar—.
+
+Las acciones están en los dos lados: en la fila, que es el camino rápido, y en
+la ficha, que es donde se decide lo dudoso. La ficha cierra antes de disparar la
+acción, porque la recarga se lleva puesta la fila que estabas mirando.
+
+### Lo que no se tocó
+
+La app Android: su pantalla de moderación ya venía atrás —no tiene estilos ni
+fotos— y moderar hoy se hace en la PWA. Los DTO nuevos no la rompen: `BarPin`
+tiene todos sus campos opcionales y el cliente ignora lo que no conoce.
+
+Test nuevo: `ModerationQueueTest`, cuatro casos, uno por cola. Son joins, y un
+join mal escrito no rompe nada —devuelve null y la pantalla dibuja "sin
+autor"—, así que sin test se descubre moderando a ciegas.

@@ -556,18 +556,4 @@ class BarRepo(private val db: Db) {
         it.update("DELETE FROM bars WHERE id = ?", barId) > 0
     }
 
-    fun pending(limit: Int): List<BarPinDto> = db.conn {
-        it.query(
-            """
-            SELECT id, name, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng,
-                   NULL::numeric AS from_price, NULL::int AS freshest_age_days,
-                   -- Un bar pendiente no tiene nada todavía: ni precio ni nota.
-                   NULL::numeric AS rating_raw, 0 AS rating_count,
-                   currency,
-                   NULL::float8 AS distance_meters
-            FROM bars WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?
-            """.trimIndent(),
-            limit, map = ::mapPin,
-        )
-    }
 }

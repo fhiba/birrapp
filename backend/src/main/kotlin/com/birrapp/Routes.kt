@@ -615,7 +615,7 @@ fun Route.apiRoutes(
 
             get("/bars/pending") {
                 call.requireRole(Role.moderator)
-                call.respond(bars.pending(200))
+                call.respond(moderation.pendingBars(200))
             }
 
             post("/bars/{id}/approve") {

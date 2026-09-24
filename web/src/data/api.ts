@@ -2,8 +2,8 @@ import type {
   AreaStats, BarDetail, BarPin, BeerLog, BeerRank, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
   ContributionKind, Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
-  MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
-  User, UserStats,
+  MyRating, PendingBar, PendingBrand, PendingStyle, Photo, PriceAccepted,
+  PricePoint, RatingComment, Review, Session, User, UserStats,
 } from './types'
 
 /**
@@ -529,7 +529,8 @@ export async function deleteAccount() {
 }
 
 // ---------- moderación ----------
-export const pendingBars = () => req<BarPin[]>('GET', '/moderation/bars/pending', { auth: true })
+export const pendingBars = () =>
+  req<PendingBar[]>('GET', '/moderation/bars/pending', { auth: true })
 export const openFlags = () => req<Flag[]>('GET', '/moderation/flags', { auth: true })
 export const moderationSummary = () =>
   req<ModerationSummary>('GET', '/moderation/summary', { auth: true })
@@ -569,7 +570,7 @@ export const dashboardSummary = () =>
 export const dashboardAnalytics = () =>
   req<DashboardAnalytics>('GET', '/moderation/dashboard/analytics', { auth: true })
 export const pendingBrands = () =>
-  req<Brand[]>('GET', '/moderation/brands/pending', { auth: true })
+  req<PendingBrand[]>('GET', '/moderation/brands/pending', { auth: true })
 export const approveBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectBrand = (slug: string) =>
@@ -585,7 +586,7 @@ export const recentPhotos = () =>
   req<ModeratedPhoto[]>('GET', '/moderation/photos/recent', { auth: true })
 
 export const pendingStyles = () =>
-  req<BeerStyle[]>('GET', '/moderation/styles/pending', { auth: true })
+  req<PendingStyle[]>('GET', '/moderation/styles/pending', { auth: true })
 export const approveStyle = (slug: string) =>
   req<unknown>('POST', `/moderation/styles/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectStyle = (slug: string) =>
