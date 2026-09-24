@@ -225,7 +225,7 @@ fun Application.module(cfg: Config, db: Db) {
     routing {
         apiRoutes(
             bars, prices, beers, people, reviews, ratings, photos, leaderboard, moderation, analytics,
-            users, traffic,
+            users, traffic, contributions,
             // Vive tanto como el proceso y no se persiste: la clave es la IP.
             // Apagado salvo que COVERAGE_BUDGET_PER_DAY diga otra cosa — ver
             // el KDoc de CoverageBudget para por qué.

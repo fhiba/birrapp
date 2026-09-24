@@ -2,6 +2,11 @@ package com.birrapp.prices
 
 import kotlinx.serialization.Serializable
 import com.birrapp.core.Currency
+import com.birrapp.moderation.AUTHOR_COLS
+import com.birrapp.moderation.AuthorDto
+import com.birrapp.moderation.ContribDto
+import com.birrapp.moderation.authorOrNull
+import com.birrapp.moderation.contribOrNull
 import com.birrapp.core.Db
 import com.birrapp.core.badRequest
 import com.birrapp.core.notFound
@@ -28,6 +33,61 @@ data class ConfirmPriceRequest(
 
 @Serializable
 data class BrandDto(val slug: String, val name: String, val craft: Boolean)
+
+/**
+ * Una marca esperando aprobación, con la carga que la trajo.
+ *
+ * Nadie crea una marca porque sí: se crea cargando un precio, así que la
+ * pregunta real del moderador no es "¿existe esta marca?" sino "¿qué se está
+ * queriendo cargar con esto?". [contrib] es ese precio —el primero que la
+ * usó— y es null sólo si la carga quedó a medias.
+ */
+@Serializable
+data class PendingBrandDto(
+    val slug: String,
+    val name: String,
+    val craft: Boolean,
+    val createdAt: String,
+    val author: AuthorDto? = null,
+    val contrib: ContribDto? = null,
+)
+
+/**
+ * El primer precio cargado con esta marca / con este estilo.
+ *
+ * Es el aporte que hay atrás de la propuesta: marcas y estilos no se crean
+ * sueltos, se crean en medio de una carga de precio. Sin status en el WHERE a
+ * propósito —si ese precio quedó retenido por outlier, es justo el que el
+ * moderador quiere ver—.
+ */
+private const val FIRST_USE_BY_BRAND = """
+    SELECT pr.bar_id, b.name AS bar_name, s.name_es AS style_name,
+           pr.price, pr.size_ml, pr.currency, pr.created_at AS contrib_at
+    FROM price_reports pr
+    JOIN bars b        ON b.id = pr.bar_id
+    JOIN beer_styles s ON s.id = pr.style_id
+    WHERE pr.brand_id = br.id
+    ORDER BY pr.created_at LIMIT 1
+"""
+
+private const val FIRST_USE_BY_STYLE = """
+    SELECT pr.bar_id, b.name AS bar_name, brd.name AS brand_name,
+           pr.price, pr.size_ml, pr.currency, pr.created_at AS contrib_at
+    FROM price_reports pr
+    JOIN bars b       ON b.id = pr.bar_id
+    LEFT JOIN brands brd ON brd.id = pr.brand_id
+    WHERE pr.style_id = st.id
+    ORDER BY pr.created_at LIMIT 1
+"""
+
+/** Un estilo propuesto, con el precio desde el que se propuso. Ver BIR-35. */
+@Serializable
+data class PendingStyleDto(
+    val slug: String,
+    val name: String,
+    val author: AuthorDto? = null,
+    val contrib: ContribDto? = null,
+)
 
 @Serializable
 data class NewBrandRequest(val name: String, val craft: Boolean = true)
@@ -201,10 +261,29 @@ class PriceRepo(private val db: Db) {
         ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }!!
     }
 
-    fun pendingBrands(): List<BrandDto> = db.conn {
+    fun pendingBrands(): List<PendingBrandDto> = db.conn {
         it.query(
-            "SELECT slug, name, craft FROM brands WHERE status = 'pending' ORDER BY created_at",
-        ) { rs -> BrandDto(rs.getString("slug"), rs.getString("name"), rs.getBoolean("craft")) }
+            """
+            SELECT br.slug, br.name, br.craft, br.created_at,
+                   $AUTHOR_COLS,
+                   p.bar_id, p.bar_name, p.style_name, NULL::text AS brand_name,
+                   p.price, p.size_ml, p.currency, p.contrib_at
+            FROM brands br
+            LEFT JOIN users u ON u.id = br.created_by
+            LEFT JOIN LATERAL ($FIRST_USE_BY_BRAND) p ON true
+            WHERE br.status = 'pending'
+            ORDER BY br.created_at
+            """.trimIndent(),
+        ) { rs ->
+            PendingBrandDto(
+                slug = rs.getString("slug"),
+                name = rs.getString("name"),
+                craft = rs.getBoolean("craft"),
+                createdAt = rs.getTimestamp("created_at").toInstant().toString(),
+                author = rs.authorOrNull(),
+                contrib = rs.contribOrNull(),
+            )
+        }
     }
 
     /**
@@ -287,10 +366,27 @@ class PriceRepo(private val db: Db) {
         ) { rs -> StyleDto(rs.getString("slug"), rs.getString("name_es")) }!!
     }
 
-    fun pendingStyles(): List<StyleDto> = db.conn {
+    fun pendingStyles(): List<PendingStyleDto> = db.conn {
         it.query(
-            "SELECT slug, name_es FROM beer_styles WHERE status = 'pending' ORDER BY id",
-        ) { rs -> StyleDto(rs.getString("slug"), rs.getString("name_es")) }
+            """
+            SELECT st.slug, st.name_es,
+                   $AUTHOR_COLS,
+                   p.bar_id, p.bar_name, NULL::text AS style_name, p.brand_name,
+                   p.price, p.size_ml, p.currency, p.contrib_at
+            FROM beer_styles st
+            LEFT JOIN users u ON u.id = st.created_by
+            LEFT JOIN LATERAL ($FIRST_USE_BY_STYLE) p ON true
+            WHERE st.status = 'pending'
+            ORDER BY st.id
+            """.trimIndent(),
+        ) { rs ->
+            PendingStyleDto(
+                slug = rs.getString("slug"),
+                name = rs.getString("name_es"),
+                author = rs.authorOrNull(),
+                contrib = rs.contribOrNull(),
+            )
+        }
     }
 
     /**

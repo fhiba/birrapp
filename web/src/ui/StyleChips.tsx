@@ -70,6 +70,22 @@ export function StyleChips({
 
   const grid = layout === 'grid'
 
+  /**
+   * La lista vacía no es "no hay estilos": es que no llegó.
+   *
+   * El vocabulario de estilos nunca está vacío del lado del servidor —son
+   * diecisiete sembrados desde V2—, así que si acá no hay ninguno es que el
+   * pedido falló. Y callarlo es peor que mostrar el error: quien abría esto
+   * veía "Sin estilo" y "Otro estilo", y la app le ofrecía crear "IPA" como si
+   * no existiera. Crear algo que ya está no se puede, así que además no había
+   * salida — sólo un formulario que rebota.
+   *
+   * `useBars` reintenta solo, incluso al volver a la app. Esto es lo que se
+   * dice mientras tanto, y lo que queda si el pedido nunca llega: en una compu
+   * con un bloqueador de contenido, `/styles` puede estar cayendo siempre.
+   */
+  const sinLista = styles.length === 0
+
   return (
     <>
       <div style={grid ? {
@@ -88,10 +104,26 @@ export function StyleChips({
             on={value === s.slug} onClick={() => onChange(s.slug)} />
         ))}
         {/* Otra familia entera, a propósito: ver `AgregarOtro`. Era una palabra
-            más de la grilla y quien no encontraba su estilo no veía la salida. */}
-        <AgregarOtro key="otro" label="Otro estilo" on={typing}
-          onClick={() => setTyping(t => !t)} />
+            más de la grilla y quien no encontraba su estilo no veía la salida.
+
+            Sin lista no se ofrece: proponer un estilo cuando no sabemos cuáles
+            existen es invitar a duplicar los que ya están. */}
+        {!sinLista && (
+          <AgregarOtro key="otro" label="Otro estilo" on={typing}
+            onClick={() => setTyping(t => !t)} />
+        )}
       </div>
+
+      {sinLista && (
+        <p style={{
+          color: 'var(--aging)', fontSize: 'var(--t-2)',
+          margin: '8px 16px 0', lineHeight: 1.5, textWrap: 'pretty',
+        }}>
+          No pudimos traer la lista de estilos. Se reintenta solo; si sigue
+          así, probá sin bloqueador de contenido o desde otra red — podés
+          anotar la birra igual, sin estilo.
+        </p>
+      )}
 
       {typing && (
         <div style={{ padding: '10px 14px 0', display: 'flex', gap: 8 }}>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as fb from '../data/feedback'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
-import type { AreaStats, BarPin, BeerStyle } from '../data/types'
+import type { AreaStats, BarPin, BeerRank, BeerStyle } from '../data/types'
 import {
   FRESCO_DIAS, ageColor, formatDistance, formatPrice, formatRadius,
 } from '../data/format'
@@ -17,6 +17,20 @@ import { useCached } from '../data/cached'
  * pantalla se despegarían al primer cambio y el prefetch dejaría de servir sin
  * que nadie se entere: no rompe nada, simplemente vuelve el segundo en blanco.
  */
+/**
+ * La clave de caché de la tabla de birras de la zona.
+ *
+ * Mismo redondeo a dos decimales que `areaKey` y por lo mismo: con las
+ * coordenadas enteras la clave cambia con cada paneo y la caché no sirve de
+ * nada. Sin los estilos, que a la tabla de birras no la filtran.
+ */
+/** Cuántos bares recientes se muestran plegado, y cuántos como mucho. */
+const RECIENTES_PLEGADO = 3
+const MAX_RECIENTES = 8
+
+export const birrasKey = (lat: number, lng: number, radius: number) =>
+  `birras:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`
+
 export const areaKey = (
   lat: number, lng: number, radius: number, styles: string[],
 ) => `area:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}:${styles.join(',')}`
@@ -93,11 +107,35 @@ export function NearbyScreen(p: {
     350,
   )
 
+  // La tabla de birras, con la misma caché que el promedio: se pinta lo último
+  // que se supo y se pregunta de nuevo en segundo plano. Mismo rebote, porque
+  // la clave también cambia arrastrando el radio.
+  const { data: ranking } = useCached<BeerRank[]>(
+    c ? birrasKey(c.lat, c.lng, p.radius) : null,
+    () => api.beerLeaderboard(c!.lat, c!.lng, p.radius),
+    350,
+  )
+
   const conPrecio = p.bars.filter(b => b.fromPrice != null && b.freshestAgeDays != null)
   const recientes = [...conPrecio]
     .sort((a, b) => a.freshestAgeDays! - b.freshestAgeDays!)
-    .slice(0, 6)
+    .slice(0, MAX_RECIENTES)
   const viejos = conPrecio.filter(b => b.freshestAgeDays! >= FRESCO_DIAS).length
+
+  /**
+   * De entrada se ven tres, y el resto se despliega.
+   *
+   * Eran seis fijos, y seis filas empujan la tabla de birras tan abajo que hay
+   * que scrollear a propósito para encontrarla — o sea que para quien abre la
+   * pestaña no existe. Tres alcanzan para contestar "qué se cargó último por
+   * acá"; el cuarto y el quinto ya son la misma respuesta con más detalle, y
+   * eso puede pedirse.
+   *
+   * Se despliega en el lugar y no navega a otro lado: es la misma lista, más
+   * larga.
+   */
+  const [todos, setTodos] = useState(false)
+  const visibles = todos ? recientes : recientes.slice(0, RECIENTES_PLEGADO)
 
   return (
     <div style={{
@@ -186,7 +224,7 @@ export function NearbyScreen(p: {
                 <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
                   LO ÚLTIMO QUE SE CARGÓ
                 </h2>
-                {recientes.map(b => (
+                {visibles.map(b => (
                   <Fila
                     key={b.id}
                     nombre={b.name}
@@ -197,8 +235,39 @@ export function NearbyScreen(p: {
                     onClick={() => nav(`/bar/${b.id}`)}
                   />
                 ))}
+
+                {/* Sólo si hay algo que desplegar, y sin botón para volver a
+                    plegar: una vez que pediste ver más, esconderlas de nuevo no
+                    es algo que nadie quiera hacer. */}
+                {!todos && recientes.length > RECIENTES_PLEGADO && (
+                  <button
+                    onClick={() => { fb.tap(); setTodos(true) }}
+                    className="lbl cta"
+                    style={{
+                      display: 'block', width: 'calc(100% - var(--s-4) * 2)',
+                      margin: 'var(--s-3) var(--s-4) 0', minHeight: 40,
+                      borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
+                      background: 'var(--film-1)', color: 'var(--info)',
+                    }}
+                  >Ver {recientes.length - RECIENTES_PLEGADO} más</button>
+                )}
               </>
             )}
+
+            {/*
+              La tabla de birras de la zona, debajo de lo último que se cargó.
+
+              Acá abajo y no arriba: "Cerca" contesta cuánto sale la pinta por
+              acá, y eso manda. Esto es lo otro que se puede saber de una zona
+              —quiénes la están tomando— y es una razón para volver, no la
+              razón para entrar.
+
+              **Se dibuja aunque esté vacía.** Una tabla vacía dice algo cierto
+              y divertido: por acá todavía no anotó nadie. Esconderla haría que
+              la sección aparezca y desaparezca según el barrio, que se lee como
+              que la app se rompió.
+            */}
+            <Ranking filas={ranking} onAbrir={id => nav(`/usuario/${id}`)} />
 
             {/* La invitación, y sólo cuando hay algo concreto que pedir. Un
                 cartel que dice "cargá precios" siempre es decoración; éste
@@ -359,5 +428,92 @@ function Fila({ nombre, meta, price, currency, ageDays, onClick }: {
       </span>
       <PriceColumn price={price} currency={currency} ageDays={ageDays} size="var(--t-5)" />
     </button>
+  )
+}
+
+
+/**
+ * Quiénes más tomaron entre los bares de esta zona, últimos 30 días.
+ *
+ * **Sólo cuenta lo que se anotó con bar.** Una birra sin bar no se puede
+ * ubicar, así que no compite en un ranking por cercanía; se avisa en la
+ * bienvenida y se repite acá abajo, porque quien mire la tabla y no se vea va a
+ * preguntarse exactamente eso.
+ *
+ * El tope de quince por día lo pone el servidor, al anotar y otra vez al
+ * contar. Sin él la tabla la gana quien tenga más paciencia tocando un botón.
+ *
+ * Y sólo figura quien tiene alias, la misma regla que la tabla de
+ * colaboradores: el nombre de Google no se publica en ningún lado.
+ */
+function Ranking({ filas, onAbrir }: {
+  filas: BeerRank[] | null
+  onAbrir: (userId: number) => void
+}) {
+  return (
+    <section style={{ marginTop: 'var(--s-5)' }}>
+      <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
+        QUIÉN TOMÓ MÁS POR ACÁ
+      </h2>
+
+      {filas == null ? (
+        <SkeletonRows rows={3} />
+      ) : filas.length === 0 ? (
+        <p style={{
+          color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
+          padding: '0 var(--s-4)', textWrap: 'pretty',
+        }}>
+          Por acá todavía no anotó nadie. Sólo cuentan las birras anotadas
+          diciendo en qué bar, y hasta ahora nadie lo hizo en esta zona.
+        </p>
+      ) : (
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {filas.map((f, i) => (
+            <li key={f.userId}>
+              <button onClick={() => onAbrir(f.userId)} className="row-hover" style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
+                width: '100%', padding: 'var(--s-3) var(--s-4)', textAlign: 'left',
+                borderBottom: '1px solid var(--hairline)',
+              }}>
+                {/* El puesto en cifras tabulares, igual que en colaboradores:
+                    si no, la columna baila entre el 9 y el 10 y la lista deja
+                    de leerse como un ranking. */}
+                <span className="num" style={{
+                  width: 20, textAlign: 'right', flexShrink: 0, fontSize: 'var(--t-3)',
+                  color: i < 3 ? 'var(--acento)' : 'var(--faint)',
+                }}>{i + 1}</span>
+
+                {f.avatarUrl
+                  ? <img src={f.avatarUrl} alt="" width={30} height={30} loading="lazy"
+                      style={{
+                        width: 30, height: 30, borderRadius: 'var(--r-1)',
+                        objectFit: 'cover', flexShrink: 0,
+                      }} />
+                  : <span aria-hidden style={{
+                      width: 30, height: 30, borderRadius: 'var(--r-1)', flexShrink: 0,
+                      background: 'var(--elevated)',
+                    }} />}
+
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="lbl" style={{
+                    display: 'block', fontSize: 'var(--t-3)', color: 'var(--cream)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{f.alias}</span>
+                  {/* En cuántos días: veinte birras en dos noches y veinte en
+                      quince no son la misma historia. */}
+                  <span style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
+                    {f.days === 1 ? 'en 1 día' : `en ${f.days} días`}
+                  </span>
+                </span>
+
+                <span className="num" style={{
+                  flexShrink: 0, fontSize: 'var(--t-5)', color: 'var(--cream)',
+                }}>{f.beers}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }

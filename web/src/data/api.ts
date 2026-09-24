@@ -1,9 +1,9 @@
 import type {
-  AreaStats, BarDetail, BarPin, BeerLog, BeerStyle, BeerSummary, Brand,
+  AreaStats, BarDetail, BarPin, BeerLog, BeerRank, BeerStyle, BeerSummary, Brand,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
   ContributionKind, Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
-  MyRating, Photo, PriceAccepted, PricePoint, RatingComment, Review, Session,
-  User, UserStats,
+  MyRating, PendingBar, PendingBrand, PendingStyle, Photo, PriceAccepted,
+  PricePoint, RatingComment, Review, Session, User, UserStats,
 } from './types'
 
 /**
@@ -29,7 +29,17 @@ const KEY = 'birrapp.session'
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message) }
+  /**
+   * El `code` del servidor, cuando vino.
+   *
+   * Hace falta para poder distinguir un error de otro sin leer el texto: el
+   * tope diario de birras abre un aviso propio y el resto de los 400 se
+   * muestran en un renglón. Comparar mensajes sería atar la app a una cadena
+   * en castellano que cualquiera puede reescribir.
+   */
+  constructor(public status: number, message: string, public code?: string) {
+    super(message)
+  }
 }
 
 let session: Session | null = (() => {
@@ -185,8 +195,13 @@ async function req<T>(
 
   if (!res.ok) {
     let message = `Error ${res.status}`
-    try { message = (await res.json()).message ?? message } catch { /* respuesta sin json */ }
-    throw new ApiError(res.status, message)
+    let code: string | undefined
+    try {
+      const body = await res.json()
+      message = body.message ?? message
+      code = body.code
+    } catch { /* respuesta sin json */ }
+    throw new ApiError(res.status, message, code)
   }
   return res.status === 204 ? (undefined as T) : res.json()
 }
@@ -474,6 +489,19 @@ export const myContributions = (tipo?: ContributionKind, before?: string | null)
   req<MyContributions>('GET', '/auth/me/contributions', {
     auth: true, params: { tipo, before: before ?? undefined },
   })
+/**
+ * Lo mismo, pero de otra persona y sólo para moderadores.
+ *
+ * Misma forma de respuesta que [myContributions] a propósito: la pantalla de
+ * lista es una sola y sólo cambia de dónde saca los datos.
+ */
+export const userContributions = (
+  userId: number, tipo?: ContributionKind, before?: string | null,
+) =>
+  req<MyContributions>('GET', `/moderation/users/${userId}/contributions`, {
+    auth: true, params: { tipo, before: before ?? undefined },
+  })
+
 export const removeMyPrice = (id: number) =>
   req<unknown>('POST', `/auth/me/prices/${id}/remove`, { auth: true })
 export const removeMyPhoto = (id: number) =>
@@ -501,7 +529,8 @@ export async function deleteAccount() {
 }
 
 // ---------- moderación ----------
-export const pendingBars = () => req<BarPin[]>('GET', '/moderation/bars/pending', { auth: true })
+export const pendingBars = () =>
+  req<PendingBar[]>('GET', '/moderation/bars/pending', { auth: true })
 export const openFlags = () => req<Flag[]>('GET', '/moderation/flags', { auth: true })
 export const moderationSummary = () =>
   req<ModerationSummary>('GET', '/moderation/summary', { auth: true })
@@ -519,6 +548,19 @@ export const setUserRole = (id: number, role: 'user' | 'moderator' | 'admin') =>
     body: { role }, auth: true,
   })
 
+/**
+ * Quiénes tomaron más entre los bares de esta zona (últimos 30 días).
+ *
+ * Pública, como el promedio de la zona: son alias elegidos a propósito para
+ * aparecer.
+ */
+export const beerLeaderboard = (
+  lat: number, lng: number, radius: number, limit = 10,
+) =>
+  req<BeerRank[]>('GET', '/stats/beers', {
+    params: { lat, lng, radius, limit },
+  })
+
 export const dashboardUsers = (limit = 200) =>
   req<DashboardUser[]>('GET', '/moderation/dashboard/users', {
     auth: true, params: { limit },
@@ -528,7 +570,7 @@ export const dashboardSummary = () =>
 export const dashboardAnalytics = () =>
   req<DashboardAnalytics>('GET', '/moderation/dashboard/analytics', { auth: true })
 export const pendingBrands = () =>
-  req<Brand[]>('GET', '/moderation/brands/pending', { auth: true })
+  req<PendingBrand[]>('GET', '/moderation/brands/pending', { auth: true })
 export const approveBrand = (slug: string) =>
   req<unknown>('POST', `/moderation/brands/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectBrand = (slug: string) =>
@@ -544,7 +586,7 @@ export const recentPhotos = () =>
   req<ModeratedPhoto[]>('GET', '/moderation/photos/recent', { auth: true })
 
 export const pendingStyles = () =>
-  req<BeerStyle[]>('GET', '/moderation/styles/pending', { auth: true })
+  req<PendingStyle[]>('GET', '/moderation/styles/pending', { auth: true })
 export const approveStyle = (slug: string) =>
   req<unknown>('POST', `/moderation/styles/${encodeURIComponent(slug)}/approve`, { auth: true })
 export const rejectStyle = (slug: string) =>

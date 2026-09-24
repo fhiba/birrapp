@@ -4104,7 +4104,386 @@ que las marcas (`v_current_prices` hace `JOIN beer_styles` sin mirar status).
 `style_id` es NOT NULL así que no se arregla despegándolo. Falta decidir si se
 baja el contenido o se re-apunta a otro estilo.
 
-## 2026-09-21 (cont.) — v0.31.0: la política de privacidad, escrita desde el esquema
+## 2026-09-22 — v0.31.0: abrir los aportes de otra persona, moderando
+
+El perfil de alguien decía "14 precios" y ahí terminaba. Para revisar esos
+catorce había que acordarse en qué bares fue y entrar uno por uno. Un contador
+que no se puede abrir no alcanza para decidir si alguien carga mal o de mala fe,
+que es exactamente lo que hay que decidir mirando ese perfil.
+
+Ahora, con rol de moderador, cada baldosa se abre y lleva a la misma lista que
+cada uno ve de lo suyo.
+
+**Casi no hubo que escribir nada nuevo.** `ContributionRepo.forUser` ya recibía
+un `userId`; el que estaba atado a quien preguntaba era el endpoint, que pasaba
+`caller.userId`. Así que alcanzó con un `GET /moderation/users/{id}/contributions`
+detrás de `requireRole(moderator)` y con la misma paginación.
+
+Del lado de la web, `MyContributionsScreen` toma la ruta
+`/usuario/:id/aportes/:tipo` y cambia de dónde saca los datos. Tres decisiones
+que no son cosméticas:
+
+- **Mirando a otro no hay botones de borrar.** No es sólo que fallarían —los
+  endpoints de borrado comprueban la pertenencia en el WHERE—: bajar contenido
+  ajeno es una acción de moderación, con su registro y su motivo. Esto es la
+  lectura que va **antes** de esa decisión, no un atajo para saltearla.
+- **"Notas" no se abre.** Las puntuaciones no tienen pantalla propia en ningún
+  lado, ni para lo propio. Vale más un número quieto que un botón que no cumple.
+- **"Comentarios" aparece sólo moderando.** Es el único aporte con texto libre,
+  o sea el que más se revisa, y el número ya venía en la respuesta sin que nadie
+  lo mostrara.
+
+El test que se sumó no es del endpoint sino de la propiedad de la que depende:
+que cada lista sea de la persona que se pide y de nadie más. Era incidental
+mientras `forUser` se llamaba sólo con el id propio; ahora es de lo que cuelga
+la pantalla, porque aportes mezclados serían un moderador sancionando a la
+persona equivocada.
+
+**Lo que no se puede testear acá**: que la ruta exija rol de moderador. El
+proyecto no tiene pruebas de ruta, así que ese `requireRole` queda cubierto por
+lectura y no por test — igual que los otros veinte del archivo.
+
+## 2026-09-22 (cont.) — v0.32.0: quién tomó más por la zona, y el tope que la hace creíble
+
+### La tabla
+
+En "Cerca", debajo de lo último que se cargó: quiénes más tomaron entre los
+bares de este radio, últimos 30 días. Va abajo y no arriba porque "Cerca"
+contesta cuánto sale la pinta por acá y eso manda; esto es una razón para
+volver, no la razón para entrar.
+
+**Una birra sin bar no entra, y punto.** Sin bar no se la puede ubicar, y un
+ranking por cercanía que incluya lo que no sabe dónde pasó no es por cercanía.
+La consecuencia conocida es que la tabla va a estar casi vacía al principio,
+porque la mayoría se anota sin decir dónde — se prefiere eso a un número que no
+significa nada. La bienvenida gana un punto que lo avisa antes de que alguien
+anote la primera y se pregunte por qué no figura, y el vacío de la tabla lo
+repite.
+
+Sólo figura quien tiene alias: la misma regla que la tabla de colaboradores
+(V20), el nombre de Google no se publica en ningún lado.
+
+La carga usa `useCached` igual que el promedio de la zona —se pinta lo último
+que se supo y se pregunta de nuevo en segundo plano— con el mismo rebote de
+350 ms, porque la clave también cambia arrastrando el radio.
+
+### El tope: quince por día de calendario
+
+Sin tope, la tabla la gana quien tenga más paciencia tocando un botón, no quien
+más tomó. Quince es alto a propósito: no está para discutirle a nadie cuánto
+tomó, está para que el número cueste algo del mundo real.
+
+**Día de calendario, no 24 horas móviles.** Ocho el viernes y ocho el sábado son
+dos salidas y tienen que poder anotarse las dos; una ventana móvil las junta y
+rebota la segunda por algo que no pasó. El día se corta en Buenos Aires, igual
+que el calendario de "Mis birras".
+
+Mira `drank_at` y no `created_at`: si mirara cuándo se anotó, se saltea cargando
+al día siguiente lo de anoche.
+
+**Se aplica dos veces, y la segunda no es redundante.** Al escribir, y otra vez
+al contar con `least(sum(qty), 15)` por día. La consulta también lee filas
+anteriores al tope, que nunca pasaron por ese control: confiar en el dato sería
+dejar el ranking decidido por lo que se cargó antes de que la regla existiera.
+Hay un test que lo fija, con un helper que escribe la fila a mano justamente
+porque por el camino normal ya es imposible.
+
+### El aviso
+
+Llegar al tope no se muestra como un error más. El servidor devuelve un `code`
+propio —para eso `ApiError` ahora lo lleva— y la app abre un aviso en vez de un
+renglón rojo.
+
+**El tono está medido.** No diagnostica a nadie ni lo trata de alcohólico: quien
+de verdad esté en problemas es exactamente a quien un chiste le cierra la
+puerta, y quien está de joda no necesita un reto. Dice el hecho, da la línea 141
+—gratis, anónima, todo el día, todo el país— aclara que no hace falta una
+emergencia para llamar, y se corre. `Confirm` aprendió a no mostrar "Cancelar",
+porque esto no es una pregunta.
+
+### Los 404 de la consola
+
+`/bar/favicon.svg` y `/bar/icon-192.png` daban 404 en cualquier ficha. El
+index.html las pedía con `./`, y Vite **no reescribe** las rutas relativas a
+`public/` del index —sí el CSS y el manifest—, así que el navegador las resolvía
+contra la ruta actual: en la raíz andaban, en `/bar/123` no. Pasan a
+`%BASE_URL%`, que Vite reemplaza por la base.
+
+### Lo que NO se tocó
+
+El `Cannot read properties of undefined (reading 'startTime')` no es nuestro.
+`reportAllChanges` es de `web-vitals`, que no está en las dependencias ni
+aparece en el bundle propio —verificado—, y la traza es de un script anónimo
+inyectado. Es el Speed Insights que Vercel agrega desde la configuración del
+proyecto. No rompe nada de la app: falla el script de métricas, no la página.
+
+## 2026-09-22 (cont.) — v0.32.1: las pastillas, el filete de más y Cerca más corta
+
+### El padding de abajo que nadie escribió
+
+Las pastillas de estilo y marca de la ficha se dimensionan solas: `padding` más
+la caja de línea, sin `height`. Y la caja de línea hereda el `1.5` del body, así
+que una pastilla de 13px medía 8 + 19,5 + 8 = 35,5px para trece píxeles de
+texto. Ese sobrante de 6,5px se reparte arriba y abajo del renglón, pero las
+métricas de la fuente lo dejan cargado abajo — y se lee como un padding inferior
+que nadie puso.
+
+Con `lineHeight: 1` la caja es exactamente padding más texto y queda pareja por
+construcción.
+
+**Las demás pastillas de la app no tenían el problema**, y por una razón que
+vale anotar: todas llevan `height` o `minHeight` y centran contra eso, así que
+el sobrante de la interlínea se reparte solo. Las únicas dos que se dimensionan
+por la caja de línea eran éstas y la cápsula de rol del dashboard, que también
+se corrigió.
+
+### Dos separadores donde iba uno
+
+Debajo de "Ver historial" quedaban dos líneas seguidas: el `borderBottom` del
+bloque de precio, que por ir en el borde llegaba de punta a punta, y el `Filete`
+del bloque siguiente, que vive adentro del canal de 18px y va sangrado. Dos
+separadores a unos píxeles, de dos anchos distintos.
+
+Se fue el `borderBottom`: el resto de la ficha separa con filetes sangrados, así
+que la que estaba fuera de norma era ésa.
+
+### Cerca: tres bares y el resto a pedido
+
+"Lo último que se cargó" mostraba seis fijos, y seis filas empujan la tabla de
+birras tan abajo que hay que scrollear a propósito para encontrarla — o sea que
+para quien abre la pestaña no existe.
+
+Tres de entrada y un "Ver N más" que despliega en el lugar. Tres alcanzan para
+contestar qué se cargó último por acá; el cuarto y el quinto son la misma
+respuesta con más detalle, y eso puede pedirse. Sin botón para volver a plegar:
+una vez que pediste ver más, esconderlas de nuevo no es algo que nadie quiera.
+
+## 2026-09-22 (cont.) — v0.32.2: la ubicación vieja que se mostraba como actual
+
+Reporte: abrir la app después de mucho tiempo mostraba la ubicación del último
+lugar donde se había abierto, y recién al tocar el botón volvía a pedir permiso.
+
+Son dos cosas distintas y sólo una es arreglable.
+
+### La posición guardada se usaba para dos cosas que no son la misma
+
+`coords` servía a la vez para **dónde abrir el mapa** —para lo que un punto de
+hace unos días sirve, y es mucho mejor que el Obelisco— y para **"acá estás"**,
+que es una afirmación sobre el presente. El punto azul, las distancias y la
+sugerencia de "¿te la tomaste acá?" salían todas de ahí, así que con una
+posición de hace una semana la app señalaba un bar de otra ciudad con total
+seguridad.
+
+Ahora hay un `fresh` que dice si lo que tenemos es de ahora. El punto azul sólo
+se dibuja con eso; el centrado del mapa sigue usando la guardada, que es para lo
+que sirve.
+
+### Nadie le volvía a preguntar al GPS
+
+Éste es el arreglo de fondo. Una PWA **no se recarga al volver del segundo
+plano**: el efecto de arranque había corrido una sola vez, hacía días, y desde
+entonces nadie consultaba la posición otra vez. La guardada se seguía usando por
+hasta una semana.
+
+Ahora, al traer la app al frente, si el permiso ya está concedido y lo que
+tenemos envejeció, se vuelve a ubicar. Sólo con el permiso dado: con `prompt`
+esto abriría el cartel del navegador cada vez que cambiás de pestaña, que es
+justo lo que el arranque evita a propósito.
+
+Y el cartel de "no sabemos dónde estás" ahora también aparece cuando lo que hay
+es viejo. Antes, con una posición guardada, no había ni punto ni cartel ni
+pedido: la app mostraba otro barrio y se quedaba callada.
+
+### Lo que no se puede arreglar
+
+Que iOS vuelva a pedir el permiso. No lo recuerda entre lanzamientos de una PWA
+instalada, y desde la web no hay forma de conservarlo — ya estaba anotado en el
+comentario de `useLocation` antes de este reporte. Lo que sí cambia es que ahora
+quien **sí** tiene el permiso vivo no ve más la posición vieja.
+
+## 2026-09-22 (cont.) — v0.32.3: el vocabulario que fallaba y no se enteraba nadie
+
+Reporte: al anotar una birra la lista de estilos sale vacía, y buscando tampoco
+aparecen los que están cargados. En la compu sí, en el celular no.
+
+### El servidor está bien
+
+Lo primero fue descartarlo, contra producción: `/styles` devuelve los diecisiete
+estilos, `/brands` la lista entera, y las dos con el `Access-Control-Allow-Origin`
+correcto para el dominio de la web. El problema estaba del lado del cliente.
+
+### Un `catch` vacío que duraba toda la sesión
+
+Esto era, literalmente:
+
+```ts
+useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
+```
+
+Si el pedido fallaba, la lista quedaba **vacía para siempre**: sin error, sin
+reintento y sin nada que lo delatara. Y el síntoma no se parecía en nada a un
+error de red — se parecía a que la app no tuviera estilos.
+
+Peor: con la lista vacía, `canCreate` daba verdadero para cualquier cosa, así
+que la app ofrecía crear "IPA" como si no existiera. Y crear un estilo que ya
+está no se puede, así que tampoco había salida: sólo un formulario que rebota.
+
+Ahora reintenta cuatro veces con espera creciente, y **vuelve a intentar al
+traer la app al frente** si sigue sin vocabulario — que es el momento en que lo
+más probable es que la conexión haya vuelto. Las banderas de "ya lo tengo" son
+locales al efecto y no `styles.length`: el efecto corre una sola vez, así que su
+clausura ve las listas del primer render, vacías para siempre, y el reintento se
+dispararía aunque ya estuvieran cargadas.
+
+### Y que se note
+
+`StyleChips` con la lista vacía ahora lo dice, en ámbar, y **esconde "Otro
+estilo"**: proponer un estilo cuando no sabemos cuáles existen es invitar a
+duplicar los que ya están.
+
+La lista vacía se puede tratar como error sin miedo porque del lado del servidor
+nunca lo está: son diecisiete sembrados desde V2.
+
+### Era el bundle viejo, y esa es la tercera vez
+
+Confirmado por Felipe: un Ctrl+F5 y aparecieron. La computadora estaba corriendo
+JavaScript anterior al arreglo.
+
+**Es el tercer reporte de esta sesión con la misma causa**: un filtro de
+favoritos que "no andaba", un padding que "no se había arreglado" y esta lista
+vacía. En los tres el código en producción ya estaba bien. El costo no es el
+deploy que tarda, es el rato que se pierde buscando el bug en el lugar
+equivocado — dos de esas tres veces las busqué a fondo antes de sospechar de la
+caché.
+
+La recarga automática ya existía (`watchForUpdates` escucha `controllerchange`),
+y ahí estaba el agujero: **alguien tiene que descubrir primero que hay versión
+nueva.** El navegador busca la actualización al registrar el service worker, o
+sea una vez por carga de página, y una app que se queda abierta no vuelve a
+cargar nunca. Una PWA en el teléfono puede pasar días así.
+
+Ahora se pregunta cada vez que la app vuelve al frente. Sin novedad es un pedido
+condicional que devuelve 304; con novedad, el service worker nuevo toma control
+y el `controllerchange` que ya estaba recarga.
+
+El arreglo del `catch` vacío vale igual, y por su cuenta: una lista de estilos
+que no llega tiene que reintentar y, si no puede, decirlo.
+
+## 2026-09-23 — La ficha del aporte: quién lo cargó y qué se quiere hacer (v0.33.0)
+
+La cola de moderación mostraba el nombre del bar y dos coordenadas, la marca y
+su slug, y de una denuncia `price #42` con el motivo. Con eso no se aprueba
+nada: para saber quién cargó algo había que abrir el dashboard y buscar a mano,
+y para saber si el bar existe, el mapa en otra pestaña.
+
+Ahora cada fila de las cuatro colas trae **el autor** —nombre, antigüedad de la
+cuenta, si está baneado— y **qué se está queriendo hacer**, y al tocarla se abre
+una ficha con todo junto.
+
+### Qué se está queriendo hacer
+
+Es el dato que faltaba en las tres colas que no son bares. Una marca o un estilo
+no se crean sueltos: se crean **en medio de una carga de precio**. Entonces la
+fila de "Birra Trucha" ahora dice de dónde salió —"Se creó cargando $7.000 los
+473 ml de IPA en El Bar"— y la de un precio retenido por outlier dice qué se
+quiere publicar y dónde, en vez del id de la fila.
+
+Sale de un LEFT JOIN LATERAL al primer `price_report` que usó la marca o el
+estilo, **sin filtrar por status a propósito**: si ese precio quedó retenido, es
+justo el que hay que mirar.
+
+Las denuncias resuelven los tres tipos con un LEFT JOIN por tipo —sólo uno
+matchea por fila— y de ahí sale el autor: `price_reports.reported_by`,
+`reviews.user_id` o `bars.created_by`. Ojo con los dos nombres, que no son el
+mismo: el **autor** cargó el contenido, el **denunciante** lo marcó. En los
+precios retenidos por outlier coinciden, porque la denuncia la escribe el
+servidor al recibir la carga.
+
+### Los bares, con la ubicación entera
+
+Dirección, barrio, coordenadas con seis decimales, place_id, país y
+moneda, y tres links que salen: **Street View** —que es lo único que contesta de
+verdad si hay un bar en esa puerta—, el punto en el mapa, y la búsqueda por
+nombre, que lo encuentra aunque el pin esté marcado desde la vereda de enfrente.
+
+`bars.pending()` se fue de `BarRepo` a `ModerationRepo`: es una consulta de la
+cola, no del mapa, y el DTO del mapa no tiene por qué cargar con la dirección de
+cada pin. `BarPinDto` queda como estaba.
+
+### La ficha
+
+Se abre encima de la cola, no en otra ruta, y lo que se está mirando viaja en el
+`state` del historial. Dos razones: el botón de atrás del teléfono cierra la
+ficha en vez de salirse de moderación, y la cola queda montada abajo con su
+scroll donde estaba —después de resolver diez filas, esa es la diferencia entre
+seguir donde ibas y volver a empezar—.
+
+Las acciones están en los dos lados: en la fila, que es el camino rápido, y en
+la ficha, que es donde se decide lo dudoso. La ficha cierra antes de disparar la
+acción, porque la recarga se lleva puesta la fila que estabas mirando.
+
+### Lo que no se tocó
+
+La app Android: su pantalla de moderación ya venía atrás —no tiene estilos ni
+fotos— y moderar hoy se hace en la PWA. Los DTO nuevos no la rompen: `BarPin`
+tiene todos sus campos opcionales y el cliente ignora lo que no conoce.
+
+Test nuevo: `ModerationQueueTest`, cuatro casos, uno por cola. Son joins, y un
+join mal escrito no rompe nada —devuelve null y la pantalla dibuja "sin
+autor"—, así que sin test se descubre moderando a ciegas.
+
+## 2026-09-23 — El bar de Madrid que quedó en el Obelisco (v0.33.1)
+
+Lo encontró la ficha de moderación del commit anterior, el mismo día: "SUMER",
+dirección *Calle Bravo Murillo 17-19, Madrid*, coordenadas **-34.603700,
+-58.381600**. Eso es el Obelisco.
+
+### La causa no es el default, es que la dirección nunca se usó
+
+El alta a mano mandaba `lat: center!.lat, lng: center!.lng` —el centro del
+mapa— y la dirección escrita viajaba al lado, como texto, **sin ninguna
+relación con el punto**. O sea: el bar nunca se ubicó por su dirección, ni
+cuando la ubicación andaba bien. Con ubicación denegada,
+`queryPoint = … ?? (denied ? BA_CENTER : null)` y el mapa arranca en
+`coords ?? BA_CENTER`, así que el centro es el Obelisco y todo lo cargado a
+mano desde una sesión sin permiso cae ahí.
+
+Con la ubicación andando el bug es más silencioso y no menos real: el bar queda
+donde estaba mirando el mapa, que puede ser el barrio de al lado.
+
+### El arreglo
+
+La dirección ahora es un autocompletado, no un campo de texto: se elige de una
+lista y **de ahí salen las coordenadas, la dirección que se guarda y el país**.
+Los tres del mismo lugar, que es lo que hace que signifiquen algo juntos.
+Editar el texto suelta el punto.
+
+Es el mismo `AutocompleteSuggestion` de Places que ya busca bares, con la
+dirección como entrada. No se usa el Geocoding API a propósito: es otra API que
+habilitar en la key, y encima devolvería un punto sin mostrarlo — así la
+persona ve cuál eligió.
+
+El `placeId` de la dirección **se usa y se tira**. No viaja al servidor: un bar
+con `google_place_id` entra aprobado sin pasar por moderación (`BarRepo.create`)
+y el place_id de una calle no prueba que en esa calle haya un bar.
+
+Sin dirección elegida no se puede cargar. Es a propósito: si Google no encuentra
+la calle, el moderador tampoco la va a poder verificar, y un pin en otro
+continente es peor que un alta que no salió.
+
+### Lo que queda abierto
+
+- **La app Android tiene el mismo bug** (`AddBarScreen.kt:281` manda el `lat/lng`
+  de la pantalla, que es `BUENOS_AIRES_CENTER` cuando no hay permiso). Arreglarlo
+  bien es portar el autocompletado de direcciones a Compose; taparlo es no dejar
+  cargar a mano sin ubicación.
+- **El bar que ya está cargado mal no se puede corregir**: no hay endpoint que
+  edite un bar. Se rechaza y se vuelve a cargar.
+
+## 2026-09-21 (cont.) — v0.34.0: la política de privacidad, escrita desde el esquema
+
+_Renumerada de v0.31.0 a v0.34.0 al mergear master: mientras esperaba el PR
+entraron #77–#83, uno de ellos también titulado v0.31.0._
 
 BIR-15, que es bloqueante para publicar: ni Play ni App Store aceptan una app
 con cuentas sin una política accesible por URL.

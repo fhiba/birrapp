@@ -80,8 +80,64 @@ export function useBars() {
   const keyOf = (f: Filtro = {}) =>
     `${[...(f.style ?? [])].sort().join(',')}|${f.minRating ?? ''}`
 
-  useEffect(() => { api.styles().then(setStyles).catch(() => {}) }, [])
-  useEffect(() => { api.brands().then(setBrands).catch(() => {}) }, [])
+  /**
+   * El vocabulario: los estilos y las marcas.
+   *
+   * ## Por qué reintenta
+   *
+   * Esto era `api.styles().then(setStyles).catch(() => {})`, o sea: si el
+   * pedido fallaba, la lista quedaba **vacía para toda la sesión**, sin error,
+   * sin reintento y sin nada que lo delatara. Y falla más seguido de lo que
+   * parece — el backend duerme y el primer pedido después de un rato puede
+   * tardar más que el timeout.
+   *
+   * El síntoma no se parecía a un error de red: al anotar una birra la lista
+   * de estilos salía vacía, con "Otro estilo" al lado, así que la app te
+   * ofrecía crear "IPA" como si no existiera. Un estilo que ya está no se
+   * puede crear de nuevo, así que además no había forma de salir adelante.
+   *
+   * ## Y por qué también al volver a la app
+   *
+   * El reintento con espera cubre "la red estaba lenta hace un segundo". Lo
+   * que no cubre es "abrí la app en el subte y la cerré": ahí se gastan los
+   * cuatro intentos sin señal y no hay más. Al traer la app al frente, si
+   * seguimos sin vocabulario, se prueba de nuevo — es el momento en que lo más
+   * probable es que la conexión haya vuelto.
+   */
+  useEffect(() => {
+    let vivo = true
+    // Banderas locales y no `styles.length`: el efecto corre una sola vez, así
+    // que su clausura ve las listas del primer render —vacías para siempre— y
+    // el reintento al volver se dispararía aunque ya estuvieran cargadas.
+    let hayEstilos = false
+    let hayMarcas = false
+
+    async function traer<T>(pedir: () => Promise<T[]>, set: (v: T[]) => void) {
+      for (let intento = 0; vivo && intento < 4; intento++) {
+        try {
+          const v = await pedir()
+          if (vivo) set(v)
+          // Una respuesta buena cierra el asunto aunque venga vacía: un
+          // vocabulario vacío es una verdad del servidor, no un fallo.
+          return true
+        } catch {
+          // 0,8s, 1,6s, 3,2s. Se corta solo al desmontar.
+          await new Promise(r => setTimeout(r, 800 * 2 ** intento))
+        }
+      }
+      return false
+    }
+
+    const cargar = () => {
+      if (!hayEstilos) void traer(api.styles, setStyles).then(ok => { hayEstilos = ok })
+      if (!hayMarcas) void traer(api.brands, setBrands).then(ok => { hayMarcas = ok })
+    }
+    cargar()
+
+    const alVolver = () => { if (document.visibilityState === 'visible') cargar() }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => { vivo = false; document.removeEventListener('visibilitychange', alVolver) }
+  }, [])
 
   /**
    * Una marca recién creada todavía no está en la lista del servidor —queda
@@ -278,6 +334,17 @@ export function useLocation() {
   const [denied, setDenied] = useState(false)
   const [permission, setPermission] = useState<LocationPermission>('unknown')
   const lastAt = useRef(stored?.at ?? 0)
+  /**
+   * Si `coords` es una posición de AHORA y no la guardada de la última vez.
+   *
+   * Arranca en falso aunque haya posición guardada, y ésa es la distinción que
+   * faltaba: una cosa es "dónde abrir el mapa" —para lo que un punto de hace
+   * unos días sirve, y es mejor que el Obelisco— y otra es "acá estás", que es
+   * una afirmación sobre el presente. Se venían usando las dos desde la misma
+   * variable, así que el punto azul podía estar señalando un bar de otra
+   * ciudad con total seguridad.
+   */
+  const [fresh, setFresh] = useState(false)
 
   const locate = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
@@ -286,6 +353,7 @@ export function useLocation() {
         lastAt.current = f.at
         writeFix(f)
         setCoords({ lat: f.lat, lng: f.lng })
+        setFresh(true)
       },
       (err) => {
         // Bloqueo contra fallo. El código 1 es PERMISSION_DENIED, y es la
@@ -375,5 +443,33 @@ export function useLocation() {
     }).catch(() => locate())
   }, [locate, stored])
 
-  return { coords, denied, permission, request }
+  /**
+   * Al volver a la app, si el permiso está dado, se pregunta de nuevo.
+   *
+   * Éste es el arreglo del "la abro después de mucho tiempo y me muestra dónde
+   * estaba la última vez". Una PWA no se recarga al volver del segundo plano:
+   * el efecto de arranque corrió una sola vez, hace días, y desde entonces
+   * nadie le volvió a preguntar al GPS. La posición guardada se seguía usando
+   * por hasta una semana.
+   *
+   * Sólo con el permiso ya concedido. Con `prompt` esto abriría el cartel del
+   * navegador cada vez que traés la app al frente, que es exactamente lo que
+   * el arranque evita a propósito: preguntar sin que nadie lo haya pedido es
+   * la forma más rápida de que lo nieguen para siempre.
+   *
+   * Y sólo si lo que tenemos ya envejeció, para no castigar el GPS cada vez
+   * que alguien cambia de pestaña.
+   */
+  useEffect(() => {
+    if (permission !== 'granted') return
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastAt.current < FIX_FRESH_MS) return
+      locate()
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => document.removeEventListener('visibilitychange', alVolver)
+  }, [locate, permission])
+
+  return { coords, denied, permission, fresh, request }
 }

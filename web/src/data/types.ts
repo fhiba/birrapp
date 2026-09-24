@@ -224,6 +224,62 @@ export interface PriceAccepted { id: number; heldForReview: boolean; message: st
 export interface Flag {
   id: number; targetType: string; targetId: number; reason: string
   createdAt: string; reporterName: string | null; targetSummary: string | null
+  /** Quién cargó lo denunciado. NO es `reporterName`, que es quien denunció. */
+  author: Author | null
+  /** Qué se quiso cargar y dónde. */
+  contrib: Contrib | null
+}
+
+/**
+ * Quién hizo el aporte que hay que moderar.
+ *
+ * La antigüedad de la cuenta viene con el aporte porque es la mitad de la
+ * decisión: un precio raro de una cuenta de ayer no es lo mismo que uno de
+ * alguien que viene cargando hace meses.
+ */
+export interface Author {
+  id: number
+  name: string
+  ageDays: number
+  banned: boolean
+}
+
+/** La operación que se quiere hacer: tal precio, de tal birra, en tal bar. */
+export interface Contrib {
+  barId: number | null
+  barName: string | null
+  styleName: string | null
+  brandName: string | null
+  price: number | null
+  sizeMl: number | null
+  currency: string | null
+  createdAt: string | null
+}
+
+/** Un bar cargado a mano, esperando aprobación, con todo lo que hay del lugar. */
+export interface PendingBar {
+  id: number
+  name: string
+  lat: number
+  lng: number
+  address: string | null
+  neighbourhood: string | null
+  googlePlaceId: string | null
+  countryCode: string | null
+  currency: string
+  createdAt: string
+  author: Author | null
+}
+
+export interface PendingBrand extends Brand {
+  createdAt: string
+  author: Author | null
+  contrib: Contrib | null
+}
+
+export interface PendingStyle extends BeerStyle {
+  author: Author | null
+  contrib: Contrib | null
 }
 
 /**
@@ -246,6 +302,20 @@ export interface ModeratedPhoto {
  * El perfil de otra persona (BIR-6). Sin email: lo que se ve de alguien es lo
  * que aportó, que ya está firmado con su nombre en el mapa.
  */
+/**
+ * Una fila de la tabla de birras por zona.
+ *
+ * `days` desempata y de paso dice algo: veinte birras en dos días y veinte en
+ * quince no son la misma historia.
+ */
+export interface BeerRank {
+  userId: number
+  alias: string
+  avatarUrl: string | null
+  beers: number
+  days: number
+}
+
 export interface Person {
   id: number
   displayName: string

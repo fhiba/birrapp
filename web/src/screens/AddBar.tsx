@@ -59,6 +59,23 @@ export function AddBarScreen(
   } | null>(null)
   const [manual, setManual] = useState(false)
   const [address, setAddress] = useState('')
+  const [addrHits, setAddrHits] = useState<Suggestion[]>([])
+  /**
+   * Dónde queda la dirección que se escribió, según Google.
+   *
+   * Es el punto que se guarda al cargar un bar a mano. Antes ese punto era
+   * `center` —el centro del mapa— y la dirección viajaba como texto al lado,
+   * sin ninguna relación con él: alguien con la ubicación denegada veía el
+   * mapa en el Obelisco, escribía una dirección de Madrid y el bar quedaba
+   * cargado en el Obelisco. Pasó, y lo agarró la moderación.
+   *
+   * Null hasta que se elige una de la lista, y vuelve a null si se edita el
+   * texto: la dirección y el punto tienen que salir del mismo lugar o no
+   * significan nada juntos.
+   */
+  const [spot, setSpot] = useState<
+    { lat: number; lng: number; address: string; countryCode: string | null } | null
+  >(null)
   // Sólo para el alta a mano: sin lugar de Google no hay país que mirar.
   // Arranca en la moneda de la persona, que es la del lugar donde está.
   const [currency, setCurrency] = useState(user?.currency ?? 'ARS')
@@ -112,6 +129,67 @@ export function AddBarScreen(
     return () => { alive = false; clearTimeout(t); setSearching(false) }
   }, [query, chosen, center, placesLib])
 
+  /**
+   * Las direcciones que matchean lo que se escribió.
+   *
+   * Es el mismo autocompletado de Places que busca bares, con la dirección
+   * como entrada: una API menos que habilitar que el Geocoding, y encima
+   * muestra una lista para elegir, así que el punto lo confirma la persona y
+   * no lo adivina la app.
+   */
+  useEffect(() => {
+    if (!manual || spot || address.trim().length < 4 || !placesLib) { setAddrHits([]); return }
+    let alive = true
+    const t = setTimeout(async () => {
+      try {
+        const { suggestions: s } =
+          await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: address,
+            sessionToken: token.current ?? undefined,
+            ...(center ? { locationBias: { center, radius: 30_000 } } : {}),
+          })
+        if (!alive) return
+        setAddrHits(s.slice(0, 5).map(x => ({
+          placeId: x.placePrediction!.placeId,
+          primary: x.placePrediction!.mainText?.text ?? '',
+          secondary: x.placePrediction!.secondaryText?.text ?? '',
+        })))
+      } catch { if (alive) setAddrHits([]) }
+    }, 350)
+    return () => { alive = false; clearTimeout(t) }
+  }, [manual, address, spot, center, placesLib])
+
+  /**
+   * Fija el punto del bar en la dirección elegida.
+   *
+   * El `placeId` de la dirección se usa y se tira: NO viaja al servidor. Un
+   * bar cargado con place_id entra aprobado sin pasar por moderación —ver
+   * `BarRepo.create`— y el place_id de una calle no prueba que en esa calle
+   * haya un bar. Lo único que aporta son las coordenadas y el país.
+   */
+  const pickAddress = async (s: Suggestion) => {
+    if (!placesLib) return
+    try {
+      const place = new placesLib.Place({ id: s.placeId })
+      await place.fetchFields({
+        fields: ['formattedAddress', 'location', 'addressComponents'],
+      })
+      const loc = place.location
+      if (!loc) throw new Error('sin ubicación')
+      const dir = place.formattedAddress ?? [s.primary, s.secondary].filter(Boolean).join(', ')
+      setSpot({
+        lat: loc.lat(), lng: loc.lng(), address: dir,
+        countryCode: place.addressComponents
+          ?.find(c => c.types.includes('country'))?.shortText ?? null,
+      })
+      // Se guarda lo que Google devolvió y no lo que se tipeó: es la dirección
+      // del punto que se está guardando, y es la que va a mirar el moderador.
+      setAddress(dir)
+      setAddrHits([])
+      token.current = new placesLib.AutocompleteSessionToken()
+    } catch { setError('No pudimos ubicar esa dirección.') }
+  }
+
   const pick = async (s: Suggestion) => {
     if (!placesLib) return
     try {
@@ -137,10 +215,11 @@ export function AddBarScreen(
     } catch { setError('No pudimos obtener la ubicación de ese lugar.') }
   }
 
-  const canSend = chosen != null || (manual && address.trim() !== '')
+  // A mano hace falta la dirección ELEGIDA, no escrita: de ahí sale el punto.
+  const canSend = chosen != null || (manual && spot != null)
 
   const submit = async () => {
-    if (!center && !chosen) return
+    if (!chosen && !spot) return
     setSending(true); setError(null)
     try {
       const r = await api.addBar(chosen
@@ -150,8 +229,12 @@ export function AddBarScreen(
             countryCode: chosen.countryCode ?? undefined,
           }
         : {
-            name: query.trim(), lat: center!.lat, lng: center!.lng,
-            address: address.trim(),
+            // El punto sale de la dirección, no del mapa. Sin `googlePlaceId`
+            // a propósito: es el de la calle, no el del bar, y mandarlo lo
+            // haría entrar aprobado sin que nadie verifique que el bar existe.
+            name: query.trim(), lat: spot!.lat, lng: spot!.lng,
+            address: spot!.address,
+            countryCode: spot!.countryCode ?? undefined,
             // Sin lugar de Google no hay país del que deducir nada, así que
             // manda la moneda elegida en el formulario, que arranca en la de
             // tu configuración.
@@ -320,17 +403,51 @@ export function AddBarScreen(
                   <>
                     <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>Agregar “{query}”</div>
                     <input
-                      value={address} onChange={e => setAddress(e.target.value)}
+                      value={address}
+                      // Editar el texto suelta el punto: si no, queda el punto
+                      // de la dirección vieja abajo de una dirección nueva, que
+                      // es exactamente el bug que esto viene a arreglar.
+                      onChange={e => { setAddress(e.target.value); setSpot(null) }}
                       placeholder="Calle y altura, o esquina"
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 12,
                         background: 'var(--raised)', border: '1px solid var(--hairline)',
                       }}
                     />
-                    <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5 }}>
-                      Hace falta la dirección para que un moderador pueda verificar
-                      que el bar existe.
-                    </p>
+
+                    {/* Las direcciones que matchean. Elegir una es lo que fija
+                        el bar en el mapa: el punto sale de acá y no de dónde
+                        estaba mirando el mapa. */}
+                    {addrHits.map(h => (
+                      <button key={h.placeId} onClick={() => pickAddress(h)} style={{
+                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                        minHeight: 44, padding: '12px 0', textAlign: 'left',
+                        borderBottom: '1px solid var(--hairline)',
+                      }}>
+                        <span style={{ color: 'var(--info)' }}>◎</span>
+                        <span style={{ flex: 1 }}>
+                          <span className="lbl" style={{
+                            display: 'block', fontSize: 'var(--t-3)',
+                          }}>{h.primary}</span>
+                          <span style={{
+                            color: 'var(--faint)', fontSize: 'var(--t-2)',
+                          }}>{h.secondary}</span>
+                        </span>
+                      </button>
+                    ))}
+
+                    {spot ? (
+                      /* En `--fresh`, que es el tono de lo que ya está
+                         resuelto: dice que el bar tiene dónde caerse. */
+                      <p style={{ color: 'var(--fresh)', fontSize: 'var(--t-2)', lineHeight: 1.5 }}>
+                        ✓ Queda en {spot.address}
+                      </p>
+                    ) : (
+                      <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5 }}>
+                        Elegí la dirección de la lista: de ahí sale el punto del bar
+                        en el mapa, y es con lo que un moderador verifica que existe.
+                      </p>
+                    )}
 
                     {/* Elegido del buscador, el país lo dice Google y la
                         moneda sale sola. Cargado a mano no hay de dónde
@@ -362,7 +479,7 @@ export function AddBarScreen(
           margin: '0 16px', lineHeight: 1.5,
         }}>
           {manual
-            ? 'Falta la dirección para poder verificarlo.'
+            ? 'Elegí la dirección de la lista para ubicarlo en el mapa.'
             : 'Elegí el bar de la lista, o tocá “Agregar” para cargarlo a mano.'}
         </p>
       )}

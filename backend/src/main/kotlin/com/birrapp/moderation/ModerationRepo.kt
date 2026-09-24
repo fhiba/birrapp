@@ -1,5 +1,6 @@
 package com.birrapp.moderation
 
+import java.sql.ResultSet
 import kotlinx.serialization.Serializable
 import com.birrapp.core.Db
 import com.birrapp.core.badRequest
@@ -22,7 +23,101 @@ data class FlagDto(
     val reporterName: String?,
     /** Texto del contenido denunciado, para no tener que ir a buscarlo. */
     val targetSummary: String?,
+    /** Quién cargó lo denunciado. NO es quien denunció: ver [reporterName]. */
+    val author: AuthorDto? = null,
+    /** Qué se quiso cargar y dónde. */
+    val contrib: ContribDto? = null,
 )
+
+/**
+ * Quién hizo el aporte que hay que mirar.
+ *
+ * La antigüedad de la cuenta y el ban son la mitad de la decisión: un precio
+ * raro de una cuenta de ayer no es lo mismo que uno de alguien que viene
+ * cargando hace meses. Antes esto no viajaba y había que ir a buscarlo al
+ * dashboard, con el id en la mano.
+ */
+@Serializable
+data class AuthorDto(
+    val id: Long,
+    val name: String,
+    /** Días desde que se registró. */
+    val ageDays: Int,
+    val banned: Boolean,
+)
+
+/**
+ * La operación que se quiere hacer: tal precio, de tal birra, en tal bar.
+ *
+ * Es lo que hace falta para decidir sin abrir otra pantalla. Sirve igual para
+ * un precio denunciado, para la marca nueva que se usó al cargarlo y para el
+ * estilo propuesto en esa misma carga: los tres son el mismo aporte visto
+ * desde distinto lado.
+ */
+@Serializable
+data class ContribDto(
+    val barId: Long? = null,
+    val barName: String? = null,
+    val styleName: String? = null,
+    val brandName: String? = null,
+    val price: Double? = null,
+    val sizeMl: Int? = null,
+    val currency: String? = null,
+    val createdAt: String? = null,
+)
+
+/** Un bar cargado a mano, esperando aprobación, con todo lo que hay para validarlo. */
+@Serializable
+data class PendingBarDto(
+    val id: Long,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val address: String? = null,
+    val neighbourhood: String? = null,
+    /** Si vino del buscador de Google. Un bar con place_id entra aprobado. */
+    val googlePlaceId: String? = null,
+    val countryCode: String? = null,
+    val currency: String,
+    val createdAt: String,
+    val author: AuthorDto? = null,
+)
+
+/**
+ * Las columnas de autor, iguales en las cuatro colas. `u` es el alias del
+ * LEFT JOIN a users: es LEFT porque el autor puede haberse borrado la cuenta.
+ */
+internal const val AUTHOR_COLS =
+    "u.id AS author_id, u.display_name AS author_name, " +
+        "EXTRACT(DAY FROM (now() - u.created_at))::int AS author_age_days, " +
+        "u.banned_at IS NOT NULL AS author_banned"
+
+internal fun ResultSet.authorOrNull(): AuthorDto? {
+    val id = getLong("author_id")
+    if (wasNull()) return null
+    return AuthorDto(
+        id = id,
+        name = getString("author_name") ?: "(sin nombre)",
+        ageDays = getInt("author_age_days"),
+        banned = getBoolean("author_banned"),
+    )
+}
+
+internal fun ResultSet.contribOrNull(): ContribDto? {
+    val barId = getLong("bar_id").takeUnless { wasNull() }
+    val price = getBigDecimal("price")?.toDouble()
+    if (barId == null && price == null) return null
+    return ContribDto(
+        barId = barId,
+        barName = getString("bar_name"),
+        styleName = getString("style_name"),
+        brandName = getString("brand_name"),
+        price = price,
+        sizeMl = getInt("size_ml").takeUnless { wasNull() },
+        currency = getString("currency"),
+        createdAt = getTimestamp("contrib_at")?.toInstant()?.toString(),
+    )
+}
 
 private val VALID_TARGETS = setOf("bar", "price", "review")
 private const val MAX_FLAGS_PER_DAY = 20
@@ -271,19 +366,86 @@ class ModerationRepo(private val db: Db) {
         )
     }
 
+    /**
+     * Los bares cargados a mano que esperan aprobación.
+     *
+     * Trae dirección, barrio, coordenadas y place_id —todo lo que hay del
+     * lugar— y quién lo cargó. La pantalla no pedía nada de esto: con el
+     * nombre y dos números no se puede decidir si el bar existe, que es
+     * exactamente la pregunta que la cola plantea.
+     *
+     * Vive acá y no en BarRepo porque es una consulta de la cola, no del mapa:
+     * el DTO del mapa no tiene por qué cargar con la dirección de cada pin.
+     */
+    fun pendingBars(limit: Int = 200): List<PendingBarDto> = db.conn {
+        it.query(
+            """
+            SELECT b.id, b.name,
+                   ST_Y(b.location::geometry) AS lat, ST_X(b.location::geometry) AS lng,
+                   b.address, b.neighbourhood, b.google_place_id, b.country_code,
+                   b.currency, b.created_at,
+                   $AUTHOR_COLS
+            FROM bars b
+            LEFT JOIN users u ON u.id = b.created_by
+            WHERE b.status = 'pending'
+            ORDER BY b.created_at ASC LIMIT ?
+            """.trimIndent(),
+            limit,
+        ) { rs ->
+            PendingBarDto(
+                id = rs.getLong("id"),
+                name = rs.getString("name"),
+                lat = rs.getDouble("lat"),
+                lng = rs.getDouble("lng"),
+                address = rs.getString("address"),
+                neighbourhood = rs.getString("neighbourhood"),
+                googlePlaceId = rs.getString("google_place_id"),
+                countryCode = rs.getString("country_code"),
+                currency = rs.getString("currency"),
+                createdAt = rs.getTimestamp("created_at").toInstant().toString(),
+                author = rs.authorOrNull(),
+            )
+        }
+    }
+
+    /**
+     * Las denuncias abiertas, con el aporte denunciado entero.
+     *
+     * Los tres tipos de denuncia se resuelven con el mismo LEFT JOIN por tipo:
+     * sólo uno matchea por fila y los otros dos quedan en NULL. De ahí salen
+     * las tres cosas que hacen falta para decidir —qué se quiso cargar, dónde,
+     * y quién—, que antes no viajaban: la fila decía "price #42" y el
+     * moderador tenía que ir a buscar el resto a mano.
+     *
+     * Ojo con [FlagDto.author] contra `reporterName`: el autor es quien cargó
+     * el precio, el reporter quien lo denunció. En los precios retenidos por
+     * outlier son la misma persona, porque la denuncia la escribe el server.
+     */
     fun openFlags(limit: Int = 100): List<FlagDto> = db.conn {
         it.query(
             """
             SELECT f.id, f.target_type::text AS target_type, f.target_id, f.reason,
-                   f.created_at, u.display_name AS reporter_name,
+                   f.created_at, rep.display_name AS reporter_name,
                    CASE f.target_type
-                       WHEN 'bar'    THEN (SELECT b.name FROM bars b WHERE b.id = f.target_id)
-                       WHEN 'review' THEN (SELECT r.body FROM reviews r WHERE r.id = f.target_id)
-                       WHEN 'price'  THEN (SELECT pr.price::text || ' / ' || pr.size_ml || 'ml'
-                                             FROM price_reports pr WHERE pr.id = f.target_id)
-                   END AS target_summary
+                       WHEN 'bar'    THEN fb.name
+                       WHEN 'review' THEN rv.body
+                       WHEN 'price'  THEN pr.price::text || ' / ' || pr.size_ml || 'ml'
+                   END AS target_summary,
+                   $AUTHOR_COLS,
+                   coalesce(pr.bar_id, rv.bar_id, fb.id) AS bar_id,
+                   coalesce(cb.name, fb.name)            AS bar_name,
+                   st.name_es AS style_name, brd.name AS brand_name,
+                   pr.price, pr.size_ml, pr.currency,
+                   coalesce(pr.created_at, rv.created_at, fb.created_at) AS contrib_at
             FROM flags f
-            LEFT JOIN users u ON u.id = f.reporter_id
+            LEFT JOIN users rep        ON rep.id = f.reporter_id
+            LEFT JOIN price_reports pr ON f.target_type = 'price'  AND pr.id = f.target_id
+            LEFT JOIN reviews rv       ON f.target_type = 'review' AND rv.id = f.target_id
+            LEFT JOIN bars fb          ON f.target_type = 'bar'    AND fb.id = f.target_id
+            LEFT JOIN bars cb          ON cb.id = coalesce(pr.bar_id, rv.bar_id)
+            LEFT JOIN beer_styles st   ON st.id = pr.style_id
+            LEFT JOIN brands brd       ON brd.id = pr.brand_id
+            LEFT JOIN users u ON u.id = coalesce(pr.reported_by, rv.user_id, fb.created_by)
             WHERE f.resolved_at IS NULL
             ORDER BY f.created_at ASC LIMIT ?
             """.trimIndent(),
@@ -297,6 +459,8 @@ class ModerationRepo(private val db: Db) {
                 createdAt = rs.getTimestamp("created_at").toInstant().toString(),
                 reporterName = rs.getString("reporter_name"),
                 targetSummary = rs.getString("target_summary"),
+                author = rs.authorOrNull(),
+                contrib = rs.contribOrNull(),
             )
         }
     }

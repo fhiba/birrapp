@@ -80,7 +80,7 @@ function Shell() {
   // veces seguidas no cambiaría el estado y el segundo pedido se perdería.
   const [tourToken, setTourToken] = useState(0)
 
-  const { coords, denied, permission, request } = useLocation()
+  const { coords, denied, permission, fresh, request } = useLocation()
   const {
     bars, styles, brands, addBrand, addStyle, loading, error, load, invalidate, MIN_QUERY_ZOOM,
   } = useBars()
@@ -302,8 +302,18 @@ function Shell() {
             tooZoomedOut={tooFar} camera={camera}
             onStyle={setStyleFilter} onRadius={setRadius}
             onSimulate={setSimulated} onCamera={onCamera}
-            myLocation={coords} panTo={panTo}
-            locationUnknown={denied && !coords}
+            // El punto azul sólo con una posición fresca. Dibujarlo sobre la
+            // guardada es afirmar "acá estás" sobre un dato de hace días —y si
+            // cambiaste de ciudad, con total seguridad—. Sin él, el mapa sigue
+            // abriendo donde lo dejaste, que es para lo que la guardada sirve.
+            myLocation={fresh ? coords : null} panTo={panTo}
+            // El cartel de "no sabemos dónde estás" también sale cuando lo que
+            // tenemos es viejo: antes, con una posición guardada, no había ni
+            // punto ni cartel ni pedido, y la app mostraba otro barrio callada.
+            // `unknown` queda afuera: es el estado de mientras se resuelve la
+            // consulta del permiso, y mostrar el cartel ahí lo hace parpadear
+            // en cada carga.
+            locationUnknown={!fresh && (permission === 'prompt' || permission === 'denied')}
             locationBlocked={permission === 'denied'}
             onHelp={() => setTourToken(t => t + 1)}
             onRecenter={() => {
@@ -384,6 +394,11 @@ function Shell() {
             que es el aporte que todo el mundo tiene. */}
         <Route path="/mis-aportes" element={<Navigate to="/mis-aportes/precios" replace />} />
         <Route path="/mis-aportes/:tipo" element={
+          <MyContributionsScreen onChanged={afterChange} />
+        } />
+        {/* La misma pantalla, mirando a otra persona. Sólo moderadores: lo hace
+            cumplir el servidor, que es donde tiene que estar. */}
+        <Route path="/usuario/:id/aportes/:tipo" element={
           <MyContributionsScreen onChanged={afterChange} />
         } />
         <Route path="/moderacion" element={<ModerationScreen onChanged={afterChange} />} />
