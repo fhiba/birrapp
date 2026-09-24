@@ -1,0 +1,15 @@
+{
+  "cerrar": "Schließen",
+  "cancelar": "Abbrechen",
+  "volver": "Zurück",
+  "agregar": "Hinzufügen",
+  "guardar": "Speichern",
+  "reintentar": "Erneut versuchen",
+  "listo": "Fertig",
+  "subiendo": "Wird hochgeladen…",
+  "buscando": "Suche…",
+  "voto": {
+    "one": "{count} Stimme",
+    "other": "{count} Stimmen"
+  }
+}

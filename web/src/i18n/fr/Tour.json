@@ -1,0 +1,60 @@
+{
+  "map": {
+    "bienvenida": {
+      "titulo": "Voici birrapp",
+      "texto": "Une carte du prix de la pinte à Buenos Aires. Les prix, on les saisit tous ensemble : chacun vient de quelqu'un qui était sur place et l'a noté. C'est pour ça qu'à côté de chaque prix tu verras toujours quand il a été saisi — un prix sans date ne te sert à rien."
+    },
+    "mantenerApretado": {
+      "titulo": "Appuie longuement sur la carte",
+      "texto": "Essaie maintenant, ici dans le cercle. Ça pose un repère et la recherche se fait autour de ce point au lieu d'autour de toi. Parfait pour voir le prix de la bière dans un quartier où tu vas débarquer."
+    },
+    "sacarMarca": {
+      "titulo": "Pour l'enlever, touche la carte",
+      "texto": "Une touche n'importe où l'efface et tu recherches de nouveau depuis là où tu es. Essaie ça aussi si tu viens de poser un repère."
+    },
+    "radio": {
+      "titulo": "Jusqu'où on cherche ?",
+      "texto": "De 300 mètres à 15 kilomètres. Plus c'est petit, plus la comparaison a du sens : deux bars à dix rues l'un de l'autre sont en concurrence, à dix kilomètres, plus du tout."
+    },
+    "estilo": {
+      "titulo": "Une bière à la fois",
+      "texto": "Filtre par style et compare IPA contre IPA. Sans filtre, chaque épingle montre la moins chère du bar, qui peut être de n'importe quel style."
+    }
+  },
+  "list": {
+    "buscar": {
+      "titulo": "Cherche un bar par son nom",
+      "texto": "La recherche porte sur tous les bars enregistrés, pas seulement ceux dans ton rayon. Tu peux taper sans accents, il le trouve quand même."
+    },
+    "orden": {
+      "titulo": "Proche, pas chère ou bien notée",
+      "texto": "Les trois tris de la liste. \"Moins chère\" écarte les prix de plus de 45 jours, pour qu'un vieux prix bas ne batte pas un prix frais ; \"mieux notée\" envoie à la fin les bars que personne n'a encore notés."
+    }
+  },
+  "bar": {
+    "pestanas": {
+      "titulo": "Un onglet par bière",
+      "texto": "Chacun a son prix, sa note et ses photos. Le \"+\" du bout sert à en ajouter une que le bar a et qui n'est pas encore enregistrée."
+    },
+    "confirmar": {
+      "titulo": "C'est ce qui aide le plus",
+      "texto": "Si tu y es allé et que le prix n'a pas bougé, touche ici et il est à jour. C'est une touche, et c'est ce qui évite que l'appli se remplisse de prix qui n'existent plus."
+    },
+    "puntuar": {
+      "titulo": "Note la bière",
+      "texto": "Pose le doigt sur les étoiles et fais-le glisser : ça s'accroche par demi-point et s'enregistre quand tu lâches. Ton vote prend la couleur de la note et la moyenne des autres reste éteinte."
+    },
+    "foto": {
+      "titulo": "Envoie une photo",
+      "texto": "Prends la bière en photo ou choisis-en une dans ta galerie. Elle est réduite sur ton téléphone avant l'envoi, pour ne pas manger tes données. Sous les photos, il y a les commentaires."
+    }
+  },
+  "profile": {
+    "resumen": {
+      "titulo": "Tes trucs, d'un coup d'œil",
+      "texto": "Chaque carré ouvre sa liste : tes prix, tes photos, tes bars. Si quelque chose a raté, tu l'effaces de là. Le quatrième, c'est ton compteur de bières, qui n'est pas une contribution à la carte mais juste à toi."
+    }
+  },
+  "noMostrarMas": "Ne plus afficher",
+  "dale": "C'est parti"
+}

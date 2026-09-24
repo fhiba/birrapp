@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as fb from '../data/feedback'
 import { cropToSquare } from '../data/image'
 import { Sheet } from './Chrome'
+import { t } from '../i18n'
 
 /** El lado del recuadro en pantalla. Sólo afecta al encuadre, no al archivo. */
 const VISTA = 272
@@ -96,7 +97,7 @@ export function CropSquare({ file, onCancel, onDone }: {
   }
 
   return (
-    <Sheet title="Encuadrá tu foto" onClose={onCancel}>
+    <Sheet title={t('CropSquare.titulo')} onClose={onCancel}>
       <div
         style={{
           position: 'relative', width: VISTA, height: VISTA, margin: '0 auto',
@@ -138,13 +139,13 @@ export function CropSquare({ file, onCancel, onDone }: {
       <p style={{
         color: 'var(--faint)', fontSize: 'var(--t-2)', textAlign: 'center',
         margin: 'var(--s-3) 0 0',
-      }}>Arrastrá la foto para elegir qué parte se ve.</p>
+      }}>{t('CropSquare.arrastra')}</p>
 
       <label className="lbl" style={{
         display: 'flex', alignItems: 'center', gap: 'var(--s-3)',
         margin: 'var(--s-4) 0 0', fontSize: 'var(--t-2)', color: 'var(--muted)',
       }}>
-        Acercar
+        {t('CropSquare.acercar')}
         <input
           className="range" type="range" min={1} max={ZOOM_MAX} step={0.01}
           value={zoom} disabled={!nat}
@@ -165,7 +166,7 @@ export function CropSquare({ file, onCancel, onDone }: {
       <div style={{ display: 'flex', gap: 'var(--s-2)', margin: 'var(--s-5) 0 0' }}>
         <button onClick={onCancel} className="lbl" style={{
           padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)', color: 'var(--muted)',
-        }}>Cancelar</button>
+        }}>{t('comun.cancelar')}</button>
         <button
           onClick={listo} disabled={!nat || busy} className="lbl"
           style={{
@@ -174,7 +175,7 @@ export function CropSquare({ file, onCancel, onDone }: {
             background: nat && !busy ? 'var(--acento)' : 'var(--elevated)',
             color: nat && !busy ? 'var(--base)' : 'var(--faint)',
           }}
-        >{busy ? 'Subiendo…' : 'Usar esta foto'}</button>
+        >{busy ? t('comun.subiendo') : t('CropSquare.usar')}</button>
       </div>
     </Sheet>
   )

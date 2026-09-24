@@ -1,0 +1,14 @@
+{
+  "estilos": "{n} estilos",
+  "aLaRedonda": "num raio de {radio}",
+  "pintaTipico": "o pint, típico",
+  "piso": "mín. {precio}",
+  "tope": "máx. {precio}",
+  "promedio": "Média",
+  "bares": "Bares",
+  "mejor": "O melhor da região",
+  "mejorPorque": "{nota} ★ com {votos}, a {precio}",
+  "masBarata": "A mais barata",
+  "masBarataPorque": "{precio} os {ml} ml",
+  "nota": "Tudo convertido para um pint de 473 ml, sobre {n} preços com menos de 45 dias. Os mais antigos não entram."
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { t } from '../i18n'
 
 export type AddAction = 'beer' | 'price' | 'bar'
 
@@ -72,7 +73,7 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
           // Declarar un menú que no se comporta como un menú es peor que no
           // declarar nada.
           role="group"
-          aria-label="Qué querés agregar"
+          aria-label={t('AddMenu.queAgregar')}
           className="glass"
           style={{
             position: 'fixed', zIndex: 60,
@@ -85,15 +86,15 @@ export function AddMenu({ onPick }: { onPick: (a: AddAction) => void }) {
             animation: 'addmenu-in .13s ease-out',
           }}
         >
-          <Item icon={<Pint />} label="Me tomé una birra" onClick={() => pick('beer')} />
-          <Item icon={<Tag />} label="Cargar un precio" onClick={() => pick('price')} />
-          <Item icon={<Pin />} label="Agregar un bar" onClick={() => pick('bar')} />
+          <Item icon={<Pint />} label={t('AddMenu.birra')} onClick={() => pick('beer')} />
+          <Item icon={<Tag />} label={t('AddMenu.precio')} onClick={() => pick('price')} />
+          <Item icon={<Pin />} label={t('AddMenu.bar')} onClick={() => pick('bar')} />
         </div>
       )}
 
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label={open ? 'Cerrar el menú de agregar' : 'Agregar'}
+        aria-label={open ? t('AddMenu.cerrar') : t('comun.agregar')}
         aria-expanded={open}
         style={{
           width: 56, height: 56, borderRadius: '50%', background: 'var(--acento)',

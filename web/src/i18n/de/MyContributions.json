@@ -1,0 +1,69 @@
+{
+  "titulo": {
+    "precios": "Meine Preise",
+    "fotos": "Meine Fotos",
+    "comentarios": "Meine Kommentare",
+    "bares": "Meine Bars"
+  },
+  "tituloAjeno": {
+    "precios": "Preise von {nombre}",
+    "fotos": "Fotos von {nombre}",
+    "comentarios": "Kommentare von {nombre}",
+    "bares": "Bars von {nombre}"
+  },
+  "vacioAjeno": {
+    "precios": "Hat noch keinen Preis eingetragen",
+    "fotos": "Hat noch kein Foto hochgeladen",
+    "comentarios": "Hat noch keinen Kommentar geschrieben",
+    "bares": "Hat noch keine Bar hinzugefügt"
+  },
+  "vacio": {
+    "precios": {
+      "titulo": "Du hast noch keinen Preis eingetragen",
+      "hint": "Einen Preis trägst du über das \"+\" auf der Karte oder auf der Seite der Bar ein. Das hält die Karte am Leben.",
+      "accion": "Einen Preis eintragen"
+    },
+    "fotos": {
+      "titulo": "Du hast noch kein Foto hochgeladen",
+      "hint": "Fotos gehören zum Bier, unter dem Preis. Sie werden vor dem Hochladen auf deinem Handy verkleinert.",
+      "accion": "Zur Karte"
+    },
+    "comentarios": {
+      "titulo": "Du hast noch keinen Kommentar geschrieben",
+      "hint": "Unter den Fotos jedes Biers gibt es ein Feld, um zu erzählen, wie es war.",
+      "accion": "Zur Karte"
+    },
+    "bares": {
+      "titulo": "Du hast noch keine Bar hinzugefügt",
+      "hint": "Wenn du eine kennst, die nicht auf der Karte ist, trag sie ein: Sie bleibt für alle.",
+      "accion": "Eine Bar hinzufügen"
+    }
+  },
+  "barMl": "{bar} · {ml} ml",
+  "confirmacion": "Bestätigung",
+  "estado": {
+    "pendiente": "Wartet auf Freigabe",
+    "rechazado": "Abgelehnt",
+    "publicado": "Veröffentlicht"
+  },
+  "cargando": "Lädt…",
+  "verMas": "Mehr anzeigen",
+  "precio": {
+    "titulo": "Diesen Preis löschen?",
+    "vigente": "Das ist der Preis, den die App {fuerte} für {estilo} in {bar}. Löschst du ihn, bleibt die vorige Meldung, falls es eine gibt; sonst hat die Bar keinen Preis mehr.",
+    "muestraHoy": "heute anzeigt",
+    "viejo": "Das ist eine alte Meldung, sie ändert also nicht, was heute angezeigt wird: Sie verschwindet aus dem Verlauf von {estilo} in {bar}."
+  },
+  "foto": {
+    "titulo": "Dieses Foto löschen?",
+    "texto": "Die Datei wird gelöscht, nicht nur aus der Liste. Das lässt sich nicht rückgängig machen."
+  },
+  "comentario": {
+    "titulo": "Diesen Kommentar löschen?",
+    "texto": "Nur der Text wird gelöscht. Deine Bewertung dieses Biers bleibt: Was du geschrieben hast zu löschen, zieht deine Stimme nicht zurück.",
+    "borrado": "Kommentar gelöscht"
+  },
+  "vigente": "aktuell",
+  "birra": "Bier",
+  "baresNoSeBorran": "Bars lassen sich hier nicht löschen: Sie können Preise und Fotos von anderen haben, Löschen würde also nicht deinen Beitrag rückgängig machen, sondern den von anderen löschen. Wenn eine falsch eingetragen ist, melde sie auf der Seite der Bar."
+}

@@ -1,0 +1,27 @@
+{
+  "titulo": "Cerca",
+  "cambiar": "· cambiar",
+  "desdePunto": "Desde el punto elegido",
+  "radioAria": "Radio de la zona",
+  "masBarata": "MÁS BARATA CERCA",
+  "ml": "{n} ml",
+  "ultimo": "LO ÚLTIMO QUE SE CARGÓ",
+  "verMas": "Ver {n} más",
+  "otroBar": "¿Pasaste por otro bar?",
+  "viejos": {
+    "one": "Un bar de tu radio tiene el precio de hace más de {dias} días.",
+    "other": "{count} bares de tu radio tienen el precio de hace más de {dias} días."
+  },
+  "sinDatos": "Todavía no hay precios suficientes en {radio} a la redonda para sacar un promedio que signifique algo. Con tres alcanza.",
+  "comoViene": "Cómo viene la zona · {radio}",
+  "muestras": {
+    "one": "{precios} precios · 1 bar",
+    "other": "{precios} precios · {count} bares"
+  },
+  "quienTomo": "QUIÉN TOMÓ MÁS POR ACÁ",
+  "nadie": "Por acá todavía no anotó nadie. Sólo cuentan las birras anotadas diciendo en qué bar, y hasta ahora nadie lo hizo en esta zona.",
+  "enDias": {
+    "one": "en 1 día",
+    "other": "en {count} días"
+  }
+}

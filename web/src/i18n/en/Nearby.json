@@ -1,0 +1,27 @@
+{
+  "titulo": "Nearby",
+  "cambiar": "· change",
+  "desdePunto": "From the chosen point",
+  "radioAria": "Area radius",
+  "masBarata": "CHEAPEST NEARBY",
+  "ml": "{n} ml",
+  "ultimo": "LATEST ADDED",
+  "verMas": "See {n} more",
+  "otroBar": "Been to another bar?",
+  "viejos": {
+    "one": "One bar in your radius has a price older than {dias} days.",
+    "other": "{count} bars in your radius have prices older than {dias} days."
+  },
+  "sinDatos": "There aren't enough prices within {radio} yet for an average that means anything. Three is enough.",
+  "comoViene": "How the area is doing · {radio}",
+  "muestras": {
+    "one": "{precios} prices · 1 bar",
+    "other": "{precios} prices · {count} bars"
+  },
+  "quienTomo": "WHO DRANK THE MOST AROUND HERE",
+  "nadie": "Nobody has logged anything around here yet. Only beers logged with a bar count, and so far nobody has done that in this area.",
+  "enDias": {
+    "one": "in 1 day",
+    "other": "in {count} days"
+  }
+}

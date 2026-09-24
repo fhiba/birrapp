@@ -3,6 +3,7 @@ import type { Photo } from '../data/types'
 import { compressImage } from '../data/image'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
 import { SumarEnRotulo } from './Kit'
+import { t } from '../i18n'
 
 /**
  * Lo que suma subir una foto, para mostrarlo dentro del botón.
@@ -106,14 +107,14 @@ export function PhotoStrip({
         margin: 'var(--s-5) 0 var(--s-3)',
       }}>
         <h3 className="section-label" style={{ margin: 0, flex: 1, minWidth: 0 }}>
-          {photos.length > 0 ? `FOTOS · ${photos.length}` : 'FOTOS'}
+          {photos.length > 0 ? t('PhotoStrip.fotosN', { n: photos.length }) : t('PhotoStrip.fotos')}
         </h3>
         {canAdd && (
           <SumarEnRotulo
             busy={busy}
             aria={KARMA_VISIBLE
-              ? `Agregar una foto, suma ${PTS_FOTO} puntos`
-              : 'Agregar una foto'}
+              ? t('PhotoStrip.agregarSuma', { n: PTS_FOTO })
+              : t('PhotoStrip.agregar')}
             onClick={() => picker.current?.click()}
           />
         )}
@@ -151,7 +152,7 @@ export function PhotoStrip({
           }}>
             <button
               onClick={() => onOpen(i)}
-              aria-label={`Ver la foto${p.topOfMonth ? ' del mes' : ''}`}
+              aria-label={p.topOfMonth ? t('PhotoStrip.verFotoMes') : t('PhotoStrip.verFoto')}
               style={{
                 position: 'relative', display: 'block', padding: 0,
                 width: '100%', height: 138, borderRadius: 'var(--r-1)', overflow: 'hidden',
@@ -173,7 +174,7 @@ export function PhotoStrip({
                   padding: '4px 7px',
                   fontSize: 'var(--t-1)', letterSpacing: '.1em', lineHeight: 1,
                   background: 'var(--acento)', color: 'var(--base)',
-                }} aria-hidden>DEL MES</span>
+                }} aria-hidden>{t('PhotoStrip.delMes')}</span>
               )}
             </button>
 
@@ -184,7 +185,7 @@ export function PhotoStrip({
               <button
                 onClick={() => { if (!p.votedByMe) setPop(p.id); onVote(p) }}
                 aria-pressed={p.votedByMe}
-                aria-label={p.votedByMe ? 'Sacar tu me gusta' : 'Me gusta esta foto'}
+                aria-label={p.votedByMe ? t('PhotoStrip.sacarLike') : t('PhotoStrip.like')}
                 data-pop={pop === p.id ? '1' : undefined}
                 className="like lbl"
                 style={{
@@ -218,7 +219,7 @@ export function PhotoStrip({
                 fontSize: 'var(--t-1)', color: 'var(--cream)',
                 background: 'rgba(0,0,0,.5)',
                 backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-              }} aria-label={`${p.votes} me gusta`}>
+              }} aria-label={t('PhotoStrip.likes', { n: p.votes })}>
                 <Thumb filled size={12} />
                 <span className="num">{p.votes}</span>
               </span>

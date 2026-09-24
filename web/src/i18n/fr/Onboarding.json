@@ -1,0 +1,47 @@
+{
+  "birras": {
+    "titulo": "Tu bois quoi ?",
+    "bajada": "Chaque bar affiche trois bières et le reste est derrière un {mas}. Coche les tiennes et ce seront ces trois-là. Tu peux cocher seulement des styles, seulement des marques, ou rien."
+  },
+  "saltear": "Passer",
+  "seguir": "Continuer",
+  "vos": {
+    "titulo": "Comment les autres te voient ?",
+    "bajada": "C'est le nom sous lequel tu apparais dans le classement public des contributeurs et sous tes photos. Ton nom Google et ton e-mail ne s'affichent nulle part.",
+    "label": "Ton nom d'utilisateur",
+    "placeholder": "Pas de nom d'utilisateur",
+    "ayuda": "On t'en a préparé un avec ton nom. Tu peux le changer pour celui que tu veux —il doit être unique, donc il peut être déjà pris— ou l'effacer et n'apparaître nulle part. Tu peux le changer quand tu veux dans Réglages."
+  },
+  "ajustes": {
+    "titulo": "Les détails",
+    "bajada": "L'appli démarre avec ça à chaque ouverture. Ce sont les trois valeurs qu'on change le plus, et elles sont toutes dans Réglages si tu veux les modifier plus tard.",
+    "radio": "Rayon de recherche",
+    "radioAyuda": "Sur quelle distance autour de toi s'ouvrent la carte et la liste.",
+    "moneda": "Monnaie",
+    "monedaAyuda": "Celle des bars que tu saisis à la main. Si tu choisis le bar via la recherche, la monnaie vient du pays. Les prix s'affichent toujours dans la monnaie du bar : rien n'est converti.",
+    "vaso": "Taille du verre",
+    "vasoAyuda": "La taille par défaut du clavier de prix. Une pinte fait 473 ml en Argentine et aux États-Unis, et 568 au Royaume-Uni.",
+    "ml": "{n} ml",
+    "pinta": "{n} ml — pinte",
+    "pintaUk": "{n} ml — pinte UK"
+  },
+  "como": {
+    "titulo": "Trois choses et on y va",
+    "bajada": "Les seules choses de l'appli qu'on ne comprend pas juste en la regardant.",
+    "nivel": {
+      "titulo": "Ton niveau peut baisser",
+      "texto": "Il dépend des bières que tu as notées ces {fuerte}, pas du total de toujours. Si tu arrêtes de noter, il baisse. C'est pour ça qu'il dit où tu en es, pas combien tu as accumulé un jour.",
+      "fuerte": "45 derniers jours"
+    },
+    "donde": {
+      "titulo": "Note où tu l'as bue",
+      "texto": "Dire dans quel bar est facultatif, mais {fuerte} : sans bar, impossible de les situer, et ce classement se fait par proximité. C'est une touche de plus et c'est ce qui te met dans le classement.",
+      "fuerte": "les bières sans bar ne comptent pas dans le classement de qui a le plus bu dans le coin"
+    },
+    "nota": {
+      "titulo": "La note est pour les bières, pas pour le bar",
+      "texto": "On note chaque bière en faisant glisser le doigt sur les étoiles, par demi-point. La note affichée sur un bar est la moyenne des notes de ses bières — pas un avis sur le lieu, la musique ou le service."
+    }
+  },
+  "paso": "Étape {n} sur {total}"
+}

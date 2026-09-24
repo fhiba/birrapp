@@ -3,6 +3,7 @@ import * as api from '../data/api'
 import type { BarPin } from '../data/types'
 import { ageColor, formatDistance } from '../data/format'
 import { PriceColumn } from './Empty'
+import { t } from '../i18n'
 
 /**
  * "¿En qué bar?" — el paso que faltaba para poder cargar un precio desde el
@@ -60,7 +61,7 @@ export function BarSearchList({
     <>
       <input
         value={q} onChange={e => setQ(e.target.value)}
-        placeholder="Buscar un bar" maxLength={60} autoComplete="off"
+        placeholder={t('PickBar.buscar')} maxLength={60} autoComplete="off"
         style={{
           width: '100%', padding: '12px 12px', borderRadius: 'var(--r-2)',
           background: 'var(--elevated)', border: '1px solid var(--hairline)',
@@ -89,7 +90,7 @@ export function BarSearchList({
                   va en --info: en --faint competía con todo lo demás apagado
                   de la fila y no se encontraba. */}
               <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--info)' }}>
-                {formatDistance(b.distanceMeters) ?? 'sin distancia'}
+                {formatDistance(b.distanceMeters) ?? t('PickBar.sinDistancia')}
               </span>
             </span>
             {/* El precio con su antigüedad al lado, la misma columna que la
@@ -110,9 +111,9 @@ export function BarSearchList({
 
         {shown.length === 0 && (
           <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', padding: '16px 4px' }}>
-            {busy ? 'Buscando…'
-              : typed.length >= 2 ? 'No encontramos ese bar. Podés agregarlo desde el +.'
-              : 'No hay bares cerca todavía.'}
+            {busy ? t('comun.buscando')
+              : typed.length >= 2 ? t('PickBar.noEncontramos')
+              : t('PickBar.noHayCerca')}
           </p>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { t } from '../i18n'
 
 /**
  * La red de seguridad.
@@ -33,10 +34,9 @@ export class Crash extends Component<{ children: ReactNode }, { error: Error | n
         alignItems: 'center', justifyContent: 'center', gap: 'var(--s-3)',
         padding: 'var(--s-6)', textAlign: 'center',
       }}>
-        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Se nos rompió algo</h1>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>{t('Crash.titulo')}</h1>
         <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: 0, lineHeight: 1.55 }}>
-          No es tu conexión ni algo que hayas hecho mal. Recargá y seguí;
-          si vuelve a pasar, contanos qué estabas haciendo.
+          {t('Crash.texto')}
         </p>
         {/* El CTA primario de la pizarra: hueso lleno sobre espresso, --r-2
             y 52 de alto. Acá el botón es lo único que hay en la pantalla, así
@@ -45,7 +45,7 @@ export class Crash extends Component<{ children: ReactNode }, { error: Error | n
           marginTop: 'var(--s-2)', padding: '0 var(--s-5)', borderRadius: 'var(--r-2)',
           fontSize: 'var(--t-4)', minHeight: 52,
           background: 'var(--acento)', color: 'var(--base)',
-        }}>Recargar</button>
+        }}>{t('Crash.recargar')}</button>
       </div>
     )
   }

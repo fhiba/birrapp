@@ -7,6 +7,7 @@ import * as api from '../data/api'
 import type { BarPin, User } from '../data/types'
 import { formatDistance } from '../data/format'
 import { SectionLabel } from '../ui/Kit'
+import { t } from '../i18n'
 
 interface Suggestion { placeId: string; primary: string; secondary: string }
 
@@ -187,7 +188,7 @@ export function AddBarScreen(
       setAddress(dir)
       setAddrHits([])
       token.current = new placesLib.AutocompleteSessionToken()
-    } catch { setError('No pudimos ubicar esa dirección.') }
+    } catch { setError(t('AddBar.noUbicaDireccion')) }
   }
 
   const pick = async (s: Suggestion) => {
@@ -212,7 +213,7 @@ export function AddBarScreen(
         countryCode: country,
       })
       token.current = new placesLib.AutocompleteSessionToken()
-    } catch { setError('No pudimos obtener la ubicación de ese lugar.') }
+    } catch { setError(t('AddBar.noUbicaLugar')) }
   }
 
   // A mano hace falta la dirección ELEGIDA, no escrita: de ahí sale el punto.
@@ -264,8 +265,8 @@ export function AddBarScreen(
         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
         borderBottom: '1px solid var(--hairline)',
       }}>
-        <button onClick={volver} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>Bar nuevo</h1>
+        <button onClick={volver} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>{t('AddBar.titulo')}</h1>
       </header>
 
       {/* Con `paddingTop: 0` el borde del input queda pegado al origen del
@@ -294,13 +295,13 @@ export function AddBarScreen(
                   <div style={{ color: 'var(--muted)', fontSize: 'var(--t-2)' }}>{chosen.address}</div>
                 )}
                 <div style={{ color: 'var(--info)', fontSize: 'var(--t-1)', marginTop: 8 }}>
-                  Verificado en Google Maps · se publica al instante
+                  {t('AddBar.verificado')}
                 </div>
               </div>
             </div>
             <button onClick={() => { setChosen(null); setQuery('') }} className="lbl" style={{
               color: 'var(--info)', fontSize: 'var(--t-3)', marginTop: 12, minHeight: 44,
-            }}>¿No es este?</button>
+            }}>{t('AddBar.noEsEste')}</button>
           </>
         ) : (
           <>
@@ -316,7 +317,7 @@ export function AddBarScreen(
                   setManual(true)
                 }
               }}
-              placeholder="¿Cómo se llama?" autoFocus
+              placeholder={t('AddBar.comoSeLlama')} autoFocus
               style={{
                 width: '100%', padding: '16px 16px', borderRadius: 'var(--r-2)',
                 // El campo se apoya sobre `--raised` y no sobre el fondo: con
@@ -327,7 +328,7 @@ export function AddBarScreen(
             />
             {searching && <div className="spinner" style={{ margin: '14px auto' }} />}
 
-            {existing.length > 0 && <SectionLabel>Ya está en birrapp</SectionLabel>}
+            {existing.length > 0 && <SectionLabel>{t('AddBar.yaEsta')}</SectionLabel>}
             {/* El tilde, la distancia y el "Ver" son las tres cosas
                 informativas de la fila, y van las tres en `--info`: el tilde
                 decía "ya está" en el verde de la frescura, que es color de
@@ -355,12 +356,12 @@ export function AddBarScreen(
                   </span>
                 </span>
                 <span className="lbl" style={{ color: 'var(--info)', fontSize: 'var(--t-3)' }}>
-                  {embedded ? 'Elegir' : 'Ver'}
+                  {embedded ? t('AddBar.elegir') : t('AddBar.ver')}
                 </span>
               </button>
             ))}
 
-            {suggestions.length > 0 && <SectionLabel>Encontrados en Google</SectionLabel>}
+            {suggestions.length > 0 && <SectionLabel>{t('AddBar.enGoogle')}</SectionLabel>}
             {suggestions.map(s => (
               <button key={s.placeId} onClick={() => pick(s)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
@@ -393,22 +394,22 @@ export function AddBarScreen(
                     <span>
                       <span className="lbl" style={{
                         display: 'block', color: 'var(--info-bright)',
-                      }}>Agregar “{query}”</span>
+                      }}>{t('AddBar.agregarNombre', { nombre: query })}</span>
                       <span style={{ color: 'var(--aging)', fontSize: 'var(--t-1)' }}>
-                        Lo revisa un moderador antes de publicarse
+                        {t('AddBar.loRevisa')}
                       </span>
                     </span>
                   </button>
                 ) : (
                   <>
-                    <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>Agregar “{query}”</div>
+                    <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>{t('AddBar.agregarNombre', { nombre: query })}</div>
                     <input
                       value={address}
                       // Editar el texto suelta el punto: si no, queda el punto
                       // de la dirección vieja abajo de una dirección nueva, que
                       // es exactamente el bug que esto viene a arreglar.
                       onChange={e => { setAddress(e.target.value); setSpot(null) }}
-                      placeholder="Calle y altura, o esquina"
+                      placeholder={t('AddBar.direccion')}
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 'var(--r-2)', marginTop: 12,
                         background: 'var(--raised)', border: '1px solid var(--hairline)',
@@ -440,12 +441,11 @@ export function AddBarScreen(
                       /* En `--fresh`, que es el tono de lo que ya está
                          resuelto: dice que el bar tiene dónde caerse. */
                       <p style={{ color: 'var(--fresh)', fontSize: 'var(--t-2)', lineHeight: 1.5 }}>
-                        ✓ Queda en {spot.address}
+                        {t('AddBar.quedaEn', { direccion: spot.address })}
                       </p>
                     ) : (
                       <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5 }}>
-                        Elegí la dirección de la lista: de ahí sale el punto del bar
-                        en el mapa, y es con lo que un moderador verifica que existe.
+                        {t('AddBar.elegiDireccion')}
                       </p>
                     )}
 
@@ -458,7 +458,7 @@ export function AddBarScreen(
                       display: 'flex', alignItems: 'center', gap: 12, marginTop: 16,
                       fontSize: 'var(--t-3)', color: 'var(--muted)',
                     }}>
-                      En qué moneda cobra
+                      {t('AddBar.moneda')}
                       <CurrencySelect value={currency} onChange={setCurrency} />
                     </label>
                   </>
@@ -479,8 +479,8 @@ export function AddBarScreen(
           margin: '0 16px', lineHeight: 1.5,
         }}>
           {manual
-            ? 'Elegí la dirección de la lista para ubicarlo en el mapa.'
-            : 'Elegí el bar de la lista, o tocá “Agregar” para cargarlo a mano.'}
+            ? t('AddBar.faltaDireccion')
+            : t('AddBar.faltaBar')}
         </p>
       )}
 
@@ -489,7 +489,7 @@ export function AddBarScreen(
         borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', minHeight: 52,
         background: canSend ? 'var(--acento)' : 'var(--elevated)',
         color: canSend ? 'var(--base)' : 'var(--faint)',
-      }}>{sending ? 'Enviando…' : 'Agregar este bar'}</button>
+      }}>{sending ? t('AddBar.enviando') : t('AddBar.agregar')}</button>
     </div>
   )
 }

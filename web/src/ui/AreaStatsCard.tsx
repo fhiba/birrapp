@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { AreaStats, BeerStyle } from '../data/types'
 import { ageColor, formatPrice, formatRadius, shortAge } from '../data/format'
+import { t } from '../i18n'
 
 /**
  * "¿Cómo viene la zona?" — el promedio de la pinta en el radio (BIR-33).
@@ -49,7 +50,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
   // es el promedio, y "IPA, APA, Stout · 2 km a la redonda" no entra.
   const styleName = styleFilter.length === 1
     ? styles.find(s => s.slug === styleFilter[0])?.name
-    : styleFilter.length > 1 ? `${styleFilter.length} estilos` : null
+    : styleFilter.length > 1 ? t('AreaStatsCard.estilos', { n: styleFilter.length }) : null
 
   // Dónde cae el típico dentro del rango de la zona. Sin piso y techo
   // distintos no hay rango que dibujar y la barra no se pinta: con un solo
@@ -77,7 +78,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
               dice de qué es el promedio, y en `--faint` competía con los
               metadatos de las filas de abajo, que son del mismo tamaño. */}
           <span className="section-label" style={{ margin: 0, display: 'block' }}>
-            {styleName ? `${styleName} · ` : ''}{formatRadius(radius)} a la redonda
+            {styleName ? `${styleName} · ` : ''}{t('AreaStatsCard.aLaRedonda', { radio: formatRadius(radius) })}
           </span>
           <span style={{
             display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginTop: 'var(--s-1)',
@@ -86,7 +87,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
               {formatPrice(data.medianPint, data.currency)}
             </span>
             <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
-              la pinta, típico
+              {t('AreaStatsCard.pintaTipico')}
             </span>
           </span>
         </span>
@@ -128,8 +129,8 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
                 display: 'flex', justifyContent: 'space-between',
                 fontSize: 'var(--t-1)', color: 'var(--faint)', marginBottom: 'var(--s-3)',
               }}>
-                <span>piso {formatPrice(piso!, data.currency)}</span>
-                <span>tope {formatPrice(tope!, data.currency)}</span>
+                <span>{t('AreaStatsCard.piso', { precio: formatPrice(piso!, data.currency) })}</span>
+                <span>{t('AreaStatsCard.tope', { precio: formatPrice(tope!, data.currency) })}</span>
               </div>
             </>
           )}
@@ -138,16 +139,18 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
               barra de arriba, y cuántos precios lo sostienen ya lo dice el pie.
               Repetir un número en dos lugares de la misma tarjeta es ruido. */}
           <div style={{ display: 'flex', gap: 'var(--s-3)', marginBottom: 'var(--s-3)' }}>
-            <Cell label="Promedio" value={formatPrice(data.avgPint!, data.currency)} />
-            <Cell label="Bares" value={String(data.bars)} />
+            <Cell label={t('AreaStatsCard.promedio')} value={formatPrice(data.avgPint!, data.currency)} />
+            <Cell label={t('AreaStatsCard.bares')} value={String(data.bars)} />
           </div>
 
           {data.bestValue && (
             <Pick
-              title="El mejor de la zona"
-              why={`${data.bestValue.ratingRaw?.toFixed(1)} ★ con ${data.bestValue.ratingCount} ${
-                data.bestValue.ratingCount === 1 ? 'voto' : 'votos'}, a ${
-                formatPrice(data.bestValue.price, data.currency)}`}
+              title={t('AreaStatsCard.mejor')}
+              why={t('AreaStatsCard.mejorPorque', {
+                nota: data.bestValue.ratingRaw?.toFixed(1) ?? '',
+                votos: t('comun.voto', { count: data.bestValue.ratingCount }),
+                precio: formatPrice(data.bestValue.price, data.currency),
+              })}
               name={data.bestValue.barName}
               beer={beerLabel(data.bestValue.styleName, data.bestValue.brandName)}
               age={data.bestValue.ageDays}
@@ -157,8 +160,8 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
 
           {data.cheapest && (
             <Pick
-              title="La más barata"
-              why={`${formatPrice(data.cheapest.price, data.currency)} los ${data.cheapest.sizeMl} ml`}
+              title={t('AreaStatsCard.masBarata')}
+              why={t('AreaStatsCard.masBarataPorque', { precio: formatPrice(data.cheapest.price, data.currency), ml: data.cheapest.sizeMl })}
               name={data.cheapest.barName}
               beer={beerLabel(data.cheapest.styleName, data.cheapest.brandName)}
               age={data.cheapest.ageDays}
@@ -170,8 +173,7 @@ export function AreaStatsCard({ center, radius, styleFilter, styles }: {
             fontSize: 'var(--t-1)', color: 'var(--faint)',
             margin: 'var(--s-3) 0 0', lineHeight: 1.5,
           }}>
-            Todo llevado a una pinta de 473 ml, sobre {data.samples} precios de
-            menos de 45 días. Los más viejos no entran.
+            {t('AreaStatsCard.nota', { n: data.samples })}
           </p>
         </div>
       )}

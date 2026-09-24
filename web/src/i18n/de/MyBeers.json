@@ -1,0 +1,36 @@
+{
+  "errorTitulo": "Wir konnten deine Biere nicht laden",
+  "contando": "Zähle…",
+  "titulo": "Meine Biere",
+  "vacio": {
+    "titulo": "Trag dein erstes Bier ein",
+    "hint": "Über das „+“ auf der Karte, unter „Ich hatte ein Bier“. Ein Tipp genügt: Die Bar, in der du bist, ist vorausgefüllt, der Rest ist optional.",
+    "accion": "Zur Karte"
+  },
+  "quienTomoMas": "Wer in deiner Gegend am meisten getrunken hat",
+  "birras": {
+    "one": "Bier",
+    "other": "Biere"
+  },
+  "diasSeguidos": "Tage in Folge",
+  "record": "dein Rekord: {n}",
+  "bares": {
+    "one": "Bar",
+    "other": "Bars"
+  },
+  "mesAnterior": "Voriger Monat",
+  "mesSiguiente": "Nächster Monat",
+  "diaVacio": "An dem Tag hast du nichts eingetragen.",
+  "unaBirra": "Ein Bier",
+  "enBar": "in {bar}",
+  "borrar": "Dieses Bier löschen",
+  "tusBares": "Deine Bars",
+  "emblemas": "Abzeichen",
+  "diaAria": {
+    "one": "{dia}: 1 Bier",
+    "other": "{dia}: {count} Biere"
+  },
+  "menos": "weniger",
+  "mas": "mehr",
+  "diaSinBirras": "{dia}: keine Biere"
+}

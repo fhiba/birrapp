@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 /**
  * El nivel del perfil, según las birras anotadas en los últimos 45 días.
  *
@@ -14,14 +15,14 @@
  * estar ahí. El último no tiene techo.
  */
 export const NIVELES: { nombre: string; desde: number }[] = [
-  { nombre: 'Pichi',                  desde: 0 },
-  { nombre: 'Primeras pintas',        desde: 5 },
-  { nombre: 'Aprendiz de la birra',   desde: 15 },
-  { nombre: 'Semi alcohólico',        desde: 30 },
-  { nombre: 'Birrero',                desde: 50 },
-  { nombre: 'Maestro birrero',        desde: 75 },
-  { nombre: 'Super maestro birrero',  desde: 100 },
-  { nombre: 'Super saiyajin birrero', desde: 150 },
+  { nombre: t('nivel.pichi'), desde: 0 },
+  { nombre: t('nivel.primerasPintas'), desde: 5 },
+  { nombre: t('nivel.aprendiz'), desde: 15 },
+  { nombre: t('nivel.semiAlcoholico'), desde: 30 },
+  { nombre: t('nivel.birrero'), desde: 50 },
+  { nombre: t('nivel.maestro'), desde: 75 },
+  { nombre: t('nivel.superMaestro'), desde: 100 },
+  { nombre: t('nivel.saiyajin'), desde: 150 },
 ]
 
 export interface Nivel {

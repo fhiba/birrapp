@@ -1,0 +1,14 @@
+{
+  "estilos": "{n} styles",
+  "aLaRedonda": "within {radio}",
+  "pintaTipico": "typical pint",
+  "piso": "low {precio}",
+  "tope": "high {precio}",
+  "promedio": "Average",
+  "bares": "Bars",
+  "mejor": "Best in the area",
+  "mejorPorque": "{nota} ★ with {votos}, at {precio}",
+  "masBarata": "The cheapest",
+  "masBarataPorque": "{precio} for {ml} ml",
+  "nota": "Everything scaled to a 473 ml pint, over {n} prices less than 45 days old. Older ones don't count."
+}

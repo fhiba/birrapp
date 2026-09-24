@@ -3,6 +3,7 @@ import * as api from '../data/api'
 import type { User } from '../data/types'
 import { Confirm } from './Chrome'
 import { CropSquare } from './CropSquare'
+import { t } from '../i18n'
 
 /**
  * Foto de perfil.
@@ -60,7 +61,7 @@ export function AvatarPicker({
       <button
         onClick={() => picker.current?.click()}
         disabled={busy}
-        aria-label="Cambiar tu foto de perfil"
+        aria-label={t('AvatarPicker.cambiarAria')}
         // Mismo formato que el avatar del Perfil: cuadrado de esquina blanda y,
         // sin foto, la inicial en la familia informativa. Eran dos formas para
         // la misma cara —círculo acá, cuadrado allá— y encima la de acá es la
@@ -118,7 +119,7 @@ export function AvatarPicker({
         <button
           onClick={() => picker.current?.click()} disabled={busy}
           className="lbl" style={{ fontSize: 'var(--t-3)', color: 'var(--acento)', padding: 0 }}
-        >{busy ? 'Subiendo…' : user.avatarUrl ? 'Cambiar foto' : 'Poner una foto'}</button>
+        >{busy ? t('comun.subiendo') : user.avatarUrl ? t('AvatarPicker.cambiar') : t('AvatarPicker.poner')}</button>
 
         {/* Sólo si hay algo propio que sacar. Con la de Google no aplica: no es
             nuestra para borrarla. */}
@@ -128,7 +129,7 @@ export function AvatarPicker({
             <button
               onClick={() => setConfirmRemove(true)} disabled={busy}
               style={{ fontSize: 'var(--t-3)', color: 'var(--muted)', padding: 0 }}
-            >Sacarla</button>
+            >{t('AvatarPicker.sacarla')}</button>
           </>
         )}
 
@@ -147,14 +148,13 @@ export function AvatarPicker({
 
       {confirmRemove && (
         <Confirm
-          title="¿Sacar tu foto?"
+          title={t('AvatarPicker.confirmarTitulo')}
           body={<>
-            Se borra el archivo, no sólo de la vista. Vuelve la foto de tu cuenta
-            de Google.
+            {t('AvatarPicker.confirmar1')}
             <br /><br />
-            No se puede deshacer, pero podés subir otra cuando quieras.
+            {t('AvatarPicker.confirmar2')}
           </>}
-          confirmLabel="Sacarla" danger
+          confirmLabel={t('AvatarPicker.sacarla')} danger
           onCancel={() => setConfirmRemove(false)}
           onConfirm={async () => {
             setConfirmRemove(false); setError(null); setBusy(true)

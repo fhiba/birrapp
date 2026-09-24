@@ -1,0 +1,6 @@
+{
+  "loginFallo": "Impossible de terminer la connexion.",
+  "hola": "Salut, {nombre} !",
+  "loginExpiro": "La connexion a expiré. Réessaie.",
+  "buscandoDonde": "On cherche où tu es…"
+}

@@ -1,0 +1,12 @@
+{
+  "queTipo": "¿Qué tipo de birra?",
+  "queMarca": "¿De qué marca?",
+  "queBar": "¿En qué bar?",
+  "sinMarcaHint": "Si no la sabés, seguí sin marca.",
+  "cercaHint": "Primero los de acá cerca.",
+  "noEsta": "El bar no está — agregalo",
+  "salirTitulo": "¿Salir sin cargar el precio?",
+  "salirTexto": "Lo que elegiste hasta acá se pierde y hay que empezar de nuevo.",
+  "salir": "Salir",
+  "paso": "PASO {n} DE {total}"
+}

@@ -1,0 +1,47 @@
+{
+  "birras": {
+    "titulo": "O que você bebe?",
+    "bajada": "Em cada bar aparecem três cervejas e o resto fica atrás de um {mas}. Marque as suas e elas vão ser essas três. Você pode marcar só estilos, só marcas, ou nenhuma."
+  },
+  "saltear": "Pular",
+  "seguir": "Continuar",
+  "vos": {
+    "titulo": "Como os outros te veem?",
+    "bajada": "É o nome com que você aparece na tabela pública de colaboradores e embaixo das suas fotos. Seu nome do Google e seu e-mail não aparecem em lugar nenhum.",
+    "label": "Seu nome de usuário",
+    "placeholder": "Sem nome de usuário",
+    "ayuda": "Deixamos um pronto com o seu nome. Você pode trocar pelo que quiser —tem que ser único, então pode estar em uso— ou apagar e não aparecer em lugar nenhum. Dá para mudar quando quiser em Configurações."
+  },
+  "ajustes": {
+    "titulo": "Os detalhes",
+    "bajada": "O app começa com isto toda vez que você abre. São os três valores mais mexidos, e estão todos em Configurações se você quiser mudar depois.",
+    "radio": "Raio de busca",
+    "radioAyuda": "Com quanto ao redor o mapa e a lista abrem.",
+    "moneda": "Moeda",
+    "monedaAyuda": "A dos bares que você cadastrar à mão. Se você escolher o bar pela busca, a moeda sai do país. Os preços aparecem sempre na moeda do bar: nada é convertido.",
+    "vaso": "Tamanho do copo",
+    "vasoAyuda": "Com que tamanho o teclado de preço começa. Um pint tem 473 ml na Argentina e nos EUA, e 568 no Reino Unido.",
+    "ml": "{n} ml",
+    "pinta": "{n} ml — pint",
+    "pintaUk": "{n} ml — pint UK"
+  },
+  "como": {
+    "titulo": "Três coisas e começamos",
+    "bajada": "O único do app que não se entende só olhando.",
+    "nivel": {
+      "titulo": "Seu nível pode cair",
+      "texto": "Ele vem das cervejas que você anotou nos {fuerte}, não do total de sempre. Se você parar de anotar, ele cai. Por isso diz como você está indo, e não quanto acumulou algum dia.",
+      "fuerte": "últimos 45 dias"
+    },
+    "donde": {
+      "titulo": "Anote onde você tomou",
+      "texto": "Dizer em que bar é opcional, mas {fuerte}: sem bar não há como localizá-las, e essa tabela é por proximidade. É um toque a mais e é o que te coloca no ranking.",
+      "fuerte": "as cervejas sem bar não entram na tabela de quem bebeu mais na região"
+    },
+    "nota": {
+      "titulo": "A nota é das cervejas, não do bar",
+      "texto": "Cada cerveja recebe nota arrastando o dedo sobre as estrelas, de meio em meio ponto. A nota que você vê em cima de um bar é a média das notas das cervejas dele — não é uma opinião sobre o lugar, a música nem o atendimento."
+    }
+  },
+  "paso": "Passo {n} de {total}"
+}

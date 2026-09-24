@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { t } from '../i18n'
 
 /**
  * Aviso de que no hay conexión.
@@ -45,7 +46,7 @@ export function OfflineBanner() {
       <span aria-hidden style={{
         width: 7, height: 7, borderRadius: '50%', background: 'var(--danger)', flexShrink: 0,
       }} />
-      Sin conexión — seguís viendo lo último que se cargó
+      {t('Offline.sinConexion')}
     </div>
   )
 }

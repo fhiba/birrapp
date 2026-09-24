@@ -5,6 +5,7 @@ import type { Badge, BeerSummary } from '../data/types'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
 import { Screen, SectionLabel, Tile } from '../ui/Kit'
+import { LOCALE, t } from '../i18n'
 
 /**
  * El calendario de birras (BIR-34).
@@ -39,29 +40,29 @@ export function MyBeersScreen() {
   if (error) return (
     <Screen onBack={() => nav(-1)}>
       <Empty
-        title="No pudimos traer tus birras"
+        title={t('MyBeers.errorTitulo')}
         hint={error}
-        action="Reintentar"
+        action={t('comun.reintentar')}
         onAction={load}
       />
     </Screen>
   )
-  if (!data) return <PintLoader message="Contando…" />
+  if (!data) return <PintLoader message={t('MyBeers.contando')} />
 
   const byDay = new Map(data.days.map(d => [d.day, d.qty]))
   const delDia = day ? data.logs.filter(l => l.day === day) : []
 
   return (
-    <Screen title="Mis birras" onBack={() => nav(-1)}>
+    <Screen title={t('MyBeers.titulo')} onBack={() => nav(-1)}>
 
       {/* Sin una sola birra anotada, el calendario vacío y seis emblemas en
           cero no dicen nada: lo que hace falta es contar para qué sirve esto
           y dónde se anota la primera. */}
       {data.total === 0 && (
         <Empty
-          title="Anotá tu primera birra"
-          hint="Desde el “+” del mapa, en “Me tomé una birra”. Se anota de un toque: el bar donde estás viene puesto y el resto es opcional."
-          action="Ir al mapa"
+          title={t('MyBeers.vacio.titulo')}
+          hint={t('MyBeers.vacio.hint')}
+          action={t('MyBeers.vacio.accion')}
           onAction={() => nav('/')}
         />
       )}
@@ -84,21 +85,21 @@ export function MyBeersScreen() {
         background: 'var(--info-soft)', border: '1px solid var(--info-border)',
         color: 'var(--info-bright)', textAlign: 'left',
       }}>
-        <span style={{ flex: 1 }}>Quién tomó más por tu zona</span>
+        <span style={{ flex: 1 }}>{t('MyBeers.quienTomoMas')}</span>
         <span aria-hidden>›</span>
       </button>
 
       <div style={{ display: 'flex', gap: 12 }}>
-        <Tile value={data.total} label={data.total === 1 ? 'birra' : 'birras'} />
-        <Tile value={data.currentStreak} label="días seguidos"
-          hint={data.bestStreak > data.currentStreak ? `tu récord: ${data.bestStreak}` : undefined} />
-        <Tile value={data.distinctBars} label={data.distinctBars === 1 ? 'bar' : 'bares'} />
+        <Tile value={data.total} label={t('MyBeers.birras', { count: data.total })} />
+        <Tile value={data.currentStreak} label={t('MyBeers.diasSeguidos')}
+          hint={data.bestStreak > data.currentStreak ? t('MyBeers.record', { n: data.bestStreak }) : undefined} />
+        <Tile value={data.distinctBars} label={t('MyBeers.bares', { count: data.distinctBars })} />
       </div>
 
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, margin: '24px 0 12px',
       }}>
-        <Arrow dir="‹" label="Mes anterior" onClick={() => setMonth(shift(data.month, -1))} />
+        <Arrow dir="‹" label={t('MyBeers.mesAnterior')} onClick={() => setMonth(shift(data.month, -1))} />
         <span className="lbl" style={{ flex: 1, textAlign: 'center', fontSize: 'var(--t-4)' }}>
           {monthLabel(data.month)}
           <span style={{ color: 'var(--faint)' }}>
@@ -107,7 +108,7 @@ export function MyBeersScreen() {
         </span>
         {/* No se puede ir al futuro: un mes que todavía no pasó siempre va a
             estar vacío y el botón sólo sirve para perderse. */}
-        <Arrow dir="›" label="Mes siguiente" onClick={() => setMonth(shift(data.month, 1))}
+        <Arrow dir="›" label={t('MyBeers.mesSiguiente')} onClick={() => setMonth(shift(data.month, 1))}
           disabled={data.month >= thisMonth()} />
       </div>
 
@@ -120,7 +121,7 @@ export function MyBeersScreen() {
         <div style={{ marginTop: 16 }}>
           <SectionLabel>{dayLabel(day)}</SectionLabel>
           {delDia.length === 0 && (
-            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>Ese día no anotaste nada.</p>
+            <p style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>{t('MyBeers.diaVacio')}</p>
           )}
           {delDia.map(l => (
             /* `.row` y no el mismo flex escrito a mano: es la fila con filete
@@ -129,18 +130,18 @@ export function MyBeersScreen() {
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>
                   {l.qty > 1 ? `${l.qty} · ` : ''}
-                  {[l.styleName, l.brandName].filter(Boolean).join(' · ') || 'Una birra'}
+                  {[l.styleName, l.brandName].filter(Boolean).join(' · ') || t('MyBeers.unaBirra')}
                 </span>
                 {l.barName && (
                   /* Dónde fue es contexto, no adorno: va en el tono
                      informativo, que es el que lleva los metadatos de lugar en
                      toda la app. */
                   <span style={{ display: 'block', fontSize: 'var(--t-2)', color: 'var(--info)' }}>
-                    en {l.barName}
+                    {t('MyBeers.enBar', { bar: l.barName })}
                   </span>
                 )}
               </span>
-              <button onClick={() => remove(l.id)} aria-label="Borrar esta birra"
+              <button onClick={() => remove(l.id)} aria-label={t('MyBeers.borrar')}
                 className="icon-btn"
                 style={{ color: 'var(--muted)', background: 'var(--film-2)', fontSize: 'var(--t-3)' }}
               >✕</button>
@@ -151,7 +152,7 @@ export function MyBeersScreen() {
 
       {data.topBars.length > 0 && (
         <>
-          <SectionLabel>Tus bares</SectionLabel>
+          <SectionLabel>{t('MyBeers.tusBares')}</SectionLabel>
           {data.topBars.map(b => (
             <button key={b.barId} onClick={() => nav(`/bar/${b.barId}`)}
               className="row row-hover" style={{ minHeight: 44 }}>
@@ -166,7 +167,7 @@ export function MyBeersScreen() {
         </>
       )}
 
-      <SectionLabel>Emblemas</SectionLabel>
+      <SectionLabel>{t('MyBeers.emblemas')}</SectionLabel>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 12,
       }}>
@@ -189,6 +190,10 @@ export function MyBeersScreen() {
  * Cinco niveles y no una rampa continua porque el ojo distingue escalones y
  * no distingue un 62% de opacidad de un 68%.
  */
+// Lunes a domingo, en el idioma de la app: el 1/1/2024 fue lunes.
+const INICIALES = Array.from({ length: 7 }, (_, i) =>
+  new Intl.DateTimeFormat(LOCALE, { weekday: 'narrow' }).format(new Date(2024, 0, i + 1)))
+
 function heatLevel(qty: number): 0 | 1 | 2 | 3 | 4 {
   if (qty <= 0) return 0
   if (qty === 1) return 1
@@ -220,7 +225,7 @@ function Calendar({ month, byDay, selected, onSelect }: {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4,
       }}>
-        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+        {INICIALES.map((d, i) => (
           <span key={i} className="lbl" style={{
             textAlign: 'center', fontSize: 'var(--t-1)', color: 'var(--faint)',
           }}>{d}</span>
@@ -265,8 +270,9 @@ function Calendar({ month, byDay, selected, onSelect }: {
           return (
             <button
               key={iso} onClick={() => onSelect(iso)}
-              aria-label={`${i + 1}: ${qty === 0 ? 'sin birras'
-                : qty === 1 ? '1 birra' : `${qty} birras`}`}
+              aria-label={qty === 0
+                ? t('MyBeers.diaSinBirras', { dia: i + 1 })
+                : t('MyBeers.diaAria', { count: qty, dia: i + 1 })}
               className={`num heat-${nivel}`}
               style={{
                 aspectRatio: '1', borderRadius: 'var(--r-1)', fontSize: 'var(--t-2)',
@@ -288,13 +294,13 @@ function Calendar({ month, byDay, selected, onSelect }: {
         justifyContent: 'flex-end', marginTop: 'var(--s-2)',
         fontSize: 'var(--t-1)', color: 'var(--faint)',
       }}>
-        <span style={{ marginRight: 2 }}>menos</span>
+        <span style={{ marginRight: 2 }}>{t('MyBeers.menos')}</span>
         {([0, 1, 2, 3, 4] as const).map(n => (
           <span key={n} className={`heat-${n}`} style={{
             width: 11, height: 11, borderRadius: 3,
           }} />
         ))}
-        <span style={{ marginLeft: 2 }}>más</span>
+        <span style={{ marginLeft: 2 }}>{t('MyBeers.mas')}</span>
       </div>
     </>
   )
@@ -366,14 +372,14 @@ function shift(month: string, by: number): string {
 
 const monthLabel = (month: string) => {
   const [y, m] = month.split('-').map(Number)
-  const name = new Date(y, m - 1, 1).toLocaleDateString('es-AR', { month: 'long' })
+  const name = new Date(y, m - 1, 1).toLocaleDateString(LOCALE, { month: 'long' })
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`
 }
 
 const dayLabel = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d)
-    .toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+    .toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 // ---------- piezas ----------

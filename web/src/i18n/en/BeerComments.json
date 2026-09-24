@@ -1,0 +1,16 @@
+{
+  "titulo": "COMMENTS",
+  "placeholder": "How was it (optional)",
+  "comentar": "Comment",
+  "nadie": "Nobody has commented on this beer yet.",
+  "vos": "You",
+  "borrar": "Delete",
+  "eliminar": "Remove",
+  "masViejos": "See older comments",
+  "borrarTitulo": "Delete your comment?",
+  "eliminarTitulo": "Remove this comment?",
+  "borrar1": "Only the text is deleted. Your rating of this beer stays as it is — deleting what you wrote isn't withdrawing your vote.",
+  "noSeDeshace": "It can't be undone.",
+  "eliminar1": "{nombre}'s comment is taken down.",
+  "eliminar2": "Their rating isn't touched: that's what the action on the rating is for. Taking down a text shouldn't change the beer's average."
+}

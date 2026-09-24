@@ -1,0 +1,15 @@
+{
+  "cerrar": "Fermer",
+  "cancelar": "Annuler",
+  "volver": "Retour",
+  "agregar": "Ajouter",
+  "guardar": "Enregistrer",
+  "reintentar": "Réessayer",
+  "listo": "OK",
+  "subiendo": "Envoi…",
+  "buscando": "Recherche…",
+  "voto": {
+    "one": "{count} vote",
+    "other": "{count} votes"
+  }
+}

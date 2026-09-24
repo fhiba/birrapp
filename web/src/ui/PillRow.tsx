@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Sheet } from './Chrome'
+import { t } from '../i18n'
 
 /** Cuántas pastillas se ven sin desplegar. */
 const MAX = 3
@@ -116,7 +117,7 @@ export function PillRow({
         {hayMas && (
           <button
             onClick={() => setAbierto(true)}
-            aria-label={`Ver las ${items.length} opciones`}
+            aria-label={t('PillRow.verOpciones', { n: items.length })}
             className="lbl"
             style={{
               flexShrink: 0,
@@ -159,7 +160,7 @@ export function PillRow({
                       estilos, saber cuáles elegiste es lo que la hace tuya y
                       no un menú. */}
                   {p.favorita && (
-                    <span aria-label="Entre tus favoritas" style={{ color: 'var(--nota)' }}>★</span>
+                    <span aria-label={t('PillRow.entreFavoritas')} style={{ color: 'var(--nota)' }}>★</span>
                   )}
                   {p.extra}
                 </button>

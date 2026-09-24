@@ -4523,3 +4523,71 @@ cualquier otra foto. Test en `AvatarTest`: sin la línea, falla.
 
 216 tests, 4 rojos y son de `DownloadTest.kt`, que está sin trackear en el árbol
 y es de otro agente.
+
+## 2026-09-24 — Los textos de la web, a archivos de locale (v0.34.0, BIR-31)
+
+_Salió publicada en v0.35.0, junto con las traducciones: el número v0.34.0 ya lo
+había tomado la política de privacidad en master._
+
+Todos los textos que ve la gente en la PWA salieron del código a
+`web/src/i18n/es/`, un JSON por pantalla o componente (46 archivos, ~740
+textos). El código los pide con `t('BarDetail.sigueIgual')`.
+
+- `i18n/index.ts`: `t(clave, vars)` con `{variables}` y plurales por
+  `Intl.PluralRules` (`{ "one": …, "other": … }` con `count`), y `tx()` para
+  frases con un nodo adentro (una negrita, un botón). `LOCALE` reemplaza los
+  cuatro `'es-AR'` escritos a mano en fechas y números.
+- Las claves están tipadas contra los JSON: una clave que no existe no compila.
+  Un script de una vez verificó además que cada `{variable}` de los textos
+  llegue en la llamada.
+- Donde había una tabla nuestra que `Intl` ya resuelve traducida, se usó
+  `Intl`: nombres de moneda (`Intl.DisplayNames`, que dice "peso argentino" y
+  no "Peso argentino" — se capitaliza la primera letra) e iniciales de los días
+  del calendario de birras.
+- `formatDistance(...)?.replace('a ', '')` en LogBeer pasó a `formatRadius`:
+  sacarle la preposición a un texto armado sólo funciona en castellano.
+- Arreglado de paso: "fotas" en el aviso de bloqueo, y un `null ml` posible en
+  la fila de precio cuando `sizeMl` viene vacío.
+
+### Lo que queda afuera
+
+- **Lo que manda el servidor sigue en castellano**: mensajes de error
+  (`body.message`), el `message` de "precio cargado", nombres y detalles de
+  emblemas. Para otro idioma habría que mandar códigos y traducir acá.
+- **Android** ya usa `strings.xml`, pero quedan ~45 `Text("…")` literales en
+  Compose. La app está quieta desde v0.6.6.
+- `index.html` y el manifest de la PWA (`vite.config.ts`) siguen con su texto
+  escrito; son dos líneas y no dependen del idioma de la sesión.
+
+
+## 2026-09-24 — v0.35.0: la web en inglés, portugués, alemán y francés
+
+Encima de BIR-31 (PR #84), que dejó todos los textos en `web/src/i18n/es/`.
+Rama apilada sobre `claude/i18n`: esa rama sigue abierta y es de otro agente.
+
+`en/`, `pt/` (de Brasil), `de/` y `fr/` son copias traducidas de `es/`, mismo
+`index.ts`. El idioma sale de `navigator.language` y cualquier otro cae en
+castellano. Sin selector en Configuración: el navegador ya sabe qué idioma
+habla la persona, y un ajuste más es algo más que mantener.
+
+`LOCALE` deja de ser fijo: sigue siendo `es-AR` en castellano, y en los demás
+es el del navegador, para que fechas, nombres de moneda y plurales de `Intl`
+coincidan con el texto. También pasa a `<html lang>`.
+
+`DICTS` está tipado contra `es`: si a un idioma le falta una clave, no compila
+(probado sacando una a mano). Además se chequeó con un script que cada
+`{variable}` de `es` esté en las cuatro traducciones.
+
+Decisiones de traducción: "birra" es beer/cerveja/Bier/bière; la pinta sigue
+siendo de 473 ml; la línea 141 aclara que es de Argentina; las palabras que
+hay que tipear para confirmar (BORRAR, SUSPENDER) también se traducen, porque
+se comparan contra `t()` en los dos lados.
+
+Afuera: la política de privacidad (llegó a master en v0.34.0 con el texto
+escrito en el componente, no en `i18n/`), los textos que manda el servidor y
+Android.
+
+Al mergear master entró la política de privacidad: el enlace del pie del perfil
+pasó a `Profile.privacidad` en los cinco idiomas. El cuerpo de la política
+sigue en castellano y escrito en el componente — traducir un texto legal es una
+decisión aparte, no un pase de i18n.

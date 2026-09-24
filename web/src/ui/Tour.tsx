@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { t } from '../i18n'
 
 /**
  * Tutorial progresivo, por pantalla.
@@ -41,99 +42,77 @@ interface Step {
 const STEPS: Record<TourView, Step[]> = {
   map: [
     {
-      title: 'Esto es birrapp',
-      body: 'Un mapa con el precio de la pinta en Buenos Aires. Los precios '
-        + 'los cargamos entre todos: cada uno es alguien que estuvo ahí y lo '
-        + 'anotó. Por eso al lado de cada precio siempre vas a ver cuándo se '
-        + 'cargó — un precio sin fecha no te sirve para nada.',
+      title: t('Tour.map.bienvenida.titulo'),
+      body: t('Tour.map.bienvenida.texto'),
     },
     {
       anchor: 'map-longpress',
       round: true,
       interactive: true,
-      title: 'Mantené apretado el mapa',
-      body: 'Probalo ahora, acá adentro del círculo. Te deja una marca y pasa '
-        + 'a buscar los bares alrededor de ese punto en vez de alrededor '
-        + 'tuyo. Ideal para ver a cuánto está la birra en un barrio al que '
-        + 'estás por caer.',
+      title: t('Tour.map.mantenerApretado.titulo'),
+      body: t('Tour.map.mantenerApretado.texto'),
     },
     {
       anchor: 'map-longpress',
       round: true,
       interactive: true,
-      title: 'Para sacarla, tocá el mapa',
-      body: 'Un toque en cualquier lado la borra y volvés a buscar desde donde '
-        + 'estás parado. Probá también eso si dejaste una marca recién.',
+      title: t('Tour.map.sacarMarca.titulo'),
+      body: t('Tour.map.sacarMarca.texto'),
     },
     {
       anchor: 'map-radius',
-      title: '¿Hasta dónde buscamos?',
-      body: 'De 300 metros a 15 kilómetros. Cuanto más chico, más sirve '
-        + 'comparar: dos bares a diez cuadras compiten entre sí, a diez '
-        + 'kilómetros ya no.',
+      title: t('Tour.map.radio.titulo'),
+      body: t('Tour.map.radio.texto'),
     },
     {
       anchor: 'map-style',
-      title: 'Una birra a la vez',
-      body: 'Filtrá por estilo y comparás IPA contra IPA. Sin filtro, cada pin '
-        + 'te muestra la más barata del bar, que puede ser cualquier estilo.',
+      title: t('Tour.map.estilo.titulo'),
+      body: t('Tour.map.estilo.texto'),
     },
   ],
   list: [
     {
       anchor: 'list-search',
-      title: 'Buscá un bar por nombre',
-      body: 'Te busca entre todos los bares cargados, no sólo entre los que '
-        + 'entran en el radio. Podés escribirlo sin tildes, lo encuentra igual.',
+      title: t('Tour.list.buscar.titulo'),
+      body: t('Tour.list.buscar.texto'),
     },
     {
       anchor: 'list-sort',
-      title: 'Cerca, barata o bien puntuada',
-      body: 'Los tres órdenes de la lista. "Más barata" deja afuera los precios '
-        + 'de más de 45 días, así uno viejo y bajo no le gana a uno fresco; '
-        + '"mejor puntuada" manda al final los bares que nadie votó todavía.',
+      title: t('Tour.list.orden.titulo'),
+      body: t('Tour.list.orden.texto'),
     },
   ],
   bar: [
     {
       anchor: 'bar-tabs',
-      title: 'Una pestaña por birra',
-      body: 'Cada una tiene su precio, su puntaje y sus fotos. El "+" del '
-        + 'final es para sumar una que el bar tenga y todavía no esté cargada.',
+      title: t('Tour.bar.pestanas.titulo'),
+      body: t('Tour.bar.pestanas.texto'),
     },
     {
       anchor: 'bar-confirm',
-      title: 'Esto es lo que más ayuda',
-      body: 'Si fuiste y el precio sigue igual, tocá acá y queda al día. Es un '
-        + 'toque, y es lo que evita que la app se llene de precios que ya no '
-        + 'existen.',
+      title: t('Tour.bar.confirmar.titulo'),
+      body: t('Tour.bar.confirmar.texto'),
     },
     {
       anchor: 'bar-rating',
-      title: 'Puntuá la birra',
+      title: t('Tour.bar.puntuar.titulo'),
       // El texto hablaba de un casillero para escribir el medio punto y de un
       // voto "en ámbar": las dos cosas dejaron de existir —ahora se arrastra el
       // dedo, y la nota tiene su propio tono— y un tutorial que describe una
       // pantalla que no está es peor que no tenerlo.
-      body: 'Apoyá el dedo en las estrellas y arrastralo: se engancha de a medio '
-        + 'punto y se guarda al soltar. Tu voto se pinta en el color de la '
-        + 'nota y el promedio del resto queda apagado.',
+      body: t('Tour.bar.puntuar.texto'),
     },
     {
       anchor: 'bar-photos',
-      title: 'Subí una foto',
-      body: 'Sacale una foto a la birra o elegí una de la galería. Se achica '
-        + 'en tu teléfono antes de subirse, así no te come datos. Abajo de las '
-        + 'fotos están los comentarios.',
+      title: t('Tour.bar.foto.titulo'),
+      body: t('Tour.bar.foto.texto'),
     },
   ],
   profile: [
     {
       anchor: 'profile-stats',
-      title: 'Lo tuyo, de un vistazo',
-      body: 'Cada cuadrado abre su lista: tus precios, tus fotos, tus bares. Si '
-        + 'algo te salió mal, lo borrás desde ahí. El cuarto es tu cuenta de '
-        + 'birras, que no es un aporte al mapa sino tuya.',
+      title: t('Tour.profile.resumen.titulo'),
+      body: t('Tour.profile.resumen.texto'),
     },
   ],
 }
@@ -383,12 +362,12 @@ export function Tour({ view, userId, autoStart, openToken = 0 }: {
             // 44px de alto real: es la salida del tutorial y hay que poder
             // acertarle con el pulgar, aunque el texto sea chico.
             minHeight: 44, padding: 0,
-          }}>No me lo muestres más</button>
+          }}>{t('Tour.noMostrarMas')}</button>
           <button onClick={next} className="lbl" style={{
             marginLeft: 'auto', padding: '0 var(--s-5)', borderRadius: 'var(--r-2)',
             fontSize: 'var(--t-3)', minHeight: 46,
             background: 'var(--acento)', color: 'var(--base)',
-          }}>{step + 1 >= steps.length ? 'Listo' : 'Dale'}</button>
+          }}>{step + 1 >= steps.length ? t('comun.listo') : t('Tour.dale')}</button>
         </div>
       </div>
     </div>

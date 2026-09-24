@@ -1,0 +1,22 @@
+{
+  "noUbicaDireccion": "We couldn't find that address.",
+  "noUbicaLugar": "We couldn't get the location of that place.",
+  "titulo": "New bar",
+  "verificado": "Verified on Google Maps · published right away",
+  "noEsEste": "Not this one?",
+  "comoSeLlama": "What's it called?",
+  "yaEsta": "Already on birrapp",
+  "elegir": "Choose",
+  "ver": "View",
+  "enGoogle": "Found on Google",
+  "agregarNombre": "Add “{nombre}”",
+  "loRevisa": "A moderator reviews it before it's published",
+  "direccion": "Street and number, or intersection",
+  "quedaEn": "✓ It's at {direccion}",
+  "elegiDireccion": "Pick the address from the list: that's where the bar's pin on the map comes from, and it's what a moderator uses to check it exists.",
+  "moneda": "Currency it charges in",
+  "faltaDireccion": "Pick the address from the list to place it on the map.",
+  "faltaBar": "Pick the bar from the list, or tap “Add” to enter it by hand.",
+  "enviando": "Sending…",
+  "agregar": "Add this bar"
+}

@@ -1,0 +1,77 @@
+import { Fragment, createElement, type ReactNode } from 'react'
+import es from './es'
+import en from './en'
+import pt from './pt'
+import de from './de'
+import fr from './fr'
+
+/**
+ * Los textos de la app salen de los archivos de `./es/`, uno por pantalla o
+ * componente, y no de literales en el código (BIR-31).
+ *
+ * Un archivo por pantalla y no un `es.json` gigante porque sobre este repo
+ * corren varios agentes a la vez: con un solo archivo, dos ramas que tocan
+ * textos de pantallas distintas chocarían igual en el merge.
+ *
+ * El idioma sale de `navigator.language`: castellano, inglés, portugués,
+ * alemán o francés, y cualquier otro cae en castellano. Sumar uno es copiar
+ * `./es/`, traducirlo y agregarlo a `DICTS` — están tipados contra `es`, así
+ * que si a un idioma le falta una clave no compila.
+ *
+ * Sin librería a propósito: interpolar `{nombre}` y elegir singular o plural
+ * con `Intl.PluralRules` es todo lo que hace falta, y son veinte líneas.
+ */
+type Dict = typeof es
+
+const DICTS: Record<string, Dict> = { es, en, pt, de, fr }
+
+const navLang = typeof navigator === 'undefined' ? 'es' : navigator.language
+const lang = navLang.slice(0, 2).toLowerCase()
+const dict = DICTS[lang] ?? es
+
+/** Para `Intl`: el castellano es el rioplatense; los demás, el del navegador. */
+export const LOCALE = lang in DICTS && lang !== 'es' ? navLang : 'es-AR'
+
+if (typeof document !== 'undefined') document.documentElement.lang = LOCALE
+
+/**
+ * Las claves válidas, como `'BarDetail.title'`. Un objeto con `other` es un
+ * plural y cuenta como hoja: `{ one: '1 bar', other: '{count} bares' }`.
+ */
+type Keys<T, P extends string = ''> = {
+  [K in keyof T & string]: T[K] extends string | { other: string }
+    ? `${P}${K}`
+    : Keys<T[K], `${P}${K}.`>
+}[keyof T & string]
+
+export type TKey = Keys<Dict>
+
+const plural = new Intl.PluralRules(LOCALE)
+
+/**
+ * El texto de una clave, con `{variables}` reemplazadas.
+ *
+ * Si la clave es un plural, la forma sale de `vars.count`. Una clave que no
+ * existe devuelve la clave misma: con el tipado no debería pasar, y si pasa se
+ * ve en pantalla en vez de quedar un hueco.
+ */
+export function t(key: TKey, vars?: Record<string, string | number>): string {
+  let v: unknown = dict
+  for (const part of key.split('.')) v = (v as Record<string, unknown>)?.[part]
+  if (v && typeof v === 'object') {
+    const forms = v as Record<string, string>
+    v = forms[plural.select(Number(vars?.count ?? 0))] ?? forms.other
+  }
+  if (typeof v !== 'string') return key
+  return vars ? v.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m)) : v
+}
+
+/**
+ * Como `t`, pero las variables pueden ser nodos: para las frases que llevan
+ * un nombre en negrita en el medio, sin partir la frase en dos claves que
+ * nadie puede traducir por separado.
+ */
+export function tx(key: TKey, vars: Record<string, ReactNode>): ReactNode {
+  return t(key).split(/\{(\w+)\}/).map((part, i) =>
+    createElement(Fragment, { key: i }, i % 2 ? vars[part] ?? `{${part}}` : part))
+}

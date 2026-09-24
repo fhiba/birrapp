@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 /**
  * Compresión de la foto antes de subirla.
  *
@@ -23,12 +24,12 @@ export async function compressImage(file: File): Promise<Blob> {
     canvas.width = w
     canvas.height = h
     const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('No se pudo procesar la imagen')
+    if (!ctx) throw new Error(t('image.noProcesa'))
     ctx.drawImage(bitmap, 0, 0, w, h)
 
     const blob = await new Promise<Blob | null>(resolve =>
       canvas.toBlob(resolve, 'image/webp', QUALITY))
-    if (!blob) throw new Error('No se pudo comprimir la imagen')
+    if (!blob) throw new Error(t('image.noComprime'))
     return blob
   } finally {
     // Sin esto la memoria del bitmap queda tomada hasta el próximo GC, y en
@@ -67,7 +68,7 @@ export async function cropToSquare(
     canvas.width = LADO_AVATAR
     canvas.height = LADO_AVATAR
     const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('No se pudo procesar la imagen')
+    if (!ctx) throw new Error(t('image.noProcesa'))
 
     // Suavizado en alto: al bajar de 3000px a 512 sin esto quedan escalones en
     // los bordes, y en una cara se notan.
@@ -80,7 +81,7 @@ export async function cropToSquare(
 
     const blob = await new Promise<Blob | null>(resolve =>
       canvas.toBlob(resolve, 'image/webp', QUALITY))
-    if (!blob) throw new Error('No se pudo comprimir la imagen')
+    if (!blob) throw new Error(t('image.noComprime'))
     return blob
   } finally {
     bitmap.close()

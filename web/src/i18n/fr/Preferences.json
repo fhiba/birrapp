@@ -1,0 +1,7 @@
+{
+  "titulo": "Tes bières",
+  "intro": "Chaque bar affiche trois bières et le reste est derrière le {mas}. Coche les tiennes et ce seront ces trois-là. Tu peux cocher seulement des styles, seulement des marques ou les deux, et changer quand tu veux.",
+  "estilos": "Styles",
+  "marcas": "Marques",
+  "guardando": "Enregistrement…"
+}

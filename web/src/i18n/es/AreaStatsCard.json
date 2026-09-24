@@ -1,0 +1,14 @@
+{
+  "estilos": "{n} estilos",
+  "aLaRedonda": "{radio} a la redonda",
+  "pintaTipico": "la pinta, típico",
+  "piso": "piso {precio}",
+  "tope": "tope {precio}",
+  "promedio": "Promedio",
+  "bares": "Bares",
+  "mejor": "El mejor de la zona",
+  "mejorPorque": "{nota} ★ con {votos}, a {precio}",
+  "masBarata": "La más barata",
+  "masBarataPorque": "{precio} los {ml} ml",
+  "nota": "Todo llevado a una pinta de 473 ml, sobre {n} precios de menos de 45 días. Los más viejos no entran."
+}

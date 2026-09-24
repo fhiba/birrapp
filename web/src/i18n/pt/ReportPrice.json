@@ -1,0 +1,20 @@
+{
+  "pinta": "Pint",
+  "media": "Meio",
+  "litro": "Litro",
+  "volverPaso": "Voltar ao passo anterior",
+  "ultimoPaso": "ÚLTIMO PASSO",
+  "cancelarAria": "Cancelar o envio",
+  "enBar": "em {bar}",
+  "monto": "Valor",
+  "ayuda": "Digitar o preço com o teclado",
+  "formato": "Formato",
+  "ml": "{n} ml",
+  "otro": "Outro",
+  "aMano": "à mão",
+  "tamano": "O tamanho tem que estar entre 100 e 2000 ml.",
+  "tecladoMl": "O teclado preenche os mililitros: {n} ml",
+  "tecladoPrecio": "O teclado preenche o preço: {monto}",
+  "borrarUltimo": "Apagar o último número",
+  "cargar": "Informar o preço"
+}

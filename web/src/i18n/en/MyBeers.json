@@ -1,0 +1,36 @@
+{
+  "errorTitulo": "We couldn't load your beers",
+  "contando": "Counting…",
+  "titulo": "My beers",
+  "vacio": {
+    "titulo": "Log your first beer",
+    "hint": "From the map's “+”, under “I had a beer”. It takes one tap: the bar you're at is filled in and the rest is optional.",
+    "accion": "Go to the map"
+  },
+  "quienTomoMas": "Who drank the most around you",
+  "birras": {
+    "one": "beer",
+    "other": "beers"
+  },
+  "diasSeguidos": "days in a row",
+  "record": "your record: {n}",
+  "bares": {
+    "one": "bar",
+    "other": "bars"
+  },
+  "mesAnterior": "Previous month",
+  "mesSiguiente": "Next month",
+  "diaVacio": "You didn't log anything that day.",
+  "unaBirra": "A beer",
+  "enBar": "at {bar}",
+  "borrar": "Delete this beer",
+  "tusBares": "Your bars",
+  "emblemas": "Badges",
+  "diaAria": {
+    "one": "{dia}: 1 beer",
+    "other": "{dia}: {count} beers"
+  },
+  "menos": "less",
+  "mas": "more",
+  "diaSinBirras": "{dia}: no beers"
+}

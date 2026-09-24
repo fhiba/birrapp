@@ -1,0 +1,12 @@
+{
+  "sinMarca": "Sem marca",
+  "buscar": "Buscar ou digitar uma marca",
+  "agregarNueva": "Adicionar “{nombre}”",
+  "nueva": "“{nombre}” não está na lista. É aceita mesmo assim e você pode usar na hora; fica para revisão de um moderador.",
+  "noLaSe": "Não sei",
+  "artesanales": "Artesanais",
+  "industriales": "Industriais",
+  "seguiEscribiendo": "Continue digitando",
+  "otra": "Outra marca",
+  "dosLetras": "Digite pelo menos duas letras para adicioná-la."
+}

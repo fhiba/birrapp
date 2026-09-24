@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 /**
  * Tres gráficos en SVG, sin librería.
  *
@@ -207,7 +208,7 @@ export function StackedBars({
             })}
             {/* Área invisible para que el día vacío también tenga tooltip. */}
             <rect x={PAD.l + i * step} width={step} y={PAD.t} height={ih} fill="transparent">
-              <title>{`${day} · ${totals[i]} aportes`}</title>
+              <title>{t('Chart.aportesDia', { day, n: totals[i] })}</title>
             </rect>
           </g>
         )

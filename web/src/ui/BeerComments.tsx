@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { RatingComment } from '../data/types'
 import { Confirm } from './Chrome'
+import { shortAge } from '../data/format'
+import { t, tx } from '../i18n'
 
 /** Cuántos comentarios por página. Lo que entra en una pantalla. */
 const PAGE = 10
@@ -110,7 +112,7 @@ export function BeerComments({
   return (
     <section>
       <h3 className="section-label">
-        COMENTARIOS{items && items.length > 0 ? ` · ${items.length}${more ? '+' : ''}` : ''}
+        {t('BeerComments.titulo')}{items && items.length > 0 ? ` · ${items.length}${more ? '+' : ''}` : ''}
       </h3>
 
       {canWrite && (
@@ -119,7 +121,7 @@ export function BeerComments({
         <div style={{ marginBottom: 'var(--s-4)' }}>
           <textarea
             value={body} onChange={e => setBody(e.target.value)}
-            placeholder="Cómo estaba (opcional)" rows={2} maxLength={600}
+            placeholder={t('BeerComments.placeholder')} rows={2} maxLength={600}
             style={{
               width: '100%', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
               background: 'transparent', border: '1px solid var(--hairline)',
@@ -133,7 +135,7 @@ export function BeerComments({
               : busy ? 'var(--acento-busy)' : 'var(--acento)',
             color: !body.trim() ? 'var(--faint)' : 'var(--base)',
             cursor: body.trim() ? 'pointer' : 'not-allowed',
-          }}>{busy ? '…' : 'Comentar'}</button>
+          }}>{busy ? '…' : t('BeerComments.comentar')}</button>
         </div>
       )}
 
@@ -145,7 +147,7 @@ export function BeerComments({
         </div>
       ) : items.length === 0 ? (
         <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: 'var(--s-2) 0' }}>
-          Todavía nadie comentó esta birra.
+          {t('BeerComments.nadie')}
         </p>
       ) : items.map(c => (
         <div key={c.id} style={{
@@ -160,7 +162,7 @@ export function BeerComments({
             fontSize: 'var(--t-3)',
             background: 'var(--info-soft)', border: '1px solid var(--info-border)',
             color: 'var(--info-bright)',
-          }}>{iniciales(c.mine ? 'Vos' : c.authorName)}</span>
+          }}>{iniciales(c.mine ? t('BeerComments.vos') : c.authorName)}</span>
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
@@ -171,7 +173,7 @@ export function BeerComments({
                   propio no, que no tiene sentido ir a mirarse a uno mismo. */}
               {c.mine ? (
                 <span className="lbl" style={{ fontSize: 'var(--t-4)', color: 'var(--cream)' }}>
-                  Vos
+                  {t('BeerComments.vos')}
                 </span>
               ) : (
                 <button
@@ -204,7 +206,7 @@ export function BeerComments({
                   comentario de hace dos años sobre una canilla que ya cambió
                   dice menos de lo que parece. */}
               <span style={{ marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-                {c.ageDays <= 0 ? 'hoy' : c.ageDays === 1 ? 'ayer' : `hace ${c.ageDays} d`}
+                {shortAge(c.ageDays)}
               </span>
             </div>
 
@@ -222,7 +224,7 @@ export function BeerComments({
               <button onClick={() => setConfirmDelete(c)} style={{
                 marginTop: 'var(--s-1)', fontSize: 'var(--t-2)', color: 'var(--danger)',
                 padding: 'var(--s-2) 0',
-              }}>{c.mine ? 'Borrar' : 'Eliminar'}</button>
+              }}>{c.mine ? t('BeerComments.borrar') : t('BeerComments.eliminar')}</button>
             )}
           </div>
         </div>
@@ -240,28 +242,26 @@ export function BeerComments({
             background: 'var(--info-soft)', border: '1px solid var(--info-border)',
             color: 'var(--info-bright)',
           }}
-        >{loadingMore ? '…' : 'Ver comentarios más viejos'}</button>
+        >{loadingMore ? '…' : t('BeerComments.masViejos')}</button>
       )}
 
       {confirmDelete && (
         <Confirm
-          title={confirmDelete.mine ? '¿Borrar tu comentario?' : '¿Eliminar este comentario?'}
+          title={confirmDelete.mine ? t('BeerComments.borrarTitulo') : t('BeerComments.eliminarTitulo')}
           body={confirmDelete.mine ? (
             <>
-              Se borra sólo el texto. Tu puntaje de esta birra queda como está —
-              borrar lo que escribiste no es retirar tu voto.
+              {t('BeerComments.borrar1')}
               <br /><br />
-              No se puede deshacer.
+              {t('BeerComments.noSeDeshace')}
             </>
           ) : (
             <>
-              Se baja el comentario de <strong>{confirmDelete.authorName}</strong>.
+              {tx('BeerComments.eliminar1', { nombre: <strong>{confirmDelete.authorName}</strong> })}
               <br /><br />
-              Su puntaje no se toca: para eso está la acción sobre la nota. Bajar
-              un texto no debería cambiar el promedio de la birra.
+              {t('BeerComments.eliminar2')}
             </>
           )}
-          confirmLabel={confirmDelete.mine ? 'Borrar' : 'Eliminar'} danger
+          confirmLabel={confirmDelete.mine ? t('BeerComments.borrar') : t('BeerComments.eliminar')} danger
           onCancel={() => setConfirmDelete(null)}
           onConfirm={async () => {
             const c = confirmDelete

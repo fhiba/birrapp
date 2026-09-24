@@ -8,6 +8,7 @@ import type { Sort } from '../data/useBars'
 import { RatingFilter, StyleFilter } from '../ui/StyleFilter'
 import { Empty, PriceColumn, SkeletonRows } from '../ui/Empty'
 import { Segmented } from '../ui/Segmented'
+import { t } from '../i18n'
 
 interface Props {
   bars: BarPin[]; loading: boolean
@@ -44,12 +45,12 @@ interface Props {
 const SORTS: Sort[] = ['distance', 'cheapest', 'rated']
 
 const SORT_LABEL: Record<Sort, string> = {
-  distance: 'Más cerca',
-  cheapest: 'Más barata',
+  distance: t('ListScreen.orden.distance'),
+  cheapest: t('ListScreen.orden.cheapest'),
   // "Mejor puntuada" y no "mejor": la nota es de las birras del bar, que es
   // lo único que esta app sabe puntuar. El bar puede ser un antro con una IPA
   // excelente.
-  rated: 'Mejor puntuada',
+  rated: t('ListScreen.orden.rated'),
 }
 
 /** Cuánto hay que arrastrar para que el gesto cuente, en píxeles. */
@@ -184,17 +185,16 @@ export function ListScreen(p: Props) {
    */
   // Mientras carga y todavía no hay nada, no se dice nada: un "0 bares" que
   // dura medio segundo y se contradice solo es peor que el esqueleto.
-  // El sufijo va aparte: los dos filtros se cruzan —"mis favoritos con precio
+  // "Con precio fresco" tiene su propia clave: los dos filtros se cruzan —"mis favoritos con precio
   // de esta semana" es una pregunta razonable— y el número tiene que poder
   // decir los dos recortes, no uno.
-  const sufijoFresco = soloFrescos ? ' con precio fresco' : ''
   const resumen = busy && shown.length === 0 ? null
     : favOnly
       ? shown.length === 0
-        ? (soloFrescos ? 'Ningún favorito con precio fresco' : 'Sin favoritos marcados')
-        : `${shown.length} ${shown.length === 1 ? 'favorito' : 'favoritos'}${sufijoFresco}`
-      : shown.length === 0 && soloFrescos ? 'Ningún precio fresco por acá'
-        : `${shown.length} ${shown.length === 1 ? 'bar' : 'bares'}${sufijoFresco}`
+        ? (soloFrescos ? t('ListScreen.resumen.favFresco0') : t('ListScreen.resumen.sinFav'))
+        : t(soloFrescos ? 'ListScreen.resumen.favoritosFrescos' : 'ListScreen.resumen.favoritos', { count: shown.length })
+      : shown.length === 0 && soloFrescos ? t('ListScreen.resumen.fresco0')
+        : t(soloFrescos ? 'ListScreen.resumen.baresFrescos' : 'ListScreen.resumen.bares', { count: shown.length })
 
   /*
    * Swipe horizontal para cambiar de orden.
@@ -335,7 +335,7 @@ export function ListScreen(p: Props) {
         <div style={{ position: 'relative' }} data-tour="list-search">
           <input
             value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar un bar" type="search"
+            placeholder={t('PickBar.buscar')} type="search"
             style={{
               width: '100%', padding: '12px 32px 12px 12px', borderRadius: 'var(--r-2)',
               background: 'var(--raised)', border: '1px solid var(--hairline)',
@@ -344,7 +344,7 @@ export function ListScreen(p: Props) {
             }}
           />
           {query !== '' && (
-            <button onClick={() => setQuery('')} aria-label="Limpiar" style={{
+            <button onClick={() => setQuery('')} aria-label={t('ListScreen.limpiar')} style={{
               position: 'absolute', right: 2, top: 0, bottom: 0, width: 44,
               color: 'var(--faint)', fontSize: 'var(--t-5)',
             }}>×</button>
@@ -389,7 +389,7 @@ export function ListScreen(p: Props) {
             <button
               onClick={() => setFavOnly(f => !f)}
               aria-pressed={favOnly}
-              aria-label={favOnly ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
+              aria-label={favOnly ? t('MapScreen.verTodosBares') : t('MapScreen.verFavoritos')}
               className="icon-btn"
               style={{
                 background: favOnly ? 'var(--favorito-soft)' : 'var(--film-2)',
@@ -421,8 +421,8 @@ export function ListScreen(p: Props) {
               onClick={() => setSoloFrescos(f => !f)}
               aria-pressed={soloFrescos}
               aria-label={soloFrescos
-                ? 'Ver también los precios viejos'
-                : `Ver sólo precios de menos de ${FRESCO_DIAS} días`}
+                ? t('MapScreen.verViejos')
+                : t('MapScreen.verFrescos', { dias: FRESCO_DIAS })}
               className="icon-btn"
               style={{
                 background: soloFrescos ? 'var(--fresh-soft)' : 'var(--film-2)',
@@ -468,15 +468,15 @@ export function ListScreen(p: Props) {
             fontSize: 'var(--t-3)', paddingBottom: 'var(--s-3)',
           }}>
             <span style={{ color: 'var(--muted)' }}>
-              {searching ? 'Buscando…'
-                : shown.length === 0 ? 'Sin resultados'
-                : shown.length === 1 ? '1 resultado' : `${shown.length} resultados`}
+              {searching ? t('comun.buscando')
+                : shown.length === 0 ? t('ListScreen.sinResultados')
+                : t('ListScreen.resultados', { count: shown.length })}
             </span>
             {/* Acción de texto secundaria: va en el informativo, que es donde
                 heritage manda todo lo que no es el dato principal. */}
             <button onClick={() => setQuery('')} className="lbl" style={{
               marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-3)',
-            }}>Volver a la lista</button>
+            }}>{t('ListScreen.volverLista')}</button>
           </div>
         ) : (
           <>
@@ -491,7 +491,7 @@ export function ListScreen(p: Props) {
             <Segmented<Sort>
               options={SORTS.map(s => ({ value: s, label: SORT_LABEL[s] }))}
               value={p.sort} onChange={p.onSort}
-              label={o => `Ordenar por ${o.label.toLowerCase()}`}
+              label={o => t('Dashboard.ordenarPor', { que: o.label.toLowerCase() })}
               tourId="list-sort"
             />
           </>
@@ -519,9 +519,9 @@ export function ListScreen(p: Props) {
               margin: 0, padding: 'var(--s-2) var(--s-3)', borderRadius: 'var(--r-1)',
               background: 'var(--info-soft)', border: '1px solid var(--info-border)',
               color: 'var(--info-bright)',
-            }}>Desde el punto elegido ✕</button>
+            }}>{t('ListScreen.desdePuntoX')}</button>
           ) : (
-            <span className="section-label" style={{ margin: 0 }}>Desde tu ubicación</span>
+            <span className="section-label" style={{ margin: 0 }}>{t('MapScreen.desdeTu')}</span>
           )}
           {/* El radio es dato informativo —de los que heritage manda al
               Steel Blue— y es una cifra, así que va tabular. */}
@@ -562,9 +562,9 @@ export function ListScreen(p: Props) {
       {!busy && shown.length === 0 && (
         isSearch ? (
           <Empty
-            title="Ningún bar se llama así"
-            hint="Probá con menos letras: busca por parte del nombre y no hace falta poner las tildes."
-            action="Agregar este bar"
+            title={t('ListScreen.vacio.busqueda')}
+            hint={t('ListScreen.vacio.busquedaHint')}
+            action={t('AddBar.agregar')}
             onAction={() => nav('/agregar')}
           />
         ) : soloFrescos ? (
@@ -575,10 +575,10 @@ export function ListScreen(p: Props) {
           // cargando un precio, que es lo que de verdad falta.
           <Empty
             title={favOnly
-              ? 'Ninguno de tus favoritos tiene precio fresco'
-              : `Ningún precio de menos de ${FRESCO_DIAS} días por acá`}
-            hint="Hay bares, pero sus precios ya tienen tiempo. Si pasás por uno y ves cuánto está la pinta, cargalo y vuelve a esta lista."
-            action="Ver también los viejos"
+              ? t('ListScreen.vacio.favFresco')
+              : t('ListScreen.vacio.fresco', { dias: FRESCO_DIAS })}
+            hint={t('ListScreen.vacio.frescoHint')}
+            action={t('ListScreen.vacio.verViejos')}
             onAction={() => setSoloFrescos(false)}
           />
         ) : favOnly ? (
@@ -586,16 +586,16 @@ export function ListScreen(p: Props) {
           // al final de cada fila. Un vacío que no dice cómo salir de él es
           // un cartel de "no hay nada".
           <Empty
-            title="Todavía no marcaste ningún favorito"
-            hint="Tocá el corazón al final de cualquier fila —o el de la ficha del bar— y el bar queda acá. Se guardan en tu cuenta, así que los ves desde cualquier teléfono."
-            action="Ver todos los bares"
+            title={t('ListScreen.vacio.sinFav')}
+            hint={t('ListScreen.vacio.sinFavHint')}
+            action={t('MapScreen.verTodosBares')}
             onAction={() => setFavOnly(false)}
           />
         ) : (
           <Empty
-            title="Por acá todavía no hay bares"
-            hint="El mapa lo hacemos entre todos: si conocés uno en esta zona, cargalo y queda para el resto."
-            action="Agregar un bar"
+            title={t('ListScreen.vacio.sinBares')}
+            hint={t('ListScreen.vacio.sinBaresHint')}
+            action={t('AddMenu.bar')}
             onAction={() => nav('/agregar')}
           />
         )
@@ -682,7 +682,7 @@ export function ListScreen(p: Props) {
               <button
                 onClick={() => toggleFav(b.id)}
                 aria-pressed={esFav}
-                aria-label={`${esFav ? 'Sacar de favoritos' : 'Guardar en favoritos'}: ${b.name}`}
+                aria-label={t('ListScreen.favAria', { accion: esFav ? t('BarPreview.sacarFav') : t('BarPreview.guardarFav'), bar: b.name })}
                 className="icon-btn"
                 style={{ marginRight: -12, color: esFav ? 'var(--favorito)' : 'var(--faint)' }}
               >

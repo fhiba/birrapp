@@ -1,0 +1,25 @@
+{
+  "frescos": "Frisch",
+  "verViejos": "Auch alte Preise zeigen",
+  "verFrescos": "Nur Preise unter {dias} Tagen zeigen",
+  "verTodosBares": "Alle Bars zeigen",
+  "verFavoritos": "Nur meine Favoriten zeigen",
+  "desdeTu": "Von deinem Standort aus",
+  "acerca": "Zoom rein, um Bars zu sehen",
+  "vacio": {
+    "favFresco": "Hier kein Favorit mit frischem Preis",
+    "fav": "Hier keiner deiner Favoriten",
+    "fresco": "Hier kein frischer Preis",
+    "favHint": "Sie sind in einem anderen Teil der Karte, oder du hast hier noch keine markiert.",
+    "frescoHint": "Es gibt Bars, aber keine mit einem Preis unter {dias} Tagen. Wenn du an einer vorbeikommst, trag ihn ein.",
+    "verTodos": "Alle zeigen",
+    "sinBares": "Hier sind keine Bars eingetragen",
+    "sinBaresHint": "Die Karte machen wir alle zusammen. Wenn du eine in dieser Gegend kennst, trag sie ein und sie bleibt für alle."
+  },
+  "ubicacionBloqueada": "Du hast den Standort für diese Seite blockiert — das hier ist das Zentrum. Freigeben kannst du ihn über das Schloss {candado} in der Adressleiste.",
+  "noUbicamos": "Wir konnten dich nicht orten — das hier ist das Zentrum",
+  "cerrarAviso": "Hinweis schließen",
+  "ayuda": "So funktioniert die App",
+  "centrarPunto": "Auf den gewählten Punkt zentrieren",
+  "centrarMio": "Auf meinen Standort zentrieren"
+}

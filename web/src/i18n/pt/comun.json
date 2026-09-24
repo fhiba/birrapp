@@ -1,0 +1,15 @@
+{
+  "cerrar": "Fechar",
+  "cancelar": "Cancelar",
+  "volver": "Voltar",
+  "agregar": "Adicionar",
+  "guardar": "Salvar",
+  "reintentar": "Tentar de novo",
+  "listo": "Pronto",
+  "subiendo": "Enviando…",
+  "buscando": "Buscando…",
+  "voto": {
+    "one": "{count} voto",
+    "other": "{count} votos"
+  }
+}

@@ -7,6 +7,7 @@ import type { BeerStyle, Brand, User } from '../data/types'
 import { AvatarPicker } from '../ui/AvatarPicker'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { Chip } from './Preferences'
+import { t, tx } from '../i18n'
 
 /** El techo del servidor para las favoritas. */
 const MAX_FAVORITAS = 10
@@ -158,20 +159,16 @@ export function OnboardingScreen({ user, styles, brands, onSession }: {
           {paso === 1 && (
             <>
               <Titulo
-                titulo="¿Qué tomás?"
-                bajada={<>
-                  En cada bar se muestran tres birras y el resto queda detrás de
-                  un <span className="lbl">⋯</span>. Marcá las tuyas y van a ser
-                  esas tres. Podés marcar sólo estilos, sólo marcas, o ninguna.
-                </>}
+                titulo={t('Onboarding.birras.titulo')}
+                bajada={tx('Onboarding.birras.bajada', { mas: <span className="lbl">⋯</span> })}
               />
-              <Grupo titulo="Estilos" elegidos={estilos.length}>
+              <Grupo titulo={t('Preferences.estilos')} elegidos={estilos.length}>
                 {styles.map(s => (
                   <Chip key={s.slug} label={s.name} on={estilos.includes(s.slug)}
                     onClick={() => alternar(estilos, setEstilos, s.slug)} />
                 ))}
               </Grupo>
-              <Grupo titulo="Marcas" elegidos={marcas.length}>
+              <Grupo titulo={t('Preferences.marcas')} elegidos={marcas.length}>
                 {/* Las artesanales primero: son las que alguien elige a
                     propósito. Una industrial se toma porque es la que hay. */}
                 {[...brands].sort((a, b) => Number(b.craft) - Number(a.craft)).map(b => (
@@ -217,7 +214,7 @@ export function OnboardingScreen({ user, styles, brands, onSession }: {
                 minHeight: 44, padding: 'var(--s-3) var(--s-4)',
                 fontSize: 'var(--t-3)', color: 'var(--info)',
               }}
-            >Saltear</button>
+            >{t('Onboarding.saltear')}</button>
             <button
               onClick={() => avanzar(true)} disabled={guardando}
               className="lbl cta"
@@ -227,7 +224,7 @@ export function OnboardingScreen({ user, styles, brands, onSession }: {
                 background: guardando ? 'var(--acento-busy)' : 'var(--acento)',
                 color: 'var(--base)',
               }}
-            >{guardando ? 'Guardando…' : paso === PASOS - 1 ? 'Listo' : 'Seguir'}</button>
+            >{guardando ? t('Preferences.guardando') : paso === PASOS - 1 ? t('comun.listo') : t('Onboarding.seguir')}</button>
           </div>
         </div>
       </div>
@@ -245,12 +242,8 @@ function PasoVos({ user, alias, onAlias, onSession }: {
   return (
     <>
       <Titulo
-        titulo="¿Cómo te ven?"
-        bajada={<>
-          Es el nombre con el que aparecés en la tabla pública de colaboradores
-          y al pie de tus fotos. Tu nombre de Google y tu mail no se muestran en
-          ningún lado.
-        </>}
+        titulo={t('Onboarding.vos.titulo')}
+        bajada={t('Onboarding.vos.bajada')}
       />
 
       <div style={{ margin: 'var(--s-5) 0 0' }}>
@@ -263,10 +256,10 @@ function PasoVos({ user, alias, onAlias, onSession }: {
       <label className="lbl" htmlFor="alias" style={{
         display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)',
         margin: 'var(--s-5) 0 var(--s-2)',
-      }}>Tu nombre de usuario</label>
+      }}>{t('Onboarding.vos.label')}</label>
       <input
         id="alias" value={alias} onChange={e => onAlias(e.target.value)}
-        maxLength={20} placeholder="Sin nombre de usuario" autoComplete="off"
+        maxLength={20} placeholder={t('Onboarding.vos.placeholder')} autoComplete="off"
         style={{
           width: '100%', minWidth: 0, padding: '12px 16px',
           borderRadius: 'var(--r-2)', background: 'var(--elevated)',
@@ -286,9 +279,7 @@ function PasoVos({ user, alias, onAlias, onSession }: {
         color: 'var(--faint)', fontSize: 'var(--t-2)',
         margin: 'var(--s-2) 0 0', lineHeight: 1.5,
       }}>
-        Te dejamos uno armado con tu nombre. Podés cambiarlo por el que quieras
-        —tiene que ser único, así que puede estar tomado— o borrarlo y no
-        figurar en ningún lado. Se cambia cuando quieras desde Configuración.
+        {t('Onboarding.vos.ayuda')}
       </p>
     </>
   )
@@ -305,17 +296,13 @@ function PasoAjustes({
   return (
     <>
       <Titulo
-        titulo="Los detalles"
-        bajada={<>
-          Con esto arranca la app cada vez que la abrís. Son los tres valores
-          que más se tocan, y están todos en Configuración si querés cambiarlos
-          más adelante.
-        </>}
+        titulo={t('Onboarding.ajustes.titulo')}
+        bajada={t('Onboarding.ajustes.bajada')}
       />
 
       <div style={{ margin: 'var(--s-6) 0 0' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>Radio de búsqueda</span>
+          <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{t('Onboarding.ajustes.radio')}</span>
           <span className="lbl" style={{
             marginLeft: 'auto', color: 'var(--acento)', fontSize: 'var(--t-4)',
           }}>{formatRadius(radio)}</span>
@@ -329,18 +316,16 @@ function PasoAjustes({
             ['--fill' as string]: `${((radio - 300) / (15000 - 300)) * 100}%`,
           }}
         />
-        <Ayuda>Con cuánto a la redonda abren el mapa y la lista.</Ayuda>
+        <Ayuda>{t('Onboarding.ajustes.radioAyuda')}</Ayuda>
       </div>
 
-      <Campo label="Moneda" htmlFor="moneda"
-        ayuda={'La de los bares que cargues a mano. Si elegís el bar del '
-          + 'buscador, la moneda sale del país. Los precios se muestran siempre '
-          + 'en la moneda del bar: no se convierte nada.'}>
+      <Campo label={t('Onboarding.ajustes.moneda')} htmlFor="moneda"
+        ayuda={t('Onboarding.ajustes.monedaAyuda')}>
         <CurrencySelect id="moneda" value={moneda} onChange={onMoneda} />
       </Campo>
 
-      <Campo label="Tamaño del vaso" htmlFor="tamano"
-        ayuda="Con qué tamaño arranca el teclado de precio. Una pinta son 473 ml acá, y 568 en el Reino Unido.">
+      <Campo label={t('Onboarding.ajustes.vaso')} htmlFor="tamano"
+        ayuda={t('Onboarding.ajustes.vasoAyuda')}>
         <select
           id="tamano" className="lbl" value={tamano}
           onChange={e => onTamano(Number(e.target.value))}
@@ -352,7 +337,7 @@ function PasoAjustes({
         >
           {[330, 355, 473, 500, 568, 1000].map(ml => (
             <option key={ml} value={ml}>
-              {ml} ml{ml === 473 ? ' — pinta' : ml === 568 ? ' — pinta UK' : ''}
+              {t(ml === 473 ? 'Onboarding.ajustes.pinta' : ml === 568 ? 'Onboarding.ajustes.pintaUk' : 'Onboarding.ajustes.ml', { n: ml })}
             </option>
           ))}
         </select>
@@ -379,27 +364,20 @@ function PasoComoFunciona() {
   return (
     <>
       <Titulo
-        titulo="Tres cosas y arrancamos"
-        bajada="Lo único de la app que no se entiende mirándola."
+        titulo={t('Onboarding.como.titulo')}
+        bajada={t('Onboarding.como.bajada')}
       />
 
-      <Punto titulo="Tu nivel puede bajar">
-        Sale de las birras que anotaste en los <strong>últimos 45 días</strong>,
-        no del total de siempre. Si dejás de anotar, baja. Por eso dice cómo
-        venís y no cuánto acumulaste alguna vez.
+      <Punto titulo={t('Onboarding.como.nivel.titulo')}>
+        {tx('Onboarding.como.nivel.texto', { fuerte: <strong>{t('Onboarding.como.nivel.fuerte')}</strong> })}
       </Punto>
 
-      <Punto titulo="Anotá dónde te la tomaste">
-        Decir en qué bar es opcional, pero <strong>las birras sin bar no entran
-        en la tabla de quién tomó más por la zona</strong>: sin bar no hay forma
-        de ubicarlas, y esa tabla es por cercanía. Es un toque más y es lo que
-        te pone en el ranking.
+      <Punto titulo={t('Onboarding.como.donde.titulo')}>
+        {tx('Onboarding.como.donde.texto', { fuerte: <strong>{t('Onboarding.como.donde.fuerte')}</strong> })}
       </Punto>
 
-      <Punto titulo="La nota es de las birras, no del bar">
-        Se puntúa cada birra arrastrando el dedo sobre las estrellas, de a medio
-        punto. La nota que ves arriba de un bar es el promedio de las notas de
-        sus birras — no es una opinión sobre el lugar, la música ni la moza.
+      <Punto titulo={t('Onboarding.como.nota.titulo')}>
+        {t('Onboarding.como.nota.texto')}
       </Punto>
     </>
   )
@@ -429,7 +407,7 @@ function Punto({ titulo, children }: { titulo: string; children: React.ReactNode
  */
 function Progreso({ paso }: { paso: number }) {
   return (
-    <div role="group" aria-label={`Paso ${paso + 1} de ${PASOS}`}
+    <div role="group" aria-label={t('Onboarding.paso', { n: paso + 1, total: PASOS })}
       style={{ display: 'flex', gap: 6 }}>
       {Array.from({ length: PASOS }, (_, i) => (
         <span key={i} aria-hidden style={{

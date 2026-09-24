@@ -5,6 +5,7 @@ import type {
   MyRating, PendingBar, PendingBrand, PendingStyle, Photo, PriceAccepted,
   PricePoint, RatingComment, Review, Session, User, UserStats,
 } from './types'
+import { t } from '../i18n'
 
 /**
  * Cliente HTTP.
@@ -190,11 +191,11 @@ async function req<T>(
     // No se pudo ni preguntar si la sesión sigue viva. Devolver el 401 tal
     // cual haría que la pantalla la borre, y la sesión probablemente esté
     // perfecta: lo único que pasó es que no hay red.
-    else if (r === 'failed') throw new Error('No se pudo conectar. Probá de nuevo.')
+    else if (r === 'failed') throw new Error(t('api.sinConexion'))
   }
 
   if (!res.ok) {
-    let message = `Error ${res.status}`
+    let message = t('api.error', { status: res.status })
     let code: string | undefined
     try {
       const body = await res.json()
@@ -368,7 +369,7 @@ export async function uploadPhoto(
     body: file,
     headers: { 'Content-Type': 'image/webp' },
   })
-  if (!put.ok) throw new ApiError(put.status, 'No se pudo subir la foto')
+  if (!put.ok) throw new ApiError(put.status, t('api.fotoNoSubio'))
   // La fila se escribe recién ahora: si se escribiera antes, una subida
   // abandonada dejaría una foto rota en la galería.
   return req<Photo>('POST', '/photos', {
@@ -471,7 +472,7 @@ export async function uploadAvatar(file: Blob): Promise<User> {
   const put = await fetch(uploadUrl, {
     method: 'PUT', body: file, headers: { 'Content-Type': 'image/webp' },
   })
-  if (!put.ok) throw new ApiError(put.status, 'No se pudo subir la foto')
+  if (!put.ok) throw new ApiError(put.status, t('api.fotoNoSubio'))
   return req<User>('POST', '/auth/me/avatar', { body: { key }, auth: true })
 }
 

@@ -1,0 +1,25 @@
+{
+  "frescos": "Frescos",
+  "verViejos": "Ver também os preços antigos",
+  "verFrescos": "Ver só preços com menos de {dias} dias",
+  "verTodosBares": "Ver todos os bares",
+  "verFavoritos": "Ver só meus favoritos",
+  "desdeTu": "A partir da sua localização",
+  "acerca": "Aproxime o mapa para ver bares",
+  "vacio": {
+    "favFresco": "Nenhum favorito com preço fresco por aqui",
+    "fav": "Nenhum dos seus favoritos por aqui",
+    "fresco": "Nenhum preço fresco por aqui",
+    "favHint": "Estão em outra parte do mapa, ou você ainda não marcou nenhum aqui.",
+    "frescoHint": "Há bares, mas nenhum com preço de menos de {dias} dias. Se você passar por um, informe.",
+    "verTodos": "Ver todos",
+    "sinBares": "Não há bares cadastrados por aqui",
+    "sinBaresHint": "O mapa é feito por todos. Se você conhece um nesta região, adicione e ele fica para os outros."
+  },
+  "ubicacionBloqueada": "Você bloqueou a localização para este site — isto é o centro. Dá para liberar pelo cadeado {candado} da barra de endereço.",
+  "noUbicamos": "Não conseguimos te localizar — isto é o centro",
+  "cerrarAviso": "Fechar o aviso",
+  "ayuda": "Como o app funciona",
+  "centrarPunto": "Centralizar no ponto escolhido",
+  "centrarMio": "Centralizar na minha localização"
+}

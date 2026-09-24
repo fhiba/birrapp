@@ -1,0 +1,45 @@
+{
+  "titulo": "How prices work",
+  "s1": {
+    "titulo": "Age matters as much as the price",
+    "texto": "With inflation, a price from two months ago doesn't say much. That's why birrapp never shows a price without telling you when it's from."
+  },
+  "escala": "The scale",
+  "fresco": {
+    "titulo": "Less than 14 days",
+    "nota": "Reliable."
+  },
+  "viejo": {
+    "titulo": "Between 14 and 45 days",
+    "nota": "Probably went up a bit."
+  },
+  "rancio": {
+    "titulo": "More than 45 days",
+    "nota": "Take it as a rough reference."
+  },
+  "s2": {
+    "titulo": "Why the cheapest doesn't always come first",
+    "texto": "When sorting by “cheapest”, prices older than 45 days are ignored. An old, cheap price can't beat a recent, honest one: it would send you across town for a number that no longer exists."
+  },
+  "s3": {
+    "titulo": "“Still the same” is the most useful button",
+    "texto": "Confirming a price hasn't changed takes one tap and makes it fresh again. If nobody confirms, the whole map gets old."
+  },
+  "s4": {
+    "titulo": "Pin color goes from cheap to expensive",
+    "texto": "Lime is the cheapest on your screen and coral the most expensive; in between is each bar's place within that range. The scale readjusts as you move, so the color always speaks about the neighborhood you're looking at, not the whole city."
+  },
+  "s5": {
+    "titulo": "The little dot inside is freshness",
+    "texto": "Inside each badge, to the left of the number, there's a dot in the color of the scale above: it tells you when that price is from. It sits on a dark square precisely so it stands out from the background, which is from the same color family but means something else. You'll never see a price without that dot."
+  },
+  "s6": {
+    "titulo": "Grey pins aren't expensive bars",
+    "texto": "A dimmed dot is something else: it's a bar nobody has added a price for yet. It's not at the expensive end of the scale, it's off the scale."
+  },
+  "s7": {
+    "titulo": "Where the bars come from",
+    "texto": "The initial base comes from OpenStreetMap, and the community adds the missing ones. Prices are always added by people: none are estimated or calculated by us."
+  },
+  "osm": "Bar data © OpenStreetMap contributors, under the ODbL license."
+}

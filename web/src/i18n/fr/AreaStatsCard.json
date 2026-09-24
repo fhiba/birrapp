@@ -1,0 +1,14 @@
+{
+  "estilos": "{n} styles",
+  "aLaRedonda": "dans un rayon de {radio}",
+  "pintaTipico": "la pinte, en général",
+  "piso": "min {precio}",
+  "tope": "max {precio}",
+  "promedio": "Moyenne",
+  "bares": "Bars",
+  "mejor": "Le meilleur du coin",
+  "mejorPorque": "{nota} ★ avec {votos}, à {precio}",
+  "masBarata": "La moins chère",
+  "masBarataPorque": "{precio} les {ml} ml",
+  "nota": "Tout ramené à une pinte de 473 ml, sur {n} prix de moins de 45 jours. Les plus anciens ne comptent pas."
+}

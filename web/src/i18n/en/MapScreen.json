@@ -1,0 +1,25 @@
+{
+  "frescos": "Fresh",
+  "verViejos": "Show old prices too",
+  "verFrescos": "Show only prices under {dias} days old",
+  "verTodosBares": "Show all bars",
+  "verFavoritos": "Show only my favorites",
+  "desdeTu": "From your location",
+  "acerca": "Zoom in to see bars",
+  "vacio": {
+    "favFresco": "No favorites with a fresh price around here",
+    "fav": "None of your favorites around here",
+    "fresco": "No fresh prices around here",
+    "favHint": "They're in another part of the map, or you haven't marked any here yet.",
+    "frescoHint": "There are bars, but none with a price under {dias} days old. If you pass by one, add it.",
+    "verTodos": "Show all",
+    "sinBares": "No bars added around here",
+    "sinBaresHint": "We build the map together. If you know one in this area, add it and it's there for everyone."
+  },
+  "ubicacionBloqueada": "You blocked location for this site — this is downtown. You can unblock it from the {candado} lock in the address bar.",
+  "noUbicamos": "We couldn't locate you — this is downtown",
+  "cerrarAviso": "Close the notice",
+  "ayuda": "How the app works",
+  "centrarPunto": "Center on the chosen point",
+  "centrarMio": "Center on my location"
+}

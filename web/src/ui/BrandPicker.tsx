@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as api from '../data/api'
 import type { Brand } from '../data/types'
 import { AgregarOtro, SectionLabel, Vocablo } from './Kit'
+import { t } from '../i18n'
 
 /**
  * La grilla del vocabulario. El mismo `minmax(104px, 1fr)` que usa la
@@ -60,7 +61,7 @@ export function BrandPicker({
           color: selected ? 'var(--cream)' : 'var(--muted)',
         }}
       >
-        {selected ? selected.name : 'Sin marca'}
+        {selected ? selected.name : t('BrandPicker.sinMarca')}
         <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden style={{ color: 'var(--info)' }}>
           <path d="M5 9l7 7 7-7" fill="none" stroke="currentColor"
             strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -172,7 +173,7 @@ export function BrandList({
         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
         borderBottom: '1px solid var(--hairline)',
       }}>
-        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Cancelar">←</button>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.cancelar')}>←</button>
         <input
           ref={input}
           value={q} onChange={e => setQ(e.target.value)}
@@ -181,7 +182,7 @@ export function BrandList({
           // nada: había que ver el botón de arriba y tocarlo, o lo tecleado se
           // perdía al salir del paso.
           onKeyDown={e => { if (e.key === 'Enter' && canCreate && !busy) create() }}
-          placeholder="Buscar o escribir una marca" maxLength={60}
+          placeholder={t('BrandPicker.buscar')} maxLength={60}
           autoComplete="off" autoCorrect="off" spellCheck={false}
           style={{
             flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
@@ -205,7 +206,7 @@ export function BrandList({
             borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
             background: busy ? 'var(--elevated)' : 'var(--acento)',
             color: busy ? 'var(--faint)' : 'var(--base)',
-          }}>{busy ? '…' : `Agregar “${typed}”`}</button>
+          }}>{busy ? '…' : t('BrandPicker.agregarNueva', { nombre: typed })}</button>
           {/* El aviso de vocabulario nuevo, en ámbar y no en gris: es lo mismo
               que pasa con un precio a revisión, y merece el mismo tono. En
               `--faint` era un pie de página que nadie leía, y lo que dice es
@@ -214,8 +215,7 @@ export function BrandList({
           <p style={{
             color: 'var(--aging)', fontSize: 'var(--t-1)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
-            “{typed}” no está en la lista. Se acepta igual y la podés usar al
-            toque; queda a revisión de un moderador.
+            {t('BrandPicker.nueva', { nombre: typed })}
           </p>
         </div>
       )}
@@ -237,17 +237,17 @@ export function BrandList({
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 2px 24px' }}>
         {!typed && allowNone && (
           <>
-            <SectionLabel>Sin marca</SectionLabel>
+            <SectionLabel>{t('BrandPicker.sinMarca')}</SectionLabel>
             <div style={{ ...GRILLA }}>
               <Vocablo
-                label="No la sé" centrado on={value === null}
+                label={t('BrandPicker.noLaSe')} centrado on={value === null}
                 onClick={() => onPick(null)}
               />
             </div>
           </>
         )}
 
-        {craft.length > 0 && <SectionLabel>Artesanales</SectionLabel>}
+        {craft.length > 0 && <SectionLabel>{t('BrandPicker.artesanales')}</SectionLabel>}
         {craft.length > 0 && (
           <div style={{ ...GRILLA }}>
             {craft.map(b => (
@@ -257,7 +257,7 @@ export function BrandList({
           </div>
         )}
 
-        {industrial.length > 0 && <SectionLabel>Industriales</SectionLabel>}
+        {industrial.length > 0 && <SectionLabel>{t('BrandPicker.industriales')}</SectionLabel>}
         {industrial.length > 0 && (
           <div style={{ ...GRILLA }}>
             {industrial.map(b => (
@@ -275,7 +275,7 @@ export function BrandList({
         {!canCreate && (
           <div style={{ ...GRILLA, marginTop: 'var(--s-4)' }}>
             <AgregarOtro
-              label={typed ? 'Seguí escribiendo' : 'Otra marca'} on={false}
+              label={typed ? t('BrandPicker.seguiEscribiendo') : t('BrandPicker.otra')} on={false}
               onClick={() => input.current?.focus()}
             />
           </div>
@@ -283,7 +283,7 @@ export function BrandList({
 
         {shown.length === 0 && !canCreate && (
           <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', padding: '12px 16px' }}>
-            Escribí al menos dos letras para agregarla.
+            {t('BrandPicker.dosLetras')}
           </p>
         )}
       </div>

@@ -1,0 +1,12 @@
+{
+  "sinMarca": "No brand",
+  "buscar": "Search or type a brand",
+  "agregarNueva": "Add “{nombre}”",
+  "nueva": "“{nombre}” isn't on the list. It's accepted anyway and you can use it right away; a moderator will review it.",
+  "noLaSe": "I don't know",
+  "artesanales": "Craft",
+  "industriales": "Mass-market",
+  "seguiEscribiendo": "Keep typing",
+  "otra": "Another brand",
+  "dosLetras": "Type at least two letters to add it."
+}

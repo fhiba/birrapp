@@ -8,6 +8,7 @@ import { AvatarPicker } from '../ui/AvatarPicker'
 import { Confirm, Toast } from '../ui/Chrome'
 import { CurrencySelect } from '../ui/CurrencySelect'
 import { SectionLabel } from '../ui/Kit'
+import { t, tx } from '../i18n'
 
 /**
  * Configuración de la cuenta.
@@ -115,11 +116,11 @@ export function SettingsScreen({ user, onSession }: {
       padding: `calc(18px + var(--safe-top)) 22px calc(40px + var(--nav-gap))`,
     }}>
       <div className="desk-narrow">
-        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
 
-        <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>Configuración</h1>
+        <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>{t('Settings.titulo')}</h1>
 
-        <SectionLabel>Tu cuenta</SectionLabel>
+        <SectionLabel>{t('Settings.tuCuenta')}</SectionLabel>
 
         <AvatarPicker
           user={user}
@@ -128,7 +129,7 @@ export function SettingsScreen({ user, onSession }: {
 
         <label className="lbl" style={{
           display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '24px 0 8px',
-        }} htmlFor="nombre">Cómo te llamás</label>
+        }} htmlFor="nombre">{t('Settings.comoTeLlamas')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             id="nombre" value={name} onChange={e => setName(e.target.value)}
@@ -143,7 +144,7 @@ export function SettingsScreen({ user, onSession }: {
               escribir, y guardar por cada tecla sería una consulta por letra. */}
           <button
             disabled={name.trim() === user.displayName || name.trim().length < 2}
-            onClick={() => guardar({ displayName: name.trim() }, 'Nombre cambiado', 'nombre')}
+            onClick={() => guardar({ displayName: name.trim() }, t('Settings.nombreCambiado'), 'nombre')}
             className="lbl cta"
             style={{
               padding: '0 16px', borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
@@ -152,21 +153,20 @@ export function SettingsScreen({ user, onSession }: {
               color: name.trim() !== user.displayName && name.trim().length >= 2
                 ? 'var(--base)' : 'var(--faint)',
             }}
-          >Guardar</button>
+          >{t('comun.guardar')}</button>
         </div>
         {error?.campo === 'nombre' && <ErrorDeCampo texto={error.texto} />}
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0' }}>
-          Es el nombre con el que aparecen tus aportes. {user.email} no se muestra
-          en ningún lado.
+          {t('Settings.nombreAyuda', { email: user.email })}
         </p>
 
         <label className="lbl" style={{
           display: 'block', fontSize: 'var(--t-2)', color: 'var(--muted)', margin: '24px 0 8px',
-        }} htmlFor="alias">Tu alias público</label>
+        }} htmlFor="alias">{t('Settings.alias')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             id="alias" value={alias} onChange={e => setAlias(e.target.value)}
-            maxLength={20} placeholder="Sin alias"
+            maxLength={20} placeholder={t('Settings.sinAlias')}
             style={{
               flex: 1, minWidth: 0, padding: '12px 16px', borderRadius: 'var(--r-2)',
               background: 'var(--elevated)', border: '1px solid var(--hairline)',
@@ -177,7 +177,7 @@ export function SettingsScreen({ user, onSession }: {
             disabled={!aliasOk}
             onClick={() => guardar(
               { alias: aliasLimpio },
-              aliasLimpio ? 'Alias guardado' : 'Alias sacado',
+              aliasLimpio ? t('Settings.aliasGuardado') : t('Settings.aliasSacado'),
               'alias',
             )}
             className="lbl cta"
@@ -186,7 +186,7 @@ export function SettingsScreen({ user, onSession }: {
               background: aliasOk ? 'var(--acento)' : 'var(--elevated)',
               color: aliasOk ? 'var(--base)' : 'var(--faint)',
             }}
-          >Guardar</button>
+          >{t('comun.guardar')}</button>
         </div>
         {/*
           El texto importa tanto como el campo: esto decide si tu nombre
@@ -197,19 +197,22 @@ export function SettingsScreen({ user, onSession }: {
             la explicación de para qué sirve el campo. Al revés, el aviso
             aparecía debajo de un párrafo de tres renglones y se leía como una
             nota al pie y no como la respuesta a lo que acabás de hacer. */}
-        {aliasCorto && <ErrorDeCampo texto="Tiene que tener al menos 3 letras." />}
+        {aliasCorto && <ErrorDeCampo texto={t('Settings.aliasCorto')} />}
         {aliasRaro && !aliasCorto && (
-          <ErrorDeCampo texto="Sólo letras, números, espacios y . _ -" />
+          <ErrorDeCampo texto={t('Settings.aliasRaro')} />
         )}
         {error?.campo === 'alias' && <ErrorDeCampo texto={error.texto} />}
         <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5 }}>
-          Es el único nombre que se muestra en{' '}
-          <button onClick={() => nav('/colaboradores')} style={{
-            color: 'var(--acento)', textDecoration: 'underline', textUnderlineOffset: 3,
-          }}>Colaboradores</button>, la tabla pública del mes.{' '}
+          {tx('Settings.aliasAyuda', {
+            colaboradores: (
+              <button onClick={() => nav('/colaboradores')} style={{
+                color: 'var(--acento)', textDecoration: 'underline', textUnderlineOffset: 3,
+              }}>{t('Settings.colaboradores')}</button>
+            ),
+          })}{' '}
           {user.alias
-            ? 'Borralo y dejás de figurar; tus aportes siguen contando igual.'
-            : 'Sin alias no figurás, y tu nombre no se publica en ningún lado.'}
+            ? t('Settings.aliasConAlias')
+            : t('Settings.aliasSinAlias')}
         </p>
 
         {/* Las birras favoritas viven acá y no en su propia sección: son una
@@ -231,7 +234,7 @@ export function SettingsScreen({ user, onSession }: {
             display: 'flex', alignItems: 'center', gap: 'var(--s-3)', width: '100%',
             minHeight: 44, textAlign: 'left', fontSize: 'var(--t-4)', color: 'var(--cream)',
           }}>
-            <span style={{ flex: 1 }}>Tus birras favoritas</span>
+            <span style={{ flex: 1 }}>{t('Settings.favoritas')}</span>
             <span className="num" style={{ color: 'var(--faint)', fontSize: 'var(--t-3)' }}>
               {user.favoriteStyles.length + user.favoriteBrands.length || '—'}
             </span>
@@ -241,49 +244,47 @@ export function SettingsScreen({ user, onSession }: {
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-2) 0 0',
             lineHeight: 1.5, textWrap: 'pretty',
           }}>
-            Deciden cuáles son las tres birras que se ven primero en cada bar.
+            {t('Settings.favoritasAyuda')}
           </p>
         </div>
 
-        <SectionLabel>Avisos</SectionLabel>
+        <SectionLabel>{t('Settings.avisos')}</SectionLabel>
         {/* Los dos por separado y no un solo interruptor: en un bar con gente
             el sonido molesta y la vibración no, y quien quiera apagar uno casi
             nunca quiere apagar el otro. */}
         <Interruptor
-          label="Vibración"
-          hint="Un toque corto al votar, confirmar un precio o marcar un favorito."
+          label={t('Settings.vibracion')}
+          hint={t('Settings.vibracionAyuda')}
           on={vibrar}
           onChange={v => { setVibrar(v); fb.setVibrar(v); if (v) fb.tap() }}
         />
         <Interruptor
-          label="Sonido"
-          hint="Lo mismo, con un tono corto. En iPhone es el único de los dos que funciona."
+          label={t('Settings.sonido')}
+          hint={t('Settings.sonidoAyuda')}
           on={sonido}
           onChange={v => { setSonido(v); fb.setSonido(v); if (v) fb.tap() }}
         />
 
-        <SectionLabel>Al cargar precios</SectionLabel>
+        <SectionLabel>{t('Settings.alCargar')}</SectionLabel>
 
         <Field
-          label="Moneda"
-          hint={'La de los bares que cargues a mano. Si elegís el bar del buscador, '
-            + 'la moneda sale del país y esto no se usa. Los precios se muestran '
-            + 'siempre en la moneda del bar: no se convierte nada.'}
+          label={t('Onboarding.ajustes.moneda')}
+          hint={t('Settings.monedaAyuda')}
         >
           <CurrencySelect
             value={user.currency}
-            onChange={v => guardar({ currency: v }, 'Moneda cambiada')}
+            onChange={v => guardar({ currency: v }, t('Settings.monedaCambiada'))}
           />
         </Field>
 
         <Field
-          label="Tamaño del vaso"
-          hint="Con qué tamaño arranca el teclado de precio. Una pinta son 473 ml acá y en Estados Unidos, y 568 en el Reino Unido."
+          label={t('Onboarding.ajustes.vaso')}
+          hint={t('Settings.vasoAyuda')}
         >
           <select
             className="lbl" value={user.defaultSizeMl}
             onChange={e => guardar(
-              { defaultSizeMl: Number(e.target.value) }, 'Tamaño cambiado',
+              { defaultSizeMl: Number(e.target.value) }, t('Settings.tamanoCambiado'),
             )}
             /* `--t-field` y no un paso de la escala: abajo de 16px Safari iOS
                hace zoom al enfocar el campo y no lo devuelve. La red de
@@ -298,19 +299,19 @@ export function SettingsScreen({ user, onSession }: {
           >
             {[330, 355, 473, 500, 568, 1000].map(ml => (
               <option key={ml} value={ml}>
-                {ml} ml{ml === 473 ? ' — pinta' : ml === 568 ? ' — pinta UK' : ''}
+                {t(ml === 473 ? 'Onboarding.ajustes.pinta' : ml === 568 ? 'Onboarding.ajustes.pintaUk' : 'Onboarding.ajustes.ml', { n: ml })}
               </option>
             ))}
           </select>
         </Field>
 
-        <SectionLabel>Al abrir la app</SectionLabel>
+        <SectionLabel>{t('Settings.alAbrir')}</SectionLabel>
 
         <div style={{
           padding: 'var(--s-3) 2px', borderBottom: '1px solid var(--hairline)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-            <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>Radio de búsqueda</span>
+            <span className="lbl" style={{ fontSize: 'var(--t-4)' }}>{t('Onboarding.ajustes.radio')}</span>
             {/* El radio es dato informativo —de los que ahora lleva `--info`— y
                 es un número que se compara con el de la última vez, así que va
                 tabular. En `--acento` competía con el CTA de guardar. */}
@@ -336,7 +337,7 @@ export function SettingsScreen({ user, onSession }: {
               setRadius(v)
               clearTimeout(guardarRadio.current)
               guardarRadio.current = setTimeout(
-                () => guardar({ defaultRadiusM: v }, 'Radio cambiado'), 500,
+                () => guardar({ defaultRadiusM: v }, t('Settings.radioCambiado')), 500,
               )
             }}
             style={{
@@ -348,7 +349,7 @@ export function SettingsScreen({ user, onSession }: {
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-2) 0 0',
             textWrap: 'pretty',
           }}>
-            Con cuánto a la redonda abre el mapa y la lista.
+            {t('Settings.radioAyuda')}
           </p>
         </div>
 
@@ -363,7 +364,7 @@ export function SettingsScreen({ user, onSession }: {
 
         {blocked.length > 0 && (
           <>
-            <SectionLabel>Personas bloqueadas</SectionLabel>
+            <SectionLabel>{t('Settings.bloqueadas')}</SectionLabel>
             {blocked.map(p => (
               <div key={p.id} className="row" style={{ minHeight: 44 }}>
                 <button onClick={() => nav(`/usuario/${p.id}`)} className="lbl" style={{
@@ -374,26 +375,24 @@ export function SettingsScreen({ user, onSession }: {
                 <button
                   onClick={async () => {
                     await api.unblockPerson(p.id).catch(() => {})
-                    setToast(`Desbloqueaste a ${p.displayName}`)
+                    setToast(t('Settings.desbloqueaste', { nombre: p.displayName }))
                     loadBlocked()
                   }}
                   className="lbl"
                   style={{ fontSize: 'var(--t-3)', color: 'var(--info)' }}
-                >Desbloquear</button>
+                >{t('Settings.desbloquear')}</button>
               </div>
             ))}
             <p style={{
               color: 'var(--faint)', fontSize: 'var(--t-2)', margin: 'var(--s-3) 0 0',
               lineHeight: 1.5, textWrap: 'pretty',
             }}>
-              Con alguien bloqueado, ninguno de los dos ve los comentarios ni las
-              fotos del otro. Los precios que cargó siguen en el mapa: son datos
-              sobre bares.
+              {t('Settings.bloqueadasAyuda')}
             </p>
           </>
         )}
 
-        <SectionLabel>Zona de riesgo</SectionLabel>
+        <SectionLabel>{t('Settings.riesgo')}</SectionLabel>
         {/* Lo destructivo se dibuja con borde y no con relleno: el relleno
             coral era un hex suelto y además se leía como un CTA, que es
             justo lo que no tiene que parecer el botón que borra la cuenta.
@@ -404,20 +403,18 @@ export function SettingsScreen({ user, onSession }: {
           borderRadius: 'var(--r-2)', border: '1px solid var(--danger)',
           textAlign: 'left', fontSize: 'var(--t-4)',
           background: 'transparent', color: 'var(--danger)',
-        }}>Borrar mi cuenta</button>
+        }}>{t('Settings.borrarCuenta')}</button>
       </div>
 
       {confirmDelete && (
         <Confirm
-          title="¿Borrar tu cuenta?"
+          title={t('Settings.borrarTitulo')}
           body={<>
-            Se borra tu cuenta, tus reseñas y tu sesión. No se puede deshacer.
+            {t('Settings.borrar1')}
             <br /><br />
-            Los precios que cargaste quedan en el mapa, pero sin tu nombre: son
-            datos sobre bares, no sobre vos, y borrarlos dejaría peor informado
-            a todo el mundo.
+            {t('Settings.borrar2')}
           </>}
-          confirmLabel="Borrar cuenta" danger requireWord="BORRAR"
+          confirmLabel={t('Settings.borrarBoton')} danger requireWord={t('Settings.borrarPalabra')}
           onCancel={() => setConfirmDelete(false)}
           onConfirm={async () => {
             setConfirmDelete(false)

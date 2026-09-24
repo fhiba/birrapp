@@ -1,0 +1,55 @@
+{
+  "titulo": "Dashboard",
+  "stat": {
+    "cuentas7": "accounts · 7 d",
+    "cuentas30": "accounts · 30 d",
+    "cuentasTotal": "accounts in total",
+    "aportaron30": "contributed · 30 d",
+    "precios7": "prices · 7 d",
+    "baresConPrecio": "bars with a price\nout of {n}"
+  },
+  "cobertura": "Coverage: {pct}% of bars have at least one unexpired price.",
+  "masNuevos": "Newest",
+  "masAportes": "Most contributions",
+  "ordenarPor": "Sort by {que}",
+  "nadie": "Nobody has signed up yet.",
+  "rolDe": "Role of {nombre}",
+  "bloqueado": "BLOCKED",
+  "seAnoto": "{email} · signed up {cuando}",
+  "sinAportes": "No contributions yet",
+  "ultimo": "last",
+  "dias": "{n} d",
+  "serie": {
+    "precios": "prices",
+    "confirm": "confirm.",
+    "bares": "bars",
+    "fotos": "photos",
+    "notas": "ratings",
+    "sinSesion": "signed out",
+    "conSesion": "signed in",
+    "seAnotaron": "signed up",
+    "aportaron": "contributed",
+    "cobertura": "coverage"
+  },
+  "card": {
+    "aportesDia": "Contributions per day",
+    "ult30": "last 30 days",
+    "altas": "Sign-ups vs. contributors",
+    "altasHint": "per week · 12 weeks",
+    "cobertura": "Map coverage",
+    "coberturaHint": "% with unexpired price · 90 days",
+    "quienEntra": "Who comes in",
+    "quienEntraHint": "visitors per day · 30 days",
+    "sostienen": "Who keeps this going",
+    "sostienenHint": "the top 5 account for {pct}% of contributions",
+    "activacion": "Activation",
+    "activacionHint": "where people drop off · web visitors only"
+  },
+  "embudo": {
+    "visitantes": "visitors",
+    "cuentas": "accounts",
+    "alguna": "contributed once",
+    "cinco": "contributed 5 or more",
+    "activo": "active · 30 d"
+  }
+}

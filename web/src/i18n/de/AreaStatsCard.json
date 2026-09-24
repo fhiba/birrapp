@@ -1,0 +1,14 @@
+{
+  "estilos": "{n} Sorten",
+  "aLaRedonda": "im Umkreis von {radio}",
+  "pintaTipico": "das Pint, typisch",
+  "piso": "ab {precio}",
+  "tope": "bis {precio}",
+  "promedio": "Durchschnitt",
+  "bares": "Bars",
+  "mejor": "Die beste der Gegend",
+  "mejorPorque": "{nota} ★ mit {votos}, für {precio}",
+  "masBarata": "Die günstigste",
+  "masBarataPorque": "{precio} für {ml} ml",
+  "nota": "Alles auf ein Pint von 473 ml umgerechnet, aus {n} Preisen, die jünger als 45 Tage sind. Ältere zählen nicht."
+}

@@ -1,0 +1,36 @@
+{
+  "errorTitulo": "No pudimos traer tus birras",
+  "contando": "Contando…",
+  "titulo": "Mis birras",
+  "vacio": {
+    "titulo": "Anotá tu primera birra",
+    "hint": "Desde el “+” del mapa, en “Me tomé una birra”. Se anota de un toque: el bar donde estás viene puesto y el resto es opcional.",
+    "accion": "Ir al mapa"
+  },
+  "quienTomoMas": "Quién tomó más por tu zona",
+  "birras": {
+    "one": "birra",
+    "other": "birras"
+  },
+  "diasSeguidos": "días seguidos",
+  "record": "tu récord: {n}",
+  "bares": {
+    "one": "bar",
+    "other": "bares"
+  },
+  "mesAnterior": "Mes anterior",
+  "mesSiguiente": "Mes siguiente",
+  "diaVacio": "Ese día no anotaste nada.",
+  "unaBirra": "Una birra",
+  "enBar": "en {bar}",
+  "borrar": "Borrar esta birra",
+  "tusBares": "Tus bares",
+  "emblemas": "Emblemas",
+  "diaAria": {
+    "one": "{dia}: 1 birra",
+    "other": "{dia}: {count} birras"
+  },
+  "menos": "menos",
+  "mas": "más",
+  "diaSinBirras": "{dia}: sin birras"
+}

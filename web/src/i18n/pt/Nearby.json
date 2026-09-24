@@ -1,0 +1,27 @@
+{
+  "titulo": "Perto",
+  "cambiar": "· mudar",
+  "desdePunto": "A partir do ponto escolhido",
+  "radioAria": "Raio da região",
+  "masBarata": "MAIS BARATA POR PERTO",
+  "ml": "{n} ml",
+  "ultimo": "O ÚLTIMO QUE FOI INFORMADO",
+  "verMas": "Ver mais {n}",
+  "otroBar": "Passou por outro bar?",
+  "viejos": {
+    "one": "Um bar no seu raio tem preço de mais de {dias} dias.",
+    "other": "{count} bares no seu raio têm preço de mais de {dias} dias."
+  },
+  "sinDatos": "Ainda não há preços suficientes num raio de {radio} para tirar uma média que signifique algo. Com três já dá.",
+  "comoViene": "Como está a região · {radio}",
+  "muestras": {
+    "one": "{precios} preços · 1 bar",
+    "other": "{precios} preços · {count} bares"
+  },
+  "quienTomo": "QUEM BEBEU MAIS POR AQUI",
+  "nadie": "Ninguém anotou nada por aqui ainda. Só contam as cervejas anotadas dizendo em que bar, e até agora ninguém fez isso nesta região.",
+  "enDias": {
+    "one": "em 1 dia",
+    "other": "em {count} dias"
+  }
+}

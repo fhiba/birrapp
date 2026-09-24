@@ -6,6 +6,7 @@ import type {
 } from '../data/types'
 import { formatPrice, shortAge } from '../data/format'
 import { Confirm } from '../ui/Chrome'
+import { LOCALE, t } from '../i18n'
 
 /**
  * Lo que se está mirando en la ficha. Viaja en el `state` del historial y no
@@ -20,7 +21,9 @@ type Sel =
   | { kind: 'style'; style: PendingStyle }
   | { kind: 'flag'; flag: Flag }
 
-const TIPO: Record<string, string> = { bar: 'Bar', price: 'Precio', review: 'Reseña' }
+const TIPO: Record<string, string> = {
+  bar: t('Moderation.tipo.bar'), price: t('Moderation.tipo.price'), review: t('Moderation.tipo.review'),
+}
 
 export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
   const nav = useNavigate()
@@ -67,11 +70,11 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
     }}>
       <div className="desk-narrow">
       <div style={{ padding: '0 18px' }}>
-        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+        <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 'var(--s-3)', margin: 'var(--s-4) 0 0',
         }}>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>Moderación</h1>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{t('Moderation.titulo')}</h1>
           {!loading && total > 0 && (
             /* En ámbar y no en hueso: el número dice "hay esto esperando", que
                es el mismo estado que marca cada fila de la cola. En el acento
@@ -100,7 +103,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--info)" aria-hidden>
             <path d="M3 13h4v8H3v-8Zm7-9h4v17h-4V4Zm7 5h4v12h-4V9Z" />
           </svg>
-          <span style={{ flex: 1, textAlign: 'left' }}>Usuarios y aportes</span>
+          <span style={{ flex: 1, textAlign: 'left' }}>{t('Moderation.usuarios')}</span>
           <span aria-hidden style={{ color: 'var(--info)' }}>›</span>
         </button>
       </div>
@@ -110,11 +113,11 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
       {!loading && pending.length === 0 && flags.length === 0
         && newBrands.length === 0 && newStyles.length === 0 && (
         <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 48 }}>
-          Nada pendiente. Todo en orden.
+          {t('Moderation.nadaPendiente')}
         </p>
       )}
 
-      {pending.length > 0 && <H>Bares pendientes · {pending.length}</H>}
+      {pending.length > 0 && <H>{t('Moderation.baresPendientes', { n: pending.length })}</H>}
       {pending.map(b => (
         <Fila key={b.id}>
           <Abrir onClick={() => abrir({ kind: 'bar', bar: b })}>
@@ -133,9 +136,9 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
             <Firma author={b.author} />
           </Abrir>
           <Acciones>
-            <Btn primary onClick={() => act(() => api.approveBar(b.id))}>Aprobar</Btn>
-            <Btn onClick={() => act(() => api.rejectBar(b.id))}>Rechazar</Btn>
-            <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>Eliminar</Btn>
+            <Btn primary onClick={() => act(() => api.approveBar(b.id))}>{t('Moderation.aprobar')}</Btn>
+            <Btn onClick={() => act(() => api.rejectBar(b.id))}>{t('Moderation.rechazar')}</Btn>
+            <Btn danger onClick={() => act(() => api.deleteBar(b.id))}>{t('Moderation.eliminar')}</Btn>
           </Acciones>
         </Fila>
       ))}
@@ -146,20 +149,20 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           sólo esa persona. Aprobar es el caso normal —lo que falta en la lista
           es casi siempre una cervecería chica real—; rechazar es para
           duplicados y para nombres que no son una marca. */}
-      {newBrands.length > 0 && <H>Marcas nuevas · {newBrands.length}</H>}
+      {newBrands.length > 0 && <H>{t('Moderation.marcasNuevas', { n: newBrands.length })}</H>}
       {newBrands.map(b => (
         <Fila key={b.slug}>
           <Abrir onClick={() => abrir({ kind: 'brand', brand: b })}>
             <div className="lbl">{b.name}</div>
             <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
-              {b.craft ? 'artesanal' : 'industrial'}
-              {b.contrib?.barName && ` · en ${b.contrib.barName}`}
+              {b.craft ? t('Moderation.artesanal') : t('Moderation.industrial')}
+              {b.contrib?.barName && t('Moderation.enBarSep', { bar: b.contrib.barName })}
             </div>
             <Firma author={b.author} />
           </Abrir>
           <Acciones>
-            <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>Aprobar</Btn>
-            <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>Rechazar</Btn>
+            <Btn primary onClick={() => act(() => api.approveBrand(b.slug))}>{t('Moderation.aprobar')}</Btn>
+            <Btn onClick={() => act(() => api.rejectBrand(b.slug))}>{t('Moderation.rechazar')}</Btn>
           </Acciones>
         </Fila>
       ))}
@@ -168,32 +171,31 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           hasta que se apruebe, el estilo lo ve sólo quien lo propuso.
           Rechazar no lo borra —puede haber precios colgando— sólo lo saca de
           la lista. */}
-      {newStyles.length > 0 && <H>Estilos nuevos · {newStyles.length}</H>}
+      {newStyles.length > 0 && <H>{t('Moderation.estilosNuevos', { n: newStyles.length })}</H>}
       {newStyles.map(st => (
         <Fila key={st.slug}>
           <Abrir onClick={() => abrir({ kind: 'style', style: st })}>
             <div className="lbl">{st.name}</div>
             <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
-              {st.contrib?.barName ? `en ${st.contrib.barName}` : st.slug}
+              {st.contrib?.barName ? t('Moderation.enBar', { bar: st.contrib.barName }) : st.slug}
             </div>
             <Firma author={st.author} />
           </Abrir>
           <Acciones>
-            <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>Aprobar</Btn>
-            <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>Rechazar</Btn>
+            <Btn primary onClick={() => act(() => api.approveStyle(st.slug))}>{t('Moderation.aprobar')}</Btn>
+            <Btn onClick={() => act(() => api.rejectStyle(st.slug))}>{t('Moderation.rechazar')}</Btn>
           </Acciones>
         </Fila>
       ))}
 
-      {flags.length > 0 && <H>Denuncias abiertas · {flags.length}</H>}
+      {flags.length > 0 && <H>{t('Moderation.denuncias', { n: flags.length })}</H>}
       {flags.map(f => (
         <Fila key={f.id}>
           <Abrir onClick={() => abrir({ kind: 'flag', flag: f })}>
             {/* El título es qué se quiso cargar y dónde, no "price #42": el id
                 no le dice nada a nadie y era todo lo que había. */}
             <div className="lbl" style={{ fontSize: 'var(--t-4)' }}>
-              {TIPO[f.targetType] ?? f.targetType}
-              {f.contrib?.barName ? ` en ${f.contrib.barName}` : ` #${f.targetId}`}
+              {tituloDenuncia(f)}
             </div>
             <div style={{ fontSize: 'var(--t-3)', textWrap: 'pretty' }}>{f.reason}</div>
             {f.targetSummary && (
@@ -208,13 +210,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
               <>
                 <Btn primary onClick={() => act(async () => {
                   await api.approvePrice(f.targetId); await api.resolveFlag(f.id)
-                })}>Publicar</Btn>
+                })}>{t('Moderation.publicar')}</Btn>
                 <Btn onClick={() => act(async () => {
                   await api.removePrice(f.targetId); await api.resolveFlag(f.id)
-                })}>Descartar</Btn>
+                })}>{t('Moderation.descartar')}</Btn>
               </>
             ) : (
-              <Btn primary onClick={() => act(() => api.resolveFlag(f.id))}>Resolver</Btn>
+              <Btn primary onClick={() => act(() => api.resolveFlag(f.id))}>{t('Moderation.resolver')}</Btn>
             )}
           </Acciones>
         </Fila>
@@ -229,7 +231,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
           o sea después de que ya pasó por la pantalla de todos. Con los
           pulgares subiendo el premio a subir fotos, esperar la denuncia deja
           de alcanzar. */}
-      {photos.length > 0 && <H>Fotos recientes · {photos.length}</H>}
+      {photos.length > 0 && <H>{t('Moderation.fotosRecientes', { n: photos.length })}</H>}
       {photos.length > 0 && (
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
@@ -254,7 +256,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                 <div className="lbl" style={{
                   fontSize: 'var(--t-1)', letterSpacing: '.14em',
                   textTransform: 'uppercase', color: 'var(--fresh)',
-                }}>Publicada</div>
+                }}>{t('Moderation.publicada')}</div>
                 <div className="lbl" style={{
                   fontSize: 'var(--t-2)', marginTop: 2,
                 }}>{ph.barName}</div>
@@ -265,9 +267,9 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                   {/* Quién y hace cuánto: es el contexto que decide. Una foto
                       rara de una cuenta de ayer no es lo mismo que una de
                       alguien que viene cargando precios hace meses. */}
-                  {ph.authorName ?? 'sin autor'}
+                  {ph.authorName ?? t('Moderation.sinAutor')}
                   {' · '}
-                  {ph.ageDays <= 0 ? 'hoy' : ph.ageDays === 1 ? 'ayer' : `hace ${ph.ageDays} d`}
+                  {shortAge(ph.ageDays)}
                   {ph.votes > 0 && ` · ${ph.votes} 👍`}
                 </div>
                 {/* El mismo `Btn danger` que las colas de arriba y no un
@@ -275,7 +277,7 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
                     destructivo que quedaba en la pantalla, y encima sin área de
                     toque propia. Borrar una foto borra el archivo del bucket. */}
                 <div style={{ marginTop: 'var(--s-2)' }}>
-                  <Btn danger onClick={() => setKillPhoto(ph)}>Eliminar</Btn>
+                  <Btn danger onClick={() => setKillPhoto(ph)}>{t('Moderation.eliminar')}</Btn>
                 </div>
               </div>
             </div>
@@ -290,16 +292,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
 
       {killPhoto && (
         <Confirm
-          title="¿Eliminar esta foto?"
+          title={t('BarDetail.fotoEliminarTitulo')}
           body={<>
-            Se borra el archivo del bucket, no sólo de la lista.
+            {t('BarDetail.foto1')}
             <br /><br />
-            Es distinto de bajar un precio o una reseña: las fotos se sirven
-            desde una URL pública, así que mientras el archivo exista cualquiera
-            con el link la sigue viendo. Por eso hay que borrarlo, y por eso
-            esto no se puede deshacer.
+            {t('BarDetail.foto2')}
           </>}
-          confirmLabel="Eliminar" danger
+          confirmLabel={t('Moderation.eliminar')} danger
           onCancel={() => setKillPhoto(null)}
           onConfirm={() => {
             const ph = killPhoto
@@ -322,6 +321,13 @@ export function ModerationScreen({ onChanged }: { onChanged: () => void }) {
    hijos —el texto y el número—, así que `String` caía en
    `Array.prototype.toString`, que une con coma: se leía «BARES PENDIENTES · ,3».
    El `.toUpperCase()` además duplicaba lo que ya hace el CSS. */
+const tituloDenuncia = (f: Flag) => {
+  const tipo = TIPO[f.targetType] ?? f.targetType
+  return f.contrib?.barName
+    ? t('Moderation.tituloDenuncia', { tipo, bar: f.contrib.barName })
+    : t('Moderation.tituloDenunciaId', { tipo, id: f.targetId })
+}
+
 const H = ({ children }: { children: React.ReactNode }) => (
   <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>{children}</h2>
 )
@@ -410,13 +416,14 @@ const Abrir = ({ onClick, children }: {
 const Firma = ({ author }: { author: Author | null }) => (
   <div style={{ color: 'var(--faint)', fontSize: 'var(--t-1)' }}>
     {author
-      ? `${author.name} · cuenta de ${shortAge(author.ageDays)}${author.banned ? ' · baneado' : ''}`
-      : 'sin autor (la cuenta se borró)'}
+      ? t(author.banned ? 'Moderation.firmaBaneado' : 'Moderation.firma',
+        { nombre: author.name, edad: shortAge(author.ageDays) })
+      : t('Moderation.firmaBorrada')}
   </div>
 )
 
 const fecha = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+  iso ? new Date(iso).toLocaleString(LOCALE, { dateStyle: 'short', timeStyle: 'short' }) : '—'
 
 /** Una fila etiqueta/valor de la ficha. */
 const Dato = ({ label, value, num }: {
@@ -455,15 +462,22 @@ const Fuera = ({ href, children }: { href: string; children: React.ReactNode }) 
  */
 const Operacion = ({ verbo, contrib }: { verbo: string; contrib: Contrib | null }) => {
   if (!contrib) {
-    return <p style={FRASE}>{verbo} — no quedó registro de la carga que lo trajo.</p>
+    return <p style={FRASE}>{t('Moderation.op.sinRegistro', { verbo })}</p>
   }
   const plata = contrib.price != null
-    ? `${formatPrice(contrib.price, contrib.currency ?? 'ARS')} los ${contrib.sizeMl} ml`
+    ? t('Moderation.op.plata', {
+      precio: formatPrice(contrib.price, contrib.currency ?? 'ARS'), ml: contrib.sizeMl ?? '',
+    })
     : null
-  const birra = [contrib.styleName, contrib.brandName].filter(Boolean).join(' de ')
+  const birra = contrib.styleName && contrib.brandName
+    ? t('Moderation.op.birra', { estilo: contrib.styleName, marca: contrib.brandName })
+    : contrib.styleName || contrib.brandName
   return (
     <p style={FRASE}>
-      {[verbo, plata, birra && `de ${birra}`, contrib.barName && `en ${contrib.barName}`]
+      {[
+        verbo, plata, birra && t('Moderation.op.de', { birra }),
+        contrib.barName && t('Moderation.op.en', { bar: contrib.barName }),
+      ]
         .filter(Boolean).join(' ')}.
     </p>
   )
@@ -477,18 +491,18 @@ const FRASE = {
 /** Quién lo cargó, con el link a su perfil para ver el resto de sus aportes. */
 const Quien = ({ author }: { author: Author | null }) => {
   const nav = useNavigate()
-  if (!author) return <Dato label="Autor" value="sin autor: la cuenta se borró" />
+  if (!author) return <Dato label={t('Moderation.autor')} value={t('Moderation.autorBorrado')} />
   return (
     <>
-      <Dato label="Autor" value={
+      <Dato label={t('Moderation.autor')} value={
         <button onClick={() => nav(`/usuario/${author.id}`)} className="lbl" style={{
           padding: 0, color: 'var(--info)', fontSize: 'var(--t-3)',
         }}>{author.name} ›</button>
       } />
-      <Dato label="Cuenta" value={
+      <Dato label={t('Moderation.cuenta')} value={
         author.banned
-          ? <span style={{ color: 'var(--danger)' }}>baneada · creada {shortAge(author.ageDays)}</span>
-          : `creada ${shortAge(author.ageDays)}`
+          ? <span style={{ color: 'var(--danger)' }}>{t('Moderation.baneadaCreada', { edad: shortAge(author.ageDays) })}</span>
+          : t('Moderation.creada', { edad: shortAge(author.ageDays) })
       } />
     </>
   )
@@ -515,13 +529,9 @@ function Ficha({ sel, onClose, act }: {
   const titulo = sel.kind === 'bar' ? sel.bar.name
     : sel.kind === 'brand' ? sel.brand.name
       : sel.kind === 'style' ? sel.style.name
-        : `${TIPO[sel.flag.targetType] ?? sel.flag.targetType}${
-          sel.flag.contrib?.barName ? ` en ${sel.flag.contrib.barName}` : ` #${sel.flag.targetId}`}`
+        : tituloDenuncia(sel.flag)
 
-  const seccion = sel.kind === 'bar' ? 'Bar nuevo'
-    : sel.kind === 'brand' ? 'Marca nueva'
-      : sel.kind === 'style' ? 'Estilo nuevo'
-        : 'Denuncia abierta'
+  const seccion = t(`Moderation.seccion.${sel.kind}` as const)
 
   return (
     <div style={{
@@ -530,7 +540,7 @@ function Ficha({ sel, onClose, act }: {
     }}>
       <div className="desk-narrow" style={{ padding: '0 18px' }}>
         <button onClick={onClose} className="icon-btn" style={{ background: 'var(--elevated)' }}
-          aria-label="Volver">←</button>
+          aria-label={t('comun.volver')}>←</button>
 
         <h2 className="section-label" style={{ padding: 0, marginTop: 'var(--s-4)' }}>{seccion}</h2>
         <h1 className="ttl" style={{ fontSize: 'var(--t-6)', margin: 0 }}>{titulo}</h1>
@@ -539,29 +549,29 @@ function Ficha({ sel, onClose, act }: {
 
         {sel.kind === 'brand' && (
           <>
-            <Operacion verbo="Se quiere habilitar esta marca. Se creó cargando"
+            <Operacion verbo={t('Moderation.marcaVerbo')}
               contrib={sel.brand.contrib} />
-            <Dato label="Tipo" value={sel.brand.craft ? 'artesanal' : 'industrial'} />
-            <Dato label="Slug" value={sel.brand.slug} />
-            <Dato label="Cargada" value={fecha(sel.brand.createdAt)} />
+            <Dato label={t('Moderation.tipoLabel')} value={sel.brand.craft ? t('Moderation.artesanal') : t('Moderation.industrial')} />
+            <Dato label={t('Moderation.slug')} value={sel.brand.slug} />
+            <Dato label={t('Moderation.cargada')} value={fecha(sel.brand.createdAt)} />
             <Quien author={sel.brand.author} />
             <Acciones>
-              <Btn primary onClick={() => hacer(() => api.approveBrand(sel.brand.slug))}>Aprobar</Btn>
-              <Btn onClick={() => hacer(() => api.rejectBrand(sel.brand.slug))}>Rechazar</Btn>
+              <Btn primary onClick={() => hacer(() => api.approveBrand(sel.brand.slug))}>{t('Moderation.aprobar')}</Btn>
+              <Btn onClick={() => hacer(() => api.rejectBrand(sel.brand.slug))}>{t('Moderation.rechazar')}</Btn>
             </Acciones>
           </>
         )}
 
         {sel.kind === 'style' && (
           <>
-            <Operacion verbo="Se quiere habilitar este estilo. Se propuso cargando"
+            <Operacion verbo={t('Moderation.estiloVerbo')}
               contrib={sel.style.contrib} />
-            <Dato label="Slug" value={sel.style.slug} />
-            <Dato label="Propuesto" value={fecha(sel.style.contrib?.createdAt)} />
+            <Dato label={t('Moderation.slug')} value={sel.style.slug} />
+            <Dato label={t('Moderation.propuesto')} value={fecha(sel.style.contrib?.createdAt)} />
             <Quien author={sel.style.author} />
             <Acciones>
-              <Btn primary onClick={() => hacer(() => api.approveStyle(sel.style.slug))}>Aprobar</Btn>
-              <Btn onClick={() => hacer(() => api.rejectStyle(sel.style.slug))}>Rechazar</Btn>
+              <Btn primary onClick={() => hacer(() => api.approveStyle(sel.style.slug))}>{t('Moderation.aprobar')}</Btn>
+              <Btn onClick={() => hacer(() => api.rejectStyle(sel.style.slug))}>{t('Moderation.rechazar')}</Btn>
             </Acciones>
           </>
         )}
@@ -589,35 +599,34 @@ function FichaBar({ bar, hacer }: {
   return (
     <>
       <p style={FRASE}>
-        Se quiere agregar este bar al mapa. Lo cargaron a mano
-        {bar.googlePlaceId ? ', pero trae place_id de Google' : ', sin pasar por el buscador de Google'}.
+        {bar.googlePlaceId ? t('Moderation.barConPlace') : t('Moderation.barSinPlace')}
       </p>
-      <Dato label="Dirección" value={bar.address ?? 'no cargó ninguna'} />
-      <Dato label="Barrio" value={bar.neighbourhood ?? '—'} />
-      <Dato label="Coordenadas" num value={`${bar.lat.toFixed(6)}, ${bar.lng.toFixed(6)}`} />
-      <Dato label="País" value={`${bar.countryCode ?? '—'} · precios en ${bar.currency}`} />
-      <Dato label="Place ID" value={bar.googlePlaceId ?? 'no vino del buscador'} />
-      <Dato label="Cargado" value={fecha(bar.createdAt)} />
+      <Dato label={t('Moderation.direccion')} value={bar.address ?? t('Moderation.sinDireccion')} />
+      <Dato label={t('Moderation.barrio')} value={bar.neighbourhood ?? '—'} />
+      <Dato label={t('Moderation.coordenadas')} num value={`${bar.lat.toFixed(6)}, ${bar.lng.toFixed(6)}`} />
+      <Dato label={t('Moderation.pais')} value={t('Moderation.paisValor', { pais: bar.countryCode ?? '—', moneda: bar.currency })} />
+      <Dato label={t('Moderation.placeId')} value={bar.googlePlaceId ?? t('Moderation.sinPlaceId')} />
+      <Dato label={t('Moderation.cargado')} value={fecha(bar.createdAt)} />
       <Quien author={bar.author} />
 
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 'var(--s-2)', margin: 'var(--s-4) 0',
       }}>
         <Fuera href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${punto}`}>
-          Street View
+          {t('Moderation.streetView')}
         </Fuera>
         <Fuera href={`https://www.google.com/maps/search/?api=1&query=${punto}`}>
-          Ver el punto
+          {t('Moderation.verPunto')}
         </Fuera>
         <Fuera href={`https://www.google.com/maps/search/?api=1&query=${busqueda}`}>
-          Buscar por nombre
+          {t('Moderation.buscarNombre')}
         </Fuera>
       </div>
 
       <Acciones>
-        <Btn primary onClick={() => hacer(() => api.approveBar(bar.id))}>Aprobar</Btn>
-        <Btn onClick={() => hacer(() => api.rejectBar(bar.id))}>Rechazar</Btn>
-        <Btn danger onClick={() => hacer(() => api.deleteBar(bar.id))}>Eliminar</Btn>
+        <Btn primary onClick={() => hacer(() => api.approveBar(bar.id))}>{t('Moderation.aprobar')}</Btn>
+        <Btn onClick={() => hacer(() => api.rejectBar(bar.id))}>{t('Moderation.rechazar')}</Btn>
+        <Btn danger onClick={() => hacer(() => api.deleteBar(bar.id))}>{t('Moderation.eliminar')}</Btn>
       </Acciones>
     </>
   )
@@ -638,19 +647,19 @@ function FichaDenuncia({ flag, hacer }: {
   return (
     <>
       <Operacion
-        verbo={esPrecio ? 'Se quiere cargar' : 'Se denunció lo cargado'}
+        verbo={esPrecio ? t('Moderation.cargarVerbo') : t('Moderation.denunciadoVerbo')}
         contrib={flag.contrib}
       />
-      <Dato label="Motivo" value={flag.reason} />
-      <Dato label="Denunció" value={flag.reporterName ?? 'el servidor (automático)'} />
-      <Dato label="Denunciado" value={fecha(flag.createdAt)} />
-      {flag.targetSummary && <Dato label="Contenido" value={flag.targetSummary} />}
-      <Dato label="Referencia" num value={`${flag.targetType} #${flag.targetId}`} />
+      <Dato label={t('Moderation.motivo')} value={flag.reason} />
+      <Dato label={t('Moderation.denuncio')} value={flag.reporterName ?? t('Moderation.servidor')} />
+      <Dato label={t('Moderation.denunciado')} value={fecha(flag.createdAt)} />
+      {flag.targetSummary && <Dato label={t('Moderation.contenido')} value={flag.targetSummary} />}
+      <Dato label={t('Moderation.referencia')} num value={`${flag.targetType} #${flag.targetId}`} />
       <Quien author={flag.author} />
 
       {flag.contrib?.barId != null && (
         <div style={{ margin: 'var(--s-4) 0' }}>
-          <Btn onClick={() => nav(`/bar/${flag.contrib!.barId}`)}>Abrir el bar ›</Btn>
+          <Btn onClick={() => nav(`/bar/${flag.contrib!.barId}`)}>{t('Moderation.abrirBar')}</Btn>
         </div>
       )}
 
@@ -659,13 +668,13 @@ function FichaDenuncia({ flag, hacer }: {
           <>
             <Btn primary onClick={() => hacer(async () => {
               await api.approvePrice(flag.targetId); await api.resolveFlag(flag.id)
-            })}>Publicar</Btn>
+            })}>{t('Moderation.publicar')}</Btn>
             <Btn onClick={() => hacer(async () => {
               await api.removePrice(flag.targetId); await api.resolveFlag(flag.id)
-            })}>Descartar</Btn>
+            })}>{t('Moderation.descartar')}</Btn>
           </>
         ) : (
-          <Btn primary onClick={() => hacer(() => api.resolveFlag(flag.id))}>Resolver</Btn>
+          <Btn primary onClick={() => hacer(() => api.resolveFlag(flag.id))}>{t('Moderation.resolver')}</Btn>
         )}
       </Acciones>
     </>

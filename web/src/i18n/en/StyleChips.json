@@ -1,0 +1,9 @@
+{
+  "sinEstilo": "No style",
+  "otro": "Another style",
+  "sinLista": "We couldn't load the list of styles. It retries on its own; if it keeps happening, try without a content blocker or from another network — you can log the beer anyway, without a style.",
+  "placeholder": "Kellerbier, Gose, Sour…",
+  "nuevo": "“{nombre}” isn't on the list. It's accepted anyway and you can use it right away; a moderator will review it.",
+  "yaEsta": "“{nombre}” is already on the list: tap it above.",
+  "dosLetras": "Type at least two letters."
+}

@@ -5,6 +5,7 @@ import { useCached } from '../data/cached'
 import type { Contributor, Leaderboard, PhotoOfMonth, User } from '../data/types'
 import { Empty } from '../ui/Empty'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
+import { LOCALE, t } from '../i18n'
 
 /**
  * Los que más aportaron este mes (BIR-9).
@@ -51,18 +52,18 @@ export function ContributorsScreen({ user }: { user: User | null }) {
       <div className="desk-narrow">
         <div style={{ padding: '0 var(--s-4)' }}>
           <button onClick={() => nav(-1)} className="icon-btn"
-            style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+            style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>
-            Colaboradores
+            {t('Contributors.titulo')}
           </h1>
           {/* Qué son estos puntos, en la etiqueta de sección y no en otro
               renglón de párrafo: es el subtítulo del ámbito, que es justo lo
               que la etiqueta de sección nombra en toda la app. */}
           <div className="section-label" style={{ margin: 'var(--s-1) 0 0' }}>
-            Puntos del mes
+            {t('Contributors.puntosMes')}
           </div>
           <p style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', margin: 'var(--s-2) 0 0' }}>
-            Quiénes mantienen el mapa vivo. La tabla arranca de cero cada mes.
+            {t('Contributors.intro')}
           </p>
           {error && (
             <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>
@@ -74,12 +75,12 @@ export function ContributorsScreen({ user }: { user: User | null }) {
             display: 'flex', alignItems: 'center', gap: 'var(--s-2)',
             padding: 'var(--s-4) var(--s-4) 0',
           }}>
-            <Arrow dir="‹" label="Mes anterior" onClick={() => setMonth(shift(data.month, -1))} />
+            <Arrow dir="‹" label={t('MyBeers.mesAnterior')} onClick={() => setMonth(shift(data.month, -1))} />
             <span className="lbl" style={{ flex: 1, textAlign: 'center', fontSize: 'var(--t-3)' }}>
               {monthLabel(data.month)}
             </span>
             {/* Al futuro no se va: un mes que no pasó siempre está vacío. */}
-            <Arrow dir="›" label="Mes siguiente" onClick={() => setMonth(shift(data.month, 1))}
+            <Arrow dir="›" label={t('MyBeers.mesSiguiente')} onClick={() => setMonth(shift(data.month, 1))}
               disabled={data.month >= thisMonth()} />
           </div>
         )}
@@ -88,11 +89,11 @@ export function ContributorsScreen({ user }: { user: User | null }) {
 
         {data && data.contributors.length === 0 && (
           <Empty
-            title="Todavía nadie con alias este mes"
+            title={t('Contributors.vacio.titulo')}
             hint={user
-              ? 'Elegí un alias en Configuración y tus aportes del mes aparecen acá.'
-              : 'Los aportes cuentan igual; para figurar hace falta una cuenta y un alias.'}
-            action={user ? 'Elegir mi alias' : 'Entrar'}
+              ? t('Contributors.vacio.hintUser')
+              : t('Contributors.vacio.hintAnon')}
+            action={user ? t('Contributors.vacio.elegirAlias') : t('Contributors.vacio.entrar')}
             onAction={() => nav(user ? '/config' : '/perfil')}
           />
         )}
@@ -138,10 +139,8 @@ export function ContributorsScreen({ user }: { user: User | null }) {
             color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
             padding: 'var(--s-5) var(--s-4) 0',
           }}>
-            {data.hidden === 1
-              ? 'Una persona más aportó este mes sin alias puesto, así que no figura.'
-              : `${data.hidden} personas más aportaron este mes sin alias puesto, así que no figuran.`}
-            {' '}Aparecer acá se elige: sin alias, tu nombre no se publica.
+            {t('Contributors.ocultos', { count: data.hidden })}
+            {' '}{t('Contributors.seElige')}
           </p>
         )}
 
@@ -221,15 +220,15 @@ function Fila({ c, puesto, tope, esVos, onOpen }: {
                 <span className="lbl" style={{
                   marginLeft: 'var(--s-2)', fontSize: 10, letterSpacing: '.12em',
                   textTransform: 'uppercase', color: 'var(--info)',
-                }}>vos</span>
+                }}>{t('Contributors.vos')}</span>
               )}
             </span>
             {/* Los bares y no los aportes: es el número que dice si alguien
                 relevó la ciudad o apretó veinte veces en la esquina de su casa. */}
             <span className="num" style={{ fontSize: 'var(--t-2)', color: 'var(--faint)' }}>
-              {c.bars === 1 ? '1 bar' : `${c.bars} bares`}
+              {t('Contributors.bares', { count: c.bars })}
               {' · '}
-              {c.contributions === 1 ? '1 aporte' : `${c.contributions} aportes`}
+              {t('Contributors.aportes', { count: c.contributions })}
             </span>
           </span>
 
@@ -282,14 +281,14 @@ function Karma({ yo, puesto, tope, anterior, mes }: {
       // ocho puntos de opacidad de diferencia, que sobre espresso no se ven.
       background: 'var(--info-soft)', border: '1px solid var(--info-border)',
     }}>
-      <div className="section-label" style={{ margin: 0 }}>Karma cervecero</div>
+      <div className="section-label" style={{ margin: 0 }}>{t('Contributors.karma')}</div>
 
       <div style={{
         display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginTop: 'var(--s-2)',
       }}>
         <span className="num" style={{ fontSize: 'var(--t-8)', lineHeight: 1 }}>{yo.score}</span>
         <span style={{ fontSize: 'var(--t-2)', color: 'var(--cream-soft)' }}>
-          puntos · {mes}
+          {t('Contributors.puntosMesDe', { mes })}
         </span>
       </div>
 
@@ -308,8 +307,8 @@ function Karma({ yo, puesto, tope, anterior, mes }: {
         display: 'flex', justifyContent: 'space-between', gap: 'var(--s-3)',
         marginTop: 'var(--s-2)', fontSize: 'var(--t-1)', color: 'var(--cream-soft)',
       }}>
-        <span>{puesto === 1 ? 'Vas al frente' : `Puesto ${puesto}`}</span>
-        {falta != null && <span>a {falta} del {puesto - 1}º</span>}
+        <span>{puesto === 1 ? t('Contributors.alFrente') : t('Contributors.puesto', { n: puesto })}</span>
+        {falta != null && <span>{t('Contributors.aFalta', { falta, puesto: puesto - 1 })}</span>}
       </div>
 
       <div style={{
@@ -332,8 +331,7 @@ function Karma({ yo, puesto, tope, anterior, mes }: {
           margin: 'var(--s-2) 0 0', fontSize: 'var(--t-1)', lineHeight: 1.5,
           color: 'var(--faint)',
         }}>
-          Cuenta un aporte por bar y por día: veinte precios en el mismo bar
-          valen lo mismo que uno.
+          {t('Contributors.regla')}
         </p>
       </div>
     </div>
@@ -342,11 +340,11 @@ function Karma({ yo, puesto, tope, anterior, mes }: {
 
 /** Los pesos de verdad, los de `CONTRIBUTION_WEIGHT` en el backend. */
 const TARIFA = [
-  { que: 'Cargar un precio', pts: KARMA.precio },
-  { que: 'Agregar un bar que falta', pts: KARMA.bar },
-  { que: 'Subir una foto', pts: KARMA.foto },
-  { que: 'Puntuar una birra', pts: KARMA.nota },
-  { que: 'Confirmar que sigue igual', pts: KARMA.confirmar },
+  { que: t('Contributors.tarifa.precio'), pts: KARMA.precio },
+  { que: t('Contributors.tarifa.bar'), pts: KARMA.bar },
+  { que: t('Contributors.tarifa.foto'), pts: KARMA.foto },
+  { que: t('Contributors.tarifa.nota'), pts: KARMA.nota },
+  { que: t('Contributors.tarifa.confirmar'), pts: KARMA.confirmar },
 ]
 
 /**
@@ -361,7 +359,7 @@ function FotoDelMes({ photo, onOpen }: { photo: PhotoOfMonth; onOpen: () => void
     <section style={{ padding: 'var(--s-5) var(--s-4) 0' }}>
       {/* La etiqueta de sección de siempre, en vez de la quinta copia escrita
           a mano de lo mismo. */}
-      <h2 className="section-label" style={{ marginTop: 0 }}>Foto del mes</h2>
+      <h2 className="section-label" style={{ marginTop: 0 }}>{t('Contributors.fotoMes')}</h2>
       <button onClick={onOpen} style={{
         display: 'block', padding: 0, width: '100%',
         borderRadius: 'var(--r-3)', overflow: 'hidden', position: 'relative',
@@ -381,8 +379,8 @@ function FotoDelMes({ photo, onOpen }: { photo: PhotoOfMonth; onOpen: () => void
           <span style={{ display: 'block', color: 'var(--cream)', fontSize: 'var(--t-2)', opacity: .85 }}>
             {/* Sin alias la foto se muestra igual, pero sin firma: la misma
                 regla que la tabla. */}
-            {photo.authorAlias ? `de ${photo.authorAlias} · ` : ''}
-            {photo.votes === 1 ? '1 me gusta' : `${photo.votes} me gusta`}
+            {photo.authorAlias ? t('Contributors.de', { alias: photo.authorAlias }) : ''}
+            {t('Contributors.meGusta', { count: photo.votes })}
           </span>
         </span>
       </button>
@@ -419,6 +417,6 @@ function shift(month: string, by: number): string {
 
 const monthLabel = (month: string) => {
   const [y, m] = month.split('-').map(Number)
-  const name = new Date(y, m - 1, 1).toLocaleDateString('es-AR', { month: 'long' })
+  const name = new Date(y, m - 1, 1).toLocaleDateString(LOCALE, { month: 'long' })
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`
 }

@@ -1,0 +1,69 @@
+{
+  "titulo": {
+    "precios": "My prices",
+    "fotos": "My photos",
+    "comentarios": "My comments",
+    "bares": "My bars"
+  },
+  "tituloAjeno": {
+    "precios": "Prices by {nombre}",
+    "fotos": "Photos by {nombre}",
+    "comentarios": "Comments by {nombre}",
+    "bares": "Bars by {nombre}"
+  },
+  "vacioAjeno": {
+    "precios": "Hasn't added any prices",
+    "fotos": "Hasn't uploaded any photos",
+    "comentarios": "Hasn't written any comments",
+    "bares": "Hasn't added any bars"
+  },
+  "vacio": {
+    "precios": {
+      "titulo": "You haven't added any prices yet",
+      "hint": "You add a price from the map's \"+\" or from the bar's page. It's what keeps the map alive.",
+      "accion": "Add a price"
+    },
+    "fotos": {
+      "titulo": "You haven't uploaded any photos yet",
+      "hint": "Photos go on the beer, below the price. They're shrunk on your phone before uploading.",
+      "accion": "Go to the map"
+    },
+    "comentarios": {
+      "titulo": "You haven't written any comments yet",
+      "hint": "Below each beer's photos there's a box to say how it was.",
+      "accion": "Go to the map"
+    },
+    "bares": {
+      "titulo": "You haven't added any bars yet",
+      "hint": "If you know one that's not on the map, add it: it's there for everyone.",
+      "accion": "Add a bar"
+    }
+  },
+  "barMl": "{bar} · {ml} ml",
+  "confirmacion": "confirmation",
+  "estado": {
+    "pendiente": "Awaiting approval",
+    "rechazado": "Rejected",
+    "publicado": "Published"
+  },
+  "cargando": "Loading…",
+  "verMas": "See more",
+  "precio": {
+    "titulo": "Delete this price?",
+    "vigente": "It's the price the app {fuerte} for {estilo} at {bar}. If you delete it, the previous report stays if there is one; if not, the bar is left without a price.",
+    "muestraHoy": "shows today",
+    "viejo": "It's an old report, so it doesn't change what's shown today: it leaves the history of {estilo} at {bar}."
+  },
+  "foto": {
+    "titulo": "Delete this photo?",
+    "texto": "The file is deleted, not just from the list. It can't be undone."
+  },
+  "comentario": {
+    "titulo": "Delete this comment?",
+    "texto": "Only the text is deleted. Your rating of that beer stays as it is: deleting what you wrote isn't withdrawing your vote.",
+    "borrado": "Comment deleted"
+  },
+  "vigente": "current",
+  "birra": "beer",
+  "baresNoSeBorran": "Bars can't be deleted from here: they may have prices and photos from other people, so deleting them doesn't undo your contribution, it deletes someone else's. If one is wrong, report it from the bar."
+}

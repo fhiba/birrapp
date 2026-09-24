@@ -1,0 +1,6 @@
+{
+  "loginFallo": "We couldn't complete the sign-in.",
+  "hola": "Hi, {nombre}!",
+  "loginExpiro": "The sign-in expired. Try again.",
+  "buscandoDonde": "Finding where you are…"
+}

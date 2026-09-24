@@ -1,0 +1,55 @@
+{
+  "titulo": "Dashboard",
+  "stat": {
+    "cuentas7": "cuentas · 7 d",
+    "cuentas30": "cuentas · 30 d",
+    "cuentasTotal": "cuentas en total",
+    "aportaron30": "aportaron · 30 d",
+    "precios7": "precios · 7 d",
+    "baresConPrecio": "bares con precio\nde {n}"
+  },
+  "cobertura": "Cobertura: {pct}% de los bares tiene al menos un precio no vencido.",
+  "masNuevos": "Más nuevos",
+  "masAportes": "Más aportes",
+  "ordenarPor": "Ordenar por {que}",
+  "nadie": "Todavía no hay nadie registrado.",
+  "rolDe": "Rol de {nombre}",
+  "bloqueado": "BLOQUEADO",
+  "seAnoto": "{email} · se anotó {cuando}",
+  "sinAportes": "Sin aportes todavía",
+  "ultimo": "último",
+  "dias": "{n} d",
+  "serie": {
+    "precios": "precios",
+    "confirm": "confirm.",
+    "bares": "bares",
+    "fotos": "fotos",
+    "notas": "notas",
+    "sinSesion": "sin sesión",
+    "conSesion": "con sesión",
+    "seAnotaron": "se anotaron",
+    "aportaron": "aportaron",
+    "cobertura": "cobertura"
+  },
+  "card": {
+    "aportesDia": "Aportes por día",
+    "ult30": "últimos 30 días",
+    "altas": "Altas contra aportantes",
+    "altasHint": "por semana · 12 semanas",
+    "cobertura": "Cobertura del mapa",
+    "coberturaHint": "% con precio no vencido · 90 días",
+    "quienEntra": "Quién entra",
+    "quienEntraHint": "visitantes por día · 30 días",
+    "sostienen": "Quiénes sostienen esto",
+    "sostienenHint": "el top 5 concentra el {pct}% de los aportes",
+    "activacion": "Activación",
+    "activacionHint": "dónde se cae la gente · visitantes sólo de la web"
+  },
+  "embudo": {
+    "visitantes": "visitantes",
+    "cuentas": "cuentas",
+    "alguna": "aportó alguna",
+    "cinco": "aportó 5 o más",
+    "activo": "activo · 30 d"
+  }
+}

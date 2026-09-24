@@ -1,0 +1,69 @@
+{
+  "titulo": {
+    "precios": "Meus preços",
+    "fotos": "Minhas fotos",
+    "comentarios": "Meus comentários",
+    "bares": "Meus bares"
+  },
+  "tituloAjeno": {
+    "precios": "Preços de {nombre}",
+    "fotos": "Fotos de {nombre}",
+    "comentarios": "Comentários de {nombre}",
+    "bares": "Bares de {nombre}"
+  },
+  "vacioAjeno": {
+    "precios": "Não informou nenhum preço",
+    "fotos": "Não enviou nenhuma foto",
+    "comentarios": "Não escreveu nenhum comentário",
+    "bares": "Não adicionou nenhum bar"
+  },
+  "vacio": {
+    "precios": {
+      "titulo": "Você ainda não informou nenhum preço",
+      "hint": "Um preço é informado pelo \"+\" do mapa ou pela página do bar. É o que mantém o mapa vivo.",
+      "accion": "Informar um preço"
+    },
+    "fotos": {
+      "titulo": "Você ainda não enviou nenhuma foto",
+      "hint": "As fotos vão na cerveja, abaixo do preço. São reduzidas no seu celular antes de enviar.",
+      "accion": "Ir ao mapa"
+    },
+    "comentarios": {
+      "titulo": "Você ainda não escreveu nenhum comentário",
+      "hint": "Abaixo das fotos de cada cerveja há uma caixa para contar como estava.",
+      "accion": "Ir ao mapa"
+    },
+    "bares": {
+      "titulo": "Você ainda não adicionou nenhum bar",
+      "hint": "Se você conhece um que não está no mapa, adicione: fica para todos.",
+      "accion": "Adicionar um bar"
+    }
+  },
+  "barMl": "{bar} · {ml} ml",
+  "confirmacion": "confirmação",
+  "estado": {
+    "pendiente": "Aguardando aprovação",
+    "rechazado": "Rejeitado",
+    "publicado": "Publicado"
+  },
+  "cargando": "Carregando…",
+  "verMas": "Ver mais",
+  "precio": {
+    "titulo": "Apagar este preço?",
+    "vigente": "É o preço que o app {fuerte} para {estilo} em {bar}. Ao apagá-lo, fica o relato anterior se houver, e se não, o bar fica sem preço.",
+    "muestraHoy": "mostra hoje",
+    "viejo": "É um relato antigo, então não muda o que aparece hoje: sai do histórico de {estilo} em {bar}."
+  },
+  "foto": {
+    "titulo": "Apagar esta foto?",
+    "texto": "O arquivo é apagado, não só da lista. Não dá para desfazer."
+  },
+  "comentario": {
+    "titulo": "Apagar este comentário?",
+    "texto": "Só o texto é apagado. Sua nota dessa cerveja continua como está: apagar o que você escreveu não é retirar seu voto.",
+    "borrado": "Comentário apagado"
+  },
+  "vigente": "vigente",
+  "birra": "cerveja",
+  "baresNoSeBorran": "Os bares não são apagados daqui: podem ter preços e fotos de outras pessoas, então apagá-los não desfaz a sua contribuição, apaga a dos outros. Se um está cadastrado errado, denuncie pela página do bar."
+}

@@ -1,0 +1,49 @@
+{
+  "orden": {
+    "distance": "Nearest",
+    "cheapest": "Cheapest",
+    "rated": "Top rated"
+  },
+  "resumen": {
+    "favFresco0": "No favorites with a fresh price",
+    "sinFav": "No favorites marked",
+    "favoritos": {
+      "one": "1 favorite",
+      "other": "{count} favorites"
+    },
+    "favoritosFrescos": {
+      "one": "1 favorite with a fresh price",
+      "other": "{count} favorites with a fresh price"
+    },
+    "fresco0": "No fresh prices around here",
+    "bares": {
+      "one": "1 bar",
+      "other": "{count} bars"
+    },
+    "baresFrescos": {
+      "one": "1 bar with a fresh price",
+      "other": "{count} bars with a fresh price"
+    }
+  },
+  "limpiar": "Clear",
+  "sinResultados": "No results",
+  "resultados": {
+    "one": "1 result",
+    "other": "{count} results"
+  },
+  "volverLista": "Back to the list",
+  "desdePuntoX": "From the chosen point ✕",
+  "vacio": {
+    "busqueda": "No bar has that name",
+    "busquedaHint": "Try fewer letters: it searches part of the name and you don't need accents.",
+    "favFresco": "None of your favorites has a fresh price",
+    "fresco": "No prices under {dias} days old around here",
+    "frescoHint": "There are bars, but their prices are getting old. If you pass by one and see what a pint costs, add it and it'll come back to this list.",
+    "verViejos": "Show old ones too",
+    "sinFav": "You haven't marked any favorites yet",
+    "sinFavHint": "Tap the heart at the end of any row —or the one on the bar's page— and the bar shows up here. They're saved to your account, so you see them from any phone.",
+    "sinBares": "No bars around here yet",
+    "sinBaresHint": "We build the map together: if you know one in this area, add it and it's there for everyone."
+  },
+  "favAria": "{accion}: {bar}"
+}

@@ -1,0 +1,9 @@
+{
+  "distanciaM": "à {m} m",
+  "distanciaKm": "à {km} km",
+  "radioM": "{m} m",
+  "radioKm": "{km} km",
+  "hoy": "aujourd'hui",
+  "ayer": "hier",
+  "haceDias": "il y a {d} j"
+}

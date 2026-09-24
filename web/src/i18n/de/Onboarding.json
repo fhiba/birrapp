@@ -1,0 +1,47 @@
+{
+  "birras": {
+    "titulo": "Was trinkst du?",
+    "bajada": "In jeder Bar werden drei Biere gezeigt, der Rest liegt hinter einem {mas}. Markier deine, dann sind es diese drei. Du kannst nur Sorten, nur Marken oder gar nichts markieren."
+  },
+  "saltear": "Überspringen",
+  "seguir": "Weiter",
+  "vos": {
+    "titulo": "Wie sehen dich die anderen?",
+    "bajada": "Mit diesem Namen erscheinst du in der öffentlichen Tabelle der Mitwirkenden und unter deinen Fotos. Dein Google-Name und deine E-Mail werden nirgends angezeigt.",
+    "label": "Dein Benutzername",
+    "placeholder": "Kein Benutzername",
+    "ayuda": "Wir haben dir einen aus deinem Namen gebaut. Du kannst ihn beliebig ändern —er muss eindeutig sein, kann also vergeben sein— oder löschen und nirgends auftauchen. Ändern kannst du ihn jederzeit in den Einstellungen."
+  },
+  "ajustes": {
+    "titulo": "Die Details",
+    "bajada": "Damit startet die App jedes Mal, wenn du sie öffnest. Es sind die drei Werte, die am häufigsten geändert werden, und alle stehen in den Einstellungen, falls du sie später ändern willst.",
+    "radio": "Suchradius",
+    "radioAyuda": "Wie weit um dich herum Karte und Liste öffnen.",
+    "moneda": "Währung",
+    "monedaAyuda": "Die für Bars, die du von Hand einträgst. Wählst du die Bar über die Suche, kommt die Währung aus dem Land. Preise werden immer in der Währung der Bar angezeigt: Nichts wird umgerechnet.",
+    "vaso": "Glasgröße",
+    "vasoAyuda": "Mit welcher Größe die Preistastatur startet. Ein Pint sind 473 ml in Argentinien und den USA und 568 im Vereinigten Königreich.",
+    "ml": "{n} ml",
+    "pinta": "{n} ml — Pint",
+    "pintaUk": "{n} ml — UK-Pint"
+  },
+  "como": {
+    "titulo": "Drei Dinge und los geht's",
+    "bajada": "Das Einzige an der App, das man nicht durchs Anschauen versteht.",
+    "nivel": {
+      "titulo": "Dein Level kann sinken",
+      "texto": "Es ergibt sich aus den Bieren, die du in den {fuerte} eingetragen hast, nicht aus der Gesamtzahl. Trägst du nichts mehr ein, sinkt es. Deshalb zeigt es, wie es gerade bei dir läuft, und nicht, wie viel du je gesammelt hast.",
+      "fuerte": "letzten 45 Tagen"
+    },
+    "donde": {
+      "titulo": "Trag ein, wo du es getrunken hast",
+      "texto": "Die Bar anzugeben ist optional, aber {fuerte}: Ohne Bar lassen sie sich nicht verorten, und diese Tabelle geht nach Nähe. Es ist ein Tipp mehr und bringt dich ins Ranking.",
+      "fuerte": "Biere ohne Bar zählen nicht für die Tabelle, wer in der Gegend am meisten getrunken hat"
+    },
+    "nota": {
+      "titulo": "Bewertet werden die Biere, nicht die Bar",
+      "texto": "Jedes Bier bewertest du, indem du den Finger über die Sterne ziehst, in halben Punkten. Die Bewertung über einer Bar ist der Durchschnitt ihrer Biere — keine Meinung über den Ort, die Musik oder das Personal."
+    }
+  },
+  "paso": "Schritt {n} von {total}"
+}

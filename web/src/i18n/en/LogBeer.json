@@ -1,0 +1,27 @@
+{
+  "anotada": {
+    "one": "Logged. Cheers!",
+    "other": "{count} beers logged. Cheers!"
+  },
+  "anotadaEn": {
+    "one": "Logged at {bar}. Cheers!",
+    "other": "{count} beers logged at {bar}. Cheers!"
+  },
+  "titulo": "I had a beer",
+  "aca": "Did you have it here?",
+  "donde": "Where?",
+  "otroLado": "Somewhere else",
+  "sinBar": "no bar",
+  "cuantas": "How many?",
+  "cualEra": "Which one was it? (optional)",
+  "anotar": "Log it",
+  "unaMas": "One more",
+  "unaMenos": "One less",
+  "tope": {
+    "titulo": "Slow down a bit",
+    "texto1": "{mensaje} Fifteen in one day is the limit, and it's not an arbitrary number: beyond that it's no longer a night out.",
+    "texto2": "If this keeps happening, the {linea} is free, anonymous and open around the clock nationwide. It doesn't have to be an emergency to call.",
+    "linea": "141 helpline (Argentina)",
+    "entendido": "Got it"
+  }
+}

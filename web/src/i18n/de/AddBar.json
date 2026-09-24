@@ -1,0 +1,22 @@
+{
+  "noUbicaDireccion": "Wir konnten diese Adresse nicht finden.",
+  "noUbicaLugar": "Wir konnten den Standort dieses Ortes nicht ermitteln.",
+  "titulo": "Neue Bar",
+  "verificado": "Auf Google Maps bestätigt · wird sofort veröffentlicht",
+  "noEsEste": "Nicht diese?",
+  "comoSeLlama": "Wie heißt sie?",
+  "yaEsta": "Schon in birrapp",
+  "elegir": "Auswählen",
+  "ver": "Ansehen",
+  "enGoogle": "Bei Google gefunden",
+  "agregarNombre": "„{nombre}“ hinzufügen",
+  "loRevisa": "Wird vor der Veröffentlichung von einem Moderator geprüft",
+  "direccion": "Straße und Hausnummer, oder Kreuzung",
+  "quedaEn": "✓ Liegt in {direccion}",
+  "elegiDireccion": "Wähl die Adresse aus der Liste: Daraus entsteht der Punkt der Bar auf der Karte, und damit prüft ein Moderator, dass es sie gibt.",
+  "moneda": "In welcher Währung sie abrechnet",
+  "faltaDireccion": "Wähl die Adresse aus der Liste, um sie auf der Karte zu platzieren.",
+  "faltaBar": "Wähl die Bar aus der Liste oder tipp auf „Hinzufügen“, um sie von Hand einzutragen.",
+  "enviando": "Wird gesendet…",
+  "agregar": "Diese Bar hinzufügen"
+}

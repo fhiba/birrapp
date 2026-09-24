@@ -7,6 +7,7 @@ import { BarSearchList } from '../ui/PickBar'
 import { StyleChips } from '../ui/StyleChips'
 import { ReportPrice } from './ReportPrice'
 import { AddBarScreen } from './AddBar'
+import { t } from '../i18n'
 
 /** El bar elegido, sea de dónde venga el flujo. */
 export interface FlowBar { id: number; name: string; currency: string }
@@ -185,15 +186,15 @@ export function ReportFlow({
     }}>
       <Header
         step={stepNumber} total={steps.length}
-        title={step === 'style' ? '¿Qué tipo de birra?'
-          : step === 'brand' ? '¿De qué marca?'
-          : '¿En qué bar?'}
-        hint={step === 'brand' ? 'Si no la sabés, seguí sin marca.'
-          : step === 'bar' ? 'Primero los de acá cerca.'
+        title={step === 'style' ? t('ReportFlow.queTipo')
+          : step === 'brand' ? t('ReportFlow.queMarca')
+          : t('ReportFlow.queBar')}
+        hint={step === 'brand' ? t('ReportFlow.sinMarcaHint')
+          : step === 'bar' ? t('ReportFlow.cercaHint')
           : undefined}
         chosen={[
           step !== 'style' ? styleName : null,
-          step === 'bar' ? (brandName ?? 'Sin marca') : null,
+          step === 'bar' ? (brandName ?? t('BrandPicker.sinMarca')) : null,
         ].filter(Boolean) as string[]}
         onBack={back}
       />
@@ -237,7 +238,7 @@ export function ReportFlow({
               fontSize: 'var(--t-3)', minHeight: 46, textAlign: 'center',
               background: 'var(--info-soft)', color: 'var(--info-bright)',
               border: '1px solid var(--info-border)',
-            }}>El bar no está — agregalo</button>
+            }}>{t('ReportFlow.noEsta')}</button>
           </div>
         )}
       </div>
@@ -264,9 +265,9 @@ export function ReportFlow({
 function SalirSinCargar({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
   return (
     <Confirm
-      title="¿Salir sin cargar el precio?"
-      body="Lo que elegiste hasta acá se pierde y hay que empezar de nuevo."
-      confirmLabel="Salir"
+      title={t('ReportFlow.salirTitulo')}
+      body={t('ReportFlow.salirTexto')}
+      confirmLabel={t('ReportFlow.salir')}
       onCancel={onStay}
       onConfirm={onLeave}
     />
@@ -293,8 +294,8 @@ function Header({ step, total, title, hint, chosen, onBack }: {
   return (
     <header style={{ padding: '10px 18px var(--s-3)', borderBottom: '1px solid var(--hairline)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-        <h2 className="section-label" style={{ margin: 0 }}>PASO {step} DE {total}</h2>
+        <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
+        <h2 className="section-label" style={{ margin: 0 }}>{t('ReportFlow.paso', { n: step, total })}</h2>
       </div>
 
       <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>{title}</h1>

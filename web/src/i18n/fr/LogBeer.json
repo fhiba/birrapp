@@ -1,0 +1,27 @@
+{
+  "anotada": {
+    "one": "Notée. Santé !",
+    "other": "{count} bières notées. Santé !"
+  },
+  "anotadaEn": {
+    "one": "Notée à {bar}. Santé !",
+    "other": "{count} bières notées à {bar}. Santé !"
+  },
+  "titulo": "J'ai bu une bière",
+  "aca": "Tu l'as bue ici ?",
+  "donde": "Où ?",
+  "otroLado": "Ailleurs",
+  "sinBar": "sans bar",
+  "cuantas": "Combien ?",
+  "cualEra": "Laquelle c'était ? (facultatif)",
+  "anotar": "Noter",
+  "unaMas": "Une de plus",
+  "unaMenos": "Une de moins",
+  "tope": {
+    "titulo": "Doucement",
+    "texto1": "{mensaje} Quinze dans la même journée, c'est la limite, et ce n'est pas un chiffre au hasard : au-delà, ce n'est plus une sortie.",
+    "texto2": "Si ça t'arrive souvent, la {linea} est gratuite, anonyme et répond jour et nuit dans tout le pays. Pas besoin que ce soit une urgence pour appeler.",
+    "linea": "ligne 141 (Argentine)",
+    "entendido": "Compris"
+  }
+}

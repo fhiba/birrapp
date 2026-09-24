@@ -1,0 +1,6 @@
+{
+  "loginFallo": "No pudimos completar el inicio de sesión.",
+  "hola": "¡Hola, {nombre}!",
+  "loginExpiro": "El inicio de sesión expiró. Probá de nuevo.",
+  "buscandoDonde": "Buscando dónde estás…"
+}

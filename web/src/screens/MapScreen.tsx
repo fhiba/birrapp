@@ -11,6 +11,7 @@ import { PintLoader } from '../ui/PintLoader'
 import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES } from '../mapStyle'
 import { RatingFilter, StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
+import { t, tx } from '../i18n'
 
 /*
  * Qué dice el color de un pin: el precio, y siempre el precio.
@@ -168,7 +169,7 @@ export function MapScreen(p: Props) {
    * con su alcance temporal: es `AreaStats`, y se dibuja en `AreaStatsCard`.
    */
 
-  if (!p.center) return <PintLoader message="Buscando dónde estás…" />
+  if (!p.center) return <PintLoader message={t('App.buscandoDonde')} />
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -315,10 +316,10 @@ export function MapScreen(p: Props) {
             <ChipFiltro
               on={soloFrescos}
               onClick={() => setSoloFrescos(v => !v)}
-              etiqueta="Frescos"
+              etiqueta={t('MapScreen.frescos')}
               aria={soloFrescos
-                ? 'Ver también los precios viejos'
-                : `Ver sólo precios de menos de ${FRESCO_DIAS} días`}
+                ? t('MapScreen.verViejos')
+                : t('MapScreen.verFrescos', { dias: FRESCO_DIAS })}
               tinte="fresh"
               icono={
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
@@ -375,7 +376,7 @@ export function MapScreen(p: Props) {
             <ChipFiltro
               on={soloFavoritos}
               onClick={() => setSoloFavoritos(v => !v)}
-              aria={soloFavoritos ? 'Ver todos los bares' : 'Ver sólo mis favoritos'}
+              aria={soloFavoritos ? t('MapScreen.verTodosBares') : t('MapScreen.verFavoritos')}
               tinte="favorito"
               style={{
                 marginLeft: 'auto', width: 44, padding: 0,
@@ -410,7 +411,7 @@ export function MapScreen(p: Props) {
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--s-1)' }}>
               <span style={{ color: 'var(--sobre-vidrio)', fontSize: 'var(--t-2)', minWidth: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {p.simulated ? 'Desde el punto elegido' : 'Desde tu ubicación'}
+                {p.simulated ? t('Nearby.desdePunto') : t('MapScreen.desdeTu')}
               </span>
               <span className="num" style={{
                 marginLeft: 'auto', paddingLeft: 'var(--s-3)', color: 'var(--acento)',
@@ -441,7 +442,7 @@ export function MapScreen(p: Props) {
             padding: 'var(--s-2) var(--s-4)', fontSize: 'var(--t-2)',
             color: 'var(--sobre-vidrio)',
             pointerEvents: 'auto',
-          }}>Acercá el mapa para ver bares</div>
+          }}>{t('MapScreen.acerca')}</div>
         )}
 
         {/*
@@ -469,9 +470,9 @@ export function MapScreen(p: Props) {
             {soloFavoritos || soloFrescos ? (
               <>
                 <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
-                  {soloFavoritos && soloFrescos ? 'Ningún favorito con precio fresco por acá'
-                    : soloFavoritos ? 'Ninguno de tus favoritos por acá'
-                      : 'Ningún precio fresco por acá'}
+                  {soloFavoritos && soloFrescos ? t('MapScreen.vacio.favFresco')
+                    : soloFavoritos ? t('MapScreen.vacio.fav')
+                      : t('MapScreen.vacio.fresco')}
                 </p>
                 <p style={{
                   margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)',
@@ -482,8 +483,8 @@ export function MapScreen(p: Props) {
                       bares, y que lo que les falta es alguien que pase a
                       mirar la pizarra. */}
                   {soloFavoritos
-                    ? 'Están en otra zona del mapa, o todavía no marcaste ninguno acá.'
-                    : `Hay bares, pero ninguno con un precio de menos de ${FRESCO_DIAS} días. Si pasás por uno, cargalo.`}
+                    ? t('MapScreen.vacio.favHint')
+                    : t('MapScreen.vacio.frescoHint', { dias: FRESCO_DIAS })}
                 </p>
                 {/* El CTA primario de la dirección: hueso pleno sobre
                     espresso, radio --r-2 y 46 de alto, que es el paso corto
@@ -504,26 +505,25 @@ export function MapScreen(p: Props) {
                     borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', height: 46,
                     background: 'var(--acento)', color: 'var(--base)',
                   }}
-                >Ver todos</button>
+                >{t('MapScreen.vacio.verTodos')}</button>
               </>
             ) : (
               <>
                 <p className="lbl" style={{ margin: 0, fontSize: 'var(--t-4)' }}>
-                  Por acá no hay bares cargados
+                  {t('MapScreen.vacio.sinBares')}
                 </p>
                 <p style={{
                   margin: 'var(--s-2) 0 0', fontSize: 'var(--t-2)',
                   color: 'var(--sobre-vidrio)', lineHeight: 1.5,
                 }}>
-                  El mapa lo hacemos entre todos. Si conocés uno en esta zona,
-                  cargalo y queda para el resto.
+                  {t('MapScreen.vacio.sinBaresHint')}
                 </p>
                 {/* Mismo CTA primario y mismo `.cta` que el de arriba. */}
                 <button onClick={() => nav('/agregar')} className="lbl cta" style={{
                   marginTop: 'var(--s-3)', padding: '0 var(--s-4)',
                   borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)', height: 46,
                   background: 'var(--acento)', color: 'var(--base)',
-                }}>Agregar un bar</button>
+                }}>{t('AddMenu.bar')}</button>
               </>
             )}
           </div>
@@ -552,15 +552,14 @@ export function MapScreen(p: Props) {
           }}>
             {p.locationBlocked ? (
               <span>
-                Bloqueaste la ubicación para este sitio — esto es el centro.
-                Se destraba desde el candado <span aria-hidden>🔒</span> de la barra de direcciones.
+                {tx('MapScreen.ubicacionBloqueada', { candado: <span aria-hidden>🔒</span> })}
               </span>
             ) : (
               <>
-                <span>No pudimos ubicarte — esto es el centro</span>
+                <span>{t('MapScreen.noUbicamos')}</span>
                 <button onClick={p.onRecenter} className="lbl" style={{
                   color: 'var(--acento)', fontSize: 'var(--t-2)', whiteSpace: 'nowrap',
-                }}>Reintentar</button>
+                }}>{t('comun.reintentar')}</button>
               </>
             )}
 
@@ -573,7 +572,7 @@ export function MapScreen(p: Props) {
                 sigue estando para arreglarla. */}
             <button
               onClick={() => setCartelCerrado(true)}
-              aria-label="Cerrar el aviso"
+              aria-label={t('MapScreen.cerrarAviso')}
               className="lbl"
               style={{
                 marginLeft: 2, marginRight: -6, width: 26, height: 26,
@@ -613,7 +612,7 @@ export function MapScreen(p: Props) {
         */}
         <button
           onClick={p.onHelp}
-          aria-label="Cómo funciona la app"
+          aria-label={t('MapScreen.ayuda')}
           className="glass"
           style={{
             position: 'absolute', right: 14, bottom: `calc(72px + var(--nav-gap))`,
@@ -631,7 +630,7 @@ export function MapScreen(p: Props) {
           position: 'absolute', left: 14, bottom: `calc(72px + var(--nav-gap))`,
           width: 48, height: 48, borderRadius: '50%', zIndex: 10,
           display: 'grid', placeItems: 'center',
-        }} aria-label={p.simulated ? 'Centrar en el punto elegido' : 'Centrar en mi ubicación'}>
+        }} aria-label={p.simulated ? t('MapScreen.centrarPunto') : t('MapScreen.centrarMio')}>
           {/* Hueso cuando apunta al punto elegido, azul acero cuando apunta
               a tu ubicación: es el color de cada uno de los dos puntos en el
               mapa, así el botón dice a cuál va antes de tocarlo.

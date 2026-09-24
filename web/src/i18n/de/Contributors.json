@@ -1,0 +1,45 @@
+{
+  "titulo": "Mitwirkende",
+  "puntosMes": "Punkte des Monats",
+  "intro": "Die Leute, die die Karte am Leben halten. Die Tabelle startet jeden Monat bei null.",
+  "vacio": {
+    "titulo": "Diesen Monat noch niemand mit Alias",
+    "hintUser": "Wähl in den Einstellungen einen Alias, dann erscheinen deine Beiträge des Monats hier.",
+    "hintAnon": "Beiträge zählen trotzdem; um aufzutauchen, brauchst du ein Konto und einen Alias.",
+    "elegirAlias": "Meinen Alias wählen",
+    "entrar": "Anmelden"
+  },
+  "ocultos": {
+    "one": "Eine weitere Person hat diesen Monat ohne Alias beigetragen und erscheint daher nicht.",
+    "other": "{count} weitere Personen haben diesen Monat ohne Alias beigetragen und erscheinen daher nicht."
+  },
+  "seElige": "Hier aufzutauchen ist freiwillig: Ohne Alias wird dein Name nicht veröffentlicht.",
+  "vos": "du",
+  "bares": {
+    "one": "1 Bar",
+    "other": "{count} Bars"
+  },
+  "aportes": {
+    "one": "1 Beitrag",
+    "other": "{count} Beiträge"
+  },
+  "karma": "Bier-Karma",
+  "puntosMesDe": "Punkte · {mes}",
+  "alFrente": "Du liegst vorne",
+  "puesto": "Platz {n}",
+  "aFalta": "{falta} hinter Platz {puesto}",
+  "regla": "Es zählt ein Beitrag pro Bar und Tag: Zwanzig Preise in derselben Bar sind so viel wert wie einer.",
+  "tarifa": {
+    "precio": "Einen Preis eintragen",
+    "bar": "Eine fehlende Bar hinzufügen",
+    "foto": "Ein Foto hochladen",
+    "nota": "Ein Bier bewerten",
+    "confirmar": "Bestätigen, dass er gleich geblieben ist"
+  },
+  "fotoMes": "Foto des Monats",
+  "de": "von {alias} · ",
+  "meGusta": {
+    "one": "1 Like",
+    "other": "{count} Likes"
+  }
+}

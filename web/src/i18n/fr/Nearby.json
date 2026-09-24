@@ -1,0 +1,27 @@
+{
+  "titulo": "À proximité",
+  "cambiar": "· changer",
+  "desdePunto": "Depuis le point choisi",
+  "radioAria": "Rayon de la zone",
+  "masBarata": "LA MOINS CHÈRE À PROXIMITÉ",
+  "ml": "{n} ml",
+  "ultimo": "LES DERNIERS AJOUTS",
+  "verMas": "Voir {n} de plus",
+  "otroBar": "Tu es passé dans un autre bar ?",
+  "viejos": {
+    "one": "Un bar dans ton rayon a un prix de plus de {dias} jours.",
+    "other": "{count} bars dans ton rayon ont un prix de plus de {dias} jours."
+  },
+  "sinDatos": "Il n'y a pas encore assez de prix dans un rayon de {radio} pour une moyenne qui veuille dire quelque chose. Trois suffisent.",
+  "comoViene": "Comment va le coin · {radio}",
+  "muestras": {
+    "one": "{precios} prix · 1 bar",
+    "other": "{precios} prix · {count} bars"
+  },
+  "quienTomo": "QUI A LE PLUS BU PAR ICI",
+  "nadie": "Personne n'a encore rien noté par ici. Seules comptent les bières notées avec un bar, et jusqu'ici personne ne l'a fait dans ce coin.",
+  "enDias": {
+    "one": "en 1 jour",
+    "other": "en {count} jours"
+  }
+}
