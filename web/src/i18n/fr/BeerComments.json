@@ -1,0 +1,16 @@
+{
+  "titulo": "COMMENTAIRES",
+  "placeholder": "Elle était comment (facultatif)",
+  "comentar": "Commenter",
+  "nadie": "Personne n'a encore commenté cette bière.",
+  "vos": "Toi",
+  "borrar": "Supprimer",
+  "eliminar": "Retirer",
+  "masViejos": "Voir les commentaires plus anciens",
+  "borrarTitulo": "Supprimer ton commentaire ?",
+  "eliminarTitulo": "Retirer ce commentaire ?",
+  "borrar1": "Seul le texte est supprimé. Ta note pour cette bière reste telle quelle — supprimer ce que tu as écrit, ce n'est pas retirer ton vote.",
+  "noSeDeshace": "C'est irréversible.",
+  "eliminar1": "Le commentaire de {nombre} est retiré.",
+  "eliminar2": "Sa note n'est pas touchée : pour ça, il y a l'action sur la note. Retirer un texte ne devrait pas changer la moyenne de la bière."
+}

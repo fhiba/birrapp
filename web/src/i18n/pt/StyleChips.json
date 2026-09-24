@@ -1,0 +1,9 @@
+{
+  "sinEstilo": "Sem estilo",
+  "otro": "Outro estilo",
+  "sinLista": "Não conseguimos trazer a lista de estilos. Tenta de novo sozinho; se continuar assim, tente sem bloqueador de conteúdo ou de outra rede — você pode anotar a cerveja mesmo assim, sem estilo.",
+  "placeholder": "Kellerbier, Gose, Sour…",
+  "nuevo": "“{nombre}” não está na lista. É aceito mesmo assim e você pode usar na hora; fica para revisão de um moderador.",
+  "yaEsta": "“{nombre}” já está na lista: toque nele acima.",
+  "dosLetras": "Digite pelo menos duas letras."
+}

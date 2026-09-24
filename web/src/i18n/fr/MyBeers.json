@@ -1,0 +1,36 @@
+{
+  "errorTitulo": "Impossible de récupérer tes bières",
+  "contando": "On compte…",
+  "titulo": "Mes bières",
+  "vacio": {
+    "titulo": "Note ta première bière",
+    "hint": "Depuis le « + » de la carte, dans « J'ai bu une bière ». Ça se note en une touche : le bar où tu es est déjà rempli et le reste est facultatif.",
+    "accion": "Aller à la carte"
+  },
+  "quienTomoMas": "Qui a le plus bu près de chez toi",
+  "birras": {
+    "one": "bière",
+    "other": "bières"
+  },
+  "diasSeguidos": "jours d'affilée",
+  "record": "ton record : {n}",
+  "bares": {
+    "one": "bar",
+    "other": "bars"
+  },
+  "mesAnterior": "Mois précédent",
+  "mesSiguiente": "Mois suivant",
+  "diaVacio": "Ce jour-là, tu n'as rien noté.",
+  "unaBirra": "Une bière",
+  "enBar": "à {bar}",
+  "borrar": "Supprimer cette bière",
+  "tusBares": "Tes bars",
+  "emblemas": "Badges",
+  "diaAria": {
+    "one": "{dia} : 1 bière",
+    "other": "{dia} : {count} bières"
+  },
+  "menos": "moins",
+  "mas": "plus",
+  "diaSinBirras": "{dia} : pas de bière"
+}

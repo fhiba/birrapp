@@ -1,0 +1,47 @@
+{
+  "birras": {
+    "titulo": "What do you drink?",
+    "bajada": "Each bar shows three beers and the rest sit behind a {mas}. Mark yours and those will be the three. You can mark only styles, only brands, or none."
+  },
+  "saltear": "Skip",
+  "seguir": "Continue",
+  "vos": {
+    "titulo": "How do others see you?",
+    "bajada": "It's the name you appear with in the public contributors table and under your photos. Your Google name and email aren't shown anywhere.",
+    "label": "Your username",
+    "placeholder": "No username",
+    "ayuda": "We made one for you from your name. You can change it to whatever you want —it has to be unique, so it may be taken— or delete it and not appear anywhere. You can change it anytime in Settings."
+  },
+  "ajustes": {
+    "titulo": "The details",
+    "bajada": "The app starts with these every time you open it. They're the three values people change most, and they're all in Settings if you want to change them later.",
+    "radio": "Search radius",
+    "radioAyuda": "How far around you the map and list open.",
+    "moneda": "Currency",
+    "monedaAyuda": "The one for bars you add by hand. If you pick the bar from the search, the currency comes from the country. Prices are always shown in the bar's currency: nothing is converted.",
+    "vaso": "Glass size",
+    "vasoAyuda": "Which size the price keypad starts with. A pint is 473 ml in the US and Argentina, and 568 in the UK.",
+    "ml": "{n} ml",
+    "pinta": "{n} ml — pint",
+    "pintaUk": "{n} ml — UK pint"
+  },
+  "como": {
+    "titulo": "Three things and we're off",
+    "bajada": "The only parts of the app you can't figure out by looking at it.",
+    "nivel": {
+      "titulo": "Your level can go down",
+      "texto": "It comes from the beers you logged in the {fuerte}, not your all-time total. If you stop logging, it drops. That's why it says how you're doing, not how much you've ever piled up.",
+      "fuerte": "last 45 days"
+    },
+    "donde": {
+      "titulo": "Log where you had it",
+      "texto": "Saying which bar is optional, but {fuerte}: without a bar there's no way to place them, and that table is by proximity. It's one more tap and it's what puts you in the ranking.",
+      "fuerte": "beers without a bar don't count toward the who-drank-most-around-here table"
+    },
+    "nota": {
+      "titulo": "Ratings are for beers, not the bar",
+      "texto": "You rate each beer by dragging your finger over the stars, in half-point steps. The rating you see on a bar is the average of its beers' ratings — not an opinion about the place, the music or the staff."
+    }
+  },
+  "paso": "Step {n} of {total}"
+}

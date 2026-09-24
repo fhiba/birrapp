@@ -1,0 +1,60 @@
+{
+  "map": {
+    "bienvenida": {
+      "titulo": "Isto é o birrapp",
+      "texto": "Um mapa com o preço do pint em Buenos Aires. Os preços são informados por todos: cada um é alguém que esteve lá e anotou. Por isso, ao lado de cada preço você sempre vai ver quando foi informado — um preço sem data não serve para nada."
+    },
+    "mantenerApretado": {
+      "titulo": "Mantenha o mapa pressionado",
+      "texto": "Teste agora, aqui dentro do círculo. Fica uma marca e a busca passa a ser pelos bares ao redor desse ponto em vez de ao seu redor. Ideal para ver quanto custa a cerveja num bairro para onde você está indo."
+    },
+    "sacarMarca": {
+      "titulo": "Para tirá-la, toque no mapa",
+      "texto": "Um toque em qualquer lugar apaga a marca e você volta a buscar a partir de onde está. Teste isso também se acabou de deixar uma marca."
+    },
+    "radio": {
+      "titulo": "Até onde buscamos?",
+      "texto": "De 300 metros a 15 quilômetros. Quanto menor, mais serve para comparar: dois bares a dez quarteirões competem entre si, a dez quilômetros já não."
+    },
+    "estilo": {
+      "titulo": "Uma cerveja de cada vez",
+      "texto": "Filtre por estilo e compare IPA com IPA. Sem filtro, cada pin mostra a mais barata do bar, que pode ser de qualquer estilo."
+    }
+  },
+  "list": {
+    "buscar": {
+      "titulo": "Busque um bar pelo nome",
+      "texto": "A busca é entre todos os bares cadastrados, não só entre os que estão no raio. Pode digitar sem acentos que encontra igual."
+    },
+    "orden": {
+      "titulo": "Perto, barata ou bem avaliada",
+      "texto": "As três ordens da lista. \"Mais barata\" deixa de fora os preços com mais de 45 dias, assim um velho e baixo não ganha de um fresco; \"mais bem avaliada\" manda para o fim os bares que ninguém votou ainda."
+    }
+  },
+  "bar": {
+    "pestanas": {
+      "titulo": "Uma aba por cerveja",
+      "texto": "Cada uma tem seu preço, sua nota e suas fotos. O \"+\" do final é para somar uma que o bar tenha e ainda não esteja cadastrada."
+    },
+    "confirmar": {
+      "titulo": "Isto é o que mais ajuda",
+      "texto": "Se você foi e o preço continua igual, toque aqui e ele fica em dia. É um toque, e é o que evita que o app se encha de preços que já não existem."
+    },
+    "puntuar": {
+      "titulo": "Dê nota à cerveja",
+      "texto": "Apoie o dedo nas estrelas e arraste: encaixa de meio em meio ponto e salva ao soltar. Seu voto fica pintado na cor da nota e a média dos outros fica apagada."
+    },
+    "foto": {
+      "titulo": "Envie uma foto",
+      "texto": "Tire uma foto da cerveja ou escolha uma da galeria. Ela é reduzida no seu celular antes de enviar, assim não gasta seus dados. Abaixo das fotos ficam os comentários."
+    }
+  },
+  "profile": {
+    "resumen": {
+      "titulo": "O que é seu, de relance",
+      "texto": "Cada quadrado abre sua lista: seus preços, suas fotos, seus bares. Se algo saiu errado, você apaga por lá. O quarto é sua contagem de cervejas, que não é uma contribuição ao mapa, é só sua."
+    }
+  },
+  "noMostrarMas": "Não mostrar mais",
+  "dale": "Beleza"
+}

@@ -1,0 +1,45 @@
+{
+  "titulo": "Contributors",
+  "puntosMes": "Points this month",
+  "intro": "The people keeping the map alive. The table resets every month.",
+  "vacio": {
+    "titulo": "Nobody with an alias this month yet",
+    "hintUser": "Pick an alias in Settings and your contributions this month show up here.",
+    "hintAnon": "Contributions count anyway; to be listed you need an account and an alias.",
+    "elegirAlias": "Pick my alias",
+    "entrar": "Sign in"
+  },
+  "ocultos": {
+    "one": "One more person contributed this month without an alias, so they're not listed.",
+    "other": "{count} more people contributed this month without an alias, so they're not listed."
+  },
+  "seElige": "Showing up here is your choice: without an alias, your name isn't published.",
+  "vos": "you",
+  "bares": {
+    "one": "1 bar",
+    "other": "{count} bars"
+  },
+  "aportes": {
+    "one": "1 contribution",
+    "other": "{count} contributions"
+  },
+  "karma": "Beer karma",
+  "puntosMesDe": "points · {mes}",
+  "alFrente": "You're in the lead",
+  "puesto": "Rank {n}",
+  "aFalta": "{falta} behind #{puesto}",
+  "regla": "One contribution counts per bar per day: twenty prices at the same bar are worth the same as one.",
+  "tarifa": {
+    "precio": "Add a price",
+    "bar": "Add a missing bar",
+    "foto": "Upload a photo",
+    "nota": "Rate a beer",
+    "confirmar": "Confirm it's still the same"
+  },
+  "fotoMes": "Photo of the month",
+  "de": "by {alias} · ",
+  "meGusta": {
+    "one": "1 like",
+    "other": "{count} likes"
+  }
+}

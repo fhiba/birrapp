@@ -1,0 +1,27 @@
+{
+  "anotada": {
+    "one": "Eingetragen. Prost!",
+    "other": "{count} Biere eingetragen. Prost!"
+  },
+  "anotadaEn": {
+    "one": "In {bar} eingetragen. Prost!",
+    "other": "{count} Biere in {bar} eingetragen. Prost!"
+  },
+  "titulo": "Ich hatte ein Bier",
+  "aca": "Hattest du es hier?",
+  "donde": "Wo?",
+  "otroLado": "Woanders",
+  "sinBar": "ohne Bar",
+  "cuantas": "Wie viele?",
+  "cualEra": "Welches war es? (optional)",
+  "anotar": "Eintragen",
+  "unaMas": "Eins mehr",
+  "unaMenos": "Eins weniger",
+  "tope": {
+    "titulo": "Mach mal langsam",
+    "texto1": "{mensaje} Fünfzehn an einem Tag ist die Grenze, und die Zahl ist nicht willkürlich: Darüber ist es kein Ausgehen mehr.",
+    "texto2": "Wenn dir das öfter passiert: Die {linea} ist kostenlos, anonym und landesweit rund um die Uhr erreichbar. Es muss kein Notfall sein, um anzurufen.",
+    "linea": "Hotline 141 (Argentinien)",
+    "entendido": "Verstanden"
+  }
+}

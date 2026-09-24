@@ -1,0 +1,27 @@
+{
+  "anotada": {
+    "one": "Anotada. Saúde!",
+    "other": "{count} cervejas anotadas. Saúde!"
+  },
+  "anotadaEn": {
+    "one": "Anotada em {bar}. Saúde!",
+    "other": "{count} cervejas anotadas em {bar}. Saúde!"
+  },
+  "titulo": "Tomei uma cerveja",
+  "aca": "Você tomou aqui?",
+  "donde": "Onde?",
+  "otroLado": "Em outro lugar",
+  "sinBar": "sem bar",
+  "cuantas": "Quantas?",
+  "cualEra": "Qual era? (opcional)",
+  "anotar": "Anotar",
+  "unaMas": "Mais uma",
+  "unaMenos": "Uma a menos",
+  "tope": {
+    "titulo": "Vai com calma",
+    "texto1": "{mensaje} Quinze no mesmo dia é o limite, e não é um número qualquer: daí para cima já não é mais uma saída.",
+    "texto2": "Se isso está acontecendo com frequência, a {linea} é gratuita, anônima e atende o dia todo em todo o país. Não precisa ser uma emergência para ligar.",
+    "linea": "linha 141 (Argentina)",
+    "entendido": "Entendi"
+  }
+}

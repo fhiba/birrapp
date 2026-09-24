@@ -1,0 +1,60 @@
+{
+  "map": {
+    "bienvenida": {
+      "titulo": "Das ist birrapp",
+      "texto": "Eine Karte mit dem Pint-Preis in Buenos Aires. Die Preise tragen wir alle zusammen ein: Hinter jedem steht jemand, der dort war und ihn notiert hat. Deshalb siehst du neben jedem Preis immer, wann er eingetragen wurde — ein Preis ohne Datum bringt dir nichts."
+    },
+    "mantenerApretado": {
+      "titulo": "Halt die Karte gedrückt",
+      "texto": "Probier es jetzt, hier im Kreis. Es setzt eine Markierung und sucht dann Bars rund um diesen Punkt statt rund um dich. Ideal, um zu sehen, was das Bier in einem Viertel kostet, in das du gleich gehst."
+    },
+    "sacarMarca": {
+      "titulo": "Zum Entfernen tipp auf die Karte",
+      "texto": "Ein Tipp irgendwo löscht sie, und du suchst wieder von dort aus, wo du stehst. Probier das auch, wenn du gerade eine Markierung gesetzt hast."
+    },
+    "radio": {
+      "titulo": "Wie weit suchen wir?",
+      "texto": "Von 300 Metern bis 15 Kilometer. Je kleiner, desto sinnvoller der Vergleich: Zwei Bars zehn Blocks voneinander konkurrieren, zehn Kilometer voneinander nicht mehr."
+    },
+    "estilo": {
+      "titulo": "Ein Bier nach dem anderen",
+      "texto": "Filter nach Sorte und vergleich IPA mit IPA. Ohne Filter zeigt jeder Pin das günstigste Bier der Bar, egal welcher Sorte."
+    }
+  },
+  "list": {
+    "buscar": {
+      "titulo": "Such eine Bar nach Namen",
+      "texto": "Es wird in allen eingetragenen Bars gesucht, nicht nur in denen im Umkreis. Du kannst ohne Akzente tippen, sie wird trotzdem gefunden."
+    },
+    "orden": {
+      "titulo": "Nah, günstig oder gut bewertet",
+      "texto": "Die drei Sortierungen der Liste. \"Am günstigsten\" lässt Preise über 45 Tage weg, damit ein alter, niedriger keinen frischen schlägt; \"Am besten bewertet\" schiebt Bars, für die noch niemand abgestimmt hat, ans Ende."
+    }
+  },
+  "bar": {
+    "pestanas": {
+      "titulo": "Ein Tab pro Bier",
+      "texto": "Jedes hat seinen Preis, seine Bewertung und seine Fotos. Das \"+\" am Ende ist, um eines hinzuzufügen, das die Bar hat und das noch nicht eingetragen ist."
+    },
+    "confirmar": {
+      "titulo": "Das hilft am meisten",
+      "texto": "Wenn du dort warst und der Preis gleich geblieben ist, tipp hier und er ist aktuell. Ein Tipp, und genau das verhindert, dass sich die App mit Preisen füllt, die es nicht mehr gibt."
+    },
+    "puntuar": {
+      "titulo": "Bewerte das Bier",
+      "texto": "Leg den Finger auf die Sterne und zieh: Es rastet in halben Punkten ein und speichert beim Loslassen. Deine Stimme erscheint in der Farbe der Bewertung, der Durchschnitt der anderen bleibt blass."
+    },
+    "foto": {
+      "titulo": "Lad ein Foto hoch",
+      "texto": "Mach ein Foto vom Bier oder wähl eins aus der Galerie. Es wird vor dem Hochladen auf deinem Handy verkleinert, damit es dein Datenvolumen schont. Unter den Fotos stehen die Kommentare."
+    }
+  },
+  "profile": {
+    "resumen": {
+      "titulo": "Deins auf einen Blick",
+      "texto": "Jedes Quadrat öffnet seine Liste: deine Preise, deine Fotos, deine Bars. Wenn dir etwas danebengegangen ist, löschst du es dort. Das vierte ist deine Bierzählung, die kein Beitrag zur Karte ist, sondern nur deine."
+    }
+  },
+  "noMostrarMas": "Nicht mehr anzeigen",
+  "dale": "Alles klar"
+}

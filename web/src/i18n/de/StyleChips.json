@@ -1,0 +1,9 @@
+{
+  "sinEstilo": "Keine Sorte",
+  "otro": "Andere Sorte",
+  "sinLista": "Wir konnten die Liste der Sorten nicht laden. Es wird automatisch erneut versucht; wenn es so bleibt, versuch es ohne Inhaltsblocker oder aus einem anderen Netz — du kannst das Bier trotzdem eintragen, ohne Sorte.",
+  "placeholder": "Kellerbier, Gose, Sour…",
+  "nuevo": "„{nombre}“ ist nicht in der Liste. Wird trotzdem angenommen und du kannst sie sofort nutzen; ein Moderator prüft sie.",
+  "yaEsta": "„{nombre}“ ist schon in der Liste: tipp oben darauf.",
+  "dosLetras": "Gib mindestens zwei Buchstaben ein."
+}

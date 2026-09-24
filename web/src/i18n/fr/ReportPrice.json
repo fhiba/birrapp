@@ -1,0 +1,20 @@
+{
+  "pinta": "Pinte",
+  "media": "Demi",
+  "litro": "Litre",
+  "volverPaso": "Revenir à l'étape précédente",
+  "ultimoPaso": "DERNIÈRE ÉTAPE",
+  "cancelarAria": "Annuler la saisie",
+  "enBar": "à {bar}",
+  "monto": "Montant",
+  "ayuda": "Taper le prix au clavier",
+  "formato": "Format",
+  "ml": "{n} ml",
+  "otro": "Autre",
+  "aMano": "à la main",
+  "tamano": "La taille doit être entre 100 et 2000 ml.",
+  "tecladoMl": "Le clavier saisit les millilitres : {n} ml",
+  "tecladoPrecio": "Le clavier saisit le prix : {monto}",
+  "borrarUltimo": "Effacer le dernier chiffre",
+  "cargar": "Saisir le prix"
+}

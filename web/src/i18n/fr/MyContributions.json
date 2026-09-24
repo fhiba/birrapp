@@ -1,0 +1,69 @@
+{
+  "titulo": {
+    "precios": "Mes prix",
+    "fotos": "Mes photos",
+    "comentarios": "Mes commentaires",
+    "bares": "Mes bars"
+  },
+  "tituloAjeno": {
+    "precios": "Prix de {nombre}",
+    "fotos": "Photos de {nombre}",
+    "comentarios": "Commentaires de {nombre}",
+    "bares": "Bars de {nombre}"
+  },
+  "vacioAjeno": {
+    "precios": "N'a saisi aucun prix",
+    "fotos": "N'a envoyé aucune photo",
+    "comentarios": "N'a écrit aucun commentaire",
+    "bares": "N'a ajouté aucun bar"
+  },
+  "vacio": {
+    "precios": {
+      "titulo": "Tu n'as encore saisi aucun prix",
+      "hint": "Un prix se saisit depuis le \"+\" de la carte ou depuis la fiche du bar. C'est ce qui fait vivre la carte.",
+      "accion": "Saisir un prix"
+    },
+    "fotos": {
+      "titulo": "Tu n'as encore envoyé aucune photo",
+      "hint": "Les photos vont sur la bière, sous le prix. Elles sont réduites sur ton téléphone avant l'envoi.",
+      "accion": "Aller à la carte"
+    },
+    "comentarios": {
+      "titulo": "Tu n'as encore écrit aucun commentaire",
+      "hint": "Sous les photos de chaque bière, il y a une zone pour raconter comment elle était.",
+      "accion": "Aller à la carte"
+    },
+    "bares": {
+      "titulo": "Tu n'as encore ajouté aucun bar",
+      "hint": "Si tu en connais un qui n'est pas sur la carte, ajoute-le : il reste pour tout le monde.",
+      "accion": "Ajouter un bar"
+    }
+  },
+  "barMl": "{bar} · {ml} ml",
+  "confirmacion": "confirmation",
+  "estado": {
+    "pendiente": "En attente d'approbation",
+    "rechazado": "Refusé",
+    "publicado": "Publié"
+  },
+  "cargando": "Chargement…",
+  "verMas": "Voir plus",
+  "precio": {
+    "titulo": "Supprimer ce prix ?",
+    "vigente": "C'est le prix que l'appli {fuerte} pour {estilo} à {bar}. Si tu le supprimes, le relevé précédent reste s'il y en a un ; sinon, le bar n'a plus de prix.",
+    "muestraHoy": "affiche aujourd'hui",
+    "viejo": "C'est un ancien relevé, donc ça ne change pas ce qui s'affiche aujourd'hui : il sort de l'historique de {estilo} à {bar}."
+  },
+  "foto": {
+    "titulo": "Supprimer cette photo ?",
+    "texto": "Le fichier est supprimé, pas seulement de la liste. C'est irréversible."
+  },
+  "comentario": {
+    "titulo": "Supprimer ce commentaire ?",
+    "texto": "Seul le texte est supprimé. Ta note pour cette bière reste telle quelle : supprimer ce que tu as écrit, ce n'est pas retirer ton vote.",
+    "borrado": "Commentaire supprimé"
+  },
+  "vigente": "en cours",
+  "birra": "bière",
+  "baresNoSeBorran": "Les bars ne se suppriment pas d'ici : ils peuvent avoir des prix et des photos d'autres personnes, donc les supprimer n'annule pas ta contribution, ça efface celle des autres. Si l'un d'eux est mal saisi, signale-le depuis le bar."
+}

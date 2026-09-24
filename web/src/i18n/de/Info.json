@@ -1,0 +1,45 @@
+{
+  "titulo": "Wie die Preise funktionieren",
+  "s1": {
+    "titulo": "Das Alter zählt so viel wie der Preis",
+    "texto": "Bei Inflation sagt ein Preis von vor zwei Monaten nicht viel. Deshalb zeigt birrapp nie einen Preis, ohne dir zu sagen, von wann er ist."
+  },
+  "escala": "Die Skala",
+  "fresco": {
+    "titulo": "Unter 14 Tage",
+    "nota": "Verlässlich."
+  },
+  "viejo": {
+    "titulo": "Zwischen 14 und 45 Tagen",
+    "nota": "Wahrscheinlich etwas gestiegen."
+  },
+  "rancio": {
+    "titulo": "Über 45 Tage",
+    "nota": "Nur als grobe Orientierung."
+  },
+  "s2": {
+    "titulo": "Warum das Günstigste nicht immer zuerst kommt",
+    "texto": "Beim Sortieren nach „Günstigste“ werden Preise über 45 Tage ignoriert. Ein alter, billiger Preis kann einen aktuellen, ehrlichen nicht schlagen: Er würde dich für eine Zahl, die es nicht mehr gibt, quer durch die Stadt schicken."
+  },
+  "s3": {
+    "titulo": "„Immer noch gleich“ ist der nützlichste Knopf",
+    "texto": "Zu bestätigen, dass sich ein Preis nicht geändert hat, kostet einen Tipp und macht ihn wieder frisch. Wenn niemand bestätigt, veraltet die ganze Karte."
+  },
+  "s4": {
+    "titulo": "Die Pin-Farbe geht von günstig bis teuer",
+    "texto": "Limettengrün ist das Günstigste auf deinem Bildschirm, Koralle das Teuerste; dazwischen liegt der Platz jeder Bar in diesem Bereich. Die Skala passt sich an, wenn du dich bewegst, die Farbe bezieht sich also immer auf das Viertel, das du gerade ansiehst, nicht auf die ganze Stadt."
+  },
+  "s5": {
+    "titulo": "Der kleine Punkt innen ist die Frische",
+    "texto": "In jedem Schild, links von der Zahl, sitzt ein Punkt in der Farbe der Skala oben: Er sagt, von wann dieser Preis ist. Er liegt auf einem dunklen Quadrat, damit er sich vom Hintergrund abhebt, der aus derselben Farbfamilie ist, aber etwas anderes bedeutet. Du wirst nie einen Preis ohne diesen Punkt sehen."
+  },
+  "s6": {
+    "titulo": "Graue Pins sind keine teuren Bars",
+    "texto": "Ein blasser Punkt ist etwas anderes: eine Bar, für die noch niemand einen Preis eingetragen hat. Sie liegt nicht am teuren Ende der Skala, sondern außerhalb."
+  },
+  "s7": {
+    "titulo": "Woher die Bars kommen",
+    "texto": "Der Grundbestand stammt aus OpenStreetMap, und die Community ergänzt die fehlenden. Die Preise tragen immer Menschen ein: Keiner ist von uns geschätzt oder berechnet."
+  },
+  "osm": "Bar-Daten © OpenStreetMap-Mitwirkende, unter ODbL-Lizenz."
+}

@@ -1,0 +1,45 @@
+{
+  "titulo": "Colaboradores",
+  "puntosMes": "Pontos do mês",
+  "intro": "Quem mantém o mapa vivo. A tabela recomeça do zero todo mês.",
+  "vacio": {
+    "titulo": "Ninguém com apelido este mês ainda",
+    "hintUser": "Escolha um apelido em Configurações e suas contribuições do mês aparecem aqui.",
+    "hintAnon": "As contribuições contam do mesmo jeito; para aparecer é preciso uma conta e um apelido.",
+    "elegirAlias": "Escolher meu apelido",
+    "entrar": "Entrar"
+  },
+  "ocultos": {
+    "one": "Mais uma pessoa contribuiu este mês sem apelido, então não aparece.",
+    "other": "Mais {count} pessoas contribuíram este mês sem apelido, então não aparecem."
+  },
+  "seElige": "Aparecer aqui é opcional: sem apelido, seu nome não é publicado.",
+  "vos": "você",
+  "bares": {
+    "one": "1 bar",
+    "other": "{count} bares"
+  },
+  "aportes": {
+    "one": "1 contribuição",
+    "other": "{count} contribuições"
+  },
+  "karma": "Karma cervejeiro",
+  "puntosMesDe": "pontos · {mes}",
+  "alFrente": "Você está na frente",
+  "puesto": "Posição {n}",
+  "aFalta": "a {falta} do {puesto}º",
+  "regla": "Conta uma contribuição por bar e por dia: vinte preços no mesmo bar valem o mesmo que um.",
+  "tarifa": {
+    "precio": "Informar um preço",
+    "bar": "Adicionar um bar que falta",
+    "foto": "Enviar uma foto",
+    "nota": "Dar nota a uma cerveja",
+    "confirmar": "Confirmar que continua igual"
+  },
+  "fotoMes": "Foto do mês",
+  "de": "de {alias} · ",
+  "meGusta": {
+    "one": "1 curtida",
+    "other": "{count} curtidas"
+  }
+}

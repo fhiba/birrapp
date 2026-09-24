@@ -1,0 +1,49 @@
+{
+  "orden": {
+    "distance": "Mais perto",
+    "cheapest": "Mais barata",
+    "rated": "Mais bem avaliada"
+  },
+  "resumen": {
+    "favFresco0": "Nenhum favorito com preço fresco",
+    "sinFav": "Nenhum favorito marcado",
+    "favoritos": {
+      "one": "1 favorito",
+      "other": "{count} favoritos"
+    },
+    "favoritosFrescos": {
+      "one": "1 favorito com preço fresco",
+      "other": "{count} favoritos com preço fresco"
+    },
+    "fresco0": "Nenhum preço fresco por aqui",
+    "bares": {
+      "one": "1 bar",
+      "other": "{count} bares"
+    },
+    "baresFrescos": {
+      "one": "1 bar com preço fresco",
+      "other": "{count} bares com preço fresco"
+    }
+  },
+  "limpiar": "Limpar",
+  "sinResultados": "Sem resultados",
+  "resultados": {
+    "one": "1 resultado",
+    "other": "{count} resultados"
+  },
+  "volverLista": "Voltar à lista",
+  "desdePuntoX": "A partir do ponto escolhido ✕",
+  "vacio": {
+    "busqueda": "Nenhum bar tem esse nome",
+    "busquedaHint": "Tente com menos letras: a busca é por parte do nome e não precisa de acentos.",
+    "favFresco": "Nenhum dos seus favoritos tem preço fresco",
+    "fresco": "Nenhum preço com menos de {dias} dias por aqui",
+    "frescoHint": "Há bares, mas os preços deles já estão antigos. Se você passar por um e vir quanto custa o pint, informe e ele volta para esta lista.",
+    "verViejos": "Ver também os antigos",
+    "sinFav": "Você ainda não marcou nenhum favorito",
+    "sinFavHint": "Toque no coração no fim de qualquer linha —ou no da página do bar— e o bar fica aqui. Eles são salvos na sua conta, então você vê de qualquer celular.",
+    "sinBares": "Ainda não há bares por aqui",
+    "sinBaresHint": "O mapa é feito por todos: se você conhece um nesta região, adicione e ele fica para os outros."
+  },
+  "favAria": "{accion}: {bar}"
+}

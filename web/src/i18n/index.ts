@@ -1,5 +1,9 @@
 import { Fragment, createElement, type ReactNode } from 'react'
 import es from './es'
+import en from './en'
+import pt from './pt'
+import de from './de'
+import fr from './fr'
 
 /**
  * Los textos de la app salen de los archivos de `./es/`, uno por pantalla o
@@ -9,17 +13,26 @@ import es from './es'
  * corren varios agentes a la vez: con un solo archivo, dos ramas que tocan
  * textos de pantallas distintas chocarían igual en el merge.
  *
- * Hoy hay un solo idioma y el locale es fijo. Sumar otro es copiar `./es/`,
- * traducirlo y elegir el diccionario acá según `navigator.language` — las
- * claves ya están tipadas contra `es`, así que al otro idioma le falta una y
- * no compila.
+ * El idioma sale de `navigator.language`: castellano, inglés, portugués,
+ * alemán o francés, y cualquier otro cae en castellano. Sumar uno es copiar
+ * `./es/`, traducirlo y agregarlo a `DICTS` — están tipados contra `es`, así
+ * que si a un idioma le falta una clave no compila.
  *
  * Sin librería a propósito: interpolar `{nombre}` y elegir singular o plural
  * con `Intl.PluralRules` es todo lo que hace falta, y son veinte líneas.
  */
-export const LOCALE = 'es-AR'
-
 type Dict = typeof es
+
+const DICTS: Record<string, Dict> = { es, en, pt, de, fr }
+
+const navLang = typeof navigator === 'undefined' ? 'es' : navigator.language
+const lang = navLang.slice(0, 2).toLowerCase()
+const dict = DICTS[lang] ?? es
+
+/** Para `Intl`: el castellano es el rioplatense; los demás, el del navegador. */
+export const LOCALE = lang in DICTS && lang !== 'es' ? navLang : 'es-AR'
+
+if (typeof document !== 'undefined') document.documentElement.lang = LOCALE
 
 /**
  * Las claves válidas, como `'BarDetail.title'`. Un objeto con `other` es un
@@ -43,7 +56,7 @@ const plural = new Intl.PluralRules(LOCALE)
  * ve en pantalla en vez de quedar un hueco.
  */
 export function t(key: TKey, vars?: Record<string, string | number>): string {
-  let v: unknown = es
+  let v: unknown = dict
   for (const part of key.split('.')) v = (v as Record<string, unknown>)?.[part]
   if (v && typeof v === 'object') {
     const forms = v as Record<string, string>

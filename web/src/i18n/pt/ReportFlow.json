@@ -1,0 +1,12 @@
+{
+  "queTipo": "Que tipo de cerveja?",
+  "queMarca": "De que marca?",
+  "queBar": "Em que bar?",
+  "sinMarcaHint": "Se não souber, continue sem marca.",
+  "cercaHint": "Primeiro os daqui de perto.",
+  "noEsta": "O bar não está — adicione",
+  "salirTitulo": "Sair sem informar o preço?",
+  "salirTexto": "O que você escolheu até aqui se perde e é preciso começar de novo.",
+  "salir": "Sair",
+  "paso": "PASSO {n} DE {total}"
+}

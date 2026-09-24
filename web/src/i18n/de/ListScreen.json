@@ -1,0 +1,49 @@
+{
+  "orden": {
+    "distance": "Am nächsten",
+    "cheapest": "Am günstigsten",
+    "rated": "Am besten bewertet"
+  },
+  "resumen": {
+    "favFresco0": "Kein Favorit mit frischem Preis",
+    "sinFav": "Keine Favoriten markiert",
+    "favoritos": {
+      "one": "1 Favorit",
+      "other": "{count} Favoriten"
+    },
+    "favoritosFrescos": {
+      "one": "1 Favorit mit frischem Preis",
+      "other": "{count} Favoriten mit frischem Preis"
+    },
+    "fresco0": "Hier kein frischer Preis",
+    "bares": {
+      "one": "1 Bar",
+      "other": "{count} Bars"
+    },
+    "baresFrescos": {
+      "one": "1 Bar mit frischem Preis",
+      "other": "{count} Bars mit frischem Preis"
+    }
+  },
+  "limpiar": "Leeren",
+  "sinResultados": "Keine Ergebnisse",
+  "resultados": {
+    "one": "1 Ergebnis",
+    "other": "{count} Ergebnisse"
+  },
+  "volverLista": "Zurück zur Liste",
+  "desdePuntoX": "Vom gewählten Punkt aus ✕",
+  "vacio": {
+    "busqueda": "Keine Bar heißt so",
+    "busquedaHint": "Versuch es mit weniger Buchstaben: Es wird nach Namensteilen gesucht, Akzente sind nicht nötig.",
+    "favFresco": "Keiner deiner Favoriten hat einen frischen Preis",
+    "fresco": "Hier kein Preis unter {dias} Tagen",
+    "frescoHint": "Es gibt Bars, aber ihre Preise sind schon älter. Wenn du an einer vorbeikommst und siehst, was das Pint kostet, trag es ein und sie kommt wieder in diese Liste.",
+    "verViejos": "Auch die alten zeigen",
+    "sinFav": "Du hast noch keine Favoriten markiert",
+    "sinFavHint": "Tipp auf das Herz am Ende einer Zeile —oder auf der Seite der Bar— und die Bar erscheint hier. Sie werden in deinem Konto gespeichert, du siehst sie also auf jedem Handy.",
+    "sinBares": "Hier gibt es noch keine Bars",
+    "sinBaresHint": "Die Karte machen wir alle zusammen: Wenn du eine in dieser Gegend kennst, trag sie ein und sie bleibt für alle."
+  },
+  "favAria": "{accion}: {bar}"
+}

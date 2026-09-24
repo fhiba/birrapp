@@ -1,0 +1,12 @@
+{
+  "queTipo": "What kind of beer?",
+  "queMarca": "Which brand?",
+  "queBar": "At which bar?",
+  "sinMarcaHint": "If you don't know, continue without a brand.",
+  "cercaHint": "Nearby ones first.",
+  "noEsta": "The bar isn't here — add it",
+  "salirTitulo": "Leave without adding the price?",
+  "salirTexto": "What you picked so far is lost and you'll have to start over.",
+  "salir": "Leave",
+  "paso": "STEP {n} OF {total}"
+}

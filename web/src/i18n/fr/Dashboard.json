@@ -1,0 +1,55 @@
+{
+  "titulo": "Tableau de bord",
+  "stat": {
+    "cuentas7": "comptes · 7 j",
+    "cuentas30": "comptes · 30 j",
+    "cuentasTotal": "comptes au total",
+    "aportaron30": "ont contribué · 30 j",
+    "precios7": "prix · 7 j",
+    "baresConPrecio": "bars avec un prix\nsur {n}"
+  },
+  "cobertura": "Couverture : {pct} % des bars ont au moins un prix non expiré.",
+  "masNuevos": "Plus récents",
+  "masAportes": "Plus de contributions",
+  "ordenarPor": "Trier par {que}",
+  "nadie": "Personne n'est encore inscrit.",
+  "rolDe": "Rôle de {nombre}",
+  "bloqueado": "BLOQUÉ",
+  "seAnoto": "{email} · inscrit {cuando}",
+  "sinAportes": "Pas encore de contributions",
+  "ultimo": "dernier",
+  "dias": "{n} j",
+  "serie": {
+    "precios": "prix",
+    "confirm": "confirm.",
+    "bares": "bars",
+    "fotos": "photos",
+    "notas": "notes",
+    "sinSesion": "déconnectés",
+    "conSesion": "connectés",
+    "seAnotaron": "inscrits",
+    "aportaron": "ont contribué",
+    "cobertura": "couverture"
+  },
+  "card": {
+    "aportesDia": "Contributions par jour",
+    "ult30": "30 derniers jours",
+    "altas": "Inscriptions face aux contributeurs",
+    "altasHint": "par semaine · 12 semaines",
+    "cobertura": "Couverture de la carte",
+    "coberturaHint": "% avec prix non expiré · 90 jours",
+    "quienEntra": "Qui arrive",
+    "quienEntraHint": "visiteurs par jour · 30 jours",
+    "sostienen": "Qui fait tourner tout ça",
+    "sostienenHint": "le top 5 concentre {pct} % des contributions",
+    "activacion": "Activation",
+    "activacionHint": "où les gens décrochent · visiteurs web uniquement"
+  },
+  "embudo": {
+    "visitantes": "visiteurs",
+    "cuentas": "comptes",
+    "alguna": "a contribué une fois",
+    "cinco": "a contribué 5 fois ou plus",
+    "activo": "actif · 30 j"
+  }
+}

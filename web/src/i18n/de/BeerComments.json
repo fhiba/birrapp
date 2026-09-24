@@ -1,0 +1,16 @@
+{
+  "titulo": "KOMMENTARE",
+  "placeholder": "Wie war es (optional)",
+  "comentar": "Kommentieren",
+  "nadie": "Noch niemand hat dieses Bier kommentiert.",
+  "vos": "Du",
+  "borrar": "Löschen",
+  "eliminar": "Entfernen",
+  "masViejos": "Ältere Kommentare ansehen",
+  "borrarTitulo": "Deinen Kommentar löschen?",
+  "eliminarTitulo": "Diesen Kommentar entfernen?",
+  "borrar1": "Nur der Text wird gelöscht. Deine Bewertung dieses Biers bleibt — was du geschrieben hast zu löschen, zieht deine Stimme nicht zurück.",
+  "noSeDeshace": "Das lässt sich nicht rückgängig machen.",
+  "eliminar1": "Der Kommentar von {nombre} wird entfernt.",
+  "eliminar2": "Die Bewertung bleibt: Dafür gibt es die Aktion bei der Bewertung. Einen Text zu entfernen sollte den Durchschnitt des Biers nicht ändern."
+}

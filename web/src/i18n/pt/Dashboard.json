@@ -1,0 +1,55 @@
+{
+  "titulo": "Painel",
+  "stat": {
+    "cuentas7": "contas · 7 d",
+    "cuentas30": "contas · 30 d",
+    "cuentasTotal": "contas no total",
+    "aportaron30": "contribuíram · 30 d",
+    "precios7": "preços · 7 d",
+    "baresConPrecio": "bares com preço\nde {n}"
+  },
+  "cobertura": "Cobertura: {pct}% dos bares têm pelo menos um preço não vencido.",
+  "masNuevos": "Mais novos",
+  "masAportes": "Mais contribuições",
+  "ordenarPor": "Ordenar por {que}",
+  "nadie": "Ainda não há ninguém cadastrado.",
+  "rolDe": "Função de {nombre}",
+  "bloqueado": "BLOQUEADO",
+  "seAnoto": "{email} · cadastrou-se {cuando}",
+  "sinAportes": "Sem contribuições ainda",
+  "ultimo": "último",
+  "dias": "{n} d",
+  "serie": {
+    "precios": "preços",
+    "confirm": "confirm.",
+    "bares": "bares",
+    "fotos": "fotos",
+    "notas": "notas",
+    "sinSesion": "sem login",
+    "conSesion": "com login",
+    "seAnotaron": "cadastraram-se",
+    "aportaron": "contribuíram",
+    "cobertura": "cobertura"
+  },
+  "card": {
+    "aportesDia": "Contribuições por dia",
+    "ult30": "últimos 30 dias",
+    "altas": "Cadastros contra contribuintes",
+    "altasHint": "por semana · 12 semanas",
+    "cobertura": "Cobertura do mapa",
+    "coberturaHint": "% com preço não vencido · 90 dias",
+    "quienEntra": "Quem entra",
+    "quienEntraHint": "visitantes por dia · 30 dias",
+    "sostienen": "Quem sustenta isto",
+    "sostienenHint": "o top 5 concentra {pct}% das contribuições",
+    "activacion": "Ativação",
+    "activacionHint": "onde as pessoas desistem · visitantes só da web"
+  },
+  "embudo": {
+    "visitantes": "visitantes",
+    "cuentas": "contas",
+    "alguna": "contribuiu alguma vez",
+    "cinco": "contribuiu 5 ou mais",
+    "activo": "ativo · 30 d"
+  }
+}

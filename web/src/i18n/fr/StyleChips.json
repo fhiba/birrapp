@@ -1,0 +1,9 @@
+{
+  "sinEstilo": "Sans style",
+  "otro": "Autre style",
+  "sinLista": "Impossible de récupérer la liste des styles. On réessaie tout seul ; si ça continue, essaie sans bloqueur de contenu ou depuis un autre réseau — tu peux noter la bière quand même, sans style.",
+  "placeholder": "Kellerbier, Gose, Sour…",
+  "nuevo": "« {nombre} » n'est pas dans la liste. Il est accepté quand même et tu peux l'utiliser tout de suite ; un modérateur le vérifiera.",
+  "yaEsta": "« {nombre} » est déjà dans la liste : touche-le plus haut.",
+  "dosLetras": "Tape au moins deux lettres."
+}

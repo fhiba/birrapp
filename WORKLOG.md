@@ -4512,3 +4512,30 @@ textos). El código los pide con `t('BarDetail.sigueIgual')`.
 - `index.html` y el manifest de la PWA (`vite.config.ts`) siguen con su texto
   escrito; son dos líneas y no dependen del idioma de la sesión.
 
+
+## 2026-09-24 — v0.35.0: la web en inglés, portugués, alemán y francés
+
+Encima de BIR-31 (PR #84), que dejó todos los textos en `web/src/i18n/es/`.
+Rama apilada sobre `claude/i18n`: esa rama sigue abierta y es de otro agente.
+
+`en/`, `pt/` (de Brasil), `de/` y `fr/` son copias traducidas de `es/`, mismo
+`index.ts`. El idioma sale de `navigator.language` y cualquier otro cae en
+castellano. Sin selector en Configuración: el navegador ya sabe qué idioma
+habla la persona, y un ajuste más es algo más que mantener.
+
+`LOCALE` deja de ser fijo: sigue siendo `es-AR` en castellano, y en los demás
+es el del navegador, para que fechas, nombres de moneda y plurales de `Intl`
+coincidan con el texto. También pasa a `<html lang>`.
+
+`DICTS` está tipado contra `es`: si a un idioma le falta una clave, no compila
+(probado sacando una a mano). Además se chequeó con un script que cada
+`{variable}` de `es` esté en las cuatro traducciones.
+
+Decisiones de traducción: "birra" es beer/cerveja/Bier/bière; la pinta sigue
+siendo de 473 ml; la línea 141 aclara que es de Argentina; las palabras que
+hay que tipear para confirmar (BORRAR, SUSPENDER) también se traducen, porque
+se comparan contra `t()` en los dos lados.
+
+Afuera: la política de privacidad (llegó a master en v0.34.0 con el texto
+escrito en el componente, no en `i18n/`), los textos que manda el servidor y
+Android.

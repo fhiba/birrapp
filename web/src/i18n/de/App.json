@@ -1,0 +1,6 @@
+{
+  "loginFallo": "Die Anmeldung konnte nicht abgeschlossen werden.",
+  "hola": "Hallo, {nombre}!",
+  "loginExpiro": "Die Anmeldung ist abgelaufen. Versuch es noch mal.",
+  "buscandoDonde": "Suche deinen Standort…"
+}

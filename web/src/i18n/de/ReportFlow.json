@@ -1,0 +1,12 @@
+{
+  "queTipo": "Welche Biersorte?",
+  "queMarca": "Welche Marke?",
+  "queBar": "In welcher Bar?",
+  "sinMarcaHint": "Wenn du es nicht weißt, mach ohne Marke weiter.",
+  "cercaHint": "Zuerst die in der Nähe.",
+  "noEsta": "Die Bar fehlt — füg sie hinzu",
+  "salirTitulo": "Ohne Preis verlassen?",
+  "salirTexto": "Was du bisher ausgewählt hast, geht verloren und du musst von vorne anfangen.",
+  "salir": "Verlassen",
+  "paso": "SCHRITT {n} VON {total}"
+}

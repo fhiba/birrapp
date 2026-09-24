@@ -1,0 +1,27 @@
+{
+  "titulo": "In der Nähe",
+  "cambiar": "· ändern",
+  "desdePunto": "Vom gewählten Punkt aus",
+  "radioAria": "Umkreis",
+  "masBarata": "AM GÜNSTIGSTEN IN DER NÄHE",
+  "ml": "{n} ml",
+  "ultimo": "ZULETZT EINGETRAGEN",
+  "verMas": "{n} weitere zeigen",
+  "otroBar": "Warst du in einer anderen Bar?",
+  "viejos": {
+    "one": "Eine Bar in deinem Umkreis hat einen Preis, der älter als {dias} Tage ist.",
+    "other": "{count} Bars in deinem Umkreis haben Preise, die älter als {dias} Tage sind."
+  },
+  "sinDatos": "Im Umkreis von {radio} gibt es noch nicht genug Preise für einen aussagekräftigen Durchschnitt. Drei reichen.",
+  "comoViene": "Wie es in der Gegend aussieht · {radio}",
+  "muestras": {
+    "one": "{precios} Preise · 1 Bar",
+    "other": "{precios} Preise · {count} Bars"
+  },
+  "quienTomo": "WER HIER AM MEISTEN GETRUNKEN HAT",
+  "nadie": "Hier hat noch niemand etwas eingetragen. Es zählen nur Biere, die mit Bar eingetragen wurden, und das hat in dieser Gegend bisher niemand gemacht.",
+  "enDias": {
+    "one": "an 1 Tag",
+    "other": "an {count} Tagen"
+  }
+}

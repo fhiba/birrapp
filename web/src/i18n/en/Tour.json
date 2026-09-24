@@ -1,0 +1,60 @@
+{
+  "map": {
+    "bienvenida": {
+      "titulo": "This is birrapp",
+      "texto": "A map of pint prices in Buenos Aires. We all add the prices together: each one is someone who was there and wrote it down. That's why next to every price you'll always see when it was added — a price without a date is no use to you."
+    },
+    "mantenerApretado": {
+      "titulo": "Press and hold the map",
+      "texto": "Try it now, here inside the circle. It drops a marker and searches for bars around that point instead of around you. Perfect for checking beer prices in a neighborhood you're about to head to."
+    },
+    "sacarMarca": {
+      "titulo": "To remove it, tap the map",
+      "texto": "One tap anywhere clears it and you're back to searching from where you're standing. Try that too if you just dropped a marker."
+    },
+    "radio": {
+      "titulo": "How far do we search?",
+      "texto": "From 300 meters to 15 kilometers. The smaller, the more useful the comparison: two bars ten blocks apart compete with each other, ten kilometers apart they don't."
+    },
+    "estilo": {
+      "titulo": "One beer at a time",
+      "texto": "Filter by style and you compare IPA against IPA. Without a filter, each pin shows the bar's cheapest beer, which can be any style."
+    }
+  },
+  "list": {
+    "buscar": {
+      "titulo": "Search a bar by name",
+      "texto": "It searches all the bars in the app, not just the ones inside your radius. You can type it without accents and it still finds it."
+    },
+    "orden": {
+      "titulo": "Near, cheap or well rated",
+      "texto": "The list's three sort orders. \"Cheapest\" leaves out prices older than 45 days, so an old, low one doesn't beat a fresh one; \"top rated\" pushes bars nobody has voted on yet to the end."
+    }
+  },
+  "bar": {
+    "pestanas": {
+      "titulo": "One tab per beer",
+      "texto": "Each one has its price, its rating and its photos. The \"+\" at the end is for adding one the bar has that isn't in the app yet."
+    },
+    "confirmar": {
+      "titulo": "This helps the most",
+      "texto": "If you went and the price is still the same, tap here and it's up to date. It's one tap, and it's what keeps the app from filling up with prices that no longer exist."
+    },
+    "puntuar": {
+      "titulo": "Rate the beer",
+      "texto": "Put your finger on the stars and drag: it snaps in half-point steps and saves when you let go. Your vote is painted in the rating's color and everyone else's average stays dimmed."
+    },
+    "foto": {
+      "titulo": "Upload a photo",
+      "texto": "Take a photo of the beer or pick one from your gallery. It's shrunk on your phone before uploading, so it doesn't eat your data. Comments are below the photos."
+    }
+  },
+  "profile": {
+    "resumen": {
+      "titulo": "Your stuff, at a glance",
+      "texto": "Each square opens its list: your prices, your photos, your bars. If something went wrong, you delete it from there. The fourth is your beer count, which isn't a contribution to the map but just yours."
+    }
+  },
+  "noMostrarMas": "Don't show me this again",
+  "dale": "OK"
+}

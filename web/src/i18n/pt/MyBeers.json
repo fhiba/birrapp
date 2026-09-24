@@ -1,0 +1,36 @@
+{
+  "errorTitulo": "Não conseguimos trazer suas cervejas",
+  "contando": "Contando…",
+  "titulo": "Minhas cervejas",
+  "vacio": {
+    "titulo": "Anote sua primeira cerveja",
+    "hint": "Pelo “+” do mapa, em “Tomei uma cerveja”. Anota com um toque: o bar onde você está já vem preenchido e o resto é opcional.",
+    "accion": "Ir ao mapa"
+  },
+  "quienTomoMas": "Quem bebeu mais na sua região",
+  "birras": {
+    "one": "cerveja",
+    "other": "cervejas"
+  },
+  "diasSeguidos": "dias seguidos",
+  "record": "seu recorde: {n}",
+  "bares": {
+    "one": "bar",
+    "other": "bares"
+  },
+  "mesAnterior": "Mês anterior",
+  "mesSiguiente": "Próximo mês",
+  "diaVacio": "Nesse dia você não anotou nada.",
+  "unaBirra": "Uma cerveja",
+  "enBar": "em {bar}",
+  "borrar": "Apagar esta cerveja",
+  "tusBares": "Seus bares",
+  "emblemas": "Conquistas",
+  "diaAria": {
+    "one": "{dia}: 1 cerveja",
+    "other": "{dia}: {count} cervejas"
+  },
+  "menos": "menos",
+  "mas": "mais",
+  "diaSinBirras": "{dia}: sem cervejas"
+}

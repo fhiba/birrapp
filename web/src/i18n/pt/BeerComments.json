@@ -1,0 +1,16 @@
+{
+  "titulo": "COMENTÁRIOS",
+  "placeholder": "Como estava (opcional)",
+  "comentar": "Comentar",
+  "nadie": "Ninguém comentou esta cerveja ainda.",
+  "vos": "Você",
+  "borrar": "Apagar",
+  "eliminar": "Excluir",
+  "masViejos": "Ver comentários mais antigos",
+  "borrarTitulo": "Apagar seu comentário?",
+  "eliminarTitulo": "Excluir este comentário?",
+  "borrar1": "Só o texto é apagado. Sua nota desta cerveja continua como está — apagar o que você escreveu não é retirar seu voto.",
+  "noSeDeshace": "Não dá para desfazer.",
+  "eliminar1": "O comentário de {nombre} é retirado.",
+  "eliminar2": "A nota não é tocada: para isso existe a ação sobre a nota. Tirar um texto não deveria mudar a média da cerveja."
+}

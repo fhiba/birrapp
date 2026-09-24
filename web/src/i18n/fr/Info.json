@@ -1,0 +1,45 @@
+{
+  "titulo": "Comment marchent les prix",
+  "s1": {
+    "titulo": "L'âge compte autant que le prix",
+    "texto": "Avec l'inflation, un prix d'il y a deux mois ne dit pas grand-chose. C'est pour ça que birrapp n'affiche jamais un prix sans te dire de quand il date."
+  },
+  "escala": "L'échelle",
+  "fresco": {
+    "titulo": "Moins de 14 jours",
+    "nota": "Fiable."
+  },
+  "viejo": {
+    "titulo": "Entre 14 et 45 jours",
+    "nota": "A sans doute un peu augmenté."
+  },
+  "rancio": {
+    "titulo": "Plus de 45 jours",
+    "nota": "Prends-le juste comme repère."
+  },
+  "s2": {
+    "titulo": "Pourquoi le moins cher n'apparaît pas toujours en premier",
+    "texto": "Quand on trie par « moins chère », les prix de plus de 45 jours sont ignorés. Un prix vieux et bas ne peut pas battre un prix récent et honnête : il t'enverrait traverser la ville pour un chiffre qui n'existe plus."
+  },
+  "s3": {
+    "titulo": "« Toujours pareil » est le bouton le plus utile",
+    "texto": "Confirmer qu'un prix n'a pas changé prend une touche et le rend de nouveau frais. Si personne ne confirme, toute la carte vieillit."
+  },
+  "s4": {
+    "titulo": "La couleur de l'épingle va du moins cher au plus cher",
+    "texto": "Le vert citron, c'est le moins cher de ton écran, le corail le plus cher ; entre les deux, la place de chaque bar dans cette fourchette. L'échelle se réajuste quand tu te déplaces, donc la couleur parle toujours du quartier que tu regardes et pas de toute la ville."
+  },
+  "s5": {
+    "titulo": "Le petit point à l'intérieur, c'est la fraîcheur",
+    "texto": "Dans chaque étiquette, à gauche du chiffre, il y a un point de la couleur de l'échelle ci-dessus : il dit de quand date ce prix. Il est posé sur un petit carré sombre justement pour se détacher du fond, qui est de la même famille de couleurs mais veut dire autre chose. Tu ne verras jamais un prix sans ce point."
+  },
+  "s6": {
+    "titulo": "Les épingles grises ne sont pas des bars chers",
+    "texto": "Un point éteint, c'est autre chose : c'est un bar pour lequel personne n'a encore saisi de prix. Il n'est pas au bout cher de l'échelle, il est hors de l'échelle."
+  },
+  "s7": {
+    "titulo": "D'où viennent les bars",
+    "texto": "La base initiale vient d'OpenStreetMap, et la communauté ajoute ceux qui manquent. Les prix sont toujours saisis par des gens : aucun n'est estimé ni calculé par nous."
+  },
+  "osm": "Données des bars © contributeurs d'OpenStreetMap, sous licence ODbL."
+}

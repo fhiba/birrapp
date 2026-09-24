@@ -1,0 +1,12 @@
+{
+  "sinMarca": "Sans marque",
+  "buscar": "Chercher ou saisir une marque",
+  "agregarNueva": "Ajouter « {nombre} »",
+  "nueva": "« {nombre} » n'est pas dans la liste. Elle est acceptée quand même et tu peux l'utiliser tout de suite ; un modérateur la vérifiera.",
+  "noLaSe": "Je ne sais pas",
+  "artesanales": "Artisanales",
+  "industriales": "Industrielles",
+  "seguiEscribiendo": "Continue à taper",
+  "otra": "Autre marque",
+  "dosLetras": "Tape au moins deux lettres pour l'ajouter."
+}

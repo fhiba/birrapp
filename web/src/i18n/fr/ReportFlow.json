@@ -1,0 +1,12 @@
+{
+  "queTipo": "Quel type de bière ?",
+  "queMarca": "De quelle marque ?",
+  "queBar": "Dans quel bar ?",
+  "sinMarcaHint": "Si tu ne sais pas, continue sans marque.",
+  "cercaHint": "D'abord ceux d'à côté.",
+  "noEsta": "Le bar n'y est pas — ajoute-le",
+  "salirTitulo": "Quitter sans saisir le prix ?",
+  "salirTexto": "Ce que tu as choisi jusqu'ici est perdu et il faudra recommencer.",
+  "salir": "Quitter",
+  "paso": "ÉTAPE {n} SUR {total}"
+}

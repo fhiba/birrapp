@@ -1,0 +1,45 @@
+{
+  "titulo": "Contributeurs",
+  "puntosMes": "Points du mois",
+  "intro": "Ceux qui font vivre la carte. Le classement repart de zéro chaque mois.",
+  "vacio": {
+    "titulo": "Personne avec un pseudo ce mois-ci pour l'instant",
+    "hintUser": "Choisis un pseudo dans Réglages et tes contributions du mois apparaîtront ici.",
+    "hintAnon": "Les contributions comptent quand même ; pour apparaître, il faut un compte et un pseudo.",
+    "elegirAlias": "Choisir mon pseudo",
+    "entrar": "Se connecter"
+  },
+  "ocultos": {
+    "one": "Une personne de plus a contribué ce mois-ci sans pseudo, elle n'apparaît donc pas.",
+    "other": "{count} personnes de plus ont contribué ce mois-ci sans pseudo, elles n'apparaissent donc pas."
+  },
+  "seElige": "Apparaître ici, c'est ton choix : sans pseudo, ton nom n'est pas publié.",
+  "vos": "toi",
+  "bares": {
+    "one": "1 bar",
+    "other": "{count} bars"
+  },
+  "aportes": {
+    "one": "1 contribution",
+    "other": "{count} contributions"
+  },
+  "karma": "Karma brassicole",
+  "puntosMesDe": "points · {mes}",
+  "alFrente": "Tu es en tête",
+  "puesto": "{n}e place",
+  "aFalta": "à {falta} de la {puesto}e place",
+  "regla": "Une contribution compte par bar et par jour : vingt prix dans le même bar valent autant qu'un seul.",
+  "tarifa": {
+    "precio": "Saisir un prix",
+    "bar": "Ajouter un bar manquant",
+    "foto": "Envoyer une photo",
+    "nota": "Noter une bière",
+    "confirmar": "Confirmer que c'est toujours pareil"
+  },
+  "fotoMes": "Photo du mois",
+  "de": "par {alias} · ",
+  "meGusta": {
+    "one": "1 j'aime",
+    "other": "{count} j'aime"
+  }
+}

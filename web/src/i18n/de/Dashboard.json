@@ -1,0 +1,55 @@
+{
+  "titulo": "Dashboard",
+  "stat": {
+    "cuentas7": "Konten · 7 T",
+    "cuentas30": "Konten · 30 T",
+    "cuentasTotal": "Konten insgesamt",
+    "aportaron30": "beigetragen · 30 T",
+    "precios7": "Preise · 7 T",
+    "baresConPrecio": "Bars mit Preis\nvon {n}"
+  },
+  "cobertura": "Abdeckung: {pct}% der Bars haben mindestens einen nicht abgelaufenen Preis.",
+  "masNuevos": "Neueste",
+  "masAportes": "Meiste Beiträge",
+  "ordenarPor": "Sortieren nach {que}",
+  "nadie": "Noch niemand registriert.",
+  "rolDe": "Rolle von {nombre}",
+  "bloqueado": "GESPERRT",
+  "seAnoto": "{email} · registriert {cuando}",
+  "sinAportes": "Noch keine Beiträge",
+  "ultimo": "letzter",
+  "dias": "{n} T",
+  "serie": {
+    "precios": "Preise",
+    "confirm": "Bestät.",
+    "bares": "Bars",
+    "fotos": "Fotos",
+    "notas": "Bewertungen",
+    "sinSesion": "abgemeldet",
+    "conSesion": "angemeldet",
+    "seAnotaron": "registriert",
+    "aportaron": "beigetragen",
+    "cobertura": "Abdeckung"
+  },
+  "card": {
+    "aportesDia": "Beiträge pro Tag",
+    "ult30": "letzte 30 Tage",
+    "altas": "Registrierungen gegen Beitragende",
+    "altasHint": "pro Woche · 12 Wochen",
+    "cobertura": "Kartenabdeckung",
+    "coberturaHint": "% mit nicht abgelaufenem Preis · 90 Tage",
+    "quienEntra": "Wer reinkommt",
+    "quienEntraHint": "Besucher pro Tag · 30 Tage",
+    "sostienen": "Wer das hier trägt",
+    "sostienenHint": "die Top 5 stellen {pct}% der Beiträge",
+    "activacion": "Aktivierung",
+    "activacionHint": "wo die Leute abspringen · nur Web-Besucher"
+  },
+  "embudo": {
+    "visitantes": "Besucher",
+    "cuentas": "Konten",
+    "alguna": "mal beigetragen",
+    "cinco": "5 oder mehr beigetragen",
+    "activo": "aktiv · 30 T"
+  }
+}

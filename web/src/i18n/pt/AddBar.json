@@ -1,0 +1,22 @@
+{
+  "noUbicaDireccion": "Não conseguimos localizar esse endereço.",
+  "noUbicaLugar": "Não conseguimos obter a localização desse lugar.",
+  "titulo": "Bar novo",
+  "verificado": "Verificado no Google Maps · publicado na hora",
+  "noEsEste": "Não é este?",
+  "comoSeLlama": "Qual é o nome?",
+  "yaEsta": "Já está no birrapp",
+  "elegir": "Escolher",
+  "ver": "Ver",
+  "enGoogle": "Encontrados no Google",
+  "agregarNombre": "Adicionar “{nombre}”",
+  "loRevisa": "Um moderador revisa antes de publicar",
+  "direccion": "Rua e número, ou esquina",
+  "quedaEn": "✓ Fica em {direccion}",
+  "elegiDireccion": "Escolha o endereço da lista: é de lá que sai o ponto do bar no mapa, e é com ele que um moderador verifica que o bar existe.",
+  "moneda": "Em que moeda cobra",
+  "faltaDireccion": "Escolha o endereço da lista para colocá-lo no mapa.",
+  "faltaBar": "Escolha o bar da lista, ou toque em “Adicionar” para cadastrá-lo à mão.",
+  "enviando": "Enviando…",
+  "agregar": "Adicionar este bar"
+}

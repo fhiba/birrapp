@@ -1,0 +1,22 @@
+{
+  "noUbicaDireccion": "Impossible de trouver cette adresse.",
+  "noUbicaLugar": "Impossible d'obtenir la position de ce lieu.",
+  "titulo": "Nouveau bar",
+  "verificado": "Vérifié sur Google Maps · publié tout de suite",
+  "noEsEste": "Ce n'est pas celui-ci ?",
+  "comoSeLlama": "Comment il s'appelle ?",
+  "yaEsta": "Déjà sur birrapp",
+  "elegir": "Choisir",
+  "ver": "Voir",
+  "enGoogle": "Trouvés sur Google",
+  "agregarNombre": "Ajouter « {nombre} »",
+  "loRevisa": "Un modérateur le vérifie avant publication",
+  "direccion": "Rue et numéro, ou carrefour",
+  "quedaEn": "✓ Adresse : {direccion}",
+  "elegiDireccion": "Choisis l'adresse dans la liste : c'est d'elle que vient le point du bar sur la carte, et c'est avec elle qu'un modérateur vérifie qu'il existe.",
+  "moneda": "Dans quelle monnaie il encaisse",
+  "faltaDireccion": "Choisis l'adresse dans la liste pour le placer sur la carte.",
+  "faltaBar": "Choisis le bar dans la liste, ou touche « Ajouter » pour le saisir à la main.",
+  "enviando": "Envoi…",
+  "agregar": "Ajouter ce bar"
+}
