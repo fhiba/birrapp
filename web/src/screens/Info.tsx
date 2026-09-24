@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { SectionLabel } from '../ui/Kit'
+import { t } from '../i18n'
 
 /**
  * Explica la regla de frescura. No es relleno: si alguien no entiende por qué
@@ -15,35 +16,31 @@ export function InfoScreen() {
     }}>
       <div className="desk-narrow">
       <button onClick={() => nav(-1)} className="icon-btn"
-        style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+        style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
 
       <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '24px 0 0' }}>
-        Cómo funcionan los precios
+        {t('Info.titulo')}
       </h1>
 
-      <Section title="La antigüedad importa tanto como el precio">
-        Con la inflación, un precio de hace dos meses no dice mucho. Por eso birrapp
-        nunca muestra un precio sin decirte de cuándo es.
+      <Section title={t('Info.s1.titulo')}>
+        {t('Info.s1.texto')}
       </Section>
 
       {/* La escala tiene su propia etiqueta y no cuelga del párrafo de arriba:
           es lo único de esta pantalla que hay que poder encontrar de nuevo
           cuando volvés a mirarla. */}
-      <SectionLabel>La escala</SectionLabel>
+      <SectionLabel>{t('Info.escala')}</SectionLabel>
 
-      <Level color="var(--fresh)" label="Menos de 14 días" note="Confiable." />
-      <Level color="var(--aging)" label="Entre 14 y 45 días" note="Probablemente subió un poco." />
-      <Level color="var(--stale)" label="Más de 45 días" note="Tomalo como referencia nomás." />
+      <Level color="var(--fresh)" label={t('Info.fresco.titulo')} note={t('Info.fresco.nota')} />
+      <Level color="var(--aging)" label={t('Info.viejo.titulo')} note={t('Info.viejo.nota')} />
+      <Level color="var(--stale)" label={t('Info.rancio.titulo')} note={t('Info.rancio.nota')} />
 
-      <Section title="Por qué el más barato no siempre aparece primero">
-        Al ordenar por «más barata» se ignoran los precios de más de 45 días. Un precio
-        viejo y barato no puede ganarle a uno reciente y honesto: te mandaría a cruzar
-        la ciudad por un número que ya no existe.
+      <Section title={t('Info.s2.titulo')}>
+        {t('Info.s2.texto')}
       </Section>
 
-      <Section title="«Sigue igual» es el botón más útil">
-        Confirmar que un precio no cambió lleva un toque y lo vuelve a poner en
-        fresco. Si nadie confirma, todo el mapa envejece.
+      <Section title={t('Info.s3.titulo')}>
+        {t('Info.s3.texto')}
       </Section>
 
       {/* En el mapa conviven DOS codificaciones de color, y esta sección
@@ -53,40 +50,29 @@ export function InfoScreen() {
           Van en este orden porque es el orden en que se los lee: primero el
           color de la chapita, que se ve de lejos, y después el punto, que hay
           que mirar. */}
-      <Section title="El color del pin va de barato a caro">
-        Lima es lo más barato que tengas en pantalla y coral lo más caro; el
-        medio es el puesto de cada bar adentro de ese rango. La escala se
-        reacomoda al moverte, así que el color siempre habla del barrio que
-        estás mirando y no de toda la ciudad.
+      <Section title={t('Info.s4.titulo')}>
+        {t('Info.s4.texto')}
       </Section>
 
-      <Section title="El puntito de adentro es la frescura">
-        Adentro de cada chapita, a la izquierda del número, hay un punto del
-        color de la escala de acá arriba: dice de cuándo es ese precio. Va
-        sobre un cuadradito oscuro justamente para que se distinga del fondo,
-        que es de la misma familia de colores pero significa otra cosa. Nunca
-        vas a ver un precio sin ese punto.
+      <Section title={t('Info.s5.titulo')}>
+        {t('Info.s5.texto')}
       </Section>
 
       {/* La pastilla "barato ●●●● caro" se sacó del mapa —la escala se lee
           sola— pero que el gris NO sea "caro" hay que decirlo en algún lado. */}
-      <Section title="Los pines grises no son bares caros">
-        Un punto apagado es otra cosa: es un bar al que todavía nadie le cargó
-        el precio. No está en el extremo caro de la escala, está afuera de la
-        escala.
+      <Section title={t('Info.s6.titulo')}>
+        {t('Info.s6.texto')}
       </Section>
 
-      <Section title="De dónde salen los bares">
-        La base inicial viene de OpenStreetMap, y la comunidad agrega los que faltan.
-        Los precios los carga siempre la gente: no hay ninguno estimado ni calculado
-        por nosotros.
+      <Section title={t('Info.s7.titulo')}>
+        {t('Info.s7.texto')}
       </Section>
 
       <p style={{
         color: 'var(--faint)', fontSize: 'var(--t-1)', marginTop: 'var(--s-6)',
         lineHeight: 1.5, textWrap: 'pretty',
       }}>
-        Datos de bares © colaboradores de OpenStreetMap, bajo licencia ODbL.
+        {t('Info.osm')}
       </p>
       {/* La versión, acá abajo y en cifra tabular.
           Es el dato que se pide cuando algo anda mal —"¿qué versión tenés?"— y

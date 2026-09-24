@@ -1,0 +1,47 @@
+{
+  "birras": {
+    "titulo": "¿Qué tomás?",
+    "bajada": "En cada bar se muestran tres birras y el resto queda detrás de un {mas}. Marcá las tuyas y van a ser esas tres. Podés marcar sólo estilos, sólo marcas, o ninguna."
+  },
+  "saltear": "Saltear",
+  "seguir": "Seguir",
+  "vos": {
+    "titulo": "¿Cómo te ven?",
+    "bajada": "Es el nombre con el que aparecés en la tabla pública de colaboradores y al pie de tus fotos. Tu nombre de Google y tu mail no se muestran en ningún lado.",
+    "label": "Tu nombre de usuario",
+    "placeholder": "Sin nombre de usuario",
+    "ayuda": "Te dejamos uno armado con tu nombre. Podés cambiarlo por el que quieras —tiene que ser único, así que puede estar tomado— o borrarlo y no figurar en ningún lado. Se cambia cuando quieras desde Configuración."
+  },
+  "ajustes": {
+    "titulo": "Los detalles",
+    "bajada": "Con esto arranca la app cada vez que la abrís. Son los tres valores que más se tocan, y están todos en Configuración si querés cambiarlos más adelante.",
+    "radio": "Radio de búsqueda",
+    "radioAyuda": "Con cuánto a la redonda abren el mapa y la lista.",
+    "moneda": "Moneda",
+    "monedaAyuda": "La de los bares que cargues a mano. Si elegís el bar del buscador, la moneda sale del país. Los precios se muestran siempre en la moneda del bar: no se convierte nada.",
+    "vaso": "Tamaño del vaso",
+    "vasoAyuda": "Con qué tamaño arranca el teclado de precio. Una pinta son 473 ml acá, y 568 en el Reino Unido.",
+    "ml": "{n} ml",
+    "pinta": "{n} ml — pinta",
+    "pintaUk": "{n} ml — pinta UK"
+  },
+  "como": {
+    "titulo": "Tres cosas y arrancamos",
+    "bajada": "Lo único de la app que no se entiende mirándola.",
+    "nivel": {
+      "titulo": "Tu nivel puede bajar",
+      "texto": "Sale de las birras que anotaste en los {fuerte}, no del total de siempre. Si dejás de anotar, baja. Por eso dice cómo venís y no cuánto acumulaste alguna vez.",
+      "fuerte": "últimos 45 días"
+    },
+    "donde": {
+      "titulo": "Anotá dónde te la tomaste",
+      "texto": "Decir en qué bar es opcional, pero {fuerte}: sin bar no hay forma de ubicarlas, y esa tabla es por cercanía. Es un toque más y es lo que te pone en el ranking.",
+      "fuerte": "las birras sin bar no entran en la tabla de quién tomó más por la zona"
+    },
+    "nota": {
+      "titulo": "La nota es de las birras, no del bar",
+      "texto": "Se puntúa cada birra arrastrando el dedo sobre las estrellas, de a medio punto. La nota que ves arriba de un bar es el promedio de las notas de sus birras — no es una opinión sobre el lugar, la música ni la moza."
+    }
+  },
+  "paso": "Paso {n} de {total}"
+}

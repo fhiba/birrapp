@@ -1,0 +1,69 @@
+{
+  "titulo": {
+    "precios": "Mis precios",
+    "fotos": "Mis fotos",
+    "comentarios": "Mis comentarios",
+    "bares": "Mis bares"
+  },
+  "tituloAjeno": {
+    "precios": "Precios de {nombre}",
+    "fotos": "Fotos de {nombre}",
+    "comentarios": "Comentarios de {nombre}",
+    "bares": "Bares de {nombre}"
+  },
+  "vacioAjeno": {
+    "precios": "No cargó ningún precio",
+    "fotos": "No subió ninguna foto",
+    "comentarios": "No escribió ningún comentario",
+    "bares": "No agregó ningún bar"
+  },
+  "vacio": {
+    "precios": {
+      "titulo": "Todavía no cargaste ningún precio",
+      "hint": "Un precio se carga desde el \"+\" del mapa o desde la ficha del bar. Es lo que mantiene vivo el mapa.",
+      "accion": "Cargar un precio"
+    },
+    "fotos": {
+      "titulo": "Todavía no subiste ninguna foto",
+      "hint": "Las fotos van en la birra, abajo del precio. Se achican en tu teléfono antes de subirse.",
+      "accion": "Ir al mapa"
+    },
+    "comentarios": {
+      "titulo": "Todavía no escribiste ningún comentario",
+      "hint": "Debajo de las fotos de cada birra hay un cuadro para contar cómo estaba.",
+      "accion": "Ir al mapa"
+    },
+    "bares": {
+      "titulo": "Todavía no agregaste ningún bar",
+      "hint": "Si conocés uno que no está en el mapa, cargalo: queda para todos.",
+      "accion": "Agregar un bar"
+    }
+  },
+  "barMl": "{bar} · {ml} ml",
+  "confirmacion": "confirmación",
+  "estado": {
+    "pendiente": "Esperando aprobación",
+    "rechazado": "Rechazado",
+    "publicado": "Publicado"
+  },
+  "cargando": "Cargando…",
+  "verMas": "Ver más",
+  "precio": {
+    "titulo": "¿Borrar este precio?",
+    "vigente": "Es el precio que la app {fuerte} para {estilo} en {bar}. Al borrarlo, queda el reporte anterior si lo hay, y si no, el bar se queda sin precio.",
+    "muestraHoy": "muestra hoy",
+    "viejo": "Es un reporte viejo, así que no cambia lo que se ve hoy: sale del historial de {estilo} en {bar}."
+  },
+  "foto": {
+    "titulo": "¿Borrar esta foto?",
+    "texto": "Se borra el archivo, no sólo de la lista. No se puede deshacer."
+  },
+  "comentario": {
+    "titulo": "¿Borrar este comentario?",
+    "texto": "Se borra sólo el texto. Tu puntaje de esa birra queda como está: borrar lo que escribiste no es retirar tu voto.",
+    "borrado": "Comentario borrado"
+  },
+  "vigente": "vigente",
+  "birra": "birra",
+  "baresNoSeBorran": "Los bares no se borran desde acá: pueden tener precios y fotos de otra gente, así que borrarlos no deshace tu aporte, borra el de terceros. Si uno está mal cargado, reportalo desde el bar."
+}

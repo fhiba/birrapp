@@ -10,6 +10,7 @@ import { resetTour, tourPending } from '../ui/Tour'
 import { SectionLabel, Tile } from '../ui/Kit'
 import { nivelDe } from '../data/nivel'
 import { PriceColumn } from '../ui/Empty'
+import { t } from '../i18n'
 
 export function ProfileScreen({ user, onSession }: {
   user: User | null
@@ -69,7 +70,7 @@ export function ProfileScreen({ user, onSession }: {
       location.href = authorizeUrl
     } catch {
       setBusy(false)
-      setError('No pudimos abrir el inicio de sesión. Revisá tu conexión.')
+      setError(t('Profile.loginFallo'))
     }
   }
 
@@ -77,7 +78,7 @@ export function ProfileScreen({ user, onSession }: {
     <Wrap>
       <h1 className="ttl" style={{ fontSize: 'var(--t-8)', margin: 0 }}>birrapp</h1>
       <p style={{ color: 'var(--muted)', margin: '12px 0 24px' }}>
-        Para cargar precios hace falta una cuenta. Mirar el mapa no.
+        {t('Profile.haceFaltaCuenta')}
       </p>
       {/* El CTA primario de la pizarra: hueso lleno, texto espresso, `--r-2` y
           52 de alto — acá el botón es la pantalla entera, así que va el alto
@@ -96,7 +97,7 @@ export function ProfileScreen({ user, onSession }: {
         background: busy ? 'var(--acento-busy)' : 'var(--acento)',
         color: 'var(--base)', fontSize: 'var(--t-4)',
       }}>
-        {busy ? <span className="spinner" /> : <><GoogleG /> Continuar con Google</>}
+        {busy ? <span className="spinner" /> : <><GoogleG /> {t('Profile.google')}</>}
       </button>
       {error && (
         <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)', marginTop: 'var(--s-4)' }}>
@@ -128,7 +129,7 @@ export function ProfileScreen({ user, onSession }: {
       }}>
         <h1 className="ttl" style={{
           flex: 1, minWidth: 0, fontSize: 'var(--t-7)', margin: 0,
-        }}>Perfil</h1>
+        }}>{t('Profile.titulo')}</h1>
         <BotonesDeSesion onConfig={() => nav('/config')} onSalir={() => setConfirm('out')} />
       </div>
 
@@ -217,7 +218,7 @@ export function ProfileScreen({ user, onSession }: {
           derecha, y la barra debajo cruza la pantalla. */}
       <NivelBarra nivel={nivel} />
 
-      <SectionLabel>Lo tuyo</SectionLabel>
+      <SectionLabel>{t('Profile.loTuyo')}</SectionLabel>
       {/* Cada cuadrado abre SU lista, no una pantalla común con todo apilado.
           Con una sola vista compartida, tocar "Fotos" te dejaba arriba de
           todo y había que scrollear los precios para llegar a las fotos —el
@@ -230,10 +231,10 @@ export function ProfileScreen({ user, onSession }: {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }} data-tour="profile-stats">
-        <Tile label="Precios" value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
-        <Tile label="Fotos" value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
-        <Tile label="Bares" value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
-        <Tile label="Birras tomadas" value={stats?.beers}
+        <Tile label={t('Profile.precios')} value={stats?.prices} onClick={() => nav('/mis-aportes/precios')} />
+        <Tile label={t('Profile.fotos')} value={stats?.photos} onClick={() => nav('/mis-aportes/fotos')} />
+        <Tile label={t('Profile.bares')} value={stats?.bars} onClick={() => nav('/mis-aportes/bares')} />
+        <Tile label={t('Profile.birrasTomadas')} value={stats?.beers}
           onClick={() => nav('/mis-birras')} />
       </div>
 
@@ -246,21 +247,21 @@ export function ProfileScreen({ user, onSession }: {
         {/* El contador va acá y no sólo adentro de Moderación: si hay que
             entrar para enterarse de que hay algo que hacer, nadie entra. */}
         {isModerator(user) && (
-          <Row label="Moderación" badge={pendingWork} onClick={() => nav('/moderacion')} />
+          <Row label={t('Profile.moderacion')} badge={pendingWork} onClick={() => nav('/moderacion')} />
         )}
         {/* Los comentarios no tienen cuadrado: `UserStats` no los cuenta y
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
-        <Row label="Mis comentarios" onClick={() => nav('/mis-aportes/comentarios')} />
+        <Row label={t('Profile.misComentarios')} onClick={() => nav('/mis-aportes/comentarios')} />
         {/* Arriba de "Cómo funcionan los precios" porque es lo que se va a
             mirar seguido, no una sola vez. */}
-        <Row label="Colaboradores del mes" onClick={() => nav('/colaboradores')} />
-        <Row label="Cómo funcionan los precios" onClick={() => nav('/info')} />
+        <Row label={t('Profile.colaboradores')} onClick={() => nav('/colaboradores')} />
+        <Row label={t('Profile.comoFuncionan')} onClick={() => nav('/info')} />
         {/* Se puede volver a ver. Un tutorial que se saltea de un toque y no
             se puede recuperar castiga el toque apurado. */}
         {user && (
           <Row
-            label={tourPending(user.id) ? 'Ver el tutorial' : 'Ver el tutorial de nuevo'}
+            label={tourPending(user.id) ? t('Profile.tutorial') : t('Profile.tutorialDeNuevo')}
             onClick={() => { resetTour(user.id); nav('/') }}
           />
         )}
@@ -270,9 +271,9 @@ export function ProfileScreen({ user, onSession }: {
 
       {confirm === 'out' && (
         <Confirm
-          title="¿Cerrar sesión?"
-          body="Vas a poder seguir mirando el mapa, pero no cargar precios hasta que vuelvas a entrar."
-          confirmLabel="Cerrar sesión" danger
+          title={t('Profile.salirTitulo')}
+          body={t('Profile.salirTexto')}
+          confirmLabel={t('Profile.salir')} danger
           onCancel={() => setConfirm(null)}
           onConfirm={async () => {
             setConfirm(null); clearCached(); await api.signOut(); onSession()
@@ -312,7 +313,7 @@ function Favoritos({ userId }: { userId: number }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-3)' }}>
-        <SectionLabel>{`Favoritos · ${bars.length}`}</SectionLabel>
+        <SectionLabel>{t('Profile.favoritos', { n: bars.length })}</SectionLabel>
         {bars.length > 0 && (
           <button
             onClick={() => nav('/lista?favoritos=1')}
@@ -321,7 +322,7 @@ function Favoritos({ userId }: { userId: number }) {
               marginLeft: 'auto', color: 'var(--info)', fontSize: 'var(--t-2)',
               minHeight: 44,
             }}
-          >Ver en la lista</button>
+          >{t('Profile.verEnLista')}</button>
         )}
       </div>
 
@@ -330,8 +331,7 @@ function Favoritos({ userId }: { userId: number }) {
           margin: 0, fontSize: 'var(--t-3)', color: 'var(--muted)',
           lineHeight: 1.5, textWrap: 'pretty',
         }}>
-          Tocá el corazón al final de cualquier fila de la lista —o el de la
-          ficha del bar— y el bar queda acá.
+          {t('Profile.sinFavoritos')}
         </p>
       ) : bars.slice(0, FAVS_EN_PERFIL).map(b => (
         <button key={b.id} onClick={() => nav(`/bar/${b.id}`)} className="row-hover" style={{
@@ -405,7 +405,7 @@ const Footer = () => (
   <div style={{ marginTop: 'var(--s-6)' }}>
     <p style={{ color: 'var(--faint)', fontSize: 'var(--t-1)', lineHeight: 1.5, margin: 0 }}>
       birrapp {__APP_VERSION__}<br />
-      datos de bares © colaboradores de OpenStreetMap
+      {t('Profile.osm')}
     </p>
     {/* Sin cuenta el enlace no aparece en la lista de acciones, pero la
         actualización tiene que estar igual: alguien puede quedar trabado en
@@ -415,7 +415,7 @@ const Footer = () => (
     <button onClick={forceUpdate} style={{
       color: 'var(--info)', fontSize: 'var(--t-1)', minHeight: 44,
       textDecoration: 'underline',
-    }}>Buscar actualización</button>
+    }}>{t('Profile.buscarActualizacion')}</button>
   </div>
 )
 
@@ -446,7 +446,7 @@ function BotonesDeSesion({ onConfig, onSalir }: {
             abajo, entre "cómo funcionan los precios" y el tutorial: nadie va a
             leer una lista para encontrar la configuración, la busca arriba a
             la derecha. */}
-        <button onClick={() => onConfig()} aria-label="Configuración" className="icon-btn"
+        <button onClick={() => onConfig()} aria-label={t('Profile.configuracion')} className="icon-btn"
           style={{ background: 'var(--film-2)', color: 'var(--muted)' }}>
           {/* La rueda se veía cortada arriba a la izquierda, y el defecto
               estaba adentro del `path`: donde el diente de esa esquina pedía
@@ -473,7 +473,7 @@ function BotonesDeSesion({ onConfig, onSalir }: {
             tuerca de al lado, que no deshace nada; el borde lo distingue por
             forma y no sólo por color, o sea también con la pantalla en blanco y
             negro. */}
-        <button onClick={() => onSalir()} aria-label="Cerrar sesión" className="icon-btn"
+        <button onClick={() => onSalir()} aria-label={t('Profile.salir')} className="icon-btn"
           style={{
             background: 'transparent', border: '1px solid var(--danger)',
             color: 'var(--danger)',
@@ -511,7 +511,7 @@ function Emblema({ nivel }: { nivel: ReturnType<typeof nivelDe> }) {
     <div
       className="num"
       title={nivel.nombre}
-      aria-label={`Nivel ${nivel.numero}: ${nivel.nombre}`}
+      aria-label={t('Profile.nivel', { n: nivel.numero, nombre: nivel.nombre })}
       style={{
         width: 48, height: 48, borderRadius: 'var(--r-2)', flexShrink: 0,
         display: 'grid', placeItems: 'center',

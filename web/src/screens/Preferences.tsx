@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import type { BeerStyle, Brand, User } from '../data/types'
 import { chipStyle } from '../ui/PillRow'
+import { t, tx } from '../i18n'
 
 /** El techo del servidor es 10; acá se sugiere menos porque se muestran 3. */
 const MAX = 10
@@ -107,21 +108,18 @@ export function PreferencesScreen({
       <div className="desk-narrow">
         <div style={{ padding: '0 18px' }}>
           <button onClick={() => nav(-1)} className="icon-btn"
-            style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+            style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>
-            Tus birras
+            {t('Preferences.titulo')}
           </h1>
           <p style={{
             color: 'var(--muted)', fontSize: 'var(--t-3)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
-            En cada bar se muestran tres birras y el resto queda detrás del{' '}
-            <span className="lbl">⋯</span>. Marcá las tuyas y van a ser esas tres.
-            {' '}Podés marcar sólo estilos, sólo marcas o las dos cosas, y
-            cambiarlo cuando quieras.
+            {tx('Preferences.intro', { mas: <span className="lbl">⋯</span> })}
           </p>
         </div>
 
-        <Grupo titulo="Estilos" elegidos={estilos.length}>
+        <Grupo titulo={t('Preferences.estilos')} elegidos={estilos.length}>
           {styles.map(s => (
             <Chip
               key={s.slug} label={s.name} on={estilos.includes(s.slug)}
@@ -130,7 +128,7 @@ export function PreferencesScreen({
           ))}
         </Grupo>
 
-        <Grupo titulo="Marcas" elegidos={marcas.length}>
+        <Grupo titulo={t('Preferences.marcas')} elegidos={marcas.length}>
           {/* Las artesanales primero: son las que alguien elige a propósito.
               Una industrial se toma porque es la que hay, y eso no es una
               preferencia que valga la pena declarar. */}
@@ -171,7 +169,7 @@ export function PreferencesScreen({
           <button onClick={salir} className="lbl cta" style={{
             minHeight: 44, padding: 'var(--s-3) var(--s-4)', fontSize: 'var(--t-3)',
             color: 'var(--info)',
-          }}>Cancelar</button>
+          }}>{t('comun.cancelar')}</button>
 
           <button
             onClick={guardar} disabled={guardando} className="lbl cta"
@@ -181,7 +179,7 @@ export function PreferencesScreen({
               background: guardando ? 'var(--acento-busy)' : 'var(--acento)',
               color: 'var(--base)',
             }}
-          >{guardando ? 'Guardando…' : 'Listo'}</button>
+          >{guardando ? t('Preferences.guardando') : t('comun.listo')}</button>
         </div>
         </div>
       </div>

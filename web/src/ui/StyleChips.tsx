@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as api from '../data/api'
 import type { BeerStyle } from '../data/types'
 import { AgregarOtro, Vocablo } from './Kit'
+import { t } from '../i18n'
 
 /**
  * La lista de estilos, con la posibilidad de proponer uno que no está (BIR-35).
@@ -96,7 +97,7 @@ export function StyleChips({
         padding: '4px 16px', scrollbarWidth: 'none',
       }}>
         {allowNone && (
-          <Vocablo key="ninguno" label="Sin estilo" centrado={grid}
+          <Vocablo key="ninguno" label={t('StyleChips.sinEstilo')} centrado={grid}
             on={value === undefined} onClick={() => onChange(undefined)} />
         )}
         {styles.map(s => (
@@ -109,7 +110,7 @@ export function StyleChips({
             Sin lista no se ofrece: proponer un estilo cuando no sabemos cuáles
             existen es invitar a duplicar los que ya están. */}
         {!sinLista && (
-          <AgregarOtro key="otro" label="Otro estilo" on={typing}
+          <AgregarOtro key="otro" label={t('StyleChips.otro')} on={typing}
             onClick={() => setTyping(t => !t)} />
         )}
       </div>
@@ -119,9 +120,7 @@ export function StyleChips({
           color: 'var(--aging)', fontSize: 'var(--t-2)',
           margin: '8px 16px 0', lineHeight: 1.5, textWrap: 'pretty',
         }}>
-          No pudimos traer la lista de estilos. Se reintenta solo; si sigue
-          así, probá sin bloqueador de contenido o desde otra red — podés
-          anotar la birra igual, sin estilo.
+          {t('StyleChips.sinLista')}
         </p>
       )}
 
@@ -133,7 +132,7 @@ export function StyleChips({
             // que la tecla de confirmar no haga nada es la forma más fácil de
             // perder lo tecleado.
             onKeyDown={e => { if (e.key === 'Enter' && canCreate && !busy) create() }}
-            placeholder="Kellerbier, Gose, Sour…" maxLength={40} autoFocus
+            placeholder={t('StyleChips.placeholder')} maxLength={40} autoFocus
             autoComplete="off" autoCorrect="off" spellCheck={false}
             style={{
               flex: 1, minWidth: 0, padding: '12px 12px', borderRadius: 'var(--r-2)',
@@ -149,7 +148,7 @@ export function StyleChips({
             minHeight: 46,
             background: canCreate && !busy ? 'var(--acento)' : 'var(--elevated)',
             color: canCreate && !busy ? 'var(--base)' : 'var(--faint)',
-          }}>{busy ? '…' : 'Agregar'}</button>
+          }}>{busy ? '…' : t('comun.agregar')}</button>
         </div>
       )}
 
@@ -170,9 +169,9 @@ export function StyleChips({
           fontSize: 'var(--t-1)', margin: '8px 16px 0', lineHeight: 1.5,
         }}>
           {error
-            ?? (canCreate ? `“${typed}” no está en la lista. Se acepta igual y la podés usar al toque; queda a revisión de un moderador.`
-              : typed.length >= 2 ? `“${typed}” ya está en la lista: tocalo arriba.`
-              : 'Escribí al menos dos letras.')}
+            ?? (canCreate ? t('StyleChips.nuevo', { nombre: typed })
+              : typed.length >= 2 ? t('StyleChips.yaEsta', { nombre: typed })
+              : t('StyleChips.dosLetras'))}
         </p>
       )}
     </>

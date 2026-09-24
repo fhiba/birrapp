@@ -8,6 +8,7 @@ import {
 } from '../data/format'
 import { PriceColumn, SkeletonRows } from '../ui/Empty'
 import { useCached } from '../data/cached'
+import { t } from '../i18n'
 
 /**
  * La clave de caché del promedio de la zona.
@@ -152,7 +153,7 @@ export function NearbyScreen(p: {
           borderBottom: '1px solid var(--hairline)',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--s-3)' }}>
-            <h1 className="ttl" style={{ flex: 1, fontSize: 'var(--t-7)', margin: 0 }}>Cerca</h1>
+            <h1 className="ttl" style={{ flex: 1, fontSize: 'var(--t-7)', margin: 0 }}>{t('Nearby.titulo')}</h1>
             {/* El radio es el ámbito de todo lo que sigue, así que se dice en
                 el encabezado y se cambia ahí mismo. Es el patrón del diseño:
                 "2 km · cambiar". */}
@@ -166,20 +167,20 @@ export function NearbyScreen(p: {
               }}
             >
               <span className="num">{formatRadius(p.radius)}</span>
-              <span>· cambiar</span>
+              <span>{t('Nearby.cambiar')}</span>
             </button>
           </div>
 
           {p.simulated && (
             <div className="section-label" style={{ margin: 'var(--s-1) 0 0' }}>
-              Desde el punto elegido
+              {t('Nearby.desdePunto')}
             </div>
           )}
 
           {radioAbierto && (
             <input
               className="range" type="range" min={300} max={15000} step={100}
-              aria-label="Radio de la zona"
+              aria-label={t('Nearby.radioAria')}
               value={p.radius}
               onChange={e => { fb.paso(); p.onRadius(Number(e.target.value)) }}
               style={{
@@ -197,7 +198,7 @@ export function NearbyScreen(p: {
             {stats?.cheapest && (
               <>
                 <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
-                  MÁS BARATA CERCA
+                  {t('Nearby.masBarata')}
                 </h2>
                 <Fila
                   nombre={stats.cheapest.barName}
@@ -205,7 +206,7 @@ export function NearbyScreen(p: {
                     stats.cheapest.brandName
                       ? `${stats.cheapest.styleName} · ${stats.cheapest.brandName}`
                       : stats.cheapest.styleName,
-                    `${stats.cheapest.sizeMl} ml`,
+                    t('Nearby.ml', { n: stats.cheapest.sizeMl }),
                   ].join(' · ')}
                   price={stats.cheapest.price}
                   currency={stats.currency}
@@ -222,7 +223,7 @@ export function NearbyScreen(p: {
                     saber si un precio cambió hace falta el anterior, y eso el
                     servidor no lo manda con los pines. */}
                 <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
-                  LO ÚLTIMO QUE SE CARGÓ
+                  {t('Nearby.ultimo')}
                 </h2>
                 {visibles.map(b => (
                   <Fila
@@ -249,7 +250,7 @@ export function NearbyScreen(p: {
                       borderRadius: 'var(--r-2)', fontSize: 'var(--t-3)',
                       background: 'var(--film-1)', color: 'var(--info)',
                     }}
-                  >Ver {recientes.length - RECIENTES_PLEGADO} más</button>
+                  >{t('Nearby.verMas', { n: recientes.length - RECIENTES_PLEGADO })}</button>
                 )}
               </>
             )}
@@ -280,21 +281,19 @@ export function NearbyScreen(p: {
                 background: 'var(--info-soft)', border: '1px solid var(--info-border)',
               }}>
                 <div className="ttl" style={{ fontSize: 'var(--t-5)' }}>
-                  ¿Pasaste por otro bar?
+                  {t('Nearby.otroBar')}
                 </div>
                 <p style={{
                   margin: 'var(--s-2) 0 0', fontSize: 'var(--t-3)',
                   color: 'var(--cream-soft)', lineHeight: 1.5, textWrap: 'pretty',
                 }}>
-                  {viejos === 1
-                    ? `Un bar de tu radio tiene el precio de hace más de ${FRESCO_DIAS} días.`
-                    : `${viejos} bares de tu radio tienen el precio de hace más de ${FRESCO_DIAS} días.`}
+                  {t('Nearby.viejos', { count: viejos, dias: FRESCO_DIAS })}
                 </p>
                 <button onClick={() => nav('/')} className="lbl cta" style={{
                   marginTop: 'var(--s-3)', width: '100%', height: 46,
                   borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
                   background: 'var(--acento)', color: 'var(--base)',
-                }}>Cargar un precio</button>
+                }}>{t('AddMenu.precio')}</button>
               </div>
             )}
           </>
@@ -319,8 +318,7 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
         fontSize: 'var(--t-3)', color: 'var(--muted)', lineHeight: 1.5,
         textWrap: 'pretty',
       }}>
-        Todavía no hay precios suficientes en {formatRadius(radius)} a la
-        redonda para sacar un promedio que signifique algo. Con tres alcanza.
+        {t('Nearby.sinDatos', { radio: formatRadius(radius) })}
       </p>
     )
   }
@@ -343,7 +341,7 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
           sonaba a reporte de oficina en la única pantalla que contesta la
           pregunta más de bar que tiene la app. */}
       <div className="section-label" style={{ margin: 0 }}>
-        Cómo viene la zona · {formatRadius(radius)}
+        {t('Nearby.comoViene', { radio: formatRadius(radius) })}
       </div>
       <div style={{
         display: 'flex', alignItems: 'baseline', gap: 'var(--s-2)', marginTop: 'var(--s-2)',
@@ -352,7 +350,7 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
           {formatPrice(stats.medianPint, stats.currency)}
         </span>
         <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
-          la pinta, típico
+          {t('AreaStatsCard.pintaTipico')}
         </span>
       </div>
 
@@ -374,8 +372,8 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
             display: 'flex', justifyContent: 'space-between',
             fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 'var(--s-1)',
           }}>
-            <span>piso {formatPrice(piso!, stats.currency)}</span>
-            <span>tope {formatPrice(tope!, stats.currency)}</span>
+            <span>{t('AreaStatsCard.piso', { precio: formatPrice(piso!, stats.currency) })}</span>
+            <span>{t('AreaStatsCard.tope', { precio: formatPrice(tope!, stats.currency) })}</span>
           </div>
         </>
       )}
@@ -390,7 +388,7 @@ function Benchmark({ stats, radius }: { stats: AreaStats | null; radius: number 
         borderTop: '1px solid var(--hairline)',
         fontSize: 'var(--t-1)', color: 'var(--faint)', lineHeight: 1.5,
       }}>
-        {stats.samples} precios · {stats.bars} {stats.bars === 1 ? 'bar' : 'bares'}
+        {t('Nearby.muestras', { count: stats.bars, precios: stats.samples })}
       </p>
     </div>
   )
@@ -453,7 +451,7 @@ function Ranking({ filas, onAbrir }: {
   return (
     <section style={{ marginTop: 'var(--s-5)' }}>
       <h2 className="section-label" style={{ padding: '0 var(--s-4)' }}>
-        QUIÉN TOMÓ MÁS POR ACÁ
+        {t('Nearby.quienTomo')}
       </h2>
 
       {filas == null ? (
@@ -463,8 +461,7 @@ function Ranking({ filas, onAbrir }: {
           color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
           padding: '0 var(--s-4)', textWrap: 'pretty',
         }}>
-          Por acá todavía no anotó nadie. Sólo cuentan las birras anotadas
-          diciendo en qué bar, y hasta ahora nadie lo hizo en esta zona.
+          {t('Nearby.nadie')}
         </p>
       ) : (
         <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -502,7 +499,7 @@ function Ranking({ filas, onAbrir }: {
                   {/* En cuántos días: veinte birras en dos noches y veinte en
                       quince no son la misma historia. */}
                   <span style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>
-                    {f.days === 1 ? 'en 1 día' : `en ${f.days} días`}
+                    {t('Nearby.enDias', { count: f.days })}
                   </span>
                 </span>
 

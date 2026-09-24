@@ -63,6 +63,18 @@ en memoria de 60 s, sólo para que rotar la pantalla no dispare otra request.
 **Sin Hilt.**
 Seis objetos sin ciclos. `AppContainer` a mano alcanza.
 
+**Textos de la web en `web/src/i18n/es/`, sin librería de i18n (v0.34.0, BIR-31).**
+Un JSON por pantalla o componente y no uno solo: varios agentes tocan el repo a
+la vez, y con un archivo único dos ramas que cambian textos de pantallas
+distintas chocan igual en el merge. `t('Pantalla.clave', { var })` interpola y
+elige plural con `Intl.PluralRules`; `tx()` hace lo mismo con nodos, para las
+frases que llevan una negrita en el medio sin partirlas en dos claves. Las
+claves están tipadas contra `es`: una clave mal escrita no compila. Sin
+i18next ni similares: lo que hace falta son veinte líneas. Los nombres de
+moneda y las iniciales de los días salen de `Intl`, que ya viene traducido.
+Hoy hay un solo idioma y el locale es fijo (`LOCALE = 'es-AR'`); sumar otro es
+copiar `es/`, traducir y elegir diccionario en `i18n/index.ts`.
+
 **Sin material-icons-extended.**
 Google la congeló en 1.7.8. Se usan tres iconos del core en su lugar.
 

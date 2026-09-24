@@ -18,6 +18,7 @@ import { PhotoStrip, Thumb } from '../ui/PhotoStrip'
 import { SumarEnRotulo } from '../ui/Kit'
 import { BeerComments } from '../ui/BeerComments'
 import { KARMA, KARMA_VISIBLE } from '../data/karma'
+import { t, tx } from '../i18n'
 
 /**
  * Lo que suma cada aporte de esta pantalla, para mostrarlo adentro del botón.
@@ -212,7 +213,7 @@ export function BarDetailScreen({
       // repite: confirmar, cargar y borrar. Es el mejor lugar para el aviso,
       // porque es el único por el que pasan las tres.
       fb.exito()
-      setToast(r?.message ?? 'Listo')
+      setToast(r?.message ?? t('comun.listo'))
       await load()
       onChanged()
     }
@@ -226,7 +227,7 @@ export function BarDetailScreen({
       <button onClick={load} className="lbl cta" style={{
         marginTop: 12, padding: '12px 16px', borderRadius: 'var(--r-2)',
         background: 'var(--acento)', color: 'var(--base)',
-      }}>Reintentar</button>
+      }}>{t('comun.reintentar')}</button>
     </Centered>
   )
   if (!bar) return <Centered><div className="spinner" /></Centered>
@@ -433,7 +434,7 @@ export function BarDetailScreen({
         top: 'calc(var(--safe-top) + var(--s-2))', left: 18, right: 18,
       } : null),
     }}>
-      <button onClick={() => nav(-1)} className="icon-btn" aria-label="Volver"
+      <button onClick={() => nav(-1)} className="icon-btn" aria-label={t('comun.volver')}
         style={{
           backgroundColor: VIDRIO_FALLBACK,
           background: hayCabecera ? VIDRIO_ESPRESSO : 'var(--film-2)',
@@ -448,7 +449,7 @@ export function BarDetailScreen({
           cargar un precio, es una marca propia sobre este bar. */}
       <button
         onClick={() => user ? favorites.toggle(barId) : nav('/perfil')}
-        aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
+        aria-label={isFavorite ? t('BarPreview.sacarFav') : t('BarPreview.guardarFav')}
         aria-pressed={isFavorite}
         className="icon-btn"
         style={{
@@ -480,7 +481,7 @@ export function BarDetailScreen({
         // botones de borrar acechando en la vista de todos los días.
         <button
           onClick={() => setModMode(m => !m)}
-          aria-label={modMode ? 'Salir del modo moderador' : 'Modo moderador'}
+          aria-label={modMode ? t('BarDetail.salirModMod') : t('BarDetail.modoMod')}
           aria-pressed={modMode}
           className="icon-btn"
           style={{
@@ -568,7 +569,7 @@ export function BarDetailScreen({
             borderRadius: 'var(--r-2)', fontSize: 'var(--t-2)',
             background: 'var(--acento-soft)', color: 'var(--acento)',
           }}>
-            Modo moderador — las acciones de esta vista no se pueden deshacer
+            {t('BarDetail.modoModAviso')}
           </div>
         )}
 
@@ -613,7 +614,7 @@ export function BarDetailScreen({
                 </span>
               </div>
               <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2 }}>
-                {bar.myBeers === 1 ? 'tuya' : 'tuyas'}
+                {t('BarDetail.tuyas', { count: bar.myBeers ?? 0 })}
               </div>
             </div>
           )}
@@ -621,7 +622,7 @@ export function BarDetailScreen({
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${bar.lat},${bar.lng}`
               + (bar.googlePlaceId ? `&query_place_id=${bar.googlePlaceId}` : '')}
-            target="_blank" rel="noreferrer" aria-label="Cómo llegar"
+            target="_blank" rel="noreferrer" aria-label={t('BarPreview.comoLlegar')}
             style={{
               flexShrink: 0, width: 42, height: 42, borderRadius: '50%',
               display: 'grid', placeItems: 'center', marginTop: 2,
@@ -667,7 +668,7 @@ export function BarDetailScreen({
               }}>{barAvg.toFixed(1).replace('.', ',')}</span>
               <EstrellasNota value={barAvg} size={14} />
               <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>
-                {votes === 1 ? '1 voto' : `${votes} votos`}
+                {t('comun.voto', { count: votes })}
               </span>
             </div>
           </div>
@@ -691,10 +692,10 @@ export function BarDetailScreen({
       {bar.prices.length === 0 ? (
         <div style={{ padding: '0 18px' }}>
           <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
-            Todavía nadie cargó precios acá. ¿Los sabés?
+            {t('BarDetail.sinPrecios')}
           </p>
           <PrimaryAction
-            label="Cargar el primer precio"
+            label={t('BarDetail.primerPrecio')}
             puntos={PTS_PRECIO}
             onClick={() => user ? setReporting({}) : nav('/perfil')}
           />
@@ -715,10 +716,10 @@ export function BarDetailScreen({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 'var(--s-3)', padding: '0 18px',
           }}>
-            <h2 className="section-label" style={{ flex: 1, minWidth: 0 }}>LA PINTA ACÁ</h2>
+            <h2 className="section-label" style={{ flex: 1, minWidth: 0 }}>{t('BarDetail.laPinta')}</h2>
             <SumarEnRotulo
-              label="Otra birra"
-              aria="Cargar otra birra de este bar"
+              label={t('BarDetail.otraBirra')}
+              aria={t('BarDetail.otraBirraAria')}
               onClick={() => user ? setReporting({}) : nav('/perfil')}
             />
           </div>
@@ -738,7 +739,7 @@ export function BarDetailScreen({
               esto, el enganche respeta el mismo margen que el resto. */}
           <PillRow
             dataTour="bar-tabs"
-            sheetTitle="Qué birra"
+            sheetTitle={t('BarDetail.queBirra')}
             selected={group?.slug ?? null}
             items={groups.map(g => ({
               key: g.slug,
@@ -813,7 +814,7 @@ export function BarDetailScreen({
               elección. */}
           {group && group.beers.length > 1 && (
             <PillRow
-              sheetTitle={`Qué ${group.name.toLowerCase()}`}
+              sheetTitle={t('BarDetail.queEstilo', { estilo: group.name.toLowerCase() })}
               selected={active?.brandSlug ?? '_'}
               /* La pastilla dice QUÉ marca, no cuánto sale.
                  Traía el monto al lado y era un precio sin su antigüedad, que
@@ -835,7 +836,7 @@ export function BarDetailScreen({
                  para la marca elegida — y cambiar de marca es un tap. */
               items={group.beers.map(b => ({
                 key: b.brandSlug ?? '_',
-                label: b.brandName ?? 'Sin marca',
+                label: b.brandName ?? t('BrandPicker.sinMarca'),
                 favorita: b.brandSlug != null && favBrands.has(b.brandSlug),
                 score: b.ratingAvg ?? -1,
               }))}
@@ -887,7 +888,7 @@ export function BarDetailScreen({
                     de la birra y la nota del lugar —que está más abajo— se
                     leen como lo mismo puntuado dos veces. */}
                 <Filete />
-                <h3 className="section-label">TU NOTA DE ESTA BIRRA</h3>
+                <h3 className="section-label">{t('BarDetail.tuNota')}</h3>
                 <BeerRating
                   price={active}
                   myRating={myRatingOf(active)}
@@ -935,7 +936,7 @@ export function BarDetailScreen({
       {reviews.length > 0 && (
         <section style={{ padding: '0 18px' }}>
           <Filete />
-          <h2 className="section-label">LO QUE DICEN</h2>
+          <h2 className="section-label">{t('BarDetail.loQueDicen')}</h2>
           {reviews.map(r => (
             <div key={r.id} style={{
               padding: 'var(--s-3) 0', borderBottom: '1px solid var(--hairline)',
@@ -968,7 +969,7 @@ export function BarDetailScreen({
             // primario y esto no se toca por error.
             background: 'transparent', border: '1px solid var(--danger)',
             color: 'var(--danger)',
-          }}>Eliminar este bar y sus precios</button>
+          }}>{t('BarDetail.eliminarBar')}</button>
         </div>
       )}
 
@@ -1001,14 +1002,13 @@ export function BarDetailScreen({
 
       {confirmDelete && (
         <Confirm
-          title={`¿Eliminar ${bar.name}?`}
+          title={t('BarDetail.eliminarBarTitulo', { bar: bar.name })}
           body={<>
-            Se borran el bar y todos sus precios. No se puede deshacer.
+            {t('BarDetail.eliminarBar1')}
             <br /><br />
-            Si el bar existe pero está mal cargado, conviene corregirlo en vez de
-            borrarlo: los precios son reportes de gente que estuvo ahí.
+            {t('BarDetail.eliminarBar2')}
           </>}
-          confirmLabel="Eliminar" danger
+          confirmLabel={t('BeerComments.eliminar')} danger
           onCancel={() => setConfirmDelete(false)}
           onConfirm={async () => {
             setConfirmDelete(false)
@@ -1030,15 +1030,13 @@ export function BarDetailScreen({
 
       {reportingBad && (
         <Confirm
-          title="¿Reportar este precio?"
+          title={t('BarDetail.reportarTitulo')}
           body={<>
-            Vas a avisar que el precio de <strong>{beerName(reportingBad)}</strong> está
-            mal cargado. Un moderador lo revisa.
+            {tx('BarDetail.reportar1', { birra: <strong>{beerName(reportingBad)}</strong> })}
             <br /><br />
-            Si sólo cambió, es mejor usar <strong>Actualizar</strong>: reportar es
-            para precios que nunca fueron ciertos.
+            {tx('BarDetail.reportar2', { actualizar: <strong>{t('BarDetail.actualizar')}</strong> })}
           </>}
-          confirmLabel="Reportar"
+          confirmLabel={t('BarDetail.reportar')}
           onCancel={() => setReportingBad(null)}
           onConfirm={async () => {
             const p = reportingBad
@@ -1048,9 +1046,9 @@ export function BarDetailScreen({
               // acá no puede ser null.
               await api.flag({
                 targetType: 'price', targetId: p.id!,
-                reason: `precio incorrecto: ${beerName(p)} a ${formatPrice(p.price!, bar.currency)}`,
+                reason: t('BarDetail.motivo', { birra: beerName(p), precio: formatPrice(p.price!, bar.currency) }),
               })
-              setToast('Reportado. Gracias, lo revisa un moderador.')
+              setToast(t('BarDetail.reportado'))
             } catch (e) { setToast((e as Error).message) }
           }}
         />
@@ -1068,16 +1066,13 @@ export function BarDetailScreen({
 
       {confirmPhoto && (
         <Confirm
-          title={confirmPhoto.mine ? '¿Borrar tu foto?' : '¿Eliminar esta foto?'}
+          title={confirmPhoto.mine ? t('BarDetail.fotoBorrarTitulo') : t('BarDetail.fotoEliminarTitulo')}
           body={<>
-            Se borra el archivo del bucket, no sólo de la lista.
+            {t('BarDetail.foto1')}
             <br /><br />
-            Es distinto de bajar un precio o una reseña: las fotos se sirven
-            desde una URL pública, así que mientras el archivo exista cualquiera
-            con el link la sigue viendo. Por eso hay que borrarlo, y por eso
-            esto no se puede deshacer.
+            {t('BarDetail.foto2')}
           </>}
-          confirmLabel={confirmPhoto.mine ? 'Borrar' : 'Eliminar'} danger
+          confirmLabel={confirmPhoto.mine ? t('BeerComments.borrar') : t('BeerComments.eliminar')} danger
           onCancel={() => setConfirmPhoto(null)}
           onConfirm={async () => {
             const p = confirmPhoto
@@ -1087,7 +1082,7 @@ export function BarDetailScreen({
               // comprueba la pertenencia en el WHERE.
               await (p.mine ? api.removeMyPhoto(p.id) : api.removePhoto(p.id))
               setPhotos(await api.barPhotos(barId))
-              setToast('Foto borrada')
+              setToast(t('BarDetail.fotoBorrada'))
             } catch (e) { setToast((e as Error).message) }
           }}
         />
@@ -1095,15 +1090,16 @@ export function BarDetailScreen({
 
       {confirmPrice && (
         <Confirm
-          title={`¿Eliminar el precio de ${beerName(confirmPrice)}?`}
+          title={t('BarDetail.precioEliminarTitulo', { birra: beerName(confirmPrice) })}
           body={<>
-            Se baja el reporte vigente de <strong>{beerName(confirmPrice)}</strong> a{' '}
-            {formatPrice(confirmPrice.price!, bar.currency)}. No se puede deshacer.
+            {tx('BarDetail.precioEliminar1', {
+              birra: <strong>{beerName(confirmPrice)}</strong>,
+              precio: formatPrice(confirmPrice.price!, bar.currency),
+            })}
             <br /><br />
-            Las notas y las fotos de esta birra no se tocan: la birra sigue en la
-            lista, sin precio, hasta que alguien cargue uno nuevo.
+            {t('BarDetail.precioEliminar2')}
           </>}
-          confirmLabel="Eliminar" danger
+          confirmLabel={t('BeerComments.eliminar')} danger
           onCancel={() => setConfirmPrice(null)}
           onConfirm={() => {
             const p = confirmPrice
@@ -1176,7 +1172,7 @@ function Consenso({ price, currency }: { price: StylePrice; currency: string }) 
         marginTop: disperso ? 'var(--s-2)' : 0,
         fontSize: 'var(--t-1)', color: 'var(--info)',
       }}>
-        consenso de {price.voters}
+        {t('BarDetail.consenso', { n: price.voters ?? 0 })}
         {disperso && (
           <> · <span className="num">
             {formatPrice(bajo, currency)}–{formatPrice(alto, currency)}
@@ -1223,8 +1219,9 @@ function PriceRow({
     return (
       <div style={{ padding: 'var(--s-4) 18px', borderBottom: '1px solid var(--hairline)' }}>
         <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--t-4)' }}>
-          <strong style={{ color: 'var(--cream)', fontWeight: 500 }}>{name}</strong>{' '}
-          todavía no tiene precio cargado.
+          {tx('BarDetail.sinPrecio', {
+            birra: <strong style={{ color: 'var(--cream)', fontWeight: 500 }}>{name}</strong>,
+          })}
         </p>
         <button onClick={onUpdate} className="lbl cta" style={{
           width: '100%', marginTop: 'var(--s-3)', minHeight: 52,
@@ -1232,7 +1229,7 @@ function PriceRow({
           borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
           background: 'var(--acento)', color: 'var(--base)',
         }}>
-          Cargar su precio
+          {t('BarDetail.cargarSuPrecio')}
           <Puntos n={PTS_PRECIO} />
         </button>
       </div>
@@ -1244,8 +1241,8 @@ function PriceRow({
   // El tamaño sólo cuando no es la pinta de 473: si es la de siempre, decirlo
   // es ruido; si no lo es, cambia el precio y hay que saberlo.
   const meta = [
-    price.sizeMl !== 473 ? `${price.sizeMl} ml` : null,
-    price.brandCraft ? 'artesanal' : null,
+    price.sizeMl != null && price.sizeMl !== 473 ? t('BarDetail.ml', { n: price.sizeMl }) : null,
+    price.brandCraft ? t('BarDetail.artesanal') : null,
   ].filter(Boolean).join(' · ')
 
   return (
@@ -1285,7 +1282,7 @@ function PriceRow({
                 {price.ratingRaw!.toFixed(1)}
               </span>
               <span style={{ color: 'var(--faint)' }}>
-                {price.ratingCount === 1 ? '1 voto' : `${price.ratingCount} votos`}
+                {t('comun.voto', { count: price.ratingCount })}
               </span>
             </div>
           )}
@@ -1314,7 +1311,7 @@ function PriceRow({
           margin: 'var(--s-3) 0 0', padding: 'var(--s-3)', borderRadius: 'var(--r-1)',
           fontSize: 'var(--t-1)', background: 'var(--film-1)', color: 'var(--muted)',
         }}>
-          Este precio tiene más de 45 días. Con la inflación, tomalo como referencia nomás.
+          {t('BarDetail.viejo')}
         </p>
       )}
 
@@ -1327,7 +1324,7 @@ function PriceRow({
           borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
           background: busy ? 'var(--acento-busy)' : 'var(--acento)', color: 'var(--base)',
         }}>
-          {busy ? '…' : <>Sigue igual <Puntos n={PTS_CONFIRMAR} /></>}
+          {busy ? '…' : <>{t('BarDetail.sigueIgual')} <Puntos n={PTS_CONFIRMAR} /></>}
         </button>
         <button disabled={busy} onClick={onUpdate} className="lbl cta" style={{
           minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -1335,7 +1332,7 @@ function PriceRow({
           background: 'var(--info-soft)', border: '1px solid var(--info-border)',
           color: 'var(--info-bright)',
         }}>
-          Actualizar <Puntos n={PTS_PRECIO} />
+          {t('BarDetail.actualizar')} <Puntos n={PTS_PRECIO} />
         </button>
       </div>
 
@@ -1351,7 +1348,7 @@ function PriceRow({
         <button onClick={onHistory} style={{
           fontSize: 'var(--t-2)', color: 'var(--info)', padding: 'var(--s-3) 0', minHeight: 44,
         }}>
-          Ver historial
+          {t('BarDetail.historial')}
         </button>
         {/* Denunciar el precio quedó para moderación.
 
@@ -1369,12 +1366,12 @@ function PriceRow({
               fontSize: 'var(--t-2)', color: 'var(--muted)',
               padding: 'var(--s-3) 0', minHeight: 44,
             }}>
-              Este precio está mal
+              {t('BarDetail.estaMal')}
             </button>
             <span style={{ marginLeft: 'auto' }} />
             <button disabled={busy} onClick={onRemove} style={{
               fontSize: 'var(--t-2)', color: 'var(--danger)',
-            }}>Eliminar</button>
+            }}>{t('BeerComments.eliminar')}</button>
           </>
         )}
       </div>
@@ -1397,7 +1394,7 @@ function PriceRow({
  */
 const Puntos = ({ n }: { n: number }) => KARMA_VISIBLE ? (
   <span className="num" style={{ fontSize: 'var(--t-1)', opacity: .6 }}>
-    +{n} {n === 1 ? 'pt' : 'pts'}
+    {t('BarDetail.pts', { count: n })}
   </span>
 ) : null
 
@@ -1479,7 +1476,7 @@ function PhotoViewer({
     >
       <img
         key={photo.id}
-        src={photo.url} alt="Foto de la birra"
+        src={photo.url} alt={t('BarDetail.fotoAlt')}
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain',
@@ -1507,7 +1504,7 @@ function PhotoViewer({
       >
         <span>
           {photo.authorName && (
-            photo.mine ? <>Tu foto · </>
+            photo.mine ? <>{t('BarDetail.tuFoto')}</>
               : photo.authorId != null ? (
                 <>
                   {/* Abre su perfil: es el otro lugar donde aparece contenido
@@ -1523,9 +1520,9 @@ function PhotoViewer({
                 </>
               ) : <>{photo.authorName} · </>
           )}
-          {photo.ageDays <= 0 ? 'hoy' : photo.ageDays === 1 ? 'ayer' : `hace ${photo.ageDays} d`}
+          {shortAge(photo.ageDays)}
           {photos.length > 1 && <> · {i + 1}/{photos.length}</>}
-          {photo.topOfMonth && <> · <span style={{ color: 'var(--acento)' }}>foto del mes</span></>}
+          {photo.topOfMonth && <> · <span style={{ color: 'var(--acento)' }}>{t('BarDetail.fotoDelMes')}</span></>}
         </span>
 
         {/*
@@ -1550,7 +1547,7 @@ function PhotoViewer({
               className="like lbl"
             >
               <Thumb filled={photo.votedByMe} />
-              {photo.votedByMe ? 'Te gusta' : 'Me gusta'}
+              {photo.votedByMe ? t('BarDetail.teGusta') : t('BarDetail.meGusta')}
               {photo.votes > 0 && <span className="like-n">{photo.votes}</span>}
             </button>
           ) : (
@@ -1576,7 +1573,7 @@ function PhotoViewer({
             // dos fueran pastillas llenas, borrar pesaría igual que votar.
             background: 'transparent', border: '1px solid var(--danger)',
             color: 'var(--danger)',
-          }}>{photo.mine ? 'Borrar tu foto' : 'Eliminar esta foto'}</button>
+          }}>{photo.mine ? t('BarDetail.borrarTuFoto') : t('BarDetail.eliminarEstaFoto')}</button>
         )}
       </div>
 
@@ -1584,7 +1581,7 @@ function PhotoViewer({
           flotan sobre la portada: es lo único que se lee encima de una foto
           de la que no sabemos nada. Antes eran 40px de `--hairline`, o sea
           por debajo del área de toque y casi invisible sobre una foto clara. */}
-      <button onClick={onClose} aria-label="Cerrar" className="icon-btn" style={{
+      <button onClick={onClose} aria-label={t('comun.cerrar')} className="icon-btn" style={{
         position: 'absolute', top: `calc(14px + var(--safe-top))`, right: 14,
         backgroundColor: VIDRIO_FALLBACK, background: VIDRIO_ESPRESSO,
         backdropFilter: VIDRIO_FILTRO, WebkitBackdropFilter: VIDRIO_FILTRO,
@@ -1601,7 +1598,7 @@ function ViewerArrow({
     <button
       onClick={e => { e.stopPropagation(); onClick() }}
       disabled={disabled}
-      aria-label={side === 'left' ? 'Anterior' : 'Siguiente'}
+      aria-label={side === 'left' ? t('BarDetail.anterior') : t('BarDetail.siguiente')}
       className="icon-btn"
       style={{
         position: 'absolute', top: '50%', transform: 'translateY(-50%)',
@@ -1673,11 +1670,11 @@ function BeerRating({
       {price.ratingCount === 0 ? (
         <span style={{
           marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)',
-        }}>Sin votos</span>
+        }}>{t('Stars.sinVotos')}</span>
       ) : price.ratingAgeDays != null && price.ratingAgeDays > 45 ? (
         <span style={{
           marginLeft: 'auto', fontSize: 'var(--t-2)', color: 'var(--faint)',
-        }}>Sin votos nuevos</span>
+        }}>{t('BarDetail.sinVotosNuevos')}</span>
       ) : null}
 
       {/* Sólo con nota puesta: sin voto, un botón para retirarlo no tiene qué
@@ -1687,7 +1684,7 @@ function BeerRating({
         <button onClick={onRetract} style={{
           flexBasis: '100%', textAlign: 'left', fontSize: 'var(--t-2)',
           color: 'var(--muted)', padding: 'var(--s-2) 0',
-        }}>Retirar mi nota</button>
+        }}>{t('BarDetail.retirarNota')}</button>
       )}
     </div>
   )

@@ -1,0 +1,45 @@
+{
+  "titulo": "Cómo funcionan los precios",
+  "s1": {
+    "titulo": "La antigüedad importa tanto como el precio",
+    "texto": "Con la inflación, un precio de hace dos meses no dice mucho. Por eso birrapp nunca muestra un precio sin decirte de cuándo es."
+  },
+  "escala": "La escala",
+  "fresco": {
+    "titulo": "Menos de 14 días",
+    "nota": "Confiable."
+  },
+  "viejo": {
+    "titulo": "Entre 14 y 45 días",
+    "nota": "Probablemente subió un poco."
+  },
+  "rancio": {
+    "titulo": "Más de 45 días",
+    "nota": "Tomalo como referencia nomás."
+  },
+  "s2": {
+    "titulo": "Por qué el más barato no siempre aparece primero",
+    "texto": "Al ordenar por «más barata» se ignoran los precios de más de 45 días. Un precio viejo y barato no puede ganarle a uno reciente y honesto: te mandaría a cruzar la ciudad por un número que ya no existe."
+  },
+  "s3": {
+    "titulo": "«Sigue igual» es el botón más útil",
+    "texto": "Confirmar que un precio no cambió lleva un toque y lo vuelve a poner en fresco. Si nadie confirma, todo el mapa envejece."
+  },
+  "s4": {
+    "titulo": "El color del pin va de barato a caro",
+    "texto": "Lima es lo más barato que tengas en pantalla y coral lo más caro; el medio es el puesto de cada bar adentro de ese rango. La escala se reacomoda al moverte, así que el color siempre habla del barrio que estás mirando y no de toda la ciudad."
+  },
+  "s5": {
+    "titulo": "El puntito de adentro es la frescura",
+    "texto": "Adentro de cada chapita, a la izquierda del número, hay un punto del color de la escala de acá arriba: dice de cuándo es ese precio. Va sobre un cuadradito oscuro justamente para que se distinga del fondo, que es de la misma familia de colores pero significa otra cosa. Nunca vas a ver un precio sin ese punto."
+  },
+  "s6": {
+    "titulo": "Los pines grises no son bares caros",
+    "texto": "Un punto apagado es otra cosa: es un bar al que todavía nadie le cargó el precio. No está en el extremo caro de la escala, está afuera de la escala."
+  },
+  "s7": {
+    "titulo": "De dónde salen los bares",
+    "texto": "La base inicial viene de OpenStreetMap, y la comunidad agrega los que faltan. Los precios los carga siempre la gente: no hay ninguno estimado ni calculado por nosotros."
+  },
+  "osm": "Datos de bares © colaboradores de OpenStreetMap, bajo licencia ODbL."
+}

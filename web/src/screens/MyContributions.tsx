@@ -7,6 +7,7 @@ import type {
 import { ageColor, formatPrice, shortAge } from '../data/format'
 import { Confirm, Toast } from '../ui/Chrome'
 import { Empty, SkeletonRows } from '../ui/Empty'
+import { t, tx } from '../i18n'
 
 /** Las cuatro listas, cada una con su pantalla. La ruta es `/mis-aportes/:tipo`. */
 type Kind = 'precios' | 'fotos' | 'comentarios' | 'bares'
@@ -37,18 +38,10 @@ function append(
 }
 
 const TITLE: Record<Kind, string> = {
-  precios: 'Mis precios',
-  fotos: 'Mis fotos',
-  comentarios: 'Mis comentarios',
-  bares: 'Mis bares',
-}
-
-/** Lo mismo cuando se está mirando a otra persona: "Precios de Ana". */
-const TITLE_AJENO: Record<Kind, string> = {
-  precios: 'Precios de',
-  fotos: 'Fotos de',
-  comentarios: 'Comentarios de',
-  bares: 'Bares de',
+  precios: t('MyContributions.titulo.precios'),
+  fotos: t('MyContributions.titulo.fotos'),
+  comentarios: t('MyContributions.titulo.comentarios'),
+  bares: t('MyContributions.titulo.bares'),
 }
 
 /**
@@ -60,33 +53,33 @@ const TITLE_AJENO: Record<Kind, string> = {
  * respecto — que la lista esté vacía es la respuesta, no un problema.
  */
 const VACIO_AJENO: Record<Kind, string> = {
-  precios: 'No cargó ningún precio',
-  fotos: 'No subió ninguna foto',
-  comentarios: 'No escribió ningún comentario',
-  bares: 'No agregó ningún bar',
+  precios: t('MyContributions.vacioAjeno.precios'),
+  fotos: t('MyContributions.vacioAjeno.fotos'),
+  comentarios: t('MyContributions.vacioAjeno.comentarios'),
+  bares: t('MyContributions.vacioAjeno.bares'),
 }
 
 /** Qué decir cuando la lista está vacía, y cuál es el paso siguiente. */
 const EMPTY: Record<Kind, { title: string; hint: string; action: string }> = {
   precios: {
-    title: 'Todavía no cargaste ningún precio',
-    hint: 'Un precio se carga desde el "+" del mapa o desde la ficha del bar. Es lo que mantiene vivo el mapa.',
-    action: 'Cargar un precio',
+    title: t('MyContributions.vacio.precios.titulo'),
+    hint: t('MyContributions.vacio.precios.hint'),
+    action: t('MyContributions.vacio.precios.accion'),
   },
   fotos: {
-    title: 'Todavía no subiste ninguna foto',
-    hint: 'Las fotos van en la birra, abajo del precio. Se achican en tu teléfono antes de subirse.',
-    action: 'Ir al mapa',
+    title: t('MyContributions.vacio.fotos.titulo'),
+    hint: t('MyContributions.vacio.fotos.hint'),
+    action: t('MyContributions.vacio.fotos.accion'),
   },
   comentarios: {
-    title: 'Todavía no escribiste ningún comentario',
-    hint: 'Debajo de las fotos de cada birra hay un cuadro para contar cómo estaba.',
-    action: 'Ir al mapa',
+    title: t('MyContributions.vacio.comentarios.titulo'),
+    hint: t('MyContributions.vacio.comentarios.hint'),
+    action: t('MyContributions.vacio.comentarios.accion'),
   },
   bares: {
-    title: 'Todavía no agregaste ningún bar',
-    hint: 'Si conocés uno que no está en el mapa, cargalo: queda para todos.',
-    action: 'Agregar un bar',
+    title: t('MyContributions.vacio.bares.titulo'),
+    hint: t('MyContributions.vacio.bares.hint'),
+    action: t('MyContributions.vacio.bares.accion'),
   },
 }
 
@@ -199,12 +192,14 @@ export function MyContributionsScreen(
     }}>
       <div className="desk-narrow">
         <div style={{ padding: '0 var(--s-4)' }}>
-          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
+          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 'var(--s-4) 0 0' }}>
             {/* Mirando a otro, el nombre va en el título y no en un subtítulo:
                 es lo único que distingue esta pantalla de la lista propia, y
                 confundirlas es revisar a la persona equivocada. */}
-            {ajeno ? `${TITLE_AJENO[kind]} ${quien ?? '…'}` : TITLE[kind]}
+            {ajeno
+              ? t(`MyContributions.tituloAjeno.${kind}` as const, { nombre: quien ?? '…' })
+              : TITLE[kind]}
             {count != null && count > 0 && (
               /* Cuántos son va en el tono informativo: es el ámbito de lo que
                  estás mirando, no parte del título. En `--faint` se leía como
@@ -244,10 +239,10 @@ export function MyContributionsScreen(
             onOpen={() => nav(`/bar/${p.barId}`)}
             onRemove={ajeno ? undefined : () => setKillPrice(p)}
             title={p.styleName + (p.brandName ? ` · ${p.brandName}` : '')}
-            sub={`${p.barName}${p.sizeMl !== 473 ? ` · ${p.sizeMl} ml` : ''}`}
+            sub={p.sizeMl !== 473 ? t('MyContributions.barMl', { bar: p.barName, ml: p.sizeMl }) : p.barName}
             age={p.ageDays}
             price={formatPrice(p.price, p.currency)}
-            tag={p.isConfirmation ? 'confirmación' : undefined}
+            tag={p.isConfirmation ? t('MyContributions.confirmacion') : undefined}
             highlight={p.isCurrent}
           />
         ))}
@@ -278,8 +273,8 @@ export function MyContributionsScreen(
             key={b.id}
             onOpen={() => nav(`/bar/${b.id}`)}
             title={b.name}
-            sub={b.status === 'pending' ? 'Esperando aprobación'
-              : b.status === 'rejected' ? 'Rechazado' : 'Publicado'}
+            sub={b.status === 'pending' ? t('MyContributions.estado.pendiente')
+              : b.status === 'rejected' ? t('MyContributions.estado.rechazado') : t('MyContributions.estado.publicado')}
             age={b.ageDays}
           />
         ))}
@@ -289,9 +284,7 @@ export function MyContributionsScreen(
             color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5,
             padding: 'var(--s-4) var(--s-4) 0',
           }}>
-            Los bares no se borran desde acá: pueden tener precios y fotos de otra
-            gente, así que borrarlos no deshace tu aporte, borra el de terceros. Si
-            uno está mal cargado, reportalo desde el bar.
+            {t('MyContributions.baresNoSeBorran')}
           </p>
         )}
 
@@ -308,26 +301,26 @@ export function MyContributionsScreen(
               width: '100%', minHeight: 46, borderRadius: 'var(--r-2)',
               fontSize: 'var(--t-3)', background: 'var(--info-soft)',
               border: '1px solid var(--info-border)', color: 'var(--info-bright)',
-            }}>{more ? 'Cargando…' : 'Ver más'}</button>
+            }}>{more ? t('MyContributions.cargando') : t('MyContributions.verMas')}</button>
           </div>
         )}
       </div>
 
       {killPrice && (
         <Confirm
-          title="¿Borrar este precio?"
+          title={t('MyContributions.precio.titulo')}
           body={<>
             {killPrice.isCurrent ? (
-              <>Es el precio que la app <strong>muestra hoy</strong> para{' '}
-              {killPrice.styleName} en {killPrice.barName}. Al borrarlo, queda el
-              reporte anterior si lo hay, y si no, el bar se queda sin precio.</>
+              tx('MyContributions.precio.vigente', {
+                fuerte: <strong>{t('MyContributions.precio.muestraHoy')}</strong>,
+                estilo: killPrice.styleName, bar: killPrice.barName,
+              })
             ) : (
-              <>Es un reporte viejo, así que no cambia lo que se ve hoy: sale del
-              historial de {killPrice.styleName} en {killPrice.barName}.</>
+              t('MyContributions.precio.viejo', { estilo: killPrice.styleName, bar: killPrice.barName })
             )}
-            <br /><br />No se puede deshacer.
+            <br /><br />{t('BeerComments.noSeDeshace')}
           </>}
-          confirmLabel="Borrar" danger
+          confirmLabel={t('BeerComments.borrar')} danger
           onCancel={() => setKillPrice(null)}
           onConfirm={async () => {
             const p = killPrice
@@ -344,11 +337,11 @@ export function MyContributionsScreen(
 
       {killPhoto && (
         <Confirm
-          title="¿Borrar esta foto?"
+          title={t('MyContributions.foto.titulo')}
           body={<>
-            Se borra el archivo, no sólo de la lista. No se puede deshacer.
+            {t('MyContributions.foto.texto')}
           </>}
-          confirmLabel="Borrar" danger
+          confirmLabel={t('BeerComments.borrar')} danger
           onCancel={() => setKillPhoto(null)}
           onConfirm={async () => {
             const f = killPhoto
@@ -361,19 +354,18 @@ export function MyContributionsScreen(
 
       {killComment && (
         <Confirm
-          title="¿Borrar este comentario?"
+          title={t('MyContributions.comentario.titulo')}
           body={<>
-            Se borra sólo el texto. Tu puntaje de esa birra queda como está:
-            borrar lo que escribiste no es retirar tu voto.
-            <br /><br />No se puede deshacer.
+            {t('MyContributions.comentario.texto')}
+            <br /><br />{t('BeerComments.noSeDeshace')}
           </>}
-          confirmLabel="Borrar" danger
+          confirmLabel={t('BeerComments.borrar')} danger
           onCancel={() => setKillComment(null)}
           onConfirm={async () => {
             const c = killComment
             setKillComment(null)
             try {
-              await api.removeMyComment(c.id); await load(); setToast('Comentario borrado')
+              await api.removeMyComment(c.id); await load(); setToast(t('MyContributions.comentario.borrado'))
             } catch (e) { setToast((e as Error).message) }
           }}
         />
@@ -427,7 +419,7 @@ function Item({
             <span className="lbl" style={{
               marginLeft: 'var(--s-2)', fontSize: 10, letterSpacing: '.12em',
               textTransform: 'uppercase', color: 'var(--info)',
-            }}>vigente</span>
+            }}>{t('MyContributions.vigente')}</span>
           )}
           {tag && (
             <span style={{
@@ -509,7 +501,7 @@ function Resena({ c, onOpen, onRemove }: {
             <span className="lbl" style={{
               fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase',
               color: 'var(--nota)',
-            }}>birra</span>
+            }}>{t('MyContributions.birra')}</span>
             <span style={{ fontSize: 'var(--t-2)', color: 'var(--muted)' }}>{c.barName}</span>
           </span>
         </button>
@@ -528,7 +520,7 @@ function Resena({ c, onOpen, onRemove }: {
 
 /** El tacho, igual en las dos filas: una sola pieza, un solo relleno coral. */
 const Borrar = ({ onClick }: { onClick: () => void }) => (
-  <button onClick={onClick} aria-label="Borrar" className="icon-btn" style={{
+  <button onClick={onClick} aria-label={t('BeerComments.borrar')} className="icon-btn" style={{
     color: 'var(--danger)', background: 'var(--favorito-soft)',
   }}>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

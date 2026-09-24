@@ -1,0 +1,45 @@
+{
+  "titulo": "Colaboradores",
+  "puntosMes": "Puntos del mes",
+  "intro": "Quiénes mantienen el mapa vivo. La tabla arranca de cero cada mes.",
+  "vacio": {
+    "titulo": "Todavía nadie con alias este mes",
+    "hintUser": "Elegí un alias en Configuración y tus aportes del mes aparecen acá.",
+    "hintAnon": "Los aportes cuentan igual; para figurar hace falta una cuenta y un alias.",
+    "elegirAlias": "Elegir mi alias",
+    "entrar": "Entrar"
+  },
+  "ocultos": {
+    "one": "Una persona más aportó este mes sin alias puesto, así que no figura.",
+    "other": "{count} personas más aportaron este mes sin alias puesto, así que no figuran."
+  },
+  "seElige": "Aparecer acá se elige: sin alias, tu nombre no se publica.",
+  "vos": "vos",
+  "bares": {
+    "one": "1 bar",
+    "other": "{count} bares"
+  },
+  "aportes": {
+    "one": "1 aporte",
+    "other": "{count} aportes"
+  },
+  "karma": "Karma cervecero",
+  "puntosMesDe": "puntos · {mes}",
+  "alFrente": "Vas al frente",
+  "puesto": "Puesto {n}",
+  "aFalta": "a {falta} del {puesto}º",
+  "regla": "Cuenta un aporte por bar y por día: veinte precios en el mismo bar valen lo mismo que uno.",
+  "tarifa": {
+    "precio": "Cargar un precio",
+    "bar": "Agregar un bar que falta",
+    "foto": "Subir una foto",
+    "nota": "Puntuar una birra",
+    "confirmar": "Confirmar que sigue igual"
+  },
+  "fotoMes": "Foto del mes",
+  "de": "de {alias} · ",
+  "meGusta": {
+    "one": "1 me gusta",
+    "other": "{count} me gusta"
+  }
+}

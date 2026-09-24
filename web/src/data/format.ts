@@ -1,6 +1,7 @@
 import type { Freshness } from './types'
+import { LOCALE, t } from '../i18n'
 
-const AR = 'es-AR'
+const AR = LOCALE
 
 /**
  * Monedas que no usan decimales.
@@ -117,11 +118,13 @@ export function shortAddress(address: string | null | undefined): string | null 
 
 export const formatDistance = (m: number | null | undefined) =>
   m == null ? null
-    : m < 1000 ? `a ${Math.round(m)} m`
-    : `a ${(m / 1000).toFixed(1).replace('.0', '')} km`
+    : m < 1000 ? t('format.distanciaM', { m: Math.round(m) })
+    : t('format.distanciaKm', { km: (m / 1000).toFixed(1).replace('.0', '') })
 
 export const formatRadius = (m: number) =>
-  m >= 1000 ? `${(m / 1000).toFixed(1).replace('.0', '')} km` : `${m} m`
+  m >= 1000
+    ? t('format.radioKm', { km: (m / 1000).toFixed(1).replace('.0', '') })
+    : t('format.radioM', { m })
 
 /*
  * Acá vivía `ageLabel(ageDays, f)`, la versión larga de la antigüedad, que
@@ -138,7 +141,7 @@ export const formatRadius = (m: number) =>
  */
 
 export const shortAge = (d: number | null) =>
-  d == null ? '' : d <= 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} d`
+  d == null ? '' : d <= 0 ? t('format.hoy') : d === 1 ? t('format.ayer') : t('format.haceDias', { d })
 
 export const freshnessColor = (f: Freshness) =>
   f === 'fresh' ? 'var(--fresh)' : f === 'aging' ? 'var(--aging)' : 'var(--stale)'

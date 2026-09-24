@@ -7,6 +7,7 @@ import { Confirm, Toast } from '../ui/Chrome'
 import { Empty } from '../ui/Empty'
 import { PintLoader } from '../ui/PintLoader'
 import { Screen, SectionLabel, Tile } from '../ui/Kit'
+import { t } from '../i18n'
 
 /**
  * El perfil de otra persona (BIR-6).
@@ -68,14 +69,14 @@ export function PersonScreen({ user }: { user: User | null }) {
   if (error) return (
     <Screen onBack={() => nav(-1)}>
       <Empty
-        title="No pudimos abrir este perfil"
+        title={t('Person.errorTitulo')}
         hint={error}
-        action="Reintentar"
+        action={t('comun.reintentar')}
         onAction={load}
       />
     </Screen>
   )
-  if (!person) return <PintLoader message="Buscando…" />
+  if (!person) return <PintLoader message={t('comun.buscando')} />
 
   const esVos = user?.id === person.id
 
@@ -95,9 +96,9 @@ export function PersonScreen({ user }: { user: User | null }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: 0 }}>{person.displayName}</h1>
           <p style={{ color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '4px 0 0' }}>
-            {person.ageDays < 1 ? 'Se sumó hoy'
-              : person.ageDays === 1 ? 'Se sumó ayer'
-              : `Acá desde hace ${person.ageDays} días`}
+            {person.ageDays < 1 ? t('Person.sumoHoy')
+              : person.ageDays === 1 ? t('Person.sumoAyer')
+              : t('Person.desdeHace', { n: person.ageDays })}
           </p>
         </div>
       </div>
@@ -111,10 +112,10 @@ export function PersonScreen({ user }: { user: User | null }) {
           /* El coral apagado por token: en heritage el favorito y el peligro
              son el mismo coral y hay un solo relleno suave para los dos. */
           background: 'var(--favorito-soft)', color: 'var(--danger)',
-        }}>Cuenta suspendida — no puede aportar nada</div>
+        }}>{t('Person.suspendida')}</div>
       )}
 
-      <SectionLabel>Lo que aportó</SectionLabel>
+      <SectionLabel>{t('Person.loQueAporto')}</SectionLabel>
       {/*
         Moderando, cada número se abre.
 
@@ -135,84 +136,81 @@ export function PersonScreen({ user }: { user: User | null }) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12,
       }}>
-        <Tile label="Precios" value={person.prices} onClick={abrir('precios')} />
-        <Tile label="Bares" value={person.bars} onClick={abrir('bares')} />
-        <Tile label="Fotos" value={person.photos} onClick={abrir('fotos')} />
-        <Tile label="Notas" value={person.ratings} />
+        <Tile label={t('Person.precios')} value={person.prices} onClick={abrir('precios')} />
+        <Tile label={t('Person.bares')} value={person.bars} onClick={abrir('bares')} />
+        <Tile label={t('Person.fotos')} value={person.photos} onClick={abrir('fotos')} />
+        <Tile label={t('Person.notas')} value={person.ratings} />
         {modera && (
-          <Tile label="Comentarios" value={person.comments} onClick={abrir('comentarios')} />
+          <Tile label={t('Person.comentarios')} value={person.comments} onClick={abrir('comentarios')} />
         )}
       </div>
 
       {!esVos && user && (
         <>
-          <SectionLabel>Si te molesta</SectionLabel>
+          <SectionLabel>{t('Person.siTeMolesta')}</SectionLabel>
           <Accion
             disabled={busy}
             danger={!person.blocked}
             onClick={() => person.blocked
-              ? act(() => api.unblockPerson(person.id), 'Desbloqueada')
+              ? act(() => api.unblockPerson(person.id), t('Person.desbloqueada'))
               : setConfirm('block')}
-            label={person.blocked ? 'Desbloquear a esta persona' : 'Bloquear a esta persona'}
+            label={person.blocked ? t('Person.desbloquear') : t('Person.bloquear')}
           />
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
             {person.blocked
-              ? 'Ahora mismo no ven los comentarios ni las fotas del otro. Sus precios siguen en el mapa: son datos sobre bares.'
-              : 'Dejan de verse los comentarios y las fotos, los dos lados. Los precios que cargó siguen en el mapa: son datos sobre bares, no sobre ella.'}
+              ? t('Person.bloqueadaTexto')
+              : t('Person.bloquearTexto')}
           </p>
         </>
       )}
 
       {isModerator(user) && !esVos && (
         <>
-          <SectionLabel>Moderación</SectionLabel>
+          <SectionLabel>{t('Person.moderacion')}</SectionLabel>
           <Accion
             disabled={busy}
             danger={!person.banned}
             onClick={() => person.banned
-              ? act(() => api.unbanUser(person.id), 'Suspensión levantada')
+              ? act(() => api.unbanUser(person.id), t('Person.levantada'))
               : setConfirm('ban')}
-            label={person.banned ? 'Levantar la suspensión' : 'Suspender la cuenta'}
+            label={person.banned ? t('Person.levantar') : t('Person.suspender')}
           />
           <p style={{
             color: 'var(--faint)', fontSize: 'var(--t-2)', margin: '8px 0 0', lineHeight: 1.5,
           }}>
-            Suspender corta al toque: deja de poder cargar precios, comentar y
-            puntuar. Lo que ya cargó queda — para bajar algo puntual, se baja
-            desde el bar.
+            {t('Person.suspenderTexto')}
           </p>
         </>
       )}
 
       {confirm === 'block' && (
         <Confirm
-          title={`¿Bloquear a ${person.displayName}?`}
-          body="Dejan de verse los comentarios y las fotos, los dos lados. Lo podés deshacer cuando quieras."
-          confirmLabel="Bloquear" danger
+          title={t('Person.bloquearTitulo', { nombre: person.displayName })}
+          body={t('Person.bloquearConfirma')}
+          confirmLabel={t('Person.bloquearBoton')} danger
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             setConfirm(null)
-            act(() => api.blockPerson(person.id), 'Bloqueada')
+            act(() => api.blockPerson(person.id), t('Person.bloqueada'))
           }}
         />
       )}
 
       {confirm === 'ban' && (
         <Confirm
-          title={`¿Suspender a ${person.displayName}?`}
+          title={t('Person.suspenderTitulo', { nombre: person.displayName })}
           body={<>
-            Deja de poder cargar precios, comentar y puntuar, desde ahora mismo.
+            {t('Person.suspender1')}
             <br /><br />
-            Lo que ya cargó queda en el mapa: son datos sobre bares. Si además
-            hay que bajar algo puntual, se baja desde el bar.
+            {t('Person.suspender2')}
           </>}
-          confirmLabel="Suspender" danger requireWord="SUSPENDER"
+          confirmLabel={t('Person.suspenderBoton')} danger requireWord={t('Person.suspenderPalabra')}
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             setConfirm(null)
-            act(() => api.banUser(person.id), 'Cuenta suspendida')
+            act(() => api.banUser(person.id), t('Person.suspendidaToast'))
           }}
         />
       )}

@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import type { BeerStyle } from '../data/types'
+import { t } from '../i18n'
 
 /**
  * Los dos filtros de "qué bares quiero ver", cada uno en su propia píldora.
@@ -164,8 +165,8 @@ export function StyleFilter({
    * y la lista completa ya está a un toque adentro del menú.
    */
   const label = selected.length === 1
-    ? styles.find(s => s.slug === selected[0])?.name ?? 'Estilos'
-    : selected.length > 1 ? `${selected.length} estilos` : 'Estilos'
+    ? styles.find(s => s.slug === selected[0])?.name ?? t('StyleFilter.estilos')
+    : selected.length > 1 ? t('StyleFilter.nEstilos', { n: selected.length }) : t('StyleFilter.estilos')
 
   const alternar = (slug: string) => {
     onSelect(selected.includes(slug)
@@ -188,7 +189,7 @@ export function StyleFilter({
               uno, y cerrarse en el primero obligaría a reabrirlo por cada uno.
               Se cierra tocando afuera, que es el gesto que ya tenía. */}
           <MenuItem on={selected.length === 0} onClick={() => onSelect([])}>
-            Todos los estilos
+            {t('StyleFilter.todos')}
           </MenuItem>
           {styles.map(s => (
             <MenuItem key={s.slug} on={selected.includes(s.slug)}
@@ -222,7 +223,7 @@ export function RatingFilter({
 
   return (
     <FilterPill
-      label={active ? `${String(minRating).replace('.', ',')}+` : 'Nota'}
+      label={active ? `${String(minRating).replace('.', ',')}+` : t('StyleFilter.nota')}
       active={active} tone={tone} size={size} tourId={tourId} menuWidth={168}
       icon={
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -240,7 +241,7 @@ export function RatingFilter({
               key={n ?? 'todas'} on={minRating === n}
               onClick={() => { onMinRating(n); cerrar() }}
             >
-              {n == null ? 'Cualquier nota' : `★ ${String(n).replace('.', ',')} o más`}
+              {n == null ? t('StyleFilter.cualquiera') : t('StyleFilter.oMas', { n: String(n).replace('.', ',') })}
             </MenuItem>
           ))}
         </>

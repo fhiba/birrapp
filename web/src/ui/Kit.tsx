@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { t } from '../i18n'
 
 /**
  * Las piezas que estaban copiadas en varias pantallas.
@@ -99,7 +100,7 @@ export function Screen({ title, onBack, children, wide }: {
     }}>
       <div className={wide ? 'desk-wide' : 'desk-narrow'}>
         {onBack && (
-          <button onClick={onBack} className="icon-btn" aria-label="Volver"
+          <button onClick={onBack} className="icon-btn" aria-label={t('comun.volver')}
             style={{ background: 'var(--elevated)', marginBottom: 'var(--s-3)' }}>←</button>
         )}
         {title && (
@@ -224,7 +225,7 @@ export function SumarEnRotulo({ label, onClick, busy, aria }: {
   return (
     <button
       onClick={onClick} disabled={busy}
-      aria-label={aria ?? (label ? undefined : 'Agregar')}
+      aria-label={aria ?? (label ? undefined : t('comun.agregar'))}
       className="lbl"
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,

@@ -1,0 +1,12 @@
+{
+  "fotos": "FOTOS",
+  "fotosN": "FOTOS · {n}",
+  "agregarSuma": "Agregar una foto, suma {n} puntos",
+  "agregar": "Agregar una foto",
+  "verFoto": "Ver la foto",
+  "verFotoMes": "Ver la foto del mes",
+  "delMes": "DEL MES",
+  "sacarLike": "Sacar tu me gusta",
+  "like": "Me gusta esta foto",
+  "likes": "{n} me gusta"
+}

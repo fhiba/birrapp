@@ -1,0 +1,60 @@
+{
+  "map": {
+    "bienvenida": {
+      "titulo": "Esto es birrapp",
+      "texto": "Un mapa con el precio de la pinta en Buenos Aires. Los precios los cargamos entre todos: cada uno es alguien que estuvo ahí y lo anotó. Por eso al lado de cada precio siempre vas a ver cuándo se cargó — un precio sin fecha no te sirve para nada."
+    },
+    "mantenerApretado": {
+      "titulo": "Mantené apretado el mapa",
+      "texto": "Probalo ahora, acá adentro del círculo. Te deja una marca y pasa a buscar los bares alrededor de ese punto en vez de alrededor tuyo. Ideal para ver a cuánto está la birra en un barrio al que estás por caer."
+    },
+    "sacarMarca": {
+      "titulo": "Para sacarla, tocá el mapa",
+      "texto": "Un toque en cualquier lado la borra y volvés a buscar desde donde estás parado. Probá también eso si dejaste una marca recién."
+    },
+    "radio": {
+      "titulo": "¿Hasta dónde buscamos?",
+      "texto": "De 300 metros a 15 kilómetros. Cuanto más chico, más sirve comparar: dos bares a diez cuadras compiten entre sí, a diez kilómetros ya no."
+    },
+    "estilo": {
+      "titulo": "Una birra a la vez",
+      "texto": "Filtrá por estilo y comparás IPA contra IPA. Sin filtro, cada pin te muestra la más barata del bar, que puede ser cualquier estilo."
+    }
+  },
+  "list": {
+    "buscar": {
+      "titulo": "Buscá un bar por nombre",
+      "texto": "Te busca entre todos los bares cargados, no sólo entre los que entran en el radio. Podés escribirlo sin tildes, lo encuentra igual."
+    },
+    "orden": {
+      "titulo": "Cerca, barata o bien puntuada",
+      "texto": "Los tres órdenes de la lista. \"Más barata\" deja afuera los precios de más de 45 días, así uno viejo y bajo no le gana a uno fresco; \"mejor puntuada\" manda al final los bares que nadie votó todavía."
+    }
+  },
+  "bar": {
+    "pestanas": {
+      "titulo": "Una pestaña por birra",
+      "texto": "Cada una tiene su precio, su puntaje y sus fotos. El \"+\" del final es para sumar una que el bar tenga y todavía no esté cargada."
+    },
+    "confirmar": {
+      "titulo": "Esto es lo que más ayuda",
+      "texto": "Si fuiste y el precio sigue igual, tocá acá y queda al día. Es un toque, y es lo que evita que la app se llene de precios que ya no existen."
+    },
+    "puntuar": {
+      "titulo": "Puntuá la birra",
+      "texto": "Apoyá el dedo en las estrellas y arrastralo: se engancha de a medio punto y se guarda al soltar. Tu voto se pinta en el color de la nota y el promedio del resto queda apagado."
+    },
+    "foto": {
+      "titulo": "Subí una foto",
+      "texto": "Sacale una foto a la birra o elegí una de la galería. Se achica en tu teléfono antes de subirse, así no te come datos. Abajo de las fotos están los comentarios."
+    }
+  },
+  "profile": {
+    "resumen": {
+      "titulo": "Lo tuyo, de un vistazo",
+      "texto": "Cada cuadrado abre su lista: tus precios, tus fotos, tus bares. Si algo te salió mal, lo borrás desde ahí. El cuarto es tu cuenta de birras, que no es un aporte al mapa sino tuya."
+    }
+  },
+  "noMostrarMas": "No me lo muestres más",
+  "dale": "Dale"
+}

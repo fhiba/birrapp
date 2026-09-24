@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { t } from '../i18n'
 
 /** Los pasos son de medio punto: 0, 0,5, 1… hasta 5. */
 const STEP = 0.5
@@ -60,7 +61,7 @@ export function Stars({
   if (!onRate) {
     return (
       <div ref={box} style={{ display: 'flex', gap: 2 }}
-        aria-label={value == null ? 'Sin votos' : `${value.toFixed(1)} de 5`}>
+        aria-label={value == null ? t('Stars.sinVotos') : t('Stars.deCinco', { n: value.toFixed(1) })}>
         {[1, 2, 3, 4, 5].map(n => <Star key={n} n={n} filled={shown} size={size} color={color} />)}
       </div>
     )
@@ -73,11 +74,11 @@ export function Stars({
       ref={box}
       role="slider"
       tabIndex={0}
-      aria-label="Tu puntaje"
+      aria-label={t('Stars.tuPuntaje')}
       aria-valuemin={0}
       aria-valuemax={5}
       aria-valuenow={shown}
-      aria-valuetext={`${shown.toFixed(1)} de 5`}
+      aria-valuetext={t('Stars.deCinco', { n: shown.toFixed(1) })}
       // El teclado hace lo mismo que el dedo. Un control que sólo responde a
       // un gesto no lo puede usar quien navega con teclado, y acá no cuesta
       // nada: son dos teclas.

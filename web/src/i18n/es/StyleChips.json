@@ -1,0 +1,9 @@
+{
+  "sinEstilo": "Sin estilo",
+  "otro": "Otro estilo",
+  "sinLista": "No pudimos traer la lista de estilos. Se reintenta solo; si sigue así, probá sin bloqueador de contenido o desde otra red — podés anotar la birra igual, sin estilo.",
+  "placeholder": "Kellerbier, Gose, Sour…",
+  "nuevo": "“{nombre}” no está en la lista. Se acepta igual y la podés usar al toque; queda a revisión de un moderador.",
+  "yaEsta": "“{nombre}” ya está en la lista: tocalo arriba.",
+  "dosLetras": "Escribí al menos dos letras."
+}

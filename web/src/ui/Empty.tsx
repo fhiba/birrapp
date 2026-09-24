@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ageColor, formatPrice, shortAge } from '../data/format'
+import { t } from '../i18n'
 
 /**
  * Una pantalla vacía es una invitación, no un cartel de "no hay nada".
@@ -138,7 +139,7 @@ export function SkeletonRows({ rows = 6, children }: { rows?: number; children?:
  * es, se dice "sin fecha" — nunca se deja el número solo.
  */
 export function PriceColumn({
-  price, currency, ageDays, size = 'var(--t-6)', minWidth = 72, sinPrecio = 'Sin precio',
+  price, currency, ageDays, size = 'var(--t-6)', minWidth = 72, sinPrecio = t('Empty.sinPrecio'),
 }: {
   price: number | null
   currency: string
@@ -179,7 +180,7 @@ export function PriceColumn({
       <span className="num" style={{
         display: 'block', fontSize: 'var(--t-1)', color: ageColor(ageDays),
       }}>
-        {ageDays != null ? shortAge(ageDays) : 'sin fecha'}
+        {ageDays != null ? shortAge(ageDays) : t('Empty.sinFecha')}
       </span>
     </span>
   )

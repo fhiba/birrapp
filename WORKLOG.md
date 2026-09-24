@@ -4479,3 +4479,36 @@ continente es peor que un alta que no salió.
   cargar a mano sin ubicación.
 - **El bar que ya está cargado mal no se puede corregir**: no hay endpoint que
   edite un bar. Se rechaza y se vuelve a cargar.
+
+## 2026-09-24 — Los textos de la web, a archivos de locale (v0.34.0, BIR-31)
+
+Todos los textos que ve la gente en la PWA salieron del código a
+`web/src/i18n/es/`, un JSON por pantalla o componente (46 archivos, ~740
+textos). El código los pide con `t('BarDetail.sigueIgual')`.
+
+- `i18n/index.ts`: `t(clave, vars)` con `{variables}` y plurales por
+  `Intl.PluralRules` (`{ "one": …, "other": … }` con `count`), y `tx()` para
+  frases con un nodo adentro (una negrita, un botón). `LOCALE` reemplaza los
+  cuatro `'es-AR'` escritos a mano en fechas y números.
+- Las claves están tipadas contra los JSON: una clave que no existe no compila.
+  Un script de una vez verificó además que cada `{variable}` de los textos
+  llegue en la llamada.
+- Donde había una tabla nuestra que `Intl` ya resuelve traducida, se usó
+  `Intl`: nombres de moneda (`Intl.DisplayNames`, que dice "peso argentino" y
+  no "Peso argentino" — se capitaliza la primera letra) e iniciales de los días
+  del calendario de birras.
+- `formatDistance(...)?.replace('a ', '')` en LogBeer pasó a `formatRadius`:
+  sacarle la preposición a un texto armado sólo funciona en castellano.
+- Arreglado de paso: "fotas" en el aviso de bloqueo, y un `null ml` posible en
+  la fila de precio cuando `sizeMl` viene vacío.
+
+### Lo que queda afuera
+
+- **Lo que manda el servidor sigue en castellano**: mensajes de error
+  (`body.message`), el `message` de "precio cargado", nombres y detalles de
+  emblemas. Para otro idioma habría que mandar códigos y traducir acá.
+- **Android** ya usa `strings.xml`, pero quedan ~45 `Text("…")` literales en
+  Compose. La app está quieta desde v0.6.6.
+- `index.html` y el manifest de la PWA (`vite.config.ts`) siguen con su texto
+  escrito; son dos líneas y no dependen del idioma de la sesión.
+

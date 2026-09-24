@@ -2,11 +2,12 @@ import { useState } from 'react'
 import * as api from '../data/api'
 import * as fb from '../data/feedback'
 import type { BarPin, BeerStyle, Brand } from '../data/types'
-import { formatDistance } from '../data/format'
+import { formatRadius } from '../data/format'
 import { BrandPicker } from '../ui/BrandPicker'
 import { Confirm, Sheet } from '../ui/Chrome'
 import { SectionLabel } from '../ui/Kit'
 import { StyleChips } from '../ui/StyleChips'
+import { t, tx } from '../i18n'
 
 /** Más lejos que esto, "¿te la tomaste acá?" deja de ser una pregunta razonable. */
 const SUGGEST_RADIUS_M = 250
@@ -70,9 +71,9 @@ export function LogBeerSheet({
       fb.exito()
       const donde = close.find(b => b.id === barId)?.name
       onDone(
-        qty === 1
-          ? `Anotada${donde ? ` en ${donde}` : ''}. ¡Salud!`
-          : `${qty} birras anotadas${donde ? ` en ${donde}` : ''}. ¡Salud!`,
+        donde
+          ? t('LogBeer.anotadaEn', { count: qty, bar: donde })
+          : t('LogBeer.anotada', { count: qty }),
       )
     } catch (e) {
       fb.error()
@@ -84,13 +85,13 @@ export function LogBeerSheet({
   }
 
   return (
-    <Sheet title="Me tomé una birra" onClose={onClose}>
+    <Sheet title={t('LogBeer.titulo')} onClose={onClose}>
       {close.length > 0 && (
         <>
           <SectionLabel>
             {suggested && barId === suggested.id
-              ? '¿La birra te la tomaste acá?'
-              : '¿Dónde?'}
+              ? t('LogBeer.aca')
+              : t('LogBeer.donde')}
           </SectionLabel>
           {/* Los bares dejan de ser cápsulas y pasan al segmentado de texto con
               subrayado, que es el mismo vocabulario de "esto está elegido" que
@@ -113,7 +114,7 @@ export function LogBeerSheet({
                 <span style={{
                   display: 'block', fontSize: 'var(--t-1)', color: 'var(--info)', marginTop: 2,
                 }}>
-                  {formatDistance(b.distanceMeters)?.replace('a ', '')}
+                  {formatRadius(Math.round(b.distanceMeters!))}
                 </span>
                 <span className="tab-rule" />
               </button>
@@ -124,17 +125,17 @@ export function LogBeerSheet({
             <button onClick={() => setBarId(null)}
               className="tab-underline" aria-pressed={barId === null}
               style={{ minHeight: 44, flexShrink: 0, whiteSpace: 'nowrap' }}>
-              En otro lado
+              {t('LogBeer.otroLado')}
               <span style={{
                 display: 'block', fontSize: 'var(--t-1)', color: 'var(--faint)', marginTop: 2,
-              }}>sin bar</span>
+              }}>{t('LogBeer.sinBar')}</span>
               <span className="tab-rule" />
             </button>
           </div>
         </>
       )}
 
-      <SectionLabel>¿Cuántas?</SectionLabel>
+      <SectionLabel>{t('LogBeer.cuantas')}</SectionLabel>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <Step label="−" disabled={qty <= 1} onClick={() => setQty(q => Math.max(1, q - 1))} />
         <span className="num" style={{ fontSize: 'var(--t-8)', minWidth: 34, textAlign: 'center' }}>
@@ -153,7 +154,7 @@ export function LogBeerSheet({
           display: 'block', marginTop: 'var(--s-5)', minHeight: 44,
           fontSize: 'var(--t-3)', color: 'var(--info)',
         }}>
-        {detail ? 'Listo' : '¿Cuál era? (opcional)'}
+        {detail ? t('comun.listo') : t('LogBeer.cualEra')}
       </button>
 
       {detail && (
@@ -179,7 +180,7 @@ export function LogBeerSheet({
         borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
         background: busy ? 'var(--elevated)' : 'var(--acento)',
         color: busy ? 'var(--faint)' : 'var(--base)',
-      }}>{busy ? '…' : 'Anotar'}</button>
+      }}>{busy ? '…' : t('LogBeer.anotar')}</button>
 
       {tope && <Tope mensaje={tope} onCerrar={() => setTope(null)} />}
     </Sheet>
@@ -190,7 +191,7 @@ function Step({ label, disabled, onClick }: {
   label: string; disabled: boolean; onClick: () => void
 }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label === '+' ? 'Una más' : 'Una menos'}
+    <button onClick={onClick} disabled={disabled} aria-label={label === '+' ? t('LogBeer.unaMas') : t('LogBeer.unaMenos')}
       className="num" style={{
         width: 46, height: 46, borderRadius: '50%', fontSize: 'var(--t-6)',
         // Mismo material que las teclas del monto: `--raised` con filete. Con
@@ -224,16 +225,13 @@ function Step({ label, disabled, onClick }: {
 function Tope({ mensaje, onCerrar }: { mensaje: string; onCerrar: () => void }) {
   return (
     <Confirm
-      title="Pará un poco"
+      title={t('LogBeer.tope.titulo')}
       body={<>
-        {mensaje} Quince en un mismo día es el tope, y no es un número
-        caprichoso: de ahí para arriba ya no es una salida.
+        {t('LogBeer.tope.texto1', { mensaje })}
         <br /><br />
-        Si te está pasando seguido, la <strong>línea 141</strong> es gratis,
-        anónima y atiende todo el día en todo el país. No hace falta que sea una
-        emergencia para llamar.
+        {tx('LogBeer.tope.texto2', { linea: <strong>{t('LogBeer.tope.linea')}</strong> })}
       </>}
-      confirmLabel="Entendido"
+      confirmLabel={t('LogBeer.tope.entendido')}
       cancelLabel={null}
       onCancel={onCerrar}
       onConfirm={onCerrar}

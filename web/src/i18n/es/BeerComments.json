@@ -1,0 +1,16 @@
+{
+  "titulo": "COMENTARIOS",
+  "placeholder": "Cómo estaba (opcional)",
+  "comentar": "Comentar",
+  "nadie": "Todavía nadie comentó esta birra.",
+  "vos": "Vos",
+  "borrar": "Borrar",
+  "eliminar": "Eliminar",
+  "masViejos": "Ver comentarios más viejos",
+  "borrarTitulo": "¿Borrar tu comentario?",
+  "eliminarTitulo": "¿Eliminar este comentario?",
+  "borrar1": "Se borra sólo el texto. Tu puntaje de esta birra queda como está — borrar lo que escribiste no es retirar tu voto.",
+  "noSeDeshace": "No se puede deshacer.",
+  "eliminar1": "Se baja el comentario de {nombre}.",
+  "eliminar2": "Su puntaje no se toca: para eso está la acción sobre la nota. Bajar un texto no debería cambiar el promedio de la birra."
+}

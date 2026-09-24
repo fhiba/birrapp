@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BarPin } from '../data/types'
 import { ageColor, formatDistance, formatPrice, shortAge } from '../data/format'
+import { t } from '../i18n'
 
 /**
  * Preview del bar, sin salir del mapa.
@@ -95,7 +96,7 @@ export function BarPreview({
   return (
     <div
       role="dialog"
-      aria-label={`Vista rápida de ${bar.name}`}
+      aria-label={t('BarPreview.vistaRapida', { nombre: bar.name })}
       style={{
         position: 'absolute', left: 0, right: 0,
         bottom: `calc(60px + var(--nav-gap))`,
@@ -146,7 +147,7 @@ export function BarPreview({
                 `--muted` se cae a 2,5:1. */}
             <button
               onClick={onToggleFavorite}
-              aria-label={isFavorite ? 'Sacar de favoritos' : 'Guardar en favoritos'}
+              aria-label={isFavorite ? t('BarPreview.sacarFav') : t('BarPreview.guardarFav')}
               aria-pressed={isFavorite}
               className="icon-btn"
               style={{
@@ -165,7 +166,7 @@ export function BarPreview({
                 cumplir, y encima es el botón que se aprieta con el pulgar
                 mientras se camina. */}
             <button
-              onClick={onClose} aria-label="Cerrar" className="icon-btn"
+              onClick={onClose} aria-label={t('comun.cerrar')} className="icon-btn"
               style={{ color: 'var(--sobre-vidrio)', background: 'var(--film-2)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
@@ -194,7 +195,7 @@ export function BarPreview({
           {price != null ? (
             <span style={{ flexShrink: 0, textAlign: 'right' }}>
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--s-1)' }}>
-                <span style={{ fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)' }}>desde</span>
+                <span style={{ fontSize: 'var(--t-2)', color: 'var(--sobre-vidrio)' }}>{t('BarPreview.desde')}</span>
                 <span className="num" style={{
                   fontSize: 'var(--t-7)', lineHeight: 1.05, color: 'var(--cream)',
                 }}>{formatPrice(price, bar.currency)}</span>
@@ -203,12 +204,12 @@ export function BarPreview({
                 display: 'block', marginTop: 'var(--s-1)', fontSize: 'var(--t-1)',
                 fontVariantNumeric: 'tabular-nums', color: ageColor(age),
               }}>
-                {age != null ? shortAge(age) : 'sin fecha'}
+                {age != null ? shortAge(age) : t('Empty.sinFecha')}
               </span>
             </span>
           ) : (
             <span style={{ fontSize: 'var(--t-3)', color: 'var(--sobre-vidrio)' }}>
-              Sin precio vigente
+              {t('BarPreview.sinPrecio')}
             </span>
           )}
         </div>
@@ -246,7 +247,7 @@ export function BarPreview({
                 dentro de una cápsula de 46px. Lo que hay que decir es el verbo
                 —que acá abajo, sin precio, no puede significar otra cosa— y en
                 el renglón de arriba ya dice "Sin precio vigente". */}
-            {price != null ? 'Ver bar' : 'Cargar precio'}
+            {price != null ? t('BarPreview.verBar') : t('BarPreview.cargarPrecio')}
           </button>
 
           <a
@@ -260,7 +261,7 @@ export function BarPreview({
               color: 'var(--info-bright)', textDecoration: 'none',
             }}
           >
-            Cómo llegar
+            {t('BarPreview.comoLlegar')}
           </a>
         </div>
       </div>

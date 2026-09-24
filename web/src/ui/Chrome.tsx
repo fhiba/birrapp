@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { AddMenu, type AddAction } from './AddMenu'
+import { t } from '../i18n'
 
 const ICON = {
   // El radar de "Cerca": un aro y un punto, o sea el alcance alrededor tuyo.
@@ -147,7 +148,7 @@ export function BottomNav({ onAdd }: {
         barra apoya contra el borde, pero el filete y los íconos no se meten
         debajo de la rayita del sistema.
       */}
-      <nav aria-label="Secciones" style={{
+      <nav aria-label={t('Chrome.secciones')} style={{
         position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
         padding: `0 var(--s-3) var(--nav-gap)`,
         background: 'var(--base)',
@@ -169,11 +170,11 @@ export function BottomNav({ onAdd }: {
           display: 'flex', alignItems: 'flex-start',
           borderTop: '1px solid var(--hairline)',
         }}>
-          {tab('/cerca', 'Cerca', 'radar')}
-          {tab('/', 'Mapa', 'map')}
+          {tab('/cerca', t('Chrome.cerca'), 'radar')}
+          {tab('/', t('Chrome.mapa'), 'map')}
           <AddMenu onPick={onAdd} />
-          {tab('/lista', 'Lista', 'list')}
-          {tab('/perfil', 'Perfil', 'person')}
+          {tab('/lista', t('Chrome.lista'), 'list')}
+          {tab('/perfil', t('Chrome.perfil'), 'person')}
         </div>
       </nav>
     </>
@@ -195,7 +196,7 @@ export function Sheet(
   { title, onClose, children }: { title?: string; onClose: () => void; children: ReactNode },
 ) {
   return (
-    <Modal label={title ?? 'Hoja'} onClose={onClose} variant="sheet">
+    <Modal label={title ?? t('Chrome.hoja')} onClose={onClose} variant="sheet">
       <div style={{ padding: `var(--s-3) var(--s-5) calc(var(--s-5) + var(--nav-gap))` }}>
         {/* El manijón no hace nada por sí solo: está para que la hoja se lea
             como algo que vino de abajo y se va para abajo, y no como una
@@ -212,7 +213,7 @@ export function Sheet(
           {title && (
             <h2 className="ttl" style={{ margin: 0, flex: 1, fontSize: 'var(--t-6)' }}>{title}</h2>
           )}
-          <button onClick={onClose} aria-label="Cerrar" className="icon-btn"
+          <button onClick={onClose} aria-label={t('comun.cerrar')} className="icon-btn"
             style={{ marginLeft: 'auto', color: 'var(--muted)', background: 'var(--film-2)' }}>
             <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
               <path d="M5 5l14 14M19 5L5 19" stroke="currentColor"
@@ -325,7 +326,7 @@ export function Confirm({
               color: 'var(--faint)', fontSize: 'var(--t-2)',
               margin: 'var(--s-4) 0 var(--s-2)',
             }}>
-              Escribí {requireWord} para confirmar
+              {t('Chrome.escribiParaConfirmar', { word: requireWord })}
             </p>
             <input value={typed} onChange={e => setTyped(e.target.value)} style={{
               width: '100%', padding: 'var(--s-3)', borderRadius: 'var(--r-2)',
@@ -345,7 +346,7 @@ export function Confirm({
             <button onClick={onCancel} style={{
               color: 'var(--muted)', padding: 'var(--s-3) var(--s-4)', minHeight: 44,
             }}>
-              {cancelLabel ?? 'Cancelar'}
+              {cancelLabel ?? t('comun.cancelar')}
             </button>
           )}
           <button disabled={!armed} onClick={onConfirm} style={{

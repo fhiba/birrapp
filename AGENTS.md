@@ -31,7 +31,9 @@ Antes de tocar `v_current_prices`, `v_bar_headline` o `PriceRepo`: correr
 - Los chequeos de rol van en el servidor. Esconder UI no es control de acceso.
 - Nunca guardar datos de Google Places en la base: sus términos lo prohíben más
   allá de 30 días. Los bares salen de OSM.
-- Textos en castellano rioplatense, en `strings.xml`. No hay versión en inglés.
+- Textos en castellano rioplatense. Android: en `strings.xml`. Web: en
+  `web/src/i18n/es/<Pantalla>.json`, usados con `t('Pantalla.clave')`; nunca un
+  literal en el código. Por ahora no hay otro idioma.
 - Secretos en `.env` / `local.properties`, ambos gitignoreados. Nunca en el repo.
 - Tests contra PostGIS real, nunca H2: no tiene PostGIS, ni `DISTINCT ON`, ni
   ENUM, ni `percentile_cont` — o sea, justo todo lo que hay que testear.

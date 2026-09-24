@@ -1,3 +1,4 @@
+import { LOCALE } from '../i18n'
 /**
  * Selector de moneda.
  *
@@ -11,48 +12,20 @@
  * la suya, así que si esta queda corta lo peor que pasa es que falte una
  * opción, no que entre un dato inválido.
  */
+/**
+ * Los nombres salen de `Intl.DisplayNames` en el idioma de la app, no de una
+ * tabla nuestra: así vienen traducidos solos.
+ */
+const nombre = new Intl.DisplayNames(LOCALE, { type: 'currency' })
 const MONEDAS: [string, string][] = [
-  ['ARS', 'Peso argentino'],
-  ['UYU', 'Peso uruguayo'],
-  ['CLP', 'Peso chileno'],
-  ['BRL', 'Real brasileño'],
-  ['PYG', 'Guaraní'],
-  ['BOB', 'Boliviano'],
-  ['PEN', 'Sol peruano'],
-  ['COP', 'Peso colombiano'],
-  ['MXN', 'Peso mexicano'],
-  ['USD', 'Dólar'],
-  ['EUR', 'Euro'],
-  ['GBP', 'Libra'],
-  ['CHF', 'Franco suizo'],
-  ['NOK', 'Corona noruega'],
-  ['SEK', 'Corona sueca'],
-  ['DKK', 'Corona danesa'],
-  ['PLN', 'Złoty'],
-  ['CZK', 'Corona checa'],
-  ['HUF', 'Forinto'],
-  ['RON', 'Leu rumano'],
-  ['BGN', 'Lev'],
-  ['ISK', 'Corona islandesa'],
-  ['CAD', 'Dólar canadiense'],
-  ['AUD', 'Dólar australiano'],
-  ['NZD', 'Dólar neozelandés'],
-  ['JPY', 'Yen'],
-  ['KRW', 'Won'],
-  ['CNY', 'Yuan'],
-  ['INR', 'Rupia'],
-  ['THB', 'Baht'],
-  ['VND', 'Dong'],
-  ['ZAR', 'Rand'],
-  ['ILS', 'Séquel'],
-  ['TRY', 'Lira turca'],
-  ['MAD', 'Dírham'],
-  ['EGP', 'Libra egipcia'],
-  ['CRC', 'Colón'],
-  ['GTQ', 'Quetzal'],
-  ['CUP', 'Peso cubano'],
-  ['DOP', 'Peso dominicano'],
-]
+  'ARS', 'UYU', 'CLP', 'BRL', 'PYG', 'BOB', 'PEN', 'COP', 'MXN', 'USD', 'EUR',
+  'GBP', 'CHF', 'NOK', 'SEK', 'DKK', 'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'ISK',
+  'CAD', 'AUD', 'NZD', 'JPY', 'KRW', 'CNY', 'INR', 'THB', 'VND', 'ZAR', 'ILS',
+  'TRY', 'MAD', 'EGP', 'CRC', 'GTQ', 'CUP', 'DOP',
+].map(c => {
+  const n = nombre.of(c) ?? c
+  return [c, n[0].toLocaleUpperCase(LOCALE) + n.slice(1)]
+})
 
 export function CurrencySelect({ value, onChange, id }: {
   value: string

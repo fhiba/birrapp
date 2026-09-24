@@ -36,6 +36,7 @@ import { useFavorites } from './data/useFavorites'
 import { ReportFlow, type FlowBar } from './screens/ReportFlow'
 import { LogBeerSheet } from './screens/LogBeer'
 import type { AddAction } from './ui/AddMenu'
+import { t } from './i18n'
 
 const MAPS_KEY = import.meta.env.VITE_MAPS_API_KEY ?? ''
 
@@ -167,7 +168,7 @@ function Shell() {
     const params = new URLSearchParams(location.search)
     const handoff = params.get('handoff')
     if (params.get('error')) {
-      setToast('No pudimos completar el inicio de sesión.')
+      setToast(t('App.loginFallo'))
       history.replaceState({}, '', location.pathname)
       return
     }
@@ -178,7 +179,7 @@ function Shell() {
     api.redeemHandoff(handoff)
       .then(s => {
         api.saveSession(s)
-        setToast(`¡Hola, ${s.user.displayName}!`)
+        setToast(t('App.hola', { nombre: s.user.displayName }))
         /*
          * Cuenta recién creada: la bienvenida.
          *
@@ -198,7 +199,7 @@ function Shell() {
          */
         nav(s.user.onboarded ? '/' : '/bienvenida', { replace: true })
       })
-      .catch(() => setToast('El inicio de sesión expiró. Probá de nuevo.'))
+      .catch(() => setToast(t('App.loginExpiro')))
   }, [nav])
 
   // Vive acá y no en MapScreen porque la pantalla se desmonta al cambiar de
@@ -284,7 +285,7 @@ function Shell() {
   // `denied` corta la espera: sin él, negar el permiso dejaba a la app
   // colgada para siempre en "Buscando dónde estás…", porque `coords` ya no se
   // rellena con un valor inventado.
-  if (!coords && !camera && !denied) return <PintLoader message="Buscando dónde estás…" />
+  if (!coords && !camera && !denied) return <PintLoader message={t('App.buscandoDonde')} />
 
   return (
     <>

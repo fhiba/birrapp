@@ -8,6 +8,8 @@ import { Segmented } from '../ui/Segmented'
 import { isAdmin } from '../data/types'
 import type { DashboardAnalytics, DashboardSummary, DashboardUser } from '../data/types'
 import * as fb from '../data/feedback'
+import { shortAge } from '../data/format'
+import { t } from '../i18n'
 
 /**
  * Quién se anotó y qué aportó.
@@ -78,8 +80,8 @@ export function DashboardScreen() {
     }}>
       <div className="desk-wide">
         <div style={{ padding: '0 18px' }}>
-          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver">←</button>
-          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>Dashboard</h1>
+          <button onClick={() => nav(-1)} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('comun.volver')}>←</button>
+          <h1 className="ttl" style={{ fontSize: 'var(--t-7)', margin: '16px 0 0' }}>{t('Dashboard.titulo')}</h1>
           {error && <p style={{ color: 'var(--danger)', fontSize: 'var(--t-3)' }}>{error}</p>}
         </div>
 
@@ -91,12 +93,12 @@ export function DashboardScreen() {
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))',
               gap: 8, padding: '18px 18px 0',
             }}>
-              <Stat n={summary.usersWeek} label="cuentas · 7 d" accent />
-              <Stat n={summary.usersMonth} label="cuentas · 30 d" />
-              <Stat n={summary.users} label="cuentas en total" />
-              <Stat n={summary.contributorsMonth} label="aportaron · 30 d" accent />
-              <Stat n={summary.pricesWeek} label="precios · 7 d" />
-              <Stat n={summary.barsWithFreshPrice} label={`bares con precio\nde ${summary.bars}`} />
+              <Stat n={summary.usersWeek} label={t('Dashboard.stat.cuentas7')} accent />
+              <Stat n={summary.usersMonth} label={t('Dashboard.stat.cuentas30')} />
+              <Stat n={summary.users} label={t('Dashboard.stat.cuentasTotal')} />
+              <Stat n={summary.contributorsMonth} label={t('Dashboard.stat.aportaron30')} accent />
+              <Stat n={summary.pricesWeek} label={t('Dashboard.stat.precios7')} />
+              <Stat n={summary.barsWithFreshPrice} label={t('Dashboard.stat.baresConPrecio', { n: summary.bars })} />
             </div>
 
             {/* La cobertura del mapa en una línea: cuántos pines contestan
@@ -106,8 +108,7 @@ export function DashboardScreen() {
               color: 'var(--faint)', fontSize: 'var(--t-2)', lineHeight: 1.5, padding: '12px 18px 0',
             }}>
               {summary.bars > 0 && (
-                <>Cobertura: {Math.round(summary.barsWithFreshPrice / summary.bars * 100)}%
-                {' '}de los bares tiene al menos un precio no vencido.</>
+                t('Dashboard.cobertura', { pct: Math.round(summary.barsWithFreshPrice / summary.bars * 100) })
               )}
             </p>
           </>
@@ -122,12 +123,12 @@ export function DashboardScreen() {
         <div style={{ padding: 'var(--s-5) var(--s-4) var(--s-1)' }}>
           <Segmented
             options={[
-              { value: 'nuevos', label: 'Más nuevos' },
-              { value: 'aportes', label: 'Más aportes' },
+              { value: 'nuevos', label: t('Dashboard.masNuevos') },
+              { value: 'aportes', label: t('Dashboard.masAportes') },
             ]}
             value={sort}
             onChange={setSort}
-            label={o => `Ordenar por ${o.label.toLowerCase()}`}
+            label={o => t('Dashboard.ordenarPor', { que: o.label.toLowerCase() })}
           />
         </div>
 
@@ -140,7 +141,7 @@ export function DashboardScreen() {
 
         {shown?.length === 0 && (
           <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 48 }}>
-            Todavía no hay nadie registrado.
+            {t('Dashboard.nadie')}
           </p>
         )}
 
@@ -197,7 +198,7 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
   onRol: (id: number, role: 'user' | 'moderator' | 'admin') => void
 }) {
   const total = u.prices + u.confirmations + u.bars + u.photos + u.ratings
-  const age = u.ageDays <= 0 ? 'hoy' : u.ageDays === 1 ? 'ayer' : `hace ${u.ageDays} d`
+  const age = shortAge(u.ageDays)
 
   return (
     <div style={{
@@ -236,7 +237,7 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
             <select
               value={u.role}
               onChange={e => onRol(u.id, e.target.value as 'user' | 'moderator' | 'admin')}
-              aria-label={`Rol de ${u.displayName}`}
+              aria-label={t('Dashboard.rolDe', { nombre: u.displayName })}
               className="lbl"
               style={{
                 fontSize: 'var(--t-1)', letterSpacing: '.08em', padding: '2px 6px',
@@ -262,7 +263,7 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
           )}
           {u.banned && (
             <span className="lbl" style={{ fontSize: 'var(--t-1)', color: 'var(--danger)' }}>
-              BLOQUEADO
+              {t('Dashboard.bloqueado')}
             </span>
           )}
         </div>
@@ -270,7 +271,7 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
           fontSize: 'var(--t-2)', color: 'var(--faint)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {u.email} · se anotó {age}
+          {t('Dashboard.seAnoto', { email: u.email, cuando: age })}
         </div>
 
         {/* Los aportes desglosados. Un solo total escondería la diferencia
@@ -281,24 +282,24 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
             display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4,
             fontSize: 'var(--t-2)', color: 'var(--muted)',
           }}>
-            {u.prices > 0 && <Chip n={u.prices} what="precios" />}
-            {u.confirmations > 0 && <Chip n={u.confirmations} what="confirm." />}
-            {u.bars > 0 && <Chip n={u.bars} what="bares" />}
-            {u.photos > 0 && <Chip n={u.photos} what="fotos" />}
-            {u.ratings > 0 && <Chip n={u.ratings} what="notas" />}
+            {u.prices > 0 && <Chip n={u.prices} what={t('Dashboard.serie.precios')} />}
+            {u.confirmations > 0 && <Chip n={u.confirmations} what={t('Dashboard.serie.confirm')} />}
+            {u.bars > 0 && <Chip n={u.bars} what={t('Dashboard.serie.bares')} />}
+            {u.photos > 0 && <Chip n={u.photos} what={t('Dashboard.serie.fotos')} />}
+            {u.ratings > 0 && <Chip n={u.ratings} what={t('Dashboard.serie.notas')} />}
           </div>
         ) : (
           <div style={{ fontSize: 'var(--t-2)', color: 'var(--faint)', marginTop: 4 }}>
-            Sin aportes todavía
+            {t('Dashboard.sinAportes')}
           </div>
         )}
       </div>
 
       {u.lastActiveDays != null && (
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>último</div>
+          <div style={{ fontSize: 'var(--t-1)', color: 'var(--faint)' }}>{t('Dashboard.ultimo')}</div>
           <div className="num" style={{ fontSize: 'var(--t-3)', color: 'var(--muted)' }}>
-            {u.lastActiveDays <= 0 ? 'hoy' : `${u.lastActiveDays} d`}
+            {u.lastActiveDays <= 0 ? t('format.hoy') : t('Dashboard.dias', { n: u.lastActiveDays })}
           </div>
         </div>
       )}
@@ -318,11 +319,11 @@ const Chip = ({ n, what }: { n: number; what: string }) => (
  */
 function Charts({ a }: { a: DashboardAnalytics }) {
   const pulseSeries = [
-    { label: 'precios',  color: KIND_COLORS.prices,        points: a.pulse.map(d => d.prices) },
-    { label: 'confirm.', color: KIND_COLORS.confirmations, points: a.pulse.map(d => d.confirmations) },
-    { label: 'bares',    color: KIND_COLORS.bars,          points: a.pulse.map(d => d.bars) },
-    { label: 'fotos',    color: KIND_COLORS.photos,        points: a.pulse.map(d => d.photos) },
-    { label: 'notas',    color: KIND_COLORS.ratings,       points: a.pulse.map(d => d.ratings) },
+    { label: t('Dashboard.serie.precios'), color: KIND_COLORS.prices,        points: a.pulse.map(d => d.prices) },
+    { label: t('Dashboard.serie.confirm'), color: KIND_COLORS.confirmations, points: a.pulse.map(d => d.confirmations) },
+    { label: t('Dashboard.serie.bares'), color: KIND_COLORS.bars,          points: a.pulse.map(d => d.bars) },
+    { label: t('Dashboard.serie.fotos'), color: KIND_COLORS.photos,        points: a.pulse.map(d => d.photos) },
+    { label: t('Dashboard.serie.notas'), color: KIND_COLORS.ratings,       points: a.pulse.map(d => d.ratings) },
   ]
   const pulseX = a.pulse.map(d => d.day)
 
@@ -339,16 +340,16 @@ function Charts({ a }: { a: DashboardAnalytics }) {
    * lo ocupa `--fresh`, que además es el tono de más contraste de la rampa.
    */
   const trafficSeries = [
-    { label: 'sin sesión', color: 'var(--faint)', points: a.traffic.map(d => d.anon) },
-    { label: 'con sesión', color: 'var(--fresh)', points: a.traffic.map(d => d.authed) },
+    { label: t('Dashboard.serie.sinSesion'), color: 'var(--faint)', points: a.traffic.map(d => d.anon) },
+    { label: t('Dashboard.serie.conSesion'), color: 'var(--fresh)', points: a.traffic.map(d => d.authed) },
   ]
 
   // Mismo criterio que arriba, y armada una sola vez: estaba escrita dos
   // veces —una para el gráfico y otra para la leyenda— que es exactamente
   // donde dos colores que tienen que ser el mismo se terminan separando.
   const altasSeries = [
-    { label: 'se anotaron', color: 'var(--faint)', points: a.weekly.map(w => w.signups) },
-    { label: 'aportaron',   color: 'var(--fresh)', points: a.weekly.map(w => w.contributors) },
+    { label: t('Dashboard.serie.seAnotaron'), color: 'var(--faint)', points: a.weekly.map(w => w.signups) },
+    { label: t('Dashboard.serie.aportaron'), color: 'var(--fresh)', points: a.weekly.map(w => w.contributors) },
   ]
 
   const coverPct = a.coverage.map(d => d.bars === 0 ? 0 : (d.covered / d.bars) * 100)
@@ -364,12 +365,12 @@ function Charts({ a }: { a: DashboardAnalytics }) {
       display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
       gap: 16, padding: '20px 18px 0',
     }}>
-      <Card title="Aportes por día" hint="últimos 30 días">
+      <Card title={t('Dashboard.card.aportesDia')} hint={t('Dashboard.card.ult30')}>
         <StackedBars x={pulseX} series={pulseSeries} />
         <Legend series={pulseSeries} />
       </Card>
 
-      <Card title="Altas contra aportantes" hint="por semana · 12 semanas" deskOnly>
+      <Card title={t('Dashboard.card.altas')} hint={t('Dashboard.card.altasHint')} deskOnly>
         <LineChart
           x={a.weekly.map(w => w.week)}
           series={altasSeries}
@@ -377,15 +378,15 @@ function Charts({ a }: { a: DashboardAnalytics }) {
         <Legend series={altasSeries} />
       </Card>
 
-      <Card title="Cobertura del mapa" hint="% con precio no vencido · 90 días" deskOnly>
+      <Card title={t('Dashboard.card.cobertura')} hint={t('Dashboard.card.coberturaHint')} deskOnly>
         <LineChart
           x={a.coverage.map(d => d.day)} fill
           format={n => `${Math.round(n)}%`}
-          series={[{ label: 'cobertura', color: 'var(--info)', points: coverPct }]}
+          series={[{ label: t('Dashboard.serie.cobertura'), color: 'var(--info)', points: coverPct }]}
         />
       </Card>
 
-      <Card title="Quién entra" hint="visitantes por día · 30 días" deskOnly>
+      <Card title={t('Dashboard.card.quienEntra')} hint={t('Dashboard.card.quienEntraHint')} deskOnly>
         <LineChart
           x={a.traffic.map(d => d.day)}
           series={trafficSeries}
@@ -394,8 +395,8 @@ function Charts({ a }: { a: DashboardAnalytics }) {
       </Card>
 
       <Card
-        title="Quiénes sostienen esto"
-        hint={`el top 5 concentra el ${Math.round(a.top5Share * 100)}% de los aportes`}
+        title={t('Dashboard.card.sostienen')}
+        hint={t('Dashboard.card.sostienenHint', { pct: Math.round(a.top5Share * 100) })}
         deskOnly
       >
         <HBars rows={a.topContributors.map(t => ({
@@ -407,13 +408,13 @@ function Charts({ a }: { a: DashboardAnalytics }) {
       {/* El escalón de visitantes sólo mide la PWA: la app de Android no manda
           el beacon. Va dicho en el hint para que nadie lea el número como si
           fuera todo el tráfico. */}
-      <Card title="Activación" hint="dónde se cae la gente · visitantes sólo de la web" deskOnly>
+      <Card title={t('Dashboard.card.activacion')} hint={t('Dashboard.card.activacionHint')} deskOnly>
         <HBars rows={[
-          { label: 'visitantes',     value: f.visitors30 },
-          { label: 'cuentas',        value: f.accounts },
-          { label: 'aportó alguna',  value: f.everContributed },
-          { label: 'aportó 5 o más', value: f.fiveOrMore },
-          { label: 'activo · 30 d',  value: f.activeMonth },
+          { label: t('Dashboard.embudo.visitantes'), value: f.visitors30 },
+          { label: t('Dashboard.embudo.cuentas'), value: f.accounts },
+          { label: t('Dashboard.embudo.alguna'), value: f.everContributed },
+          { label: t('Dashboard.embudo.cinco'), value: f.fiveOrMore },
+          { label: t('Dashboard.embudo.activo'), value: f.activeMonth },
         ]} />
       </Card>
     </div>

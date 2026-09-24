@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { currencyPrefix, groupThousands } from '../data/format'
 import { SectionLabel } from '../ui/Kit'
+import { t } from '../i18n'
 
 /**
  * El último paso: cuánto sale y de qué tamaño.
@@ -66,9 +67,9 @@ export function ReportPrice({
    * mismo número serían dos botones que hacen lo mismo.
    */
   const formatos = [
-    { label: 'Pinta', ml: defaultSizeMl },
-    { label: 'Media', ml: 330 },
-    { label: 'Litro', ml: 1000 },
+    { label: t('ReportPrice.pinta'), ml: defaultSizeMl },
+    { label: t('ReportPrice.media'), ml: 330 },
+    { label: t('ReportPrice.litro'), ml: 1000 },
   ].filter((f, i, xs) => xs.findIndex(x => x.ml === f.ml) === i)
 
   // Tecleando los ml, o con un tamaño que no es ninguno de los tres.
@@ -145,11 +146,11 @@ export function ReportPrice({
           {/* La flecha vuelve un paso, no sale del flujo: quien llegó hasta acá
               eligiendo tres cosas y se equivocó en la marca no tiene que
               empezar de nuevo. Salir es la cruz. */}
-          <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label="Volver al paso anterior">←</button>
-          <h2 className="section-label" style={{ flex: 1, margin: 0 }}>ÚLTIMO PASO</h2>
+          <button onClick={onBack} className="icon-btn" style={{ background: 'var(--elevated)' }} aria-label={t('ReportPrice.volverPaso')}>←</button>
+          <h2 className="section-label" style={{ flex: 1, margin: 0 }}>{t('ReportPrice.ultimoPaso')}</h2>
           <button onClick={onCancel} className="lbl" style={{
             fontSize: 'var(--t-3)', color: 'var(--muted)', minHeight: 44, padding: '0 4px',
-          }} aria-label="Cancelar la carga">Cancelar</button>
+          }} aria-label={t('ReportPrice.cancelarAria')}>{t('comun.cancelar')}</button>
         </div>
 
         {/* Qué se está cargando, en una línea. Es lo que evita el precio
@@ -169,7 +170,7 @@ export function ReportPrice({
           </div>
           {barName && (
             <div style={{ color: 'var(--muted)', fontSize: 'var(--t-3)', marginTop: 4 }}>
-              en {barName}
+              {t('ReportPrice.enBar', { bar: barName })}
             </div>
           )}
         </div>
@@ -184,7 +185,7 @@ export function ReportPrice({
       }}>
         <div style={{ padding: '0 18px' }}>
           <div style={{ paddingBottom: 'var(--s-4)', borderBottom: '1px solid var(--hairline)' }}>
-            <SectionLabel>Monto</SectionLabel>
+            <SectionLabel>{t('ReportPrice.monto')}</SectionLabel>
             {/*
               El caret es lo único que dice dónde está escribiendo el teclado, y
               por eso se mueve: acá cuando se carga el precio, abajo del formato
@@ -220,10 +221,10 @@ export function ReportPrice({
               }}>{digits === '' ? '0' : groupThousands(digits)}</span>
               {!editingSize && <span className="monto-caret" style={{ height: 40 }} aria-hidden />}
             </button>
-            <span id="monto-ayuda" className="sr">Escribir el precio con el teclado</span>
+            <span id="monto-ayuda" className="sr">{t('ReportPrice.ayuda')}</span>
           </div>
 
-          <SectionLabel>Formato</SectionLabel>
+          <SectionLabel>{t('ReportPrice.formato')}</SectionLabel>
           <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
             {formatos.map(f => {
               const on = !otro && f.ml === sizeMl
@@ -237,7 +238,7 @@ export function ReportPrice({
                   <span className="num" style={{
                     display: 'block', fontSize: 'var(--t-1)', fontWeight: 500,
                     color: 'var(--faint)', marginTop: 2,
-                  }}>{f.ml} ml</span>
+                  }}>{t('ReportPrice.ml', { n: f.ml })}</span>
                   <span className="tab-rule" />
                 </button>
               )
@@ -248,7 +249,7 @@ export function ReportPrice({
               onClick={() => setEditingSize(true)}
               style={{ flex: 1, minHeight: 44, textAlign: 'center' }}
             >
-              Otro
+              {t('ReportPrice.otro')}
               <span className="num" style={{
                 display: 'block', fontSize: 'var(--t-1)', fontWeight: 500,
                 color: 'var(--faint)', marginTop: 2,
@@ -256,7 +257,7 @@ export function ReportPrice({
                 {/* Con el campo vacío se muestra el tamaño que se va a
                     guardar, que es el de tu configuración: un guión diría que
                     no hay tamaño, y sí lo hay. */}
-                {otro ? `${size === '' ? defaultSizeMl : size} ml` : 'a mano'}
+                {otro ? t('ReportPrice.ml', { n: size === '' ? defaultSizeMl : size }) : t('ReportPrice.aMano')}
                 {editingSize && (
                   <span className="monto-caret" style={{ height: 12, marginLeft: 3 }} aria-hidden />
                 )}
@@ -272,7 +273,7 @@ export function ReportPrice({
               color: 'var(--aging)', fontSize: 'var(--t-2)', margin: 'var(--s-3) 0 0',
               lineHeight: 1.5,
             }}>
-              El tamaño tiene que estar entre 100 y 2000 ml.
+              {t('ReportPrice.tamano')}
             </p>
           )}
 
@@ -285,8 +286,8 @@ export function ReportPrice({
               lo tecleado es éste. */}
           <span className="sr" aria-live="polite">
             {editingSize
-              ? `El teclado carga los mililitros: ${size === '' ? defaultSizeMl : size} ml`
-              : `El teclado carga el precio: ${currencyPrefix(currency)} ${digits === '' ? '0' : groupThousands(digits)}`}
+              ? t('ReportPrice.tecladoMl', { n: size === '' ? defaultSizeMl : size })
+              : t('ReportPrice.tecladoPrecio', { monto: `${currencyPrefix(currency)} ${digits === '' ? '0' : groupThousands(digits)}` })}
           </span>
 
           <div style={{ height: 'var(--s-4)' }} />
@@ -303,7 +304,7 @@ export function ReportPrice({
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'].map(k => (
             <button
               key={k} onClick={() => press(k)} className="num monto-tecla"
-              aria-label={k === '⌫' ? 'Borrar el último número' : k}
+              aria-label={k === '⌫' ? t('ReportPrice.borrarUltimo') : k}
               style={{ color: k === '⌫' ? 'var(--muted)' : 'var(--cream)' }}
             >{k}</button>
           ))}
@@ -321,7 +322,7 @@ export function ReportPrice({
             color: valid ? 'var(--base)' : 'var(--faint)',
             cursor: valid ? 'pointer' : 'not-allowed',
           }}
-        >Cargar el precio</button>
+        >{t('ReportPrice.cargar')}</button>
       </div>
     </div>
   )

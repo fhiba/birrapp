@@ -1,0 +1,15 @@
+{
+  "cerrar": "Cerrar",
+  "cancelar": "Cancelar",
+  "volver": "Volver",
+  "agregar": "Agregar",
+  "guardar": "Guardar",
+  "reintentar": "Reintentar",
+  "listo": "Listo",
+  "subiendo": "Subiendo…",
+  "buscando": "Buscando…",
+  "voto": {
+    "one": "{count} voto",
+    "other": "{count} votos"
+  }
+}

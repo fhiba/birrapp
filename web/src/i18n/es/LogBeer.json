@@ -1,0 +1,27 @@
+{
+  "anotada": {
+    "one": "Anotada. ¡Salud!",
+    "other": "{count} birras anotadas. ¡Salud!"
+  },
+  "anotadaEn": {
+    "one": "Anotada en {bar}. ¡Salud!",
+    "other": "{count} birras anotadas en {bar}. ¡Salud!"
+  },
+  "titulo": "Me tomé una birra",
+  "aca": "¿La birra te la tomaste acá?",
+  "donde": "¿Dónde?",
+  "otroLado": "En otro lado",
+  "sinBar": "sin bar",
+  "cuantas": "¿Cuántas?",
+  "cualEra": "¿Cuál era? (opcional)",
+  "anotar": "Anotar",
+  "unaMas": "Una más",
+  "unaMenos": "Una menos",
+  "tope": {
+    "titulo": "Pará un poco",
+    "texto1": "{mensaje} Quince en un mismo día es el tope, y no es un número caprichoso: de ahí para arriba ya no es una salida.",
+    "texto2": "Si te está pasando seguido, la {linea} es gratis, anónima y atiende todo el día en todo el país. No hace falta que sea una emergencia para llamar.",
+    "linea": "línea 141",
+    "entendido": "Entendido"
+  }
+}

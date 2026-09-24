@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import * as api from '../data/api'
 import type { PricePoint } from '../data/types'
 import { formatPrice } from '../data/format'
+import { LOCALE, t } from '../i18n'
 
 /**
  * Historial de un precio.
@@ -71,7 +72,7 @@ export function PriceHistory(
             ventana, el nombre cuál birra. Al revés había que leer las dos
             líneas para entender la de arriba. */}
         <h2 className="section-label" style={{ margin: '0 0 var(--s-1)' }}>
-          HISTORIAL DE PRECIOS
+          {t('PriceHistory.titulo')}
         </h2>
         <h3 className="ttl" style={{ margin: '0 0 var(--s-4)', fontSize: 'var(--t-5)' }}>{title}</h3>
 
@@ -79,8 +80,7 @@ export function PriceHistory(
 
         {points && series.length < 2 && (
           <p style={{ color: 'var(--muted)', fontSize: 'var(--t-4)', margin: 0 }}>
-            Todavía no hay suficientes reportes para mostrar una evolución.
-            Hace falta al menos un segundo precio.
+            {t('PriceHistory.faltanDatos')}
           </p>
         )}
 
@@ -107,8 +107,8 @@ export function PriceHistory(
               color: 'var(--info)', fontSize: 'var(--t-1)', marginTop: 'var(--s-1)',
               fontVariantNumeric: 'tabular-nums',
             }}>
-              <span>{new Date(first.at).toLocaleDateString('es-AR')}</span>
-              <span>{new Date(last.at).toLocaleDateString('es-AR')}</span>
+              <span>{new Date(first.at).toLocaleDateString(LOCALE)}</span>
+              <span>{new Date(last.at).toLocaleDateString(LOCALE)}</span>
             </div>
 
             {/* Tres cifras separadas por filete y sin fondo propio: es la
@@ -118,11 +118,11 @@ export function PriceHistory(
               display: 'flex', gap: 'var(--s-3)', marginTop: 'var(--s-4)',
               paddingTop: 'var(--s-3)', borderTop: '1px solid var(--hairline)',
             }}>
-              <Box label="Primero" value={formatPrice(first.price, currency)} />
-              <Box label="Ahora" value={formatPrice(last.price, currency)} />
+              <Box label={t('PriceHistory.primero')} value={formatPrice(first.price, currency)} />
+              <Box label={t('PriceHistory.ahora')} value={formatPrice(last.price, currency)} />
               {change !== null && (
                 <Box
-                  label="Variación"
+                  label={t('PriceHistory.variacion')}
                   value={`${change > 0 ? '+' : ''}${change}%`}
                   color={change > 0 ? 'var(--danger)' : 'var(--fresh)'}
                 />
@@ -139,7 +139,7 @@ export function PriceHistory(
           borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
           background: 'var(--info-soft)', border: '1px solid var(--info-border)',
           color: 'var(--info-bright)',
-        }}>Cerrar</button>
+        }}>{t('comun.cerrar')}</button>
       </div>
     </div>
   )
