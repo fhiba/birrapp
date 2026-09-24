@@ -2,6 +2,8 @@ package com.birrapp
 
 import com.birrapp.auth.GoogleIdentity
 import com.birrapp.auth.UserRepo
+import com.birrapp.photos.PhotoRepo
+import com.birrapp.photos.R2
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -86,5 +88,27 @@ class AvatarTest {
             "las fotos se sirven desde una URL pública: borrar la fila no alcanza",
         )
         assertNull(repo.findById(u.id))
+    }
+
+    /**
+     * El archivo se borra del bucket, pero la fila de `bar_photos` sobrevive:
+     * su `user_id` es ON DELETE SET NULL. Sin bajarla a `removed`, la ficha del
+     * bar seguía mostrando una foto cuyo archivo ya no existe — y para siempre,
+     * porque ya no hay dueño que la pueda sacar.
+     */
+    @Test
+    fun `borrar la cuenta saca sus fotos de la ficha del bar`() {
+        val u = TestDb.insertUser("fotero")
+        val bar = TestDb.insertBar("El Bar", -34.6037, -58.3816)
+        TestDb.insertPhoto(bar, "ipa", u)
+        val photos = PhotoRepo(TestDb.db, R2("cuenta", "balde", "llave", "secreto", "https://fotos.test"))
+        assertEquals(1, photos.forBar(bar, null).size)
+
+        repo.deleteAccount(u)
+
+        assertTrue(
+            photos.forBar(bar, null).isEmpty(),
+            "el archivo ya no está en el bucket: dejar la fila activa es un hueco roto",
+        )
     }
 }

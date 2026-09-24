@@ -23,5 +23,6 @@
   "osm": "dados de bares © colaboradores do OpenStreetMap",
   "buscarActualizacion": "Buscar atualização",
   "configuracion": "Configurações",
-  "nivel": "Nível {n}: {nombre}"
+  "nivel": "Nível {n}: {nombre}",
+  "privacidad": "Privacidade"
 }

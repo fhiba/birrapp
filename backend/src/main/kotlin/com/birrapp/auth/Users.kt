@@ -465,6 +465,15 @@ class UserRepo(private val db: Db) {
             it.getString("avatar_key")
         }?.let { objects += it }
 
+        // Las fotos se bajan a `removed` además de borrarse del bucket.
+        //
+        // `bar_photos.user_id` es ON DELETE SET NULL, así que la fila sobrevive
+        // al borrado de la cuenta con su `status` intacto. Sin esto, la tira de
+        // fotos del bar seguía listando una foto cuyo archivo ya no existe: un
+        // hueco roto en la ficha, y para siempre, porque ya no hay dueño que la
+        // pueda sacar. Se marca en vez de borrarse, que es como se saca de
+        // circulación cualquier otra foto (ver `PhotoRepo`).
+        c.update("UPDATE bar_photos SET status = 'removed' WHERE user_id = ?", userId)
         c.update("UPDATE price_reports SET reported_by = NULL WHERE reported_by = ?", userId)
         c.update("DELETE FROM reviews WHERE user_id = ?", userId)
         c.update("UPDATE flags SET reporter_id = NULL WHERE reporter_id = ?", userId)

@@ -4480,7 +4480,54 @@ continente es peor que un alta que no salió.
 - **El bar que ya está cargado mal no se puede corregir**: no hay endpoint que
   edite un bar. Se rechaza y se vuelve a cargar.
 
+## 2026-09-21 (cont.) — v0.34.0: la política de privacidad, escrita desde el esquema
+
+_Renumerada de v0.31.0 a v0.34.0 al mergear master: mientras esperaba el PR
+entraron #77–#83, uno de ellos también titulado v0.31.0._
+
+BIR-15, que es bloqueante para publicar: ni Play ni App Store aceptan una app
+con cuentas sin una política accesible por URL.
+
+### Por qué es una pantalla y no un PDF
+
+Un documento subido a cualquier lado envejece aparte del código que describe: se
+agrega una tabla, entra un servicio nuevo, y el PDF sigue diciendo lo de antes.
+Vive en `/privacidad`, al lado de lo que cuenta, y es la URL que se pega en la
+ficha de la tienda.
+
+Cada afirmación sale de un lugar concreto del repo, no de una plantilla: lo que
+se guarda de la cuenta de `users` (V1, V16, V20, V21); lo que se borra y lo que
+queda, de `Users.deleteAccount`; el conteo de visitas, de `traffic_sessions` y
+`pingTraffic`; el EXIF, de `data/image.ts`, que al recodificar en canvas se lleva
+puestas las coordenadas de la foto. El costo es que si cambia alguna de esas
+cosas, la pantalla miente — anotado arriba del archivo.
+
+El enlace va en el pie del perfil y no en la lista de acciones: el pie es lo
+único que se dibuja con sesión y sin ella, y la política tiene que poder
+encontrarse sin cuenta.
+
+**Falta el medio de contacto** (BIR-7). `CONTACTO` está vacío a propósito:
+publicar un mail personal es una decisión de Felipe, no del código. Mientras
+esté vacío la pantalla lo dice en ámbar, a la vista, en vez de omitir la
+sección — una política que parece completa y no lo está es la forma de mandarla
+a revisión rota sin que nadie se entere.
+
+### El bug que apareció escribiéndola
+
+Borrar la cuenta borra las fotos del bucket pero **no tocaba la fila**:
+`bar_photos.user_id` es ON DELETE SET NULL, así que la foto quedaba `active`,
+sin dueño y con el archivo ya borrado. La ficha del bar seguía mostrándola — un
+hueco roto, y para siempre, porque ya no hay dueño que la pueda sacar. Ahora
+`deleteAccount` la baja a `removed`, que es como se saca de circulación
+cualquier otra foto. Test en `AvatarTest`: sin la línea, falla.
+
+216 tests, 4 rojos y son de `DownloadTest.kt`, que está sin trackear en el árbol
+y es de otro agente.
+
 ## 2026-09-24 — Los textos de la web, a archivos de locale (v0.34.0, BIR-31)
+
+_Salió publicada en v0.35.0, junto con las traducciones: el número v0.34.0 ya lo
+había tomado la política de privacidad en master._
 
 Todos los textos que ve la gente en la PWA salieron del código a
 `web/src/i18n/es/`, un JSON por pantalla o componente (46 archivos, ~740
@@ -4539,3 +4586,8 @@ se comparan contra `t()` en los dos lados.
 Afuera: la política de privacidad (llegó a master en v0.34.0 con el texto
 escrito en el componente, no en `i18n/`), los textos que manda el servidor y
 Android.
+
+Al mergear master entró la política de privacidad: el enlace del pie del perfil
+pasó a `Profile.privacidad` en los cinco idiomas. El cuerpo de la política
+sigue en castellano y escrito en el componente — traducir un texto legal es una
+decisión aparte, no un pase de i18n.

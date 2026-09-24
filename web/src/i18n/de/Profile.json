@@ -23,5 +23,6 @@
   "osm": "Bar-Daten © OpenStreetMap-Mitwirkende",
   "buscarActualizacion": "Nach Updates suchen",
   "configuracion": "Einstellungen",
-  "nivel": "Level {n}: {nombre}"
+  "nivel": "Level {n}: {nombre}",
+  "privacidad": "Datenschutz"
 }
