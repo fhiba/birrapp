@@ -4431,3 +4431,51 @@ tiene todos sus campos opcionales y el cliente ignora lo que no conoce.
 Test nuevo: `ModerationQueueTest`, cuatro casos, uno por cola. Son joins, y un
 join mal escrito no rompe nada —devuelve null y la pantalla dibuja "sin
 autor"—, así que sin test se descubre moderando a ciegas.
+
+## 2026-09-23 — El bar de Madrid que quedó en el Obelisco (v0.33.1)
+
+Lo encontró la ficha de moderación del commit anterior, el mismo día: "SUMER",
+dirección *Calle Bravo Murillo 17-19, Madrid*, coordenadas **-34.603700,
+-58.381600**. Eso es el Obelisco.
+
+### La causa no es el default, es que la dirección nunca se usó
+
+El alta a mano mandaba `lat: center!.lat, lng: center!.lng` —el centro del
+mapa— y la dirección escrita viajaba al lado, como texto, **sin ninguna
+relación con el punto**. O sea: el bar nunca se ubicó por su dirección, ni
+cuando la ubicación andaba bien. Con ubicación denegada,
+`queryPoint = … ?? (denied ? BA_CENTER : null)` y el mapa arranca en
+`coords ?? BA_CENTER`, así que el centro es el Obelisco y todo lo cargado a
+mano desde una sesión sin permiso cae ahí.
+
+Con la ubicación andando el bug es más silencioso y no menos real: el bar queda
+donde estaba mirando el mapa, que puede ser el barrio de al lado.
+
+### El arreglo
+
+La dirección ahora es un autocompletado, no un campo de texto: se elige de una
+lista y **de ahí salen las coordenadas, la dirección que se guarda y el país**.
+Los tres del mismo lugar, que es lo que hace que signifiquen algo juntos.
+Editar el texto suelta el punto.
+
+Es el mismo `AutocompleteSuggestion` de Places que ya busca bares, con la
+dirección como entrada. No se usa el Geocoding API a propósito: es otra API que
+habilitar en la key, y encima devolvería un punto sin mostrarlo — así la
+persona ve cuál eligió.
+
+El `placeId` de la dirección **se usa y se tira**. No viaja al servidor: un bar
+con `google_place_id` entra aprobado sin pasar por moderación (`BarRepo.create`)
+y el place_id de una calle no prueba que en esa calle haya un bar.
+
+Sin dirección elegida no se puede cargar. Es a propósito: si Google no encuentra
+la calle, el moderador tampoco la va a poder verificar, y un pin en otro
+continente es peor que un alta que no salió.
+
+### Lo que queda abierto
+
+- **La app Android tiene el mismo bug** (`AddBarScreen.kt:281` manda el `lat/lng`
+  de la pantalla, que es `BUENOS_AIRES_CENTER` cuando no hay permiso). Arreglarlo
+  bien es portar el autocompletado de direcciones a Compose; taparlo es no dejar
+  cargar a mano sin ubicación.
+- **El bar que ya está cargado mal no se puede corregir**: no hay endpoint que
+  edite un bar. Se rechaza y se vuelve a cargar.
