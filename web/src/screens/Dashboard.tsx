@@ -157,6 +157,7 @@ export function DashboardScreen() {
             // fallar es peor que no ofrecerlo.
             puedeCambiarRol={soyAdmin && u.id !== yo?.id}
             onRol={cambiarRol}
+            onAbrir={() => nav(`/usuario/${u.id}`)}
           />
         ))}
       </div>
@@ -192,20 +193,42 @@ function Stat({ n, label, accent }: { n: number; label: string; accent?: boolean
   )
 }
 
-function UserRow({ u, puedeCambiarRol, onRol }: {
+/**
+ * Una persona de la lista. Tocarla abre su perfil.
+ *
+ * Los números de acá dicen *cuánto* aportó; lo que hace falta para decidir es
+ * *qué* cargó, y eso ya vive en el perfil —desde donde un moderador abre la
+ * lista de cada tipo de aporte—. Lo único que faltaba era el camino: el nombre
+ * estaba ahí, sin llevar a ningún lado, y para mirar a alguien había que salir
+ * a buscarlo por otro lado.
+ *
+ * La fila es un `div` con `role="button"` y no un `<button>`: adentro está el
+ * selector de rol, y un `<select>` no puede vivir dentro de un botón. Por eso
+ * el selector corta la propagación —tocar el rol es cambiar el rol, no entrar
+ * al perfil— y el teclado se atiende a mano.
+ */
+function UserRow({ u, puedeCambiarRol, onRol, onAbrir }: {
   u: DashboardUser
   puedeCambiarRol: boolean
   onRol: (id: number, role: 'user' | 'moderator' | 'admin') => void
+  onAbrir: () => void
 }) {
   const total = u.prices + u.confirmations + u.bars + u.photos + u.ratings
   const age = shortAge(u.ageDays)
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
-      opacity: u.banned ? 0.45 : 1,
-    }}>
+    <div
+      role="button" tabIndex={0}
+      onClick={onAbrir}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir() }
+      }}
+      aria-label={t('Dashboard.verPerfil', { nombre: u.displayName })}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+        padding: 'var(--s-3) var(--s-4)', borderBottom: '1px solid var(--hairline)',
+        opacity: u.banned ? 0.45 : 1,
+      }}>
       {u.avatarUrl
         ? <img src={u.avatarUrl} alt="" loading="lazy" style={{
             width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -236,6 +259,8 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
           {puedeCambiarRol ? (
             <select
               value={u.role}
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
               onChange={e => onRol(u.id, e.target.value as 'user' | 'moderator' | 'admin')}
               aria-label={t('Dashboard.rolDe', { nombre: u.displayName })}
               className="lbl"
@@ -303,6 +328,11 @@ function UserRow({ u, puedeCambiarRol, onRol }: {
           </div>
         </div>
       )}
+
+      {/* El mismo chevron en `--info` que la fila que lleva al dashboard desde
+          moderación: es el tono de lo que abre otra pantalla. Sin él, una fila
+          que se toca no se distingue de una que sólo se lee. */}
+      <span aria-hidden style={{ color: 'var(--info)', flexShrink: 0 }}>›</span>
     </div>
   )
 }

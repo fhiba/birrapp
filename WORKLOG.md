@@ -4684,3 +4684,19 @@ Ya eran optimistas y se quedan como estaban: el corazón de favoritos
 La regla, entonces, no es "todo optimista": es **optimista todo lo que el
 servidor no puede rechazar por algo que el cliente no sabe**. Lo demás espera,
 y mientras espera lo dice.
+
+## 2026-09-25 — Del dashboard al perfil, tocando la fila (v0.37.0)
+
+La lista de "Usuarios y aportes" decía *cuánto* cargó cada uno —5 precios, 2
+bares— y ahí se terminaba. Para ver *qué* cargó había que salir a buscar a esa
+persona por otro lado, teniendo el nombre y los números delante.
+
+La pantalla de destino ya existía: `PersonScreen` (BIR-6), donde un moderador
+abre la lista de cada tipo de aporte (`/usuario/:id/aportes/:tipo`). Lo único
+que faltaba era el camino. Ahora la fila entera abre el perfil, con el chevron
+en `--info` que ya usa la fila que lleva de moderación al dashboard.
+
+La fila es un `div` con `role="button"` y no un `<button>`: adentro vive el
+selector de rol, y un `<select>` no puede estar dentro de un botón. Por eso el
+selector corta la propagación —tocar el rol es cambiar el rol, no entrar al
+perfil— y el Enter/Espacio se atienden a mano.
