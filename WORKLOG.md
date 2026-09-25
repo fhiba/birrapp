@@ -4636,3 +4636,51 @@ es la clase de mentira que esta app existe para no decir.
 
 El `document.fonts.ready` que descarta la caché se queda: Bricolage sigue
 entrando en la cuenta, y su ancho cambia cuando termina de cargar.
+
+## 2026-09-25 — Primero la pantalla, después el servidor (v0.36.2)
+
+Reportado: poner la nota de una birra tarda tanto que se siente que no pasó, y
+se toca de nuevo. Y la pauta general que dejó Felipe: **lo que se toca se tiene
+que ver hecho al toque; la transacción va atrás.**
+
+La nota era el caso peor de la app. `rate()` esperaba la escritura *y encima*
+`load()` entero antes de mover la estrella, y `load()` eran cuatro consultas
+encadenadas con `await` una atrás de otra —ficha, reseñas, fotos, notas
+propias—, que no dependen entre sí. O sea: cinco viajes de red para pintar
+media estrella.
+
+Lo que cambió:
+
+- **La nota se pinta en el toque** y la escritura sale sola atrás. Si el
+  servidor la rechaza, la estrella vuelve a donde estaba y se avisa: lo que se
+  muestra tiene que ser lo que quedó guardado.
+- **Los toques de una misma birra se juntan**: se manda el último, medio
+  segundo después del último toque. Corregir de 3 a 4 y a 4,5 es una nota, no
+  tres — y mandar las tres deja al servidor decidiendo cuál llegó última, que
+  es una carrera que no hace falta correr. El valor al que se vuelve si falla
+  es el del **primer** toque de la ráfaga: los del medio el servidor no los vio.
+- **`load()` va en paralelo.** Las cuatro consultas no se necesitan entre sí.
+- **Las mutaciones de precio ya no esperan la recarga.** El aporte está
+  guardado cuando el servidor contesta; hacer esperar cuatro consultas más para
+  soltar el botón era la mitad de la sensación de que no había pasado nada.
+- **Los comentarios aparecen al tocar Comentar**, con un id negativo que la
+  recarga de atrás reemplaza. Si falla, el comentario se saca y el texto vuelve
+  al campo: perder lo escrito es peor que el comentario que no salió.
+
+Ya eran optimistas y se quedan como estaban: el corazón de favoritos
+(`useFavorites`) y el pulgar de las fotos.
+
+### Lo que NO se hizo optimista, a propósito
+
+- **Moderación.** Aprobar y rechazar tienen que decir que pasaron de verdad: el
+  moderador no vuelve a mirar la fila.
+- **Anotar una birra** (`LogBeer`). Tiene un rechazo real y esperable —el tope
+  diario— y pintarla anotada para después sacarla sería mentir en el gesto que
+  el tope existe para frenar.
+- **Nombre y alias** (`Settings`). El alias tomado sólo lo sabe la base, y el
+  servidor además normaliza lo que se guarda: adivinar el resultado es adivinar
+  mal la mitad de las veces.
+
+La regla, entonces, no es "todo optimista": es **optimista todo lo que el
+servidor no puede rechazar por algo que el cliente no sabe**. Lo demás espera,
+y mientras espera lo dice.

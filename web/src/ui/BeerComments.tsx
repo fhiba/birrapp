@@ -62,7 +62,6 @@ export function BeerComments({
   const nav = useNavigate()
   const [items, setItems] = useState<RatingComment[] | null>(null)
   const [body, setBody] = useState('')
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<RatingComment | null>(null)
   /** Quedan más abajo. Se sabe porque la página vino llena. */
@@ -96,17 +95,44 @@ export function BeerComments({
 
   useEffect(() => { reload() }, [barId, styleSlug, brandSlug])   // eslint-disable-line
 
+  /**
+   * Publica el comentario: primero en la lista, después en el servidor.
+   *
+   * El comentario aparece en el toque, con un id negativo que no puede chocar
+   * con ninguno del servidor, y la recarga de atrás lo reemplaza por el de
+   * verdad. Antes se esperaba la escritura y la recarga entera de la lista
+   * para vaciar el campo, y en ese rato la pantalla se veía igual que antes de
+   * tocar: escribiste, tocaste, y no pasó nada.
+   *
+   * Si falla, el comentario se saca y el texto vuelve al campo. Un comentario
+   * que no salió es un contratiempo; perder lo que alguien escribió es otra
+   * cosa.
+   */
   const send = async () => {
     const text = body.trim()
     if (!text) return
-    setBusy(true); setError(null)
+    setError(null)
+    const yo = api.currentUser()
+    const provisorio: RatingComment = {
+      id: -Date.now(),
+      authorId: yo?.id ?? 0,
+      authorName: yo?.displayName ?? '',
+      body: text,
+      ageDays: 0,
+      mine: true,
+      rating: myRating,
+    }
+    setItems(cur => [provisorio, ...(cur ?? [])])
+    setBody('')
     try {
       await api.addComment({ barId, styleSlug, brandSlug, body: text })
-      setBody('')
-      await reload()
+      reload()
       onWrote()
-    } catch (e) { setError((e as Error).message) }
-    finally { setBusy(false) }
+    } catch (e) {
+      setItems(cur => (cur ?? []).filter(x => x.id !== provisorio.id))
+      setBody(text)
+      setError((e as Error).message)
+    }
   }
 
   return (
@@ -128,14 +154,14 @@ export function BeerComments({
               resize: 'vertical', fontFamily: 'inherit', fontSize: 'var(--t-field)',
             }}
           />
-          <button disabled={busy || !body.trim()} onClick={send} className="lbl" style={{
+          <button disabled={!body.trim()} onClick={send} className="lbl" style={{
             width: '100%', marginTop: 'var(--s-2)', minHeight: 46,
             borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
             background: !body.trim() ? 'var(--film-2)'
-              : busy ? 'var(--acento-busy)' : 'var(--acento)',
+              : 'var(--acento)',
             color: !body.trim() ? 'var(--faint)' : 'var(--base)',
             cursor: body.trim() ? 'pointer' : 'not-allowed',
-          }}>{busy ? '…' : t('BeerComments.comentar')}</button>
+          }}>{t('BeerComments.comentar')}</button>
         </div>
       )}
 
@@ -220,7 +246,10 @@ export function BeerComments({
             {/* Lo propio se borra siempre, sin ser moderador: son tus palabras.
                 Antes esto no existía porque la nota y el comentario eran la misma
                 fila y no se podía bajar una sin la otra. */}
-            {(c.mine || modMode) && (
+            {/* El id negativo es el comentario que todavía no confirmó el
+                servidor: borrarlo pediría borrar algo que no existe. Dura lo
+                que tarda la recarga de atrás. */}
+            {(c.mine || modMode) && c.id > 0 && (
               <button onClick={() => setConfirmDelete(c)} style={{
                 marginTop: 'var(--s-1)', fontSize: 'var(--t-2)', color: 'var(--danger)',
                 padding: 'var(--s-2) 0',
