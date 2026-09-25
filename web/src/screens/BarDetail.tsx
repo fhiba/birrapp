@@ -32,6 +32,16 @@ const PTS_CONFIRMAR = KARMA.confirmar
 const PTS_PRECIO = KARMA.precio
 
 /**
+ * Cuánto se espera antes de mandar una nota tocada.
+ *
+ * Es el tiempo en el que se juntan los toques de una misma birra: corregir de
+ * 3 a 4 y a 4,5 son tres toques y una sola nota. Medio segundo alcanza para
+ * eso y no se siente: la estrella ya se movió en el toque, lo que espera es la
+ * escritura, que nadie está mirando.
+ */
+const ESPERA_NOTA = 500
+
+/**
  * El vidrio espresso de los botones que flotan sobre la portada.
  *
  * Sale del token y no de un `rgba()` escrito a mano: es el fondo de la app al
@@ -135,6 +145,22 @@ export function BarDetailScreen({
   // Cerrar arrastrando hacia abajo: el mismo gesto con el que la ficha se
   // abrió desde el mapa, al revés. Sólo cuenta desde arriba de todo — más
   // abajo un arrastre vertical es scroll y nada más.
+  /**
+   * Las notas tocadas que todavía no salieron, por birra.
+   *
+   * Existe por dos cosas a la vez: para no mandar una escritura por cada toque
+   * cuando alguien corrige la nota tres veces seguidas, y para saber a qué
+   * volver si el servidor rechaza la última. El valor previo se guarda en el
+   * primer toque de la ráfaga —no en cada uno— porque los del medio son notas
+   * que el servidor nunca vio.
+   */
+  const enVuelo = useRef(
+    new Map<string, { t: ReturnType<typeof setTimeout>; previo: number | null }>(),
+  )
+  /** La ficha sigue en pantalla. Lo que salió en segundo plano no la busca si no. */
+  const vivo = useRef(true)
+  useEffect(() => () => { vivo.current = false }, [])
+
   const scroller = useRef<HTMLDivElement | null>(null)
   const gesture = useRef<{ x: number; y: number; live: boolean } | null>(null)
   const [pull, setPull] = useState(0)
@@ -149,13 +175,28 @@ export function BarDetailScreen({
     return () => clearTimeout(t)
   }, [closing, nav])
 
+  /**
+   * Las cuatro consultas de la ficha, en paralelo.
+   *
+   * Estaban encadenadas con `await` una atrás de otra, así que la ficha
+   * tardaba la suma de las cuatro. No dependen entre sí: nada de lo que
+   * devuelve una hace falta para pedir la siguiente. Y esta función también
+   * corre después de cada aporte, así que ese encadenado era la mitad de la
+   * sensación de que la app no respondía.
+   */
   const load = useCallback(async () => {
     try {
-      setBar(await api.barDetail(barId, center?.lat, center?.lng))
-      setReviews(await api.reviews(barId).catch(() => []))
-      setPhotos(await api.barPhotos(barId).catch(() => []))
-      // Sin sesión no hay votos propios que pintar, y el endpoint pide auth.
-      setMine(api.currentUser() ? await api.myRatings(barId).catch(() => []) : [])
+      const [b, revs, fotos, mias] = await Promise.all([
+        api.barDetail(barId, center?.lat, center?.lng),
+        api.reviews(barId).catch(() => []),
+        api.barPhotos(barId).catch(() => []),
+        // Sin sesión no hay votos propios que pintar, y el endpoint pide auth.
+        api.currentUser() ? api.myRatings(barId).catch(() => []) : Promise.resolve([]),
+      ])
+      setBar(b); setReviews(revs); setPhotos(fotos)
+      // Con una nota esperando salir, la del servidor es la vieja: pisarla
+      // haría que la estrella recién tocada volviera sola para atrás.
+      if (enVuelo.current.size === 0) setMine(mias)
     } catch (e) { setError((e as Error).message) }
   }, [barId, center])
 
@@ -214,8 +255,10 @@ export function BarDetailScreen({
       // porque es el único por el que pasan las tres.
       fb.exito()
       setToast(r?.message ?? t('comun.listo'))
-      await load()
-      onChanged()
+      // La recarga NO se espera. El aporte ya está guardado —eso es lo que
+      // acaba de contestar el servidor— y hacer esperar cuatro consultas más
+      // para soltar el botón es lo que hacía dudar de si el toque contó.
+      load(); onChanged()
     }
     catch (e) { fb.error(); setToast((e as Error).message) }
     finally { setBusy(null) }
@@ -309,22 +352,67 @@ export function BarDetailScreen({
   const cargandoFotos = photos == null
   const hayCabecera = portada != null || cargandoFotos
 
+  /** La nota propia de esta birra, pintada ya, antes de que el servidor conteste. */
+  const setMiNota = (p: StylePrice, nota: number | null) =>
+    setMine(cur => {
+      const resto = cur.filter(
+        m => !(m.styleSlug === p.styleSlug && m.brandSlug === p.brandSlug),
+      )
+      return nota == null
+        ? resto
+        : [...resto, { styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: nota }]
+    })
+
   /**
-   * Guarda la nota de una birra.
+   * Guarda la nota de una birra: primero en pantalla, después en el servidor.
    *
-   * Vivía adentro de la hoja de comentarios, que es de donde salió: puntuar
-   * obligaba a abrirla. Ahora las estrellas están con la birra y guardan solas
-   * — es una nota por persona, así que tocar de nuevo corrige la anterior.
+   * Antes esto esperaba la escritura y encima la recarga entera de la ficha
+   * antes de mover la estrella. En una red de teléfono eso es un segundo largo
+   * en el que la nota sigue donde estaba, así que se toca de nuevo —y de
+   * nuevo—, que es exactamente lo que se reportó. La estrella ahora se mueve
+   * en el toque y la escritura sale sola atrás.
+   *
+   * Los toques de una misma birra se juntan: se manda el último, medio segundo
+   * después del último toque. Corregir de 3 a 4 y a 4,5 es una nota, no tres, y
+   * mandar las tres además deja al servidor decidiendo cuál llegó última.
+   *
+   * Si el servidor rechaza, la estrella vuelve a donde estaba y se avisa. Es lo
+   * único honesto: lo que se muestra tiene que ser lo que quedó guardado.
    */
-  const rate = async (p: StylePrice, n: number) => {
+  const guardarNota = (p: StylePrice, n: number | null) => {
+    const clave = `${p.styleSlug}|${p.brandSlug ?? ''}`
+    const antes = enVuelo.current.get(clave)
+    // El "antes" de la ráfaga, no el del toque anterior, que el servidor
+    // nunca llegó a ver.
+    const previo = antes ? antes.previo : myRatingOf(p)
+    if (antes) clearTimeout(antes.t)
+    setMiNota(p, n)
+
+    const t = setTimeout(async () => {
+      enVuelo.current.delete(clave)
+      const birra = { barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug }
+      try {
+        await (n == null
+          ? api.retractRating(birra)
+          : api.rateBeer({ ...birra, rating: n }))
+        // El promedio de la comunidad lo dice el servidor: calcularlo acá sería
+        // una segunda fuente de verdad para el mismo número.
+        if (vivo.current) load()
+      } catch (e) {
+        if (!vivo.current) return
+        setMiNota(p, previo)
+        fb.error()
+        setToast((e as Error).message)
+      }
+    }, ESPERA_NOTA)
+
+    enVuelo.current.set(clave, { t, previo })
+  }
+
+  const rate = (p: StylePrice, n: number) => {
     if (!user) return nav('/perfil')
     fb.tap()
-    try {
-      await api.rateBeer({
-        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug, rating: n,
-      })
-      await load()
-    } catch (e) { setToast((e as Error).message) }
+    guardarNota(p, n)
   }
 
   /**
@@ -338,14 +426,7 @@ export function BarDetailScreen({
    * comentario: ahí se pierde algo que no vuelve, acá se vuelve tocando una
    * estrella. Confirmar lo que se deshace con un toque es un paso de más.
    */
-  const retract = async (p: StylePrice) => {
-    try {
-      await api.retractRating({
-        barId, styleSlug: p.styleSlug, brandSlug: p.brandSlug,
-      })
-      await load()
-    } catch (e) { setToast((e as Error).message) }
-  }
+  const retract = (p: StylePrice) => guardarNota(p, null)
 
   const myRatingOf = (p: StylePrice) =>
     mine.find(m => m.styleSlug === p.styleSlug && m.brandSlug === p.brandSlug)?.rating ?? null
