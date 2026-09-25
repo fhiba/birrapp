@@ -4609,3 +4609,30 @@ uno con su nombre en ese idioma ("Deutsch", "Français") — sale de
 
 Queda afuera: la elección es por dispositivo, no por cuenta; y sólo se ve con
 sesión iniciada, porque los botones del encabezado son los de la sesión.
+
+## 2026-09-25 — La cápsula que se comía el último dígito (v0.36.1)
+
+Reportado con foto: en el mapa, `$ 7.125` sale cortado en el "5". Es el reverso
+del arreglo de la 0.29.1 —antes sobraba aire a la derecha, ahora falta— y la
+causa está en la medición que lo reemplazó.
+
+El pin se dibuja como un SVG dentro de un `data:` URI, así que el ancho de la
+cápsula hay que saberlo antes de escribir el SVG. Se mide con un canvas, y la
+medición erraba por dos lados, los dos hacia abajo:
+
+1. **Las cifras del pin son tabulares.** El `<text>` pide `tabular-nums`: todos
+   los dígitos ocupan lo del más ancho, el "1" incluido. `measureText` de la
+   cadena entera mide las proporcionales, así que un precio con unos y puntos
+   —justo `7.125`— se mide varios píxeles más angosto de lo que se dibuja.
+2. **El SVG no tiene la webfont.** Un SVG usado como imagen es un documento
+   aislado: no carga recursos externos, o sea que Bricolage, que llega por
+   `@font-face`, ahí no existe y el texto sale en `system-ui`. Se estaba
+   midiendo una tipografía que el pin nunca usa.
+
+Ahora se mide carácter por carácter cobrando cada dígito como un "0" —que es lo
+que hace tabular-nums— y con las dos tipografías, reservando la más ancha. Que
+sobren dos píxeles no se nota; comerse un dígito convierte $7.125 en $7.12, que
+es la clase de mentira que esta app existe para no decir.
+
+El `document.fonts.ready` que descarta la caché se queda: Bricolage sigue
+entrando en la cuenta, y su ancho cambia cuando termina de cargar.

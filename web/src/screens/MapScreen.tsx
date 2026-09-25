@@ -941,6 +941,22 @@ const svgUrl = (svg: string) =>
  * con un canvas, que usa las mismas métricas que va a usar el navegador al
  * dibujar.
  *
+ * Dos cosas que la primera versión de esta medición no contemplaba, y que
+ * juntas cortaban el último dígito de "$ 7.125" en el teléfono:
+ *
+ *  1. **Las cifras son tabulares.** El `<text>` pide `tabular-nums`, o sea que
+ *     todos los dígitos ocupan lo que ocupa el más ancho —el "1" deja de ser
+ *     angosto— y `measureText` de la cadena entera mide las proporcionales. En
+ *     un precio con unos y puntos eso son varios píxeles de menos. Se mide
+ *     carácter por carácter cobrando cada dígito como un "0", que es lo que va
+ *     a dibujar el navegador.
+ *  2. **El SVG no tiene la webfont.** Un SVG usado como imagen es un documento
+ *     aislado: no puede cargar recursos externos, así que Bricolage —que llega
+ *     por `@font-face`— no existe ahí y el texto sale en `system-ui`. Medir
+ *     sólo con Bricolage es medir una tipografía que el pin nunca usa. Se mide
+ *     con las dos y se reserva la más ancha: sobrar unos píxeles no se nota,
+ *     comerse un dígito convierte el precio en otro precio.
+ *
  * `letterSpacing` no entra en `measureText` en todos los navegadores, así que se
  * descuenta a mano con el mismo −.02em que pide el `<text>`.
  *
@@ -968,6 +984,15 @@ if (typeof document !== 'undefined') {
   document.fonts?.ready.then(() => { anchos = {} }).catch(() => { /* da igual */ })
 }
 
+/**
+ * Las dos tipografías candidatas: la que pide el `<text>` y la que de verdad
+ * va a usar el SVG aislado si no la encuentra.
+ */
+const PIN_FONTS = [
+  '"Bricolage Grotesque", system-ui, sans-serif',
+  'system-ui, sans-serif',
+]
+
 function anchoTexto(label: string, px: number): number {
   const clave = `${label}|${px.toFixed(2)}`
   const guardado = anchos[clave]
@@ -976,8 +1001,18 @@ function anchoTexto(label: string, px: number): number {
   if (lienzo === undefined) lienzo = document.createElement('canvas').getContext('2d')
   let w: number
   if (lienzo) {
-    lienzo.font = `700 ${px}px "Bricolage Grotesque", system-ui, sans-serif`
-    w = lienzo.measureText(label).width - 0.02 * px * label.length
+    const ctx = lienzo
+    const medir = (fuente: string) => {
+      ctx.font = `700 ${px}px ${fuente}`
+      // Todos los dígitos valen lo que vale el "0": eso es tabular-nums.
+      const digito = ctx.measureText('0').width
+      let suma = 0
+      for (const ch of label) {
+        suma += ch >= '0' && ch <= '9' ? digito : ctx.measureText(ch).width
+      }
+      return suma - 0.02 * px * label.length
+    }
+    w = Math.max(...PIN_FONTS.map(medir))
   } else {
     w = label.length * 8.6
   }
