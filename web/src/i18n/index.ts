@@ -13,8 +13,9 @@ import fr from './fr'
  * corren varios agentes a la vez: con un solo archivo, dos ramas que tocan
  * textos de pantallas distintas chocarían igual en el merge.
  *
- * El idioma sale de `navigator.language`: castellano, inglés, portugués,
- * alemán o francés, y cualquier otro cae en castellano. Sumar uno es copiar
+ * El idioma es el que se eligió en el perfil (`setIdioma`), y si no hay uno
+ * elegido, el de `navigator.language`: castellano, inglés, portugués, alemán o
+ * francés, y cualquier otro cae en castellano. Sumar uno es copiar
  * `./es/`, traducirlo y agregarlo a `DICTS` — están tipados contra `es`, así
  * que si a un idioma le falta una clave no compila.
  *
@@ -25,12 +26,43 @@ type Dict = typeof es
 
 const DICTS: Record<string, Dict> = { es, en, pt, de, fr }
 
-const navLang = typeof navigator === 'undefined' ? 'es' : navigator.language
-const lang = navLang.slice(0, 2).toLowerCase()
-const dict = DICTS[lang] ?? es
+const IDIOMA_KEY = 'birrapp.idioma'
 
-/** Para `Intl`: el castellano es el rioplatense; los demás, el del navegador. */
-export const LOCALE = lang in DICTS && lang !== 'es' ? navLang : 'es-AR'
+/** Los idiomas que hay, en el orden en que se ofrecen. */
+export const IDIOMAS = Object.keys(DICTS)
+
+const navLang = typeof navigator === 'undefined' ? 'es' : navigator.language
+const elegido = (() => {
+  try { return localStorage.getItem(IDIOMA_KEY) } catch { return null }
+})()
+
+/** El idioma en uso: el que se eligió en el perfil, o si no, el del navegador. */
+export const LANG = elegido && elegido in DICTS ? elegido
+  : navLang.slice(0, 2).toLowerCase() in DICTS ? navLang.slice(0, 2).toLowerCase() : 'es'
+const dict = DICTS[LANG]
+
+/**
+ * Para `Intl`: el castellano es el rioplatense; los demás, la variante del
+ * navegador si es del mismo idioma ("en-GB"), o el idioma a secas.
+ */
+export const LOCALE = LANG === 'es' ? 'es-AR'
+  : navLang.toLowerCase().startsWith(LANG) ? navLang : LANG
+
+/**
+ * Cambia el idioma y recarga. Recargar y no re-renderizar a propósito: hay
+ * textos que se resuelven una sola vez al cargar el módulo (niveles, tarifas
+ * del karma, nombres de moneda) y un cambio en caliente los dejaría a medias.
+ */
+export function setIdioma(lang: string) {
+  try { localStorage.setItem(IDIOMA_KEY, lang) } catch { /* modo privado: dura esta carga */ }
+  location.reload()
+}
+
+/** El nombre de un idioma en ese mismo idioma: "English", "Deutsch". */
+export const nombreIdioma = (lang: string) => {
+  const n = new Intl.DisplayNames(lang, { type: 'language' }).of(lang) ?? lang
+  return n[0].toLocaleUpperCase(lang) + n.slice(1)
+}
 
 if (typeof document !== 'undefined') document.documentElement.lang = LOCALE
 
