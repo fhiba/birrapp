@@ -4700,3 +4700,75 @@ La fila es un `div` con `role="button"` y no un `<button>`: adentro vive el
 selector de rol, y un `<select>` no puede estar dentro de un botón. Por eso el
 selector corta la propagación —tocar el rol es cambiar el rol, no entrar al
 perfil— y el Enter/Espacio se atienden a mano.
+
+## 2026-09-28 — Programa de puntos: el modelo y el núcleo transaccional
+
+Primer tramo de la monetización (`birrapp-modelo-negocio.md`). Va a `dev`, o sea
+a staging, que tiene base propia y vacía — verificado antes de empezar: 0 bares
+contra 603 en producción.
+
+### El esquema es donde viven las reglas, no el Kotlin
+
+V25 crea siete tablas, y las reglas que protegen plata están como constraints.
+Un chequeo previo en el código es una carrera esperando a pasar; un índice único
+o un CHECK es la última palabra. Las cuatro garantías:
+
+1. Un comprobante de ARCA acredita **una sola vez**, aunque dos personas lo
+   escaneen a la vez. Índice único **parcial sobre los aprobados**: si cubriera
+   todas las filas, un rechazo transitorio de ARCA quemaría el comprobante para
+   siempre y alguien se quedaría sin poder reclamar un ticket legítimo.
+2. El saldo **no puede quedar negativo** (CHECK sobre `points_balance`).
+3. El stock de un beneficio tampoco.
+4. Un código de canje sirve **una vez**, y sólo en el bar que lo emitió.
+
+`LoyaltySchemaTest` las prueba con SQL crudo, sin pasar por ningún repo: lo que
+se verifica es que ningún código futuro, ni con un bug, pueda dejar la base en
+un estado imposible.
+
+### `points_balance` es redundante a propósito
+
+El saldo se podría calcular con un `SUM` sobre el ledger. Existe igual por dos
+cosas que el ledger solo no da: el CHECK que hace imposible el negativo, y el
+**lock de fila** que serializa dos canjes de la misma persona. Sin una fila
+común que tocar, dos reservas simultáneas leen el mismo saldo, las dos ven que
+alcanza y las dos pasan.
+
+Por eso `reservar` **no comprueba el saldo antes**: resta, y si no alcanzaba la
+base rebota la transacción entera.
+
+### Dos tests que justifican el diseño
+
+- **`un saldo insuficiente no deja el canje a medias`.** El canje se inserta
+  antes de debitar, porque el movimiento del ledger necesita su id. Si el débito
+  rebota, ese canje tiene que irse con la transacción — si quedara, habría un
+  código vivo que el mozo puede confirmar sin que nadie haya pagado.
+- **`dos reservas simultaneas no pueden pasar las dos`.** Dos hilos, saldo para
+  una. Es el agujero por el que se fabrica plata en un sistema de puntos.
+
+### Un bug que encontró un test, no yo
+
+`confirmar` liberaba los puntos de un código vencido y después lanzaba la
+excepción — **adentro de la misma transacción**, así que el rollback se llevaba
+la liberación puesta. El código quedaba vencido, los puntos sin devolver, y la
+persona veía "venció" con el saldo todavía descontado.
+
+Ahora la transacción no lanza: devuelve qué pasó, y lo que tiene efecto corre en
+su propia transacción, afuera. Es una regla que conviene recordar en todo este
+módulo — **una transacción que termina en excepción no deja nada, ni lo bueno.**
+
+### Las reglas económicas, en un solo lugar
+
+`LoyaltyProgram` junta pesos por punto, días de vigencia, techo diario y vida
+del código, leídos del entorno con default. Así staging puede tener puntos que
+vencen en dos días y se prueba el vencimiento sin esperar dos meses.
+
+Dos decisiones: el redondeo va **hacia abajo** —hacia arriba, veinte tickets de
+importe mínimo fabrican puntos de la nada— y cambiar la regla **no mueve lo ya
+acreditado**, porque el vencimiento se escribe en el ledger al acreditar.
+
+### Lo que falta
+
+Rutas, autenticación del portal del bar, la validación real contra ARCA —hoy
+`acreditar` recibe un ticket ya validado, a propósito: la validación es lenta y
+externa y no puede vivir adentro de la transacción que mueve el saldo— y las
+pantallas.

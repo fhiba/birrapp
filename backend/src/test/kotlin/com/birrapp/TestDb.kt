@@ -39,7 +39,12 @@ object TestDb {
         db.conn { c ->
             c.createStatement().use {
                 it.execute(
-                    "TRUNCATE flags, reviews, price_reports, refresh_tokens, bars, users " +
+                    "TRUNCATE flags, reviews, price_reports, refresh_tokens, " +
+                        // Las del programa de puntos (V25) van explícitas y no por
+                        // cascada: `partner_bars` referencia a `bars` con RESTRICT, y
+                        // depender de que TRUNCATE lo ignore es depender de un detalle.
+                        "points_ledger, points_balance, redemptions, benefits, " +
+                        "ticket_claims, partner_staff, partner_bars, bars, users " +
                         "RESTART IDENTITY CASCADE"
                 )
             }
