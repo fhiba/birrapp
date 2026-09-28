@@ -4772,3 +4772,62 @@ Rutas, autenticación del portal del bar, la validación real contra ARCA —hoy
 `acreditar` recibe un ticket ya validado, a propósito: la validación es lenta y
 externa y no puede vivir adentro de la transacción que mueve el saldo— y las
 pantallas.
+
+## 2026-09-28 (cont.) — PoC del programa de puntos: rutas y pantallas
+
+### Parsear no es validar
+
+El QR de ARCA es un JSON en base64 dentro de una URL, así que decodificarlo lee
+lo que alguien escribió y nada más. `parsear` verifica la **forma** —dominio de
+ARCA o AFIP, CUIT de once dígitos, importe positivo, fecha real— y con eso hace
+dos cosas: da un error entendible ante un QR que no es un comprobante, y evita
+gastar una llamada a ARCA con algo que ni parece una factura.
+
+`TicketValidator` es la otra mitad. En la PoC corre `ValidadorDeJuguete`, que
+aprueba todo lo bien formado. El nombre es a propósito, y el arranque lo avisa
+con un `warn`: si alguna vez aparece en una config de producción, eso es lo que
+lo va a delatar.
+
+### El orden de `/loyalty/tickets`
+
+Parsear (no sale a la red) → constatar (el tercero) → acreditar (lo único
+transaccional).
+
+La validación va **antes** de abrir la transacción: sostenerla esperando a un
+tercero mantiene los locks tomados y, si ARCA cuelga, seca el pool. Y los puntos
+se acreditan **después** de la aprobación, nunca antes — el beneficio se canjea
+en cinco minutos y se toma, así que un rechazo posterior obligaría a quitar
+puntos ya gastados, y el saldo no puede ser negativo.
+
+Si ARCA no contesta, la respuesta es `arca_sin_respuesta` y no se acredita nada.
+
+### Dos públicos, y la separación está en el token
+
+`requirePartner` exige el claim `scope`, y —esto es la otra mitad— `caller()`
+**rechaza** los tokens que lo tienen. Sin ese segundo corte, la sesión de un
+mozo serviría para cargar precios y acumular puntos con una cuenta que el bar
+administra.
+
+El `partnerId` sale del token firmado y nunca del cuerpo: confirmar un canje,
+listar el personal y publicar un beneficio operan sobre el bar que viene
+firmado, así que no hay número que cambiar para alcanzar el bar de al lado.
+
+### El portal comparte el build y nada más
+
+Vive en `/portal`, con los mismos tokens de diseño y el mismo cliente HTTP. Lo
+que no comparte es la sesión: token propio en su propia clave de
+`localStorage`, porque el mozo en el celular del bar y el dueño con su cuenta de
+usuario abierta en la misma computadora no se pueden pisar. Y no lleva la barra
+de pestañas ni el "+": un mozo no tiene por qué caer en el mapa desde ahí.
+
+La pantalla del portal **es** el campo del código, con foco al entrar y sólo
+números. Lo demás vive detrás de solapas porque se usa una vez por semana.
+
+### Detalles que costaron
+
+- **`/loyalty/*` adentro de un KDoc rompe la compilación.** Kotlin anida los
+  comentarios de bloque, así que ese `/` con asterisco abre otro y el error no
+  dice dónde está.
+- El ticket **se pega, todavía no se escanea**. La cámara necesita una librería
+  de lectura de QR y es su propia tarea; pegar la URL ejercita exactamente el
+  mismo camino del servidor.

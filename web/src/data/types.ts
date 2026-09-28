@@ -494,3 +494,74 @@ export interface AreaStats {
   /** Precios del radio que quedaron afuera por estar en otra moneda. */
   otherCurrencies: number
 }
+
+// ---------------------------------------------------------------------------
+// Programa de puntos
+// ---------------------------------------------------------------------------
+
+export interface Saldo {
+  balance: number
+  /** Cuántos vencen en los próximos días, para poder avisar. */
+  venceEnBreve: number
+}
+
+export interface Beneficio {
+  id: number
+  partnerId: number
+  barId: number
+  barName: string
+  title: string
+  detail: string | null
+  costPoints: number
+  /** `null` = sin tope de stock. */
+  stock: number | null
+}
+
+export interface Acreditacion {
+  ok: boolean
+  puntos: number
+  saldo: number
+  /** Código estable del rechazo. La app lo traduce. */
+  motivo: string | null
+}
+
+export interface Canje {
+  redemptionId: number
+  code: string
+  expiresAt: string
+  benefitTitle: string
+  barName: string
+}
+
+export interface CanjeConfirmado {
+  redemptionId: number
+  benefitTitle: string
+  costPoints: number
+  userName: string
+}
+
+export interface CanjeDelBar {
+  id: number
+  benefitTitle: string
+  costPoints: number
+  status: string
+  userName: string
+  createdAt: string
+  redeemedAt: string | null
+  redeemedBy: string | null
+}
+
+export interface StaffPortal {
+  id: number
+  partnerId: number
+  barId: number
+  barName: string
+  email: string
+  displayName: string
+  role: string
+}
+
+export interface SesionPortal {
+  token: string
+  staff: StaffPortal
+}

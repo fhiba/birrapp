@@ -253,6 +253,11 @@ export function ProfileScreen({ user, onSession }: {
             pedir la lista entera para dibujar un número sería traerse todos
             los aportes de la persona cada vez que abre el perfil. */}
         <Row label={t('Profile.misComentarios')} onClick={() => nav('/mis-aportes/comentarios')} />
+        {/* Los puntos, arriba de todo lo informativo: es lo único de esta
+            lista que tiene un saldo que se mueve, así que es a lo que se va a
+            volver. El texto no se traduce todavía —el programa es sólo de
+            Argentina— y por eso va literal y no por `t()`. */}
+        <Row label="Mis puntos" onClick={() => nav('/puntos')} />
         {/* Arriba de "Cómo funcionan los precios" porque es lo que se va a
             mirar seguido, no una sola vez. */}
         <Row label={t('Profile.colaboradores')} onClick={() => nav('/colaboradores')} />
