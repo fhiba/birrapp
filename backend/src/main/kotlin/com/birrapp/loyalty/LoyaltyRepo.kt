@@ -70,6 +70,20 @@ data class CanjeDto(
     val barName: String,
 )
 
+/** Una fila del listado de canjes del bar, para conciliar contra el POS. */
+@Serializable
+data class CanjeDelBarDto(
+    val id: Long,
+    val benefitTitle: String,
+    val costPoints: Int,
+    val status: String,
+    val userName: String,
+    val createdAt: String,
+    val redeemedAt: String?,
+    /** Qué mozo lo confirmó. Null si todavía no se confirmó. */
+    val redeemedBy: String?,
+)
+
 /** Lo que ve el mozo al confirmar. */
 @Serializable
 data class CanjeConfirmadoDto(
@@ -424,6 +438,95 @@ class LoyaltyRepo(
                 title = rs.getString("title"), detail = rs.getString("detail"),
                 costPoints = rs.getInt("cost_points"),
                 stock = rs.getObject("stock")?.let { (it as Number).toInt() },
+            )
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // El portal del bar
+    // ---------------------------------------------------------------------
+
+    /**
+     * Los beneficios del bar, **incluidos los pausados y agotados**.
+     *
+     * Al contrario del catálogo público, que sólo muestra lo disponible: acá el
+     * dueño viene a administrar, y esconderle lo que pausó sería esconderle por
+     * qué no aparece en la app.
+     */
+    fun beneficiosDelBar(partnerId: Long): List<BeneficioDto> = db.conn { c ->
+        c.query(
+            """
+            SELECT b.id, b.partner_id, b.title, b.detail, b.cost_points, b.stock,
+                   p.bar_id, ba.name AS bar_name
+            FROM benefits b
+            JOIN partner_bars p ON p.id = b.partner_id
+            JOIN bars ba ON ba.id = p.bar_id
+            WHERE b.partner_id = ? AND b.status <> 'archived'
+            ORDER BY b.status, b.cost_points, b.id
+            """.trimIndent(),
+            partnerId,
+        ) { rs ->
+            BeneficioDto(
+                id = rs.getLong("id"), partnerId = rs.getLong("partner_id"),
+                barId = rs.getLong("bar_id"), barName = rs.getString("bar_name"),
+                title = rs.getString("title"), detail = rs.getString("detail"),
+                costPoints = rs.getInt("cost_points"),
+                stock = rs.getObject("stock")?.let { (it as Number).toInt() },
+            )
+        }
+    }
+
+    /**
+     * Publica un beneficio.
+     *
+     * Entra **activo** y no como borrador: el dueño lo está creando para que se
+     * vea, y un estado intermedio que hay que recordar activar es la forma más
+     * rápida de que un bar crea que publicó algo que no publicó.
+     */
+    fun crearBeneficio(
+        partnerId: Long, titulo: String, detalle: String?, costo: Int,
+        stock: Int?, topeDiario: Int?,
+    ): BeneficioDto = db.tx { c ->
+        val t = titulo.trim()
+        if (t.length < 3) badRequest("el título es demasiado corto")
+        if (t.length > 80) badRequest("el título es demasiado largo")
+        if (costo <= 0) badRequest("el costo en puntos tiene que ser mayor a cero")
+        if (stock != null && stock < 0) badRequest("el stock no puede ser negativo")
+        if (topeDiario != null && topeDiario <= 0) badRequest("el tope diario tiene que ser mayor a cero")
+
+        val id = c.queryOne(
+            "INSERT INTO benefits (partner_id, title, detail, cost_points, stock, daily_cap, status) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'active') RETURNING id",
+            partnerId, t, detalle?.trim()?.ifEmpty { null }, costo, stock, topeDiario,
+        ) { it.getLong("id") }!!
+
+        beneficiosDelBar(partnerId).first { it.id == id }
+    }
+
+    /** Los canjes del bar, lo más nuevo primero. */
+    fun canjesDelBar(partnerId: Long, limit: Int = 100): List<CanjeDelBarDto> = db.conn { c ->
+        c.query(
+            """
+            SELECT r.id, r.cost_points, r.status::text AS st, r.created_at, r.redeemed_at,
+                   b.title, coalesce(u.alias, u.display_name) AS quien,
+                   s.display_name AS mozo
+            FROM redemptions r
+            JOIN benefits b ON b.id = r.benefit_id
+            JOIN users u ON u.id = r.user_id
+            LEFT JOIN partner_staff s ON s.id = r.redeemed_by
+            WHERE r.partner_id = ?
+            ORDER BY r.created_at DESC, r.id DESC
+            LIMIT ?
+            """.trimIndent(),
+            partnerId, limit.coerceIn(1, 500),
+        ) { rs ->
+            CanjeDelBarDto(
+                id = rs.getLong("id"), benefitTitle = rs.getString("title"),
+                costPoints = rs.getInt("cost_points"), status = rs.getString("st"),
+                userName = rs.getString("quien"),
+                createdAt = rs.getTimestamp("created_at").toInstant().toString(),
+                redeemedAt = rs.getTimestamp("redeemed_at")?.toInstant()?.toString(),
+                redeemedBy = rs.getString("mozo"),
             )
         }
     }
