@@ -4831,3 +4831,76 @@ números. Lo demás vive detrás de solapas porque se usa una vez por semana.
 - El ticket **se pega, todavía no se escanea**. La cámara necesita una librería
   de lectura de QR y es su propia tarea; pegar la URL ejercita exactamente el
   mismo camino del servidor.
+
+## 2026-09-29 — v0.39.0: el fondo, tres colisiones de color y las transiciones
+
+### El fondo era el problema, no el azul
+
+Felipe: "el color principal de fondo no me convence, es extraño". Tenía razón y
+el motivo es concreto: `#1B0D17` es un negro **violáceo**, y el violeta compite
+con la rampa del dato —amarillo, ámbar, coral, todos cálidos— en vez de
+sostenerla. Dos familias cálidas distintas peleando, una de fondo y otra de
+datos.
+
+Pasa a `#17120F`: el mismo negro cálido sin el desvío al violeta. La pizarra
+sigue siendo pizarra y la tiza de colores sigue siendo lo único con color.
+
+**`--info` se queda azul**, aunque era el candidato obvio. El comentario del
+propio token ya tenía el argumento y es bueno: frío a propósito, porque un
+segundo acento cálido se confundiría con `--aging`, que es precio. Lo que
+chocaba era el violeta del fondo contra el azul, no el azul.
+
+### Siete nombres, cuatro colores
+
+La paleta tenía siete pares de tokens con el mismo hex. Tres eran conceptos
+**distintos** compartiendo tinta, y explican un bug que ya se había visto en el
+mapa: la cápsula del precio y el punto de frescura salían de la misma rampa, así
+que una cápsula naranja con punto amarillo se leía como una contradicción.
+
+- `--birra` se separa de `--aging`: una jarra dibujada no es un precio de treinta días.
+- `--nota` se separa de `--fresh`: la nota de una birra y la frescura de su precio conviven en la misma ficha.
+- `--favorito` se separa de `--danger`: un corazón no pesa lo mismo que un borrado.
+
+Los otros cuatro pares son alias a propósito y el código ya los explica.
+
+### El splash arrancaba de otro color
+
+`background_color` y `theme_color` decían `#0F1012`, el neutro frío de dos
+paletas atrás. La PWA instalada abría con un destello gris antes del fondo real,
+y la barra de estado del navegador quedaba de otro color que la app. No falla
+nada, y por eso sobrevivió a dos cambios de paleta. Ahora los tres salen del
+mismo valor.
+
+### Cambiar de pestaña ya no es un corte seco
+
+Era la interacción más frecuente de la app y la única con feedback cero: la
+pantalla entera se reemplazaba en un cuadro.
+
+Va con la **View Transitions API** del navegador y no con una librería —
+react-router 7 ya la prende con `viewTransition` en cada `NavLink`, y lo único
+que faltaba era decirle al navegador cómo se ven la vieja y la nueva. Donde no
+está soportada, la navegación pasa igual: es mejora progresiva.
+
+**La dirección importa.** Un atributo en el `<html>`, puesto antes de navegar
+comparando posiciones en la barra, hace que ir y volver no se vean igual. Una
+transición simétrica se lee como decoración; una que respeta el eje se lee como
+espacio. Y la barra de abajo se queda quieta con `view-transition-name`: es el
+marco, no el contenido.
+
+180 ms, porque lo que a la tercera vez es elegante a la trigésima es una espera.
+
+### El saldo cuenta
+
+Escaneás el ticket y el saldo pasa de 0 a 120. Es el instante de mayor carga
+emocional del programa y saltaba de golpe, o sea se perdía. `useContador` lo
+lleva con desaceleración, sólo cuando **ya había** un número —contar desde cero
+al entrar sería animar un dato que nadie cambió— y salta al final con "reducir
+movimiento" puesto.
+
+### Un bug que me hice y me encontré leyendo
+
+Puse `useContador` adentro de una rama del ternario de `user`: una llamada
+condicional a un hook. Al entrar o salir de la sesión, React se encuentra con
+otra cantidad de hooks que en el render anterior y rompe. No falla al
+escribirlo, y la pantalla anda mientras el usuario no cambie — por eso la regla
+existe y no alcanza el criterio. Quedó izado al tope del componente.
