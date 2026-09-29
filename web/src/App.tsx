@@ -30,6 +30,8 @@ import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
 import { PreferencesScreen } from './screens/Preferences'
 import { OnboardingScreen } from './screens/Onboarding'
+import { PuntosScreen } from './screens/Puntos'
+import { PortalScreen } from './screens/Portal'
 import { areaKey } from './screens/Nearby'
 import { prefetchCached } from './data/cached'
 import { PersonScreen } from './screens/Person'
@@ -385,6 +387,16 @@ function Shell() {
             onSession={() => setUser(api.currentUser())}
           />
         } />
+        <Route path="/puntos" element={<PuntosScreen user={user} />} />
+        {/*
+          El portal del bar.
+
+          Comparte el build y la paleta con la app, y nada más: su propia
+          sesión, su propio `scope` en el token, y sin la barra de pestañas ni
+          el "+" flotante —`showNav` no lo incluye—. Un mozo no tiene por qué
+          poder caer en el mapa desde acá.
+        */}
+        <Route path="/portal" element={<PortalScreen />} />
         <Route path="/info" element={<InfoScreen />} />
         {/* La política de privacidad tiene que ser alcanzable por URL sin
             cuenta y sin pasar por ningún menú: es lo que piden Play y App

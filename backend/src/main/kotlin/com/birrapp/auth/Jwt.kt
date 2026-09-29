@@ -34,4 +34,29 @@ class JwtService(private val cfg: Config) {
             .withClaim("email", user.email)
             .sign(algorithm)
     }
+
+    /**
+     * El token del portal del bar.
+     *
+     * Mismo secreto y mismo emisor que el de la app —es el mismo servidor— pero
+     * con `scope: "partner"`. Ese claim es lo único que separa a un mozo de una
+     * persona, y la separación corre para los dos lados: `requirePartner` exige
+     * que esté, y `callerOrNull` rechaza los tokens que lo tienen.
+     *
+     * Sin eso, la sesión de un mozo serviría para actuar como usuario —cargar
+     * precios, puntuar, acumular puntos— con una cuenta que el bar administra.
+     */
+    fun partnerToken(staffId: Long, partnerId: Long, role: String): String {
+        val now = System.currentTimeMillis()
+        return JWT.create()
+            .withSubject(staffId.toString())
+            .withIssuer(cfg.jwtIssuer)
+            .withAudience(cfg.jwtAudience)
+            .withIssuedAt(Date(now))
+            .withExpiresAt(Date(now + cfg.accessMinutes * 60_000))
+            .withClaim("scope", "partner")
+            .withClaim("partner", partnerId)
+            .withClaim("staffRole", role)
+            .sign(algorithm)
+    }
 }

@@ -1,6 +1,7 @@
 package com.birrapp
 
 import com.auth0.jwt.JWT
+import com.birrapp.loyalty.loyaltyRoutes
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
@@ -79,6 +80,31 @@ fun Application.module(cfg: Config, db: Db) {
     val photos = com.birrapp.photos.PhotoRepo(db, r2)
     val leaderboard = com.birrapp.community.LeaderboardRepo(db, r2)
     val contributions = com.birrapp.auth.ContributionRepo(db, r2)
+
+    // El programa de puntos. `LoyaltyProgram` junta las reglas económicas para
+    // que se puedan mover por entorno: staging corre con puntos que vencen en
+    // días para poder probar el vencimiento.
+    val program = com.birrapp.loyalty.LoyaltyProgram.fromEnv { System.getenv(it) }
+    // La pimienta del código de canje es el secreto del JWT: así no hace falta
+    // una variable más, y no tener la base no alcanza para leer códigos vivos.
+    val loyalty = com.birrapp.loyalty.LoyaltyRepo(db, program, cfg.jwtSecret)
+    val partners = com.birrapp.loyalty.PartnerAuthRepo(db)
+    /*
+     * El validador de tickets.
+     *
+     * Con `ValidadorDeJuguete` **cualquier QR bien formado acredita puntos**:
+     * está para poder probar el flujo entero sin depender del alta en ARCA, que
+     * es trámite y certificado.
+     *
+     * De ahí el nombre y de ahí este comentario: el día que haya
+     * implementación real, esto tiene que dejar de ser el default. Mientras
+     * tanto, el arranque lo avisa en el log.
+     */
+    val ticketValidator = com.birrapp.loyalty.ValidadorDeJuguete()
+    log.warn(
+        "Programa de puntos con validador de juguete: cualquier QR bien formado " +
+            "acredita. NO usar así en producción.",
+    )
 
     // Una sola definición del borrado en el bucket, compartida por la
     // moderación y por el borrado propio: son la misma operación.
@@ -234,6 +260,9 @@ fun Application.module(cfg: Config, db: Db) {
             // SQL, y esto es una llamada HTTP firmada contra Cloudflare.
             deletePhotoObject = deletePhotoObject,
         )
+    }
+    routing {
+        loyaltyRoutes(loyalty, partners, ticketValidator, jwt)
     }
     routing { downloadRoutes(java.io.File(cfg.apkDir)) }
     routing { webAppRoutes(java.io.File(cfg.webDir)) }

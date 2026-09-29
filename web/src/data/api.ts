@@ -1,5 +1,6 @@
 import type {
-  AreaStats, BarDetail, BarPin, BeerLog, BeerRank, BeerStyle, BeerSummary, Brand,
+  Acreditacion, AreaStats, BarDetail, BarPin, BeerLog, BeerRank, BeerStyle, BeerSummary,
+  Beneficio, Brand, Canje, CanjeConfirmado, CanjeDelBar, Saldo, SesionPortal, StaffPortal,
   DashboardAnalytics, DashboardSummary, DashboardUser, Flag, Person,
   ContributionKind, Leaderboard, ModeratedPhoto, ModerationSummary, MyContributions,
   MyRating, PendingBar, PendingBrand, PendingStyle, Photo, PriceAccepted,
@@ -168,7 +169,21 @@ async function refresh(): Promise<RefreshResult> {
 
 async function req<T>(
   method: string, path: string,
-  opts: { body?: unknown; auth?: boolean; params?: Record<string, string | number | undefined> } = {},
+  opts: {
+    body?: unknown
+    auth?: boolean
+    params?: Record<string, string | number | undefined>
+    /**
+     * Un token puesto a mano, para el portal del bar.
+     *
+     * No puede usar `auth: true`: ésa es la sesión de la persona, y son dos
+     * identidades distintas que pueden estar abiertas a la vez en el mismo
+     * navegador —el mozo usa el celular del bar, y el dueño puede tener su
+     * cuenta de usuario abierta en la misma computadora—. Mezclarlas haría que
+     * cerrar una cierre la otra.
+     */
+    bearer?: string
+  } = {},
 ): Promise<T> {
   const url = new URL(API_BASE + path, API_BASE || location.origin)
   Object.entries(opts.params ?? {}).forEach(([k, v]) => {
@@ -179,7 +194,9 @@ async function req<T>(
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...(opts.auth && session ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(opts.bearer
+        ? { Authorization: `Bearer ${opts.bearer}` }
+        : opts.auth && session ? { Authorization: `Bearer ${session.accessToken}` } : {}),
     },
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
   })
@@ -603,3 +620,79 @@ export const banUser = (id: number) =>
   req<unknown>('POST', `/moderation/users/${id}/ban`, { auth: true })
 export const unbanUser = (id: number) =>
   req<unknown>('POST', `/moderation/users/${id}/unban`, { auth: true })
+
+// ---------------------------------------------------------------------------
+// Programa de puntos
+// ---------------------------------------------------------------------------
+
+export const loyaltySaldo = () =>
+  req<Saldo>('GET', '/loyalty/saldo', { auth: true })
+
+/** Público: es la vidriera del programa y esconderla la deja sin público. */
+export const loyaltyBeneficios = () =>
+  req<Beneficio[]>('GET', '/loyalty/beneficios')
+
+export const loyaltyEscanear = (qr: string) =>
+  req<Acreditacion>('POST', '/loyalty/tickets', { body: { qr }, auth: true })
+
+export const loyaltyReservar = (benefitId: number) =>
+  req<Canje>('POST', '/loyalty/canjes', { body: { benefitId }, auth: true })
+
+// ---------------------------------------------------------------------------
+// Portal del bar
+//
+// Sesión aparte de la de la persona, con su propia clave en `localStorage`:
+// son dos identidades que pueden estar abiertas a la vez en el mismo
+// navegador. Ver el comentario de `bearer` en `req`.
+// ---------------------------------------------------------------------------
+
+const PORTAL_KEY = 'birrapp.portal'
+
+let portal: SesionPortal | null = (() => {
+  try { const raw = localStorage.getItem(PORTAL_KEY); return raw ? JSON.parse(raw) : null }
+  catch { return null }
+})()
+
+export const portalSesion = () => portal
+
+export function portalGuardar(s: SesionPortal | null) {
+  portal = s
+  try {
+    if (s) localStorage.setItem(PORTAL_KEY, JSON.stringify(s))
+    else localStorage.removeItem(PORTAL_KEY)
+  } catch { /* modo privado: la sesión dura lo que la pestaña */ }
+}
+
+export const portalLogin = async (email: string, password: string) => {
+  const s = await req<SesionPortal>('POST', '/partner/login', { body: { email, password } })
+  portalGuardar(s)
+  return s
+}
+
+/** Cada llamada del portal lleva SU token, nunca el de la persona. */
+const conPortal = <T>(
+  method: string, path: string, body?: unknown,
+): Promise<T> => {
+  const t = portal?.token
+  if (!t) return Promise.reject(new ApiError(401, 'La sesión del portal expiró'))
+  return req<T>(method, path, { body, bearer: t })
+}
+
+export const portalConfirmar = (code: string) =>
+  conPortal<CanjeConfirmado>('POST', '/partner/canjes/confirmar', { code })
+
+export const portalBeneficios = () =>
+  conPortal<Beneficio[]>('GET', '/partner/beneficios')
+
+export const portalCrearBeneficio = (b: {
+  title: string; detail?: string; costPoints: number; stock?: number
+}) => conPortal<Beneficio>('POST', '/partner/beneficios', b)
+
+export const portalCanjes = () =>
+  conPortal<CanjeDelBar[]>('GET', '/partner/canjes')
+
+export const portalStaff = () => conPortal<StaffPortal[]>('GET', '/partner/staff')
+
+export const portalCrearStaff = (b: {
+  email: string; password: string; displayName: string; role?: string
+}) => conPortal<StaffPortal>('POST', '/partner/staff', b)
