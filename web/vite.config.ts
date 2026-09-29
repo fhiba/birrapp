@@ -36,8 +36,19 @@ export default defineConfig({
         // standalone = sin barra del navegador cuando se agrega a la pantalla
         // de inicio. Es lo que la hace parecer una app en iOS.
         display: 'standalone',
-        background_color: '#0F1012',
-        theme_color: '#0F1012',
+        /*
+         * Tienen que ser `--base` de theme.css, y no lo eran.
+         *
+         * Decían `#0F1012`, el neutro frío de dos paletas atrás: el splash de
+         * la PWA instalada arrancaba de un color que la app ya no usa, así que
+         * cada apertura era un destello gris antes del fondo real. No falla
+         * nada, y por eso sobrevivió a dos cambios de paleta.
+         *
+         * Va escrito a mano porque el manifest se arma en tiempo de build y no
+         * puede leer una variable de CSS. Si `--base` cambia, esto cambia.
+         */
+        background_color: '#17120F',
+        theme_color: '#17120F',
         start_url: BASE,
         scope: BASE,
         id: BASE,

@@ -28,9 +28,22 @@
  * La novedad de esta paleta es `--info`: ver más abajo.
  */
 :root {
-  --base:     #1B0D17;
-  --raised:   #241321;
-  --elevated: #33202D;
+  /*
+   * El fondo: carbón cálido, no ciruela.
+   *
+   * Era `#1B0D17`, un negro violáceo. La idea era pizarra de bar, pero el
+   * violeta es un tinte que **compite** con la rampa del dato —amarillo,
+   * ámbar, coral, todos cálidos— en vez de sostenerla: dos familias cálidas
+   * distintas peleando, una de fondo y otra de datos.
+   *
+   * Éste es el mismo negro cálido sin el desvío al violeta. La pizarra sigue
+   * siendo pizarra, la tiza de colores sigue siendo lo único con color, y el
+   * ojo deja de leer el fondo como "un color" para leerlo como lo que es: el
+   * lugar donde pasan las cosas.
+   */
+  --base:     #17120F;
+  --raised:   #211A16;
+  --elevated: #2E2520;
   --hairline: rgba(255,255,255,.12);
 
   --acento:      #FFFDF4;
@@ -96,7 +109,20 @@
    * ámbar significa "este precio tiene entre 14 y 45 días", y un día que ese
    * umbral cambie de color, la birra no tiene por qué cambiar con él.
    */
-  --birra: #EE9A52;
+  /*
+   * Distinto de `--aging`, aunque nacieron iguales.
+   *
+   * Los dos valían `#EE9A52` y son cosas distintas: esto es la birra como
+   * dibujo —el ícono, la pinta— y `--aging` es un precio que está envejeciendo.
+   * Con el mismo hex, una jarra dibujada y un precio de treinta días se leían
+   * como la misma advertencia.
+   *
+   * Es el caso que apareció en el mapa: la cápsula del precio y el punto de
+   * frescura salían de la misma rampa, así que una cápsula naranja con punto
+   * amarillo se leía como una contradicción en vez de como dos datos. Separar
+   * los valores es la mitad del arreglo.
+   */
+  --birra: #E0B15C;
 
   /*
    * Favorito, y la nota.
@@ -129,9 +155,21 @@
    * la misma pantalla. Se dejan separados porque el día que vuelvan a ser dos
    * tonos, eso cuesta una línea y no una búsqueda por todo el código.
    */
-  --favorito: #EE6352;
+  /*
+   * Coral rosado, distinto del coral de peligro.
+   *
+   * Valían lo mismo, y no lo son: un favorito es tuyo, un peligro es algo que
+   * no se puede deshacer. Que un corazón y un botón de borrar compartan tinta
+   * hace que el corazón pese más de lo que debería.
+   */
+  --favorito: #F2637A;
   --favorito-soft: rgba(238,99,82,.16);
-  --nota: #FFFC9A;
+  /*
+   * Amarillo cálido de la puntuación, distinto del amarillo pálido de
+   * `--fresh`. Eran el mismo, y son dos ejes que conviven en la misma ficha:
+   * la nota de una birra y la frescura de su precio.
+   */
+  --nota: #FFE08A;
 
   /*
    * Las series del dashboard que no tienen significado propio.
@@ -958,3 +996,74 @@ a { color: var(--acento); }
 input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 textarea,
 select { font-size: var(--t-field); }
+
+/* ---------- Transiciones entre pantallas ----------
+ *
+ * Cambiar de pestaña era un corte seco: la pantalla entera se reemplazaba en un
+ * cuadro. Es la interacción más frecuente de la app y era la única sin ninguna
+ * respuesta — un cambio grande con feedback cero.
+ *
+ * Va con la View Transitions API del navegador, no con una librería: el router
+ * ya la prende (`viewTransition` en cada `NavLink`) y lo único que falta es
+ * decirle al navegador cómo se ven la vieja y la nueva. Donde no está
+ * soportada, la navegación pasa igual sin animar.
+ *
+ * **La dirección importa.** `data-nav` lo pone la barra antes de navegar
+ * comparando posiciones, así que ir a la derecha y volver no se ven igual. Una
+ * transición simétrica se lee como decoración; una que respeta el eje se lee
+ * como espacio, y eso es lo que hace que la barra se sienta un lugar y no
+ * cuatro pantallas sueltas.
+ *
+ * 180 ms y no más: esto se dispara decenas de veces por sesión, y lo que a la
+ * tercera vez es elegante a la trigésima es una espera.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* Sin el mezclado por defecto: las dos capas se cruzarían y en una app
+     oscura eso se ve como un parpadeo gris. */
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@keyframes vt-entra-derecha { from { transform: translateX(22px); opacity: 0 } }
+@keyframes vt-sale-izquierda { to   { transform: translateX(-22px); opacity: 0 } }
+@keyframes vt-entra-izquierda { from { transform: translateX(-22px); opacity: 0 } }
+@keyframes vt-sale-derecha   { to   { transform: translateX(22px); opacity: 0 } }
+
+html[data-nav='adelante']::view-transition-new(root) {
+  animation: vt-entra-derecha .18s cubic-bezier(.2, .7, .3, 1);
+}
+html[data-nav='adelante']::view-transition-old(root) {
+  animation: vt-sale-izquierda .18s cubic-bezier(.4, 0, .8, .4);
+}
+html[data-nav='atras']::view-transition-new(root) {
+  animation: vt-entra-izquierda .18s cubic-bezier(.2, .7, .3, 1);
+}
+html[data-nav='atras']::view-transition-old(root) {
+  animation: vt-sale-derecha .18s cubic-bezier(.4, 0, .8, .4);
+}
+
+/* Navegación que no es de la barra —abrir un bar, entrar a configuración—: sin
+   eje, porque no hay un orden que respetar. Un fundido corto y nada más. */
+html[data-nav='quieto']::view-transition-new(root),
+html:not([data-nav])::view-transition-new(root) {
+  animation: vt-fundido .14s ease-out;
+}
+@keyframes vt-fundido { from { opacity: 0 } }
+
+/* La barra de abajo NO viaja con la transición: es el marco, no el contenido.
+   Sin esto se desliza junto con la pantalla y el efecto se lee como que la app
+   entera se movió, que es lo contrario de lo que se quiere decir. */
+nav[aria-label] { view-transition-name: barra-abajo; }
+::view-transition-group(barra-abajo) { animation-duration: 0s; }
+
+/* Con "reducir movimiento" no hay deslizamiento: queda el fundido, que sigue
+   marcando el cambio sin desplazar nada. La regla global de más arriba aplasta
+   las duraciones, pero las View Transitions corren en su propio árbol y no las
+   alcanza, así que hay que decirlo acá. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: vt-fundido .01ms ease-out !important;
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { AddMenu, type AddAction } from './AddMenu'
 import { t } from '../i18n'
 
@@ -76,10 +76,42 @@ export function BottomNav({ onAdd }: {
    */
   onAdd: (a: AddAction) => void
 }) {
+  const route = useLocation()
+
+  /** El orden de la barra, para saber hacia qué lado va la transición. */
+  const ORDEN = ['/cerca', '/', '/lista', '/perfil']
+
   const tab = (to: string, label: string, icon: keyof typeof ICON) => (
     <NavLink
       to={to}
       end
+      /*
+       * `viewTransition` prende la View Transitions API del navegador para esta
+       * navegación (react-router 7). Sin esto, cambiar de pestaña es un corte
+       * seco: la pantalla entera se reemplaza en un cuadro, que es la
+       * interacción más frecuente de la app y la única sin ninguna respuesta.
+       *
+       * Donde no está soportada, el router navega igual y no pasa nada — es
+       * una mejora progresiva, no una dependencia.
+       */
+      viewTransition
+      /*
+       * La dirección se decide ANTES de navegar y viaja en un atributo del
+       * `<html>`, que es lo único que la CSS de la transición puede leer: las
+       * pseudo-clases de View Transitions viven en el documento, no en el
+       * componente.
+       *
+       * Sin esto la transición sería simétrica y "volver" se vería igual que
+       * "avanzar", que es justo lo que hace que una transición se sienta
+       * decorativa en vez de espacial.
+       */
+      onClick={() => {
+        const desde = ORDEN.indexOf(route.pathname)
+        const hasta = ORDEN.indexOf(to)
+        document.documentElement.dataset.nav =
+          desde < 0 || hasta < 0 || hasta === desde ? 'quieto'
+            : hasta > desde ? 'adelante' : 'atras'
+      }}
       // Sin `aria-label`: la etiqueta ahora es texto de verdad y alcanza como
       // nombre accesible. El atributo estaba porque las pestañas inactivas no
       // tenían texto; dejarlo puesto sería repetir la misma palabra dos veces

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as api from '../data/api'
 import * as fb from '../data/feedback'
+import { useContador } from '../data/contador'
 import type { Beneficio, Canje, Saldo, User } from '../data/types'
 import { Empty, SkeletonRows } from '../ui/Empty'
 import { Screen, SectionLabel, Tile } from '../ui/Kit'
@@ -42,6 +43,16 @@ export function PuntosScreen({ user }: { user: User | null }) {
   const [aviso, setAviso] = useState<string | null>(null)
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
+  /*
+   * Acá arriba y no en el JSX donde se usa.
+   *
+   * Allá quedaba adentro de una rama del ternario de `user`, o sea una llamada
+   * condicional a un hook: al entrar o salir de la sesión, React se encuentra
+   * con otra cantidad de hooks que en el render anterior y rompe. El error no
+   * aparece al escribirlo —la pantalla anda mientras el usuario no cambie— y
+   * por eso conviene la regla y no el criterio.
+   */
+  const balanceContado = useContador(saldo?.balance)
 
   const cargar = () => {
     api.loyaltyBeneficios().then(setBeneficios).catch(() => setBeneficios([]))
@@ -90,7 +101,9 @@ export function PuntosScreen({ user }: { user: User | null }) {
       ) : (
         <>
           <div style={{ display: 'flex', gap: 12 }}>
-            <Tile value={saldo?.balance} label="puntos" />
+            {/* El saldo cuenta hasta el valor nuevo: es el instante en que el
+                ticket se convierte en puntos, y saltando de golpe se pierde. */}
+            <Tile value={balanceContado} label="puntos" />
             {/* Sólo si hay algo por vencer: un cero acá sería un recordatorio
                 de nada, y el punto de este número es que apura. */}
             {saldo != null && saldo.venceEnBreve > 0 && (
