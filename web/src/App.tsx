@@ -30,6 +30,7 @@ import { MyBeersScreen } from './screens/MyBeers'
 import { SettingsScreen } from './screens/Settings'
 import { PreferencesScreen } from './screens/Preferences'
 import { OnboardingScreen } from './screens/Onboarding'
+import { ProbadorFondo } from './ui/ProbadorFondo'
 import { PuntosScreen } from './screens/Puntos'
 import { PortalScreen } from './screens/Portal'
 import { areaKey } from './screens/Nearby'
@@ -435,6 +436,10 @@ function Shell() {
           openToken={tourToken}
         />
       )}
+
+      {/* Temporal: sólo aparece con `?paleta` en la URL. Se borra cuando el
+          fondo esté elegido. Ver `ProbadorFondo`. */}
+      <ProbadorFondo />
 
       <OfflineBanner />
 
