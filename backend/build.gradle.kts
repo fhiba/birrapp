@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.flyway.core)
     runtimeOnly(libs.flyway.pg)
     implementation(libs.nimbus.jose)
+    implementation(libs.bouncycastle.pkix)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.ktor.server.testhost)

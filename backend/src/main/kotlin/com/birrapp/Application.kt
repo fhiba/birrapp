@@ -100,11 +100,20 @@ fun Application.module(cfg: Config, db: Db) {
      * implementación real, esto tiene que dejar de ser el default. Mientras
      * tanto, el arranque lo avisa en el log.
      */
-    val ticketValidator = com.birrapp.loyalty.ValidadorDeJuguete()
-    log.warn(
-        "Programa de puntos con validador de juguete: cualquier QR bien formado " +
-            "acredita. NO usar así en producción.",
-    )
+    val arca = com.birrapp.loyalty.ArcaConfig.fromEnv { System.getenv(it) }
+    val ticketValidator = if (arca != null) {
+        log.info(
+            "Constatación de tickets contra ARCA, ambiente {}.",
+            if (arca.esProduccion) "PRODUCCIÓN" else "homologación",
+        )
+        com.birrapp.loyalty.ArcaValidator(arca)
+    } else {
+        log.warn(
+            "Sin certificado de ARCA: validador de juguete. Cualquier QR bien " +
+                "formado acredita puntos. NO usar así en producción.",
+        )
+        com.birrapp.loyalty.ValidadorDeJuguete()
+    }
 
     // Una sola definición del borrado en el bucket, compartida por la
     // moderación y por el borrado propio: son la misma operación.

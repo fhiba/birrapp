@@ -4933,3 +4933,59 @@ cualquier basemap: las calles no son el dato.
 `fondoMapa` dejó de leerse una sola vez al montar. Ahora escucha un evento que
 dispara el probador; en producción no lo dispara nadie y se lee una vez, igual
 que antes.
+
+## 2026-09-30 — v0.40.0: la cámara y la pegada a ARCA
+
+Lo mínimo que la PoC necesita para ser real: leer el QR con la cámara y
+preguntarle a ARCA si el comprobante existe.
+
+### La cámara
+
+Dos lectores. `BarcodeDetector` cuando existe —está en Chrome de Android, lo
+resuelve el sistema y no baja nada— y **jsQR** cuando no. Safari de iOS no lo
+tiene, y iOS es justo donde más se va a usar esto: alguien parado en un bar con
+el ticket en la mano.
+
+jsQR y no una librería con WebAssembly: sólo hay que leer QR, son 40 KB contra
+unos 300 de wasm, y entra por `import()` dinámico así que quien nunca escanea no
+lo baja nunca.
+
+**El recuadro guía, no recorta.** Se analiza el cuadro entero. Recortar suena
+prolijo y es peor: el QR de un ticket es chico, la gente encuadra mal, y un
+lector que sólo mira el centro falla cuando el código está a un costado — con la
+cámara encendida y sin decir por qué.
+
+Sin permiso o sin HTTPS no se muestra un error y se cierra la puerta: se cae al
+campo de pegar el link, que es el mismo camino del servidor. La cámara es la
+forma cómoda, no la única.
+
+### ARCA
+
+**WSAA** es el portero: se le manda un pedido firmado con el certificado y
+devuelve token y firma por unas 12 horas. **WSCDC** dice si el comprobante
+existe. El token se cachea, y no sólo por lentitud: ARCA rechaza pedidos de
+acceso repetidos con el mismo rango, así que un cliente que no cachea empieza a
+fallar apenas hay dos escaneos seguidos.
+
+WSAA pide un **CMS `SignedData`** con el XML del pedido adentro. El JDK sabe
+firmar bytes pero no armar esa estructura — de ahí BouncyCastle, la única
+dependencia nueva.
+
+Tres decisiones que protegen plata:
+
+- **Sin certificado no configura, y devuelve null en vez de explotar.** Así el
+  resto del programa sigue andando con el validador de juguete, que es lo que
+  permite mirar la PoC mientras el trámite no termina.
+- **El ambiente por defecto es homologación**, y producción hay que pedirla
+  escrita exacta: un typo en la variable no puede mandarnos contra el ambiente
+  real. Hay test.
+- **Que ARCA no conteste devuelve `null`, y `null` no es aprobado.** Nunca se
+  acredita sin respuesta: el beneficio se canjea en cinco minutos y se toma, así
+  que la ventana entre acreditar y enterarse del rechazo es una pinta regalada.
+
+Los timeouts son cortos (6 s de conexión, 12 de lectura) porque esto corre
+mientras alguien mira la pantalla esperando sus puntos.
+
+**Lo que no se puede probar todavía**: el diálogo real. Necesita el certificado,
+que es trámite. Lo que sí está testeado es lo que decide si el sistema queda
+validando de verdad o con el de juguete — que es donde un error se paga.

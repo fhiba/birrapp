@@ -8,6 +8,8 @@ flyway     = "13.4.0"
 jjwt       = "0.12.6"
 nimbus     = "10.0.2"
 
+bouncycastle = "1.79"
+
 [libraries]
 ktor-server-core          = { module = "io.ktor:ktor-server-core-jvm",              version.ref = "ktor" }
 ktor-server-netty         = { module = "io.ktor:ktor-server-netty-jvm",             version.ref = "ktor" }
@@ -33,6 +35,10 @@ flyway-pg   = { module = "org.flywaydb:flyway-database-postgresql", version.ref 
 nimbus-jose = { module = "com.nimbusds:nimbus-jose-jwt",   version.ref = "nimbus" }
 
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+
+# Firma CMS/PKCS#7 para el login de ARCA (WSAA). El JDK sabe firmar, pero no
+# sabe armar un SignedData, que es lo que el servicio pide.
+bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 kotlin-jvm        = { id = "org.jetbrains.kotlin.jvm",           version.ref = "kotlin" }
