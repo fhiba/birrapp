@@ -248,3 +248,83 @@ export const MAP_STYLE_CON_CALLES: google.maps.MapTypeStyle[] = [
     stylers: [{ color: '#1B0D17' }, { weight: 3 }],
   },
 ]
+
+// ---------------------------------------------------------------------------
+// Retintar el mapa
+// ---------------------------------------------------------------------------
+
+/**
+ * La familia ciruela del estilo de arriba, del fondo a la autopista.
+ *
+ * Están acá porque son los únicos hex del estilo que dependen del fondo de la
+ * app. El agua y las etiquetas no entran: el agua es azul acero —el único
+ * elemento del mapa que es información estructural— y las etiquetas son grises
+ * elegidos por contraste. Los dos funcionan sobre cualquier oscuro.
+ */
+const RAMPA_CIRUELA = ['#1B0D17', '#26131F', '#251324', '#32202E', '#3E2839', '#4A3145']
+
+const aRgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
+const aHex = (c: number[]) =>
+  '#' + c.map(n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')).join('')
+
+/**
+ * El mismo mapa, con otro tinte.
+ *
+ * ## Por qué hacía falta
+ *
+ * El estilo se escribió con la paleta ciruela metida a mano. Cuando el fondo de
+ * la app cambió, el mapa se quedó donde estaba: quedaron **dos oscuros de tinte
+ * distinto uno al lado del otro**, que se ve peor que cualquiera de los dos
+ * solo. Y el mapa es la superficie más grande de la app, así que elegir un
+ * fondo sin poder mover el mapa es elegir a ciegas.
+ *
+ * ## Qué conserva y qué cambia
+ *
+ * **Conserva los escalones.** Cada tono de la rampa se reconstruye sumándole al
+ * fondo nuevo la misma distancia que tenía contra el fondo viejo, canal por
+ * canal. Así el orden local < genérica < arterial < autopista queda igual y la
+ * jerarquía de calles que el estilo ya tenía pensada no se toca — lo único que
+ * cambia es de qué color son.
+ *
+ * **No toca el agua ni las etiquetas.** El azul del río y los grises de los
+ * carteles se eligieron por contraste medido contra lo que tienen debajo, no
+ * por armonía con el fondo. Retintarlos rompería ratios que están calculados.
+ */
+export function retintar(
+  estilo: google.maps.MapTypeStyle[], base: string,
+): google.maps.MapTypeStyle[] {
+  if (base.toUpperCase() === RAMPA_CIRUELA[0]) return estilo
+
+  const luz = (c: number[]) => .299 * c[0] + .587 * c[1] + .114 * c[2]
+  const viejo = aRgb(RAMPA_CIRUELA[0])
+  const nuevo = aRgb(base)
+
+  /*
+   * El escalón se mide en LUZ y se aplica parejo a los tres canales.
+   *
+   * El primer intento guardaba la diferencia canal por canal, y eso arrastraba
+   * el tinte: la distancia del ciruela a su autopista tiene más azul que verde,
+   * así que sumársela a un fondo cálido devolvía calles violetas sobre un fondo
+   * marrón. Se conservaba el escalón y también el color que se quería sacar.
+   *
+   * Sumando parejo, el tono sale del fondo nuevo y nada más, y de paso cada
+   * escalón se dessatura un poco al aclararse — que es lo que hace cualquier
+   * basemap: las calles no son el dato, se tienen que ir apagando hacia el
+   * gris a medida que ganan peso.
+   */
+  const mapa = new Map(
+    RAMPA_CIRUELA.map(hex => {
+      const d = luz(aRgb(hex)) - luz(viejo)
+      return [hex.toUpperCase(), aHex(nuevo.map(c => c + d))]
+    }),
+  )
+
+  return estilo.map(regla => ({
+    ...regla,
+    stylers: regla.stylers?.map(s => {
+      const color = (s as { color?: string }).color
+      const reemplazo = color && mapa.get(color.toUpperCase())
+      return reemplazo ? { ...s, color: reemplazo } : s
+    }),
+  })) as google.maps.MapTypeStyle[]
+}

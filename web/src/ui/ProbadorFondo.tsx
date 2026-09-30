@@ -60,6 +60,17 @@ export function ProbadorFondo() {
     try { localStorage.setItem(CLAVE, String(elegido)) } catch { /* modo privado */ }
   }, [elegido, visible])
 
+  /*
+   * El mapa no lee tokens de CSS: Google recibe un JSON con hex adentro, así
+   * que hay que avisarle aparte. Sin esto, cambiar el fondo dejaba el mapa
+   * ciruela y lo que se comparaba no era el fondo sino el chrome alrededor de
+   * un mapa que no se movía — que es exactamente lo que hacía imposible
+   * elegir.
+   */
+  useEffect(() => {
+    if (visible) window.dispatchEvent(new Event('birrapp:paleta'))
+  }, [elegido, visible])
+
   if (!visible) return null
 
   return (
