@@ -4933,3 +4933,33 @@ cualquier basemap: las calles no son el dato.
 `fondoMapa` dejó de leerse una sola vez al montar. Ahora escucha un evento que
 dispara el probador; en producción no lo dispara nadie y se lee una vez, igual
 que antes.
+
+## 2026-09-29 (cont.) — v0.39.3: sembrar staging sin repartir credenciales
+
+`scripts/seed_osm.mjs` necesita la cadena de conexión de la base, y el entorno
+de pruebas corre en Neon: sembrarlo exigía tener esa credencial a mano. La
+siembra pasa a ser un endpoint del backend, que ya está conectado.
+
+**Dos candados, y el primero es el que vale.** La ruta sólo se registra si
+`SEED_DEMO` está en el entorno: en producción no está caída ni protegida,
+directamente **no existe**. Es la única defensa que no depende de que nadie se
+equivoque con un rol. El segundo es que pide admin, por si la variable aparece
+donde no debe.
+
+**Las edades de los precios van repartidas hasta 60 días, a propósito.** Con
+todo fresco, la mitad de la interfaz no se puede mirar: los colores de frescura,
+el aviso de precios viejos y el orden "más barata" —que ignora los vencidos— no
+tienen contra qué mostrarse. Un seed que sólo siembra datos lindos esconde justo
+lo que hay que revisar. Por lo mismo, uno de cada seis bares queda sin precio y
+sólo la mitad tiene nota.
+
+Los bares se reparten con `sqrt` del radio: sin eso la mitad cae en el 25% del
+área y el mapa se ve como un borrón en el centro con las afueras vacías.
+
+El primer bar entra al programa de puntos con dueño y tres beneficios — sin eso
+el portal no se puede abrir y el catálogo queda vacío, o sea media PoC no se
+puede mirar. La clave viaja **una sola vez, en la respuesta**.
+
+Borrar es por `?limpiar=1` y sólo alcanza lo sembrado: `osm_id` nulo y nombre
+con prefijo `[demo]`. Si alguna vez esto corre sobre una base con datos reales,
+no se los lleva puestos.

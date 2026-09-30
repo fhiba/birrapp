@@ -1,6 +1,10 @@
 package com.birrapp
 
 import com.auth0.jwt.JWT
+import io.ktor.server.auth.authenticate
+import io.ktor.server.routing.post
+import com.birrapp.auth.requireRole
+import com.birrapp.auth.caller
 import com.birrapp.loyalty.loyaltyRoutes
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.serialization.kotlinx.json.json
@@ -263,6 +267,29 @@ fun Application.module(cfg: Config, db: Db) {
     }
     routing {
         loyaltyRoutes(loyalty, partners, ticketValidator, jwt)
+    }
+
+    /*
+     * La siembra de datos de demo, y SÓLO si `SEED_DEMO` está en el entorno.
+     *
+     * No es una ruta protegida: es una ruta que en producción **no existe**.
+     * Es la única defensa que no depende de que nadie se equivoque con un rol
+     * o con una variable. Adentro además pide admin.
+     */
+    if (!System.getenv("SEED_DEMO").isNullOrBlank()) {
+        log.warn("SEED_DEMO activo: /moderation/semilla puede crear datos falsos.")
+        val semilla = com.birrapp.demo.SemillaRepo(db)
+        routing {
+            authenticate("jwt") {
+                post("/moderation/semilla") {
+                    call.requireRole(com.birrapp.auth.Role.admin)
+                    val caller = call.caller()
+                    if (call.request.queryParameters["limpiar"] == "1") semilla.limpiar()
+                    val n = call.request.queryParameters["bares"]?.toIntOrNull() ?: 60
+                    call.respond(semilla.sembrar(caller.userId, n))
+                }
+            }
+        }
     }
     routing { downloadRoutes(java.io.File(cfg.apkDir)) }
     routing { webAppRoutes(java.io.File(cfg.webDir)) }
