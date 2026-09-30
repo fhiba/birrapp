@@ -6,6 +6,7 @@ import { useContador } from '../data/contador'
 import type { Beneficio, Canje, Saldo, User } from '../data/types'
 import { Empty, SkeletonRows } from '../ui/Empty'
 import { Screen, SectionLabel, Tile } from '../ui/Kit'
+import { EscanerQR } from '../ui/EscanerQR'
 
 /** Qué decir por cada motivo de rechazo. El código viene del servidor. */
 const MOTIVOS: Record<string, string> = {
@@ -43,6 +44,8 @@ export function PuntosScreen({ user }: { user: User | null }) {
   const [aviso, setAviso] = useState<string | null>(null)
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
+  /** La cámara abierta. Es la forma normal de sumar; pegar el link es el respaldo. */
+  const [escaneando, setEscaneando] = useState(false)
   /*
    * Acá arriba y no en el JSX donde se usa.
    *
@@ -60,11 +63,11 @@ export function PuntosScreen({ user }: { user: User | null }) {
   }
   useEffect(cargar, [user])
 
-  const escanear = async () => {
-    if (!qr.trim()) return
+  const escanear = async (texto = qr) => {
+    if (!texto.trim()) return
     setBusy(true); setError(null); setAviso(null)
     try {
-      const r = await api.loyaltyEscanear(qr.trim())
+      const r = await api.loyaltyEscanear(texto.trim())
       fb.exito()
       setAviso(`Sumaste ${r.puntos} puntos.`)
       setQr('')
@@ -88,6 +91,13 @@ export function PuntosScreen({ user }: { user: User | null }) {
   }
 
   if (canje) return <CodigoEnPantalla canje={canje} onCerrar={() => { setCanje(null); cargar() }} />
+
+  if (escaneando) return (
+    <EscanerQR
+      onLeido={texto => { setEscaneando(false); void escanear(texto) }}
+      onCerrar={() => setEscaneando(false)}
+    />
+  )
 
   return (
     <Screen title="Puntos" onBack={() => nav(-1)}>
@@ -122,6 +132,26 @@ export function PuntosScreen({ user }: { user: User | null }) {
             Pedí la factura y pegá acá el link de su QR. Suma por el total del
             consumo, y cada comprobante vale una vez.
           </p>
+          {/* La cámara primero y el campo abajo: escanear es lo que se hace
+              parado en el bar con una mano, pegar un link es lo que se hace
+              cuando la cámara no anda. El orden dice cuál es cuál. */}
+          <button
+            onClick={() => setEscaneando(true)} disabled={busy} className="lbl cta"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--s-2)',
+              width: '100%', minHeight: 52, marginBottom: 'var(--s-3)',
+              borderRadius: 'var(--r-2)', fontSize: 'var(--t-4)',
+              background: 'var(--acento)', color: 'var(--base)',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+              <rect x="7" y="7" width="4" height="4" /><rect x="13" y="7" width="4" height="4" />
+              <rect x="7" y="13" width="4" height="4" /><rect x="13" y="13" width="4" height="4" />
+            </svg>
+            Escanear el ticket
+          </button>
+
           <div style={{ display: 'flex', gap: 'var(--s-2)' }}>
             <input
               value={qr} onChange={e => setQr(e.target.value)}
@@ -134,7 +164,7 @@ export function PuntosScreen({ user }: { user: User | null }) {
               }}
             />
             <button
-              onClick={escanear} disabled={busy || !qr.trim()} className="lbl cta"
+              onClick={() => escanear()} disabled={busy || !qr.trim()} className="lbl cta"
               style={{
                 padding: '0 var(--s-4)', minHeight: 46, borderRadius: 'var(--r-2)',
                 fontSize: 'var(--t-3)',
