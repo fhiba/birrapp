@@ -4904,3 +4904,32 @@ condicional a un hook. Al entrar o salir de la sesión, React se encuentra con
 otra cantidad de hooks que en el render anterior y rompe. No falla al
 escribirlo, y la pantalla anda mientras el usuario no cambie — por eso la regla
 existe y no alcanza el criterio. Quedó izado al tope del componente.
+
+## 2026-09-29 (cont.) — v0.39.2: el mapa también
+
+Felipe, sobre el probador: "no estás cambiando el fondo del mapa tampoco, que
+está color malbec". Tenía razón y explica por qué ninguno de los dos fondos
+convenció.
+
+**El mapa es la superficie más grande de la app**, y su estilo tenía la paleta
+ciruela escrita a mano: `#1B0D17` y cinco violetas más. Cambiar `--base` movía
+el chrome y dejaba el mapa donde estaba, así que quedaban **dos oscuros de tinte
+distinto uno al lado del otro** — peor que cualquiera de los dos solo. Elegir un
+fondo sin poder mover el mapa era elegir a ciegas.
+
+`retintar` reconstruye la rampa del mapa desde el fondo nuevo. Conserva los
+escalones —local < genérica < arterial < autopista— y no toca ni el agua ni las
+etiquetas: el azul del río y los grises de los carteles se eligieron por
+contraste medido contra lo que tienen debajo, no por armonía con el fondo.
+
+**El escalón se mide en luz, no canal por canal.** El primer intento guardaba la
+diferencia de cada canal, y eso arrastraba el tinte: la distancia del ciruela a
+su autopista tiene más azul que verde, así que sumársela a un fondo cálido
+devolvía calles violetas sobre fondo marrón. Se conservaba el escalón y también
+el color que se quería sacar. Sumando parejo, el tono sale del fondo nuevo y de
+nada más, y cada escalón se dessatura al aclararse — que es lo que hace
+cualquier basemap: las calles no son el dato.
+
+`fondoMapa` dejó de leerse una sola vez al montar. Ahora escucha un evento que
+dispara el probador; en producción no lo dispara nadie y se lee una vez, igual
+que antes.

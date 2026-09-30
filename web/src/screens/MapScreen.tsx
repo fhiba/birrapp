@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as fb from '../data/feedback'
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useNavigate } from 'react-router-dom'
@@ -8,7 +8,7 @@ import {
   FRESCO_DIAS, ageColor, formatPrice, formatRadius, priceColor, priceRanks,
 } from '../data/format'
 import { PintLoader } from '../ui/PintLoader'
-import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES } from '../mapStyle'
+import { CALLES_DESDE_ZOOM, MAP_STYLE, MAP_STYLE_CON_CALLES, retintar } from '../mapStyle'
 import { RatingFilter, StyleFilter } from '../ui/StyleFilter'
 import { BarPreview } from '../ui/BarPreview'
 import { t, tx } from '../i18n'
@@ -128,7 +128,25 @@ export function MapScreen(p: Props) {
    * `getComputedStyle` necesita el DOM montado, y una constante se evaluaría
    * al importar el módulo.
    */
-  const [fondoMapa] = useState(() => resolve('var(--base)'))
+  /*
+   * El fondo del mapa, y el tinte de sus teselas.
+   *
+   * Era `useState` sin setter, o sea leído una vez al montar: con eso, cambiar
+   * el fondo de la app dejaba el mapa donde estaba. Y como el mapa es la
+   * superficie más grande de la pantalla, el resultado era dos oscuros de
+   * tinte distinto uno al lado del otro — peor que cualquiera de los dos solo.
+   *
+   * Ahora se relee cuando la paleta cambia. El evento lo dispara el probador
+   * de fondos; en producción no lo dispara nadie y esto se lee una sola vez,
+   * igual que antes.
+   */
+  const [fondoMapa, setFondoMapa] = useState(() => resolve('var(--base)'))
+
+  useEffect(() => {
+    const releer = () => setFondoMapa(resolve('var(--base)'))
+    window.addEventListener('birrapp:paleta', releer)
+    return () => window.removeEventListener('birrapp:paleta', releer)
+  }, [])
 
   // El bar de la preview se guarda entero y no por id: la lista de bares se
   // recarga sola cada vez que se mueve la cámara —y la preview mueve la
@@ -145,10 +163,22 @@ export function MapScreen(p: Props) {
     p.onSimulate(pt)
   }, [p.onSimulate])
 
-  // Los nombres de calle aparecen recién de cerca. Dos arrays constantes: la
-  // identidad no cambia entre renders, así el mapa no se re-estila por nada.
-  const styles = (p.camera?.zoom ?? 0) >= CALLES_DESDE_ZOOM
-    ? MAP_STYLE_CON_CALLES : MAP_STYLE
+  /*
+   * Los nombres de calle aparecen recién de cerca, y el mapa se retinta con el
+   * fondo de la app.
+   *
+   * `useMemo` porque `retintar` arma un array nuevo: sin memo, la identidad
+   * cambiaría en cada render —y el mapa se redibuja con cada movimiento de
+   * cámara— así que Google re-estilaría las teselas decenas de veces por
+   * paneo. Con el memo, sólo cuando cambia el zoom de umbral o la paleta.
+   */
+  const styles = useMemo(
+    () => retintar(
+      (p.camera?.zoom ?? 0) >= CALLES_DESDE_ZOOM ? MAP_STYLE_CON_CALLES : MAP_STYLE,
+      fondoMapa,
+    ),
+    [(p.camera?.zoom ?? 0) >= CALLES_DESDE_ZOOM, fondoMapa],
+  )
 
   /*
    * Acá vivía el encabezado: el título "Mapa" y, debajo, el resumen de lo que
